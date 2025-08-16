@@ -20,9 +20,6 @@ import DialogsProvider from './hooks/useDialogs/DialogsProvider';
 import AppTheme from './shared-theme/AppTheme';
 
 
-
-
-
 const router = createHashRouter([
   {
     Component: DashboardLayout,
