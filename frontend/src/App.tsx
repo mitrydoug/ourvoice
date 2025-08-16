@@ -45,12 +45,12 @@ const themeComponents = {
 export default function App() {
     return (
         <AppTheme themeComponents={themeComponents}>
-        <CssBaseline enableColorScheme />
-        <NotificationsProvider>
-            <DialogsProvider>
-            <RouterProvider router={router} />
-            </DialogsProvider>
-        </NotificationsProvider>
+            <CssBaseline enableColorScheme />
+            <NotificationsProvider>
+                <DialogsProvider>
+                    <RouterProvider router={router} />
+                </DialogsProvider>
+            </NotificationsProvider>
         </AppTheme>
     );
 }
