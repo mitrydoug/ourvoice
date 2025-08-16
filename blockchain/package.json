@@ -1,0 +1,29 @@
+{
+  "name": "voiceboard-backend",
+  "version": "0.0.1",
+  "description": "Smart contracts for Voice Board DApp",
+  "homepage": "https://github.com/mitrydoug/voiceboard#readme",
+  "bugs": {
+    "url": "https://github.com/mitrydoug/voiceboard/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mitrydoug/voiceboard.git"
+  },
+  "license": "Apache-2.0",
+  "author": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "type": "module",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ignition": "^3.0.0",
+    "@nomicfoundation/hardhat-toolbox-viem": "^5.0.0",
+    "@types/node": "^22.17.2",
+    "forge-std": "github:foundry-rs/forge-std#v1.9.4",
+    "hardhat": "^3.0.0",
+    "typescript": "~5.8.0",
+    "viem": "^2.33.3"
+  }
+}
