@@ -1,0 +1,27 @@
+{
+  "name": "voiceboard-frontend",
+  "version": "0.0.1",
+  "description": "Web app for Voice Board DApp",
+  "keywords": [
+    "ethereum",
+    "eth-global",
+    "dapp",
+    "decentralized-social",
+    "governance",
+    "democracy"
+  ],
+  "homepage": "https://github.com/mitrydoug/voiceboard#readme",
+  "bugs": {
+    "url": "https://github.com/mitrydoug/voiceboard/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mitrydoug/voiceboard.git"
+  },
+  "license": "Apache-2.0",
+  "author": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
