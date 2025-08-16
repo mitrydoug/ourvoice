@@ -8,6 +8,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import { createHashRouter, RouterProvider } from 'react-router-dom';
 import DashboardLayout from './components/DashboardLayout';
 import EmployeeList from './components/EmployeeList';
+import Ranking from './components/Ranking';
 import {
   dataGridCustomizations,
   datePickersCustomizations,
@@ -20,21 +21,15 @@ import AppTheme from './shared-theme/AppTheme';
 
 
 
-const STATEMENTS = [
-    "Dogs are better than cats",
-    "We're not prepared for AI",
-    "The Earth is flat",
-    "Pineapple belongs on pizza",
-    "The best superhero is Batman",
-]
+
 
 const router = createHashRouter([
   {
     Component: DashboardLayout,
     children: [
       {
-        path: '/employees',
-        Component: EmployeeList,
+        Component: Ranking,
+        index: true,
       }
     ],
   },
