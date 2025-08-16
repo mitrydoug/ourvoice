@@ -50,7 +50,6 @@ export default function DashboardLayout() {
     <Box
       ref={layoutRef}
       sx={{
-        position: 'relative',
         display: 'flex',
         overflow: 'hidden',
         height: '100%',
@@ -58,7 +57,7 @@ export default function DashboardLayout() {
       }}
     >
       <DashboardHeader
-        logo={<SitemarkIcon />}
+        logo={<img src="PolyVoiceLogo.png"/>}
         title=""
         menuOpen={isNavigationExpanded}
         onToggleMenu={handleToggleHeaderMenu}
