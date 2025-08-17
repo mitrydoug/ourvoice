@@ -152,7 +152,7 @@ export default function DashboardSidebar({
             <DashboardSidebarHeaderItem>Profile</DashboardSidebarHeaderItem>
             <DashboardSidebarPageItem
               id="reports"
-              title="Reports"
+              title="Profile"
               icon={<BarChartIcon />}
               href="/reports"
               selected={!!matchPath('/reports', pathname)}
@@ -170,14 +170,14 @@ export default function DashboardSidebar({
                 >
                   <DashboardSidebarPageItem
                     id="sales"
-                    title="Sales"
+                    title="My Votes"
                     icon={<DescriptionIcon />}
                     href="/reports/sales"
                     selected={!!matchPath('/reports/sales', pathname)}
                   />
                   <DashboardSidebarPageItem
                     id="traffic"
-                    title="Traffic"
+                    title="My Statements"
                     icon={<DescriptionIcon />}
                     href="/reports/traffic"
                     selected={!!matchPath('/reports/traffic', pathname)}

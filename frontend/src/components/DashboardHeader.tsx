@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useContext, useState } from 'react';
 import { styled, useTheme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import MuiAppBar from '@mui/material/AppBar';
@@ -10,7 +10,11 @@ import MenuIcon from '@mui/icons-material/Menu';
 import MenuOpenIcon from '@mui/icons-material/MenuOpen';
 import Stack from '@mui/material/Stack';
 import { Link } from 'react-router';
-import ThemeSwitcher from './ThemeSwitcher';
+import Avatar from './Avatar';
+import Button from '@mui/material/Button';
+import Connect from './Connect';
+
+import AppContext from '../context/AppContext';
 
 const AppBar = styled(MuiAppBar)(({ theme }) => ({
   borderWidth: 0,
@@ -44,7 +48,9 @@ export default function DashboardHeader({
   menuOpen,
   onToggleMenu,
 }: DashboardHeaderProps) {
+
   const theme = useTheme();
+  const { wallet: { setConnectionRequest }} = useContext(AppContext);
 
   const handleMenuOpen = React.useCallback(() => {
     onToggleMenu(!menuOpen);
@@ -75,52 +81,58 @@ export default function DashboardHeader({
     [handleMenuOpen],
   );
 
+  
+
   return (
-    <AppBar color="inherit" position="absolute" sx={{ displayPrint: 'none' }}>
-      <Toolbar sx={{ backgroundColor: 'inherit', mx: { xs: -0.75, sm: -1 } }}>
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          alignItems="center"
-          sx={{
-            flexWrap: 'wrap',
-            width: '100%',
-          }}
-        >
-          <Stack direction="row" alignItems="center">
-            <Box sx={{ mr: 1 }}>{getMenuIcon(menuOpen)}</Box>
-            <Link to="/" style={{ textDecoration: 'none' }}>
-              <Stack direction="row" alignItems="center">
-                {logo ? <LogoContainer>{logo}</LogoContainer> : null}
-                {title ? (
-                  <Typography
-                    variant="h6"
-                    sx={{
-                      color: (theme.vars ?? theme).palette.primary.main,
-                      fontWeight: '700',
-                      ml: 1,
-                      whiteSpace: 'nowrap',
-                      lineHeight: 1,
-                    }}
-                  >
-                    {title}
-                  </Typography>
-                ) : null}
-              </Stack>
-            </Link>
-          </Stack>
+    <>
+      <AppBar color="inherit" position="absolute" sx={{ displayPrint: 'none' }}>
+        <Toolbar sx={{ backgroundColor: 'inherit', mx: { xs: -0.75, sm: -1 } }}>
           <Stack
             direction="row"
+            justifyContent="space-between"
             alignItems="center"
-            spacing={1}
-            sx={{ marginLeft: 'auto' }}
+            sx={{
+              flexWrap: 'wrap',
+              width: '100%',
+            }}
           >
             <Stack direction="row" alignItems="center">
-              <ThemeSwitcher />
+              <Box sx={{ mr: 1 }}>{getMenuIcon(menuOpen)}</Box>
+              <Link to="/" style={{ textDecoration: 'none' }}>
+                <Stack direction="row" alignItems="center">
+                  {logo ? <LogoContainer>{logo}</LogoContainer> : null}
+                  {title ? (
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        color: (theme.vars ?? theme).palette.primary.main,
+                        fontWeight: '700',
+                        ml: 1,
+                        whiteSpace: 'nowrap',
+                        lineHeight: 1,
+                      }}
+                    >
+                      {title}
+                    </Typography>
+                  ) : null}
+                </Stack>
+              </Link>
+            </Stack>
+            <Stack
+              direction="row"
+              alignItems="center"
+              spacing={1}
+              sx={{ marginLeft: 'auto' }}
+            >
+              <Stack direction="row" alignItems="center" spacing="0.5rem">
+                <Button variant="contained" onClick={ () => setConnectionRequest(true) }>Connect</Button>
+                <Avatar />
+              </Stack>
             </Stack>
           </Stack>
-        </Stack>
-      </Toolbar>
-    </AppBar>
+        </Toolbar>
+      </AppBar>
+      <Connect />
+    </>
   );
 }
