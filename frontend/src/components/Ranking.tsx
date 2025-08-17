@@ -1,44 +1,46 @@
 import React, { FC, useContext, useEffect, } from 'react';
-import PageContainer from './PageContainer';
 import Box from '@mui/material/Box';
 import List from '@mui/material/List';
 import ListItemButton from '@mui/material/ListItemButton';
-import ListItemAvatar from '@mui/material/ListItemAvatar';
-import ListItemText from '@mui/material/ListItemText';
 import Typography from '@mui/material/Typography';
 import AppContext from '../context/AppContext';
 import TextField from '@mui/material/TextField';
+import Button from '@mui/material/Button';
+import VoteToggle from './VoteToggle';
 
 interface Statement {
+    id: number;
     text: string;
     votes: number;
 }
-
-const STATEMENTS: Statement[] = [
-    { text: "Dogs are better than cats", votes: 23456 },
-    { text: "We're not prepared for AI", votes: 12345 },
-    { text: "The Earth is flat", votes: 9876 },
-    { text: "Pineapple belongs on pizza", votes: 8765 },
-    { text: "The best superhero is Batman", votes: 7654 },
-]
 
 interface RankingRowProps {
     index: number;
     text: string;
     votes: number;
+    userVotes: number;
+    onUserVoteChange: (newVoteCount: number) => void;
 }
 
-const RankingRow: FC<RankingRowProps> = ({ index, text, votes }) => {
+const submitStatement = async (polyVoice: any, text: string) => {
+    const tx = await polyVoice.addStatement(text);
+    console.log("Transaction submitted:", tx);
+};
+
+const RankingRow: FC<RankingRowProps> = ({ index, text, votes, userVotes, onUserVoteChange }) => {
     return (
         <Box sx={{ minHeight: 48, display: 'flex', width: "100%" }}>
             <Box sx={{ width: "2rem", height: "3rem", display: 'flex', flexDirection: "column" }}>
-                <Typography variant="h3">{index}</Typography>
+                <Typography variant="h3">{index+1}</Typography>
             </Box>
             <Box sx={{ width: "20rem", height: "3rem", display: 'flex', flexDirection: "column", paddingTop: "0.2rem" }}>
-                <Typography variant="subtitle1" sx={{ flexGrow: 1 }}>{text}</Typography>
+                <Typography variant="subtitle1">{text}</Typography>
             </Box>
-            <Box sx={{ width: "5rem", height: "3rem", display: 'flex', flexDirection: "column", paddingTop: "0.2rem" }}>
-                <Typography variant="subtitle2">{votes} votes</Typography>
+            <Box sx={{ width: "10rem", height: "3rem", display: 'flex', flexDirection: "column", paddingTop: "0.2rem" }}>
+                <Typography variant="subtitle1">{votes} votes</Typography>
+            </Box>
+            <Box sx={{ width: "10rem", height: "3rem", display: 'flex', flexDirection: "column", paddingTop: "0.2rem" }}>
+                <VoteToggle userVoteCount={userVotes} onUserVoteChange={onUserVoteChange}/>
             </Box>
         </Box>
     );
@@ -47,43 +49,72 @@ const RankingRow: FC<RankingRowProps> = ({ index, text, votes }) => {
 const Ranking = () => {
 
     const { polyVoice } = useContext(AppContext);
-    const [firstStatement, setFirstStatement] = React.useState<string | null>(null);
+    const [statements, setStatements] = React.useState<Statement[]>([]);
+    const [renderCount, setRenderCount] = React.useState(0);
 
-    console.log(polyVoice);
+    const [userVotes, setUserVotes] = React.useState<Map<number, number>>(new Map());
+
+    const [uncommittedUserVotes, setUncommittedUserVotes] = React.useState<Map<number, number>>(new Map());
+
 
     useEffect(() => {
         if (!polyVoice) return;
-        // if (firstStatement) return;
 
-        /*(async () => {
-            const tx = await polyVoice.addStatement("Pursue what your heart desires");
-        })();*/
+        (async () => {
+            //const what = await polyVoice.vote([[0, 1], [1, 5]]);
+            const userVotesMap = new Map<number, number>();
+            const userVoteSets = await polyVoice.getUserVoteSet();
+            userVoteSets.forEach((v, index) => {
+                userVotesMap.set(v.statementId, v.voteCount);
+            });
 
-        polyVoice.statements(0).then((statement) => {
-            console.log("First statement:", statement.text);
-            setFirstStatement(statement.text);
-        });
+
+            console.log("User vote count:", userVotesMap);
+            setUserVotes(userVotesMap);
+            setUncommittedUserVotes(userVotesMap);
+        })();
     }, [polyVoice]);
+
+
+    useEffect(() => {
+        if (!polyVoice) return;
+
+        (async () => {
+            const statementCount = await polyVoice.statementCount();
+            console.log("Statement count:", statementCount);
+
+            const statements: Statement[] = [];
+
+            for (let i = 0; i < statementCount; i++) {
+                const statement = await polyVoice.getRankedStatement(i);
+                statements.push({ id: statement.id, text: statement.text, votes: statement.voteCount });
+                console.log(statements);
+            }
+            setStatements(statements);
+            await new Promise(f => setTimeout(f, 1000));
+            setRenderCount(prev => prev + 1);
+        })();
+    }, [polyVoice, renderCount]);
 
     return (
         <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
             <Box sx={{ padding: "0.5rem", width: "100%", display: 'flex', flexDirection: "column" }}>
                 <TextField
-                    id="outlined-multiline-static"
+                    id="user-statement"
                     multiline
                     rows={2}
                     placeholder="What do you stand for?"
-                    variant="standard"/>
+                    variant="standard" />
+                <Button variant="outlined" onClick={() => {
+                    submitStatement(polyVoice, document.getElementById("user-statement").value);
+                }}>Submit</Button>
             </Box>
             <Box sx={{ flexGrow: 1 }}>
                 <List>
-                    {STATEMENTS.map(({ text, votes }, index) => {
-                        if (index === 0 && firstStatement) {
-                            text = firstStatement;
-                        }
+                    {statements.map(({ id, text, votes }, index) => {
                         return (
-                            <ListItemButton key={index}>
-                                <RankingRow index={index} text={text} votes={votes} />
+                            <ListItemButton key={index} sx={{ border: "1px solid lightgrey" }}>
+                                <RankingRow index={index} text={text} votes={votes} userVotes={uncommittedUserVotes.get(id)} onUserVoteChange={(v) => setUncommittedUserVotes((m) => { m.set(id, v); return m; } ) }/>
                             </ListItemButton>
                         );
                     })}

@@ -49,7 +49,7 @@ const Connect: FC<ConnectProps> = () => {
                 {!provider ?
                     <Typography variant="body1">No wallet detected. Please install (or enable) <a href="https://metamask.io">MetaMask</a>.</Typography> :
                     walletState === "not_connected" ? (
-                        <Button onClick={handleOk} style={{ width: "100%", height: "3rem" }}>
+                        <Button variant="contained" onClick={handleOk} style={{ width: "100%", height: "3rem" }}>
                             <img id="logo" style={{ maxHeight: "3rem" }} src={`${baseUrl}/MetaMask_Fox.svg`} />
                             Connect with MetaMask
                         </Button>
