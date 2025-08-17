@@ -138,7 +138,7 @@ const Ranking = () => {
                     {statements.map(({ id, text, votes }, index) => {
                         return (
                             <ListItemButton key={index} sx={{ border: "1px solid lightgrey" }}>
-                                <RankingRow index={index} text={text} votes={votes} userVotes={uncommittedUserVotes.get(Number(id))} onUserVoteChange={(v) => setUncommittedUserVotes((m) => {
+                                <RankingRow index={index} text={text} votes={votes} userVotes={uncommittedUserVotes.get(Number(id)) || 0} onUserVoteChange={(v) => setUncommittedUserVotes((m) => {
                                     let g = new Map(m);
                                     g.set(Number(id), v);
                                     const usedCredits = getUsedCredits(g);
