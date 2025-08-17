@@ -7,6 +7,8 @@ import AppContext from '../context/AppContext';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import VoteToggle from './VoteToggle';
+import LinearProgress from '@mui/material/LinearProgress';
+import Stack from '@mui/material/Stack';
 
 interface Statement {
     id: number;
@@ -22,10 +24,22 @@ interface RankingRowProps {
     onUserVoteChange: (newVoteCount: number) => void;
 }
 
+const USER_CREDIT_BUDGET = 100;
+
+const getUsedCredits = (uncommittedUserVotes: Map<number, number>) => {
+    return Array.from(uncommittedUserVotes.values()).reduce((acc, v) => acc + v * v, 0);
+};
+
 const submitStatement = async (polyVoice: any, text: string) => {
     const tx = await polyVoice.addStatement(text);
     console.log("Transaction submitted:", tx);
 };
+
+const submitVotes = async (polyVoice: any, userVotes: Map<number, number>) => {
+    const votesArray = Array.from(userVotes.entries()).map(([id, count]) => ({ statementId: id, voteCount: count }));
+    const tx = await polyVoice.vote(votesArray);
+    console.log("Votes submitted:", tx);
+}
 
 const RankingRow: FC<RankingRowProps> = ({ index, text, votes, userVotes, onUserVoteChange }) => {
     return (
@@ -65,7 +79,7 @@ const Ranking = () => {
             const userVotesMap = new Map<number, number>();
             const userVoteSets = await polyVoice.getUserVoteSet();
             userVoteSets.forEach((v, index) => {
-                userVotesMap.set(v.statementId, v.voteCount);
+                userVotesMap.set(Number(v.statementId), Number(v.voteCount));
             });
 
 
@@ -96,6 +110,8 @@ const Ranking = () => {
         })();
     }, [polyVoice, renderCount]);
 
+    const usedCredits = getUsedCredits(uncommittedUserVotes);
+
     return (
         <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
             <Box sx={{ padding: "0.5rem", width: "100%", display: 'flex', flexDirection: "column" }}>
@@ -105,16 +121,32 @@ const Ranking = () => {
                     rows={2}
                     placeholder="What do you stand for?"
                     variant="standard" />
-                <Button variant="outlined" onClick={() => {
-                    submitStatement(polyVoice, document.getElementById("user-statement").value);
-                }}>Submit</Button>
+                <Stack direction="row" spacing={1} sx={{ marginTop: "0.5rem" }}>
+                    <Button variant="outlined" onClick={() => {
+                        submitStatement(polyVoice, document.getElementById("user-statement").value);
+                    }}>Submit Statement</Button>
+                    <Button variant="outlined" disabled={userVotes == uncommittedUserVotes} onClick={() => {
+                        submitVotes(polyVoice, uncommittedUserVotes);
+                    }}>Submit Votes!</Button>
+                </Stack>
+            </Box>
+            <Box sx={{ width: '100%', padding: "0.5rem" }}>
+                <LinearProgress variant="determinate" value={(1 - usedCredits/USER_CREDIT_BUDGET)*100} />
             </Box>
             <Box sx={{ flexGrow: 1 }}>
                 <List>
                     {statements.map(({ id, text, votes }, index) => {
                         return (
                             <ListItemButton key={index} sx={{ border: "1px solid lightgrey" }}>
-                                <RankingRow index={index} text={text} votes={votes} userVotes={uncommittedUserVotes.get(id)} onUserVoteChange={(v) => setUncommittedUserVotes((m) => { m.set(id, v); return m; } ) }/>
+                                <RankingRow index={index} text={text} votes={votes} userVotes={uncommittedUserVotes.get(Number(id))} onUserVoteChange={(v) => setUncommittedUserVotes((m) => {
+                                    let g = new Map(m);
+                                    g.set(Number(id), v);
+                                    const usedCredits = getUsedCredits(g);
+                                    if (usedCredits > USER_CREDIT_BUDGET) {
+                                        return m;
+                                    }
+                                    return g;
+                                })}/>
                             </ListItemButton>
                         );
                     })}
