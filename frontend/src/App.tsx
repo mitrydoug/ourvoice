@@ -24,10 +24,11 @@ import AppContext from './context/AppContext';
 import { useWallet } from "./hooks/useWallet";
 import contractAddress from "./contracts/contract-address.json";
 import PolyVoice from "./contracts/PolyVoice.json";
+import Root from "./components/Root.tsx";
 
 const router = createHashRouter([
   {
-    Component: DashboardLayout,
+    Component: Root,
     children: [
       {
         Component: Ranking,
@@ -72,15 +73,15 @@ export default function App() {
   }, []);
 
   return (
-      <AppTheme themeComponents={themeComponents}>
-          <CssBaseline enableColorScheme />
-          <NotificationsProvider>
-              <AppContext.Provider value={{ polyVoice, wallet, connectionRequested, requestConnection }}>
-                <DialogsProvider>
-                    <RouterProvider router={router} />
-                </DialogsProvider>
-              </AppContext.Provider>
-          </NotificationsProvider>
-      </AppTheme>
+    <>
+      <CssBaseline enableColorScheme />
+      <NotificationsProvider>
+          <AppContext.Provider value={{ polyVoice, wallet, connectionRequested, requestConnection }}>
+            <DialogsProvider>
+                <RouterProvider router={router} />
+            </DialogsProvider>
+          </AppContext.Provider>
+      </NotificationsProvider>
+    </>
   );
 }
