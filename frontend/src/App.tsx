@@ -34,7 +34,7 @@ export default function App() {
   useEffect(() => {
       connect();
       console.log("Connecting to wallet...");
-  }, [isConnected, connectLoading, connectError, connect, 2, 3]);
+  }, [isConnected, connectLoading, connectError, connect, 2]);
 
   return (
       <RouterProvider router={router} />
