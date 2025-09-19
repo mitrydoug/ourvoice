@@ -1,159 +1,148 @@
-import React, { FC, useContext, useEffect, } from 'react';
-import Box from '@mui/material/Box';
-import List from '@mui/material/List';
-import ListItemButton from '@mui/material/ListItemButton';
-import Typography from '@mui/material/Typography';
-import AppContext from '../context/AppContext';
-import TextField from '@mui/material/TextField';
-import Button from '@mui/material/Button';
-import VoteToggle from './VoteToggle';
-import LinearProgress from '@mui/material/LinearProgress';
-import Stack from '@mui/material/Stack';
+import { Button, Card, CardContent, Stack, Typography, TextField } from "@mui/material";
+import React, { FC, useEffect, useState, } from "react";
+import { forumContractConfig } from "../contracts";
+import { useAccount, useReadContract, useWriteContract } from "wagmi";
+import VoteToggle from "./VoteToggle";
+
 
 interface Statement {
-    id: number;
+    id: BigInt;
     text: string;
-    votes: number;
+    voteCount: BigInt;
+    rank: BigInt;
+    timestamp: BigInt;
 }
 
-interface RankingRowProps {
-    index: number;
-    text: string;
-    votes: number;
-    userVotes: number;
-    onUserVoteChange: (newVoteCount: number) => void;
+const STATEMENTS = [
+    "The killing of Charlie Kirk is unjustifyable.",
+    "Help those in Gaza.",
+        "The killing of Charlie Kirk is unjustifyable.",
+    "Help those in Gaza.",
+        "The killing of Charlie Kirk is unjustifyable.",
+    "Help those in Gaza.",
+        "The killing of Charlie Kirk is unjustifyable.",
+    "Help those in Gaza.",
+];
+
+const createStatement = (statement: string, writeContract) => {
+    console.log("Creating statement...");
+    writeContract({
+        ...forumContractConfig,
+        functionName: 'addStatement',
+        args: [statement],
+    });
 }
 
-const USER_CREDIT_BUDGET = 100;
+const submitVotes = async (writeContract: any, userVotes: Map<number, number>) => {
+    const votesArray = Array.from(userVotes.entries()).map(([id, count]) => ({ statementId: id, voteCount: count }));
+    writeContract({
+        ...forumContractConfig,
+        functionName: 'vote',
+        args: [votesArray],
+    });
+}
 
 const getUsedCredits = (uncommittedUserVotes: Map<number, number>) => {
     return Array.from(uncommittedUserVotes.values()).reduce((acc, v) => acc + v * v, 0);
 };
 
-const submitStatement = async (polyVoice: any, text: string) => {
-    const tx = await polyVoice.addStatement(text);
-    console.log("Transaction submitted:", tx);
-};
+const USER_CREDIT_BUDGET = 100;
 
-const submitVotes = async (polyVoice: any, userVotes: Map<number, number>) => {
-    const votesArray = Array.from(userVotes.entries()).map(([id, count]) => ({ statementId: id, voteCount: count }));
-    const tx = await polyVoice.vote(votesArray);
-    console.log("Votes submitted:", tx);
-}
+const Ranking: FC = () => {
 
-const RankingRow: FC<RankingRowProps> = ({ index, text, votes, userVotes, onUserVoteChange }) => {
-    return (
-        <Box sx={{ minHeight: 48, display: 'flex', width: "100%" }}>
-            <Box sx={{ width: "2rem", height: "3rem", display: 'flex', flexDirection: "column" }}>
-                <Typography variant="h3">{index+1}</Typography>
-            </Box>
-            <Box sx={{ width: "20rem", height: "3rem", display: 'flex', flexDirection: "column", paddingTop: "0.2rem" }}>
-                <Typography variant="subtitle1">{text}</Typography>
-            </Box>
-            <Box sx={{ width: "10rem", height: "3rem", display: 'flex', flexDirection: "column", paddingTop: "0.2rem" }}>
-                <Typography variant="subtitle1">{votes} votes</Typography>
-            </Box>
-            <Box sx={{ width: "10rem", height: "3rem", display: 'flex', flexDirection: "column", paddingTop: "0.2rem" }}>
-                <VoteToggle userVoteCount={userVotes} onUserVoteChange={onUserVoteChange}/>
-            </Box>
-        </Box>
-    );
-};
-
-const Ranking = () => {
-
-    const { polyVoice } = useContext(AppContext);
+    const { address } = useAccount();
     const [statements, setStatements] = React.useState<Statement[]>([]);
     const [renderCount, setRenderCount] = React.useState(0);
-
+    const { writeContract } = useWriteContract();
+    const [text, setText] = useState("");
     const [userVotes, setUserVotes] = React.useState<Map<number, number>>(new Map());
-
     const [uncommittedUserVotes, setUncommittedUserVotes] = React.useState<Map<number, number>>(new Map());
 
 
-    useEffect(() => {
-        if (!polyVoice) return;
+    const { data: statementCount } = useReadContract({
+        ...forumContractConfig,
+        functionName: 'statementCount',
+        args: [],
+    })
+    console.log("Statement count:", statementCount);
 
-        (async () => {
-            //const what = await polyVoice.vote([[0, 1], [1, 5]]);
+    const { data: _statements } = useReadContract({
+        ...forumContractConfig,
+        functionName: 'getRankedStatementsRange',
+        args: [0n, statementCount || 0n],
+    });
+
+    console.log("Statements:", _statements);
+
+    useEffect(() => {
+        if (_statements) {
+            setStatements(_statements);
+        }
+    }, [statementCount, _statements]);
+
+    const { data: userVoteSets } = useReadContract({
+        ...forumContractConfig,
+        functionName: 'getUserVoteSet',
+        args: [],
+    });
+
+    useEffect(() => {
+        if (userVoteSets !== undefined) {
             const userVotesMap = new Map<number, number>();
-            const userVoteSets = await polyVoice.getUserVoteSet();
             userVoteSets.forEach((v, index) => {
                 userVotesMap.set(Number(v.statementId), Number(v.voteCount));
             });
-
-
-            console.log("User vote count:", userVotesMap);
             setUserVotes(userVotesMap);
             setUncommittedUserVotes(userVotesMap);
-        })();
-    }, [polyVoice]);
+        }
+    }, [userVoteSets]);
 
-
-    useEffect(() => {
-        if (!polyVoice) return;
-
-        (async () => {
-            const statementCount = await polyVoice.statementCount();
-            console.log("Statement count:", statementCount);
-
-            const statements: Statement[] = [];
-
-            for (let i = 0; i < statementCount; i++) {
-                const statement = await polyVoice.getRankedStatement(i);
-                statements.push({ id: statement.id, text: statement.text, votes: statement.voteCount });
-                console.log(statements);
-            }
-            setStatements(statements);
-            await new Promise(f => setTimeout(f, 1000));
-            setRenderCount(prev => prev + 1);
-        })();
-    }, [polyVoice, renderCount]);
-
-    const usedCredits = getUsedCredits(uncommittedUserVotes);
+    console.log("User vote count:", userVotes);
+    console.log("Uncommitted user vote count:", uncommittedUserVotes);
 
     return (
-        <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <Box sx={{ padding: "0.5rem", width: "100%", display: 'flex', flexDirection: "column" }}>
-                <TextField
-                    id="user-statement"
-                    multiline
-                    rows={2}
-                    placeholder="What do you stand for?"
-                    variant="standard" />
-                <Stack direction="row" spacing={1} sx={{ marginTop: "0.5rem" }}>
-                    <Button variant="outlined" onClick={() => {
-                        submitStatement(polyVoice, document.getElementById("user-statement").value);
-                    }}>Submit Statement</Button>
-                    <Button variant="outlined" disabled={userVotes == uncommittedUserVotes} onClick={() => {
-                        submitVotes(polyVoice, uncommittedUserVotes);
-                    }}>Submit Votes!</Button>
-                </Stack>
-            </Box>
-            <Box sx={{ width: '100%', padding: "0.5rem" }}>
-                <LinearProgress variant="determinate" value={(1 - usedCredits/USER_CREDIT_BUDGET)*100} />
-            </Box>
-            <Box sx={{ flexGrow: 1 }}>
-                <List>
-                    {statements.map(({ id, text, votes }, index) => {
-                        return (
-                            <ListItemButton key={index} sx={{ border: "1px solid lightgrey" }}>
-                                <RankingRow index={index} text={text} votes={votes} userVotes={uncommittedUserVotes.get(Number(id)) || 0} onUserVoteChange={(v) => setUncommittedUserVotes((m) => {
+        <>
+            <TextField
+                id="outlined-multiline-flexible"
+                label="Multiline"
+                multiline
+                maxRows={4}
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+            />
+            <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
+                <Button onClick={() => createStatement(text, writeContract)}>Create Statement</Button>
+                <Button onClick={() => {
+                        submitVotes(writeContract, uncommittedUserVotes);
+                    }}>Submit Votes</Button>
+            </Stack>
+            
+            <Typography variant="h4" component="div" gutterBottom>
+                Top Statements
+            </Typography>
+            {statements?.map((stmt, idx) => (
+                <Card key={`stmt-${idx}`}>
+                    <CardContent>
+                        <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
+                            <Typography variant="h5" component="div">
+                                {stmt.id} - {stmt.text} - {stmt.voteCount}
+                            </Typography>
+                            <Typography variant="h5" component="div">
+                                {stmt.voteCount}
+                            </Typography>
+                            <VoteToggle userVoteCount={uncommittedUserVotes.get(Number(stmt.id)) || 0} onUserVoteChange={(v) => setUncommittedUserVotes((m) => {
                                     let g = new Map(m);
-                                    g.set(Number(id), v);
+                                    g.set(Number(stmt.id), v);
                                     const usedCredits = getUsedCredits(g);
                                     if (usedCredits > USER_CREDIT_BUDGET) {
                                         return m;
                                     }
                                     return g;
                                 })}/>
-                            </ListItemButton>
-                        );
-                    })}
-                </List>
-            </Box>
-            { /* <iframe src="HTTPS://www.ililililili.com/pv-index" title="description"></iframe> */}
-        </Box>
+                        </Stack>
+                    </CardContent>
+                </Card>))}
+        </>
     );
 }
 

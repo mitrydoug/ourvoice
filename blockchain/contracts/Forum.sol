@@ -62,6 +62,21 @@ contract Forum {
         return statements[statementRankings[_rank]];
     }
 
+    function getRankedStatementsRange(
+        uint _start,
+        uint _end
+    ) external view returns (Statement[] memory) {
+        require(_start < statementCount, "Start is larger than statement count");
+        require(_end <= statementCount, "End is larger than statement count");
+        require(_start < _end, "Start must be less than end");
+
+        Statement[] memory rankedStatements = new Statement[](_end - _start);
+        for (uint i = _start; i < _end; i++) {
+            rankedStatements[i - _start] = statements[statementRankings[i]];
+        }
+        return rankedStatements;
+    }
+
     function rerankItem(uint _stmtId) internal {
         Statement memory statement = statements[_stmtId];
         uint _stmtRank = statement.rank;
@@ -172,4 +187,6 @@ contract Forum {
             userVoteSets[msg.sender].push(_voteSet[i]);
         }
     }
+
+    fallback() external {}
 }
