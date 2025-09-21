@@ -4,8 +4,6 @@ import { forumContractConfig } from "../contracts";
 import { useAccount, useReadContract, useWriteContract } from "wagmi";
 import VoteToggle from "./VoteToggle";
 
-import { abi } from '../deployment/Forum.json'
-import deployedAddresses from '../deployment/deployed_addresses.json'
 
 
 interface Statement {
@@ -28,7 +26,7 @@ const STATEMENTS = [
 ];
 
 const createStatement = (statement: string, writeContract) => {
-    console.log("Creating statement...");
+    //console.log("Creating statement...");
     writeContract({
         ...forumContractConfig,
         functionName: 'addStatement',
@@ -61,7 +59,7 @@ const Ranking: FC = () => {
     const [userVotes, setUserVotes] = React.useState<Map<number, number>>(new Map());
     const [uncommittedUserVotes, setUncommittedUserVotes] = React.useState<Map<number, number>>(new Map());
 
-    console.log(forumContractConfig)
+    //console.log(forumContractConfig)
 
     const { data: statementCount } = useReadContract({
         ...forumContractConfig,
@@ -101,26 +99,11 @@ const Ranking: FC = () => {
         }
     }, [userVoteSets]);
 
-    console.log("User vote count:", userVotes);
-    console.log("Uncommitted user vote count:", uncommittedUserVotes);
+    //console.log("User vote count:", userVotes);
+    //console.log("Uncommitted user vote count:", uncommittedUserVotes);
 
     return (
-        <>
-            <TextField
-                id="outlined-multiline-flexible"
-                label="Multiline"
-                multiline
-                maxRows={4}
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-            />
-            <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
-                <Button onClick={() => createStatement(text, writeContract)}>Create Statement</Button>
-                <Button onClick={() => {
-                        submitVotes(writeContract, uncommittedUserVotes);
-                    }}>Submit Votes</Button>
-            </Stack>
-            
+        <>  
             <Typography variant="h4" component="div" gutterBottom>
                 Top Statements
             </Typography>
