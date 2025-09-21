@@ -4,6 +4,9 @@ import { forumContractConfig } from "../contracts";
 import { useAccount, useReadContract, useWriteContract } from "wagmi";
 import VoteToggle from "./VoteToggle";
 
+import { abi } from '../deployment/Forum.json'
+import deployedAddresses from '../deployment/deployed_addresses.json'
+
 
 interface Statement {
     id: BigInt;
@@ -58,6 +61,7 @@ const Ranking: FC = () => {
     const [userVotes, setUserVotes] = React.useState<Map<number, number>>(new Map());
     const [uncommittedUserVotes, setUncommittedUserVotes] = React.useState<Map<number, number>>(new Map());
 
+    console.log(forumContractConfig)
 
     const { data: statementCount } = useReadContract({
         ...forumContractConfig,
@@ -68,8 +72,8 @@ const Ranking: FC = () => {
 
     const { data: _statements } = useReadContract({
         ...forumContractConfig,
-        functionName: 'getRankedStatementsRange',
-        args: [0n, statementCount || 0n],
+        functionName: 'getRankedStatementsPage',
+        args: [0n, 10n],
     });
 
     console.log("Statements:", _statements);
@@ -125,7 +129,7 @@ const Ranking: FC = () => {
                     <CardContent>
                         <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
                             <Typography variant="h5" component="div">
-                                {stmt.id} - {stmt.text} - {stmt.voteCount}
+                                {stmt.id + 1n} - {stmt.text}
                             </Typography>
                             <Typography variant="h5" component="div">
                                 {stmt.voteCount}

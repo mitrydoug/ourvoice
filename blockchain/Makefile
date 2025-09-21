@@ -1,7 +1,8 @@
 
 .PHONY: clean
 clean:
-	rm -r ignition/deployments
+	rm -r ignition/deployments/chain-31337
+	npx hardhat clean
 
 .PHONY: copy-deployment-files
 copy-deployment-files:
@@ -10,8 +11,12 @@ copy-deployment-files:
 
 .PHONY: deploy-only
 deploy-only:
-	npx hardhat ignition deploy ignition/modules/Forum.ts --network localhost
+	npx hardhat run scripts/deploy.ts --network localhost
+
+.PHONY: compile
+compile:
+	npx hardhat compile
 
 .PHONY: deploy
-deploy: clean deploy-only copy-deployment-files
+deploy: clean compile deploy-only copy-deployment-files
 	
