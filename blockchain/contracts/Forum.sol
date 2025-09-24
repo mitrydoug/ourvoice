@@ -62,17 +62,17 @@ contract Forum {
         return statements[statementRankings[_rank]];
     }
 
-    function getRankedStatementsRange(
+    function getRankedStatementsPage(
         uint _start,
-        uint _end
+        uint _limit
     ) external view returns (Statement[] memory) {
-        require(_start < statementCount, "Start is larger than statement count");
-        require(_end <= statementCount, "End is larger than statement count");
-        require(_start < _end, "Start must be less than end");
+        require(_start <= statementCount, "Start is larger than statement count");
 
-        Statement[] memory rankedStatements = new Statement[](_end - _start);
-        for (uint i = _start; i < _end; i++) {
-            rankedStatements[i - _start] = statements[statementRankings[i]];
+        uint _length = _start + _limit <= statementCount ? _limit : statementCount - _start;
+
+        Statement[] memory rankedStatements = new Statement[](_length);
+        for (uint i = 0; i < _length; i++) {
+            rankedStatements[i] = statements[statementRankings[_start + i]];
         }
         return rankedStatements;
     }

@@ -1,42 +1,48 @@
-import React, { FC, useCallback, useEffect, useState } from 'react';
-import { ethers } from 'ethers';
-import CssBaseline from '@mui/material/CssBaseline';
+import React, { FC, useEffect } from 'react';
+
 import { createHashRouter, RouterProvider } from 'react-router-dom';
-import Ranking from './components/Ranking';
+import Top from './components/Top.tsx';
 
-import { MetaMaskSDK, type SDKProvider } from "@metamask/sdk";
-
-import AppContext from './context/AppContext';
-import { useWallet } from "./hooks/useWallet";
-import contractAddress from "./contracts/contract-address.json";
-import PolyVoice from "./contracts/PolyVoice.json";
 import Root from "./components/Root.tsx";
-import { useAccount } from 'wagmi';
 import { useWeb3AuthConnect } from '@web3auth/modal/react';
+import MySupport from './components/MySupport.tsx';
+import { UserVoteProvider } from './context/UserVoteContext.tsx';
 
-const router = createHashRouter([
-  {
-    Component: Root,
-    children: [
-      {
-        Component: () => { return <Ranking />; },
-        index: true,
-      }
-    ],
-  },
-]);
 
-export default function App() {
+export const App: FC = () => {
 
-  const { connect, isConnected, connectorName, loading: connectLoading, error: connectError } = useWeb3AuthConnect();
+  const { connect, isConnected, loading: connectLoading, error: connectError } = useWeb3AuthConnect();
 
-  console.log("App rendered");
   useEffect(() => {
       connect();
       console.log("Connecting to wallet...");
   }, [isConnected, connectLoading, connectError, connect, 2]);
 
+  const router = createHashRouter([
+    {
+      Component: Root,
+      children: [
+        {
+          Component: Top,
+          index: true,
+        },
+        {
+          path: "/top",
+          Component: Top,
+        },
+        {
+          path: "/my-support",
+          Component: MySupport,
+        }
+      ],
+    },
+  ]);
+
   return (
+    <UserVoteProvider>
       <RouterProvider router={router} />
+    </UserVoteProvider>
   );
 }
+
+export default App;
