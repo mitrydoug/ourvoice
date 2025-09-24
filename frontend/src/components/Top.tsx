@@ -1,72 +1,25 @@
 import { Button, Card, CardContent, Stack, Typography, TextField } from "@mui/material";
-import React, { FC, useEffect, useState, } from "react";
+import { FC, useEffect, useState, } from "react";
 import { forumContractConfig } from "../contracts";
 import { useAccount, useReadContract, useWriteContract } from "wagmi";
 import VoteToggle from "./VoteToggle";
+import { useUserVotes } from "../context/UserVoteContext";
 
 
 
 interface Statement {
-    id: BigInt;
+    id: bigint;
     text: string;
-    voteCount: BigInt;
-    rank: BigInt;
-    timestamp: BigInt;
+    voteCount: bigint;
+    rank: bigint;
+    timestamp: bigint;
 }
 
-const STATEMENTS = [
-    "The killing of Charlie Kirk is unjustifyable.",
-    "Help those in Gaza.",
-        "The killing of Charlie Kirk is unjustifyable.",
-    "Help those in Gaza.",
-        "The killing of Charlie Kirk is unjustifyable.",
-    "Help those in Gaza.",
-        "The killing of Charlie Kirk is unjustifyable.",
-    "Help those in Gaza.",
-];
-
-const createStatement = (statement: string, writeContract) => {
-    //console.log("Creating statement...");
-    writeContract({
-        ...forumContractConfig,
-        functionName: 'addStatement',
-        args: [statement],
-    });
-}
-
-const submitVotes = async (writeContract: any, userVotes: Map<number, number>) => {
-    const votesArray = Array.from(userVotes.entries()).map(([id, count]) => ({ statementId: id, voteCount: count }));
-    writeContract({
-        ...forumContractConfig,
-        functionName: 'vote',
-        args: [votesArray],
-    });
-}
-
-const getUsedCredits = (uncommittedUserVotes: Map<number, number>) => {
-    return Array.from(uncommittedUserVotes.values()).reduce((acc, v) => acc + v * v, 0);
-};
-
-const USER_CREDIT_BUDGET = 100;
 
 const Ranking: FC = () => {
 
-    const { address } = useAccount();
-    const [statements, setStatements] = React.useState<Statement[]>([]);
-    const [renderCount, setRenderCount] = React.useState(0);
-    const { writeContract } = useWriteContract();
-    const [text, setText] = useState("");
-    const [userVotes, setUserVotes] = React.useState<Map<number, number>>(new Map());
-    const [uncommittedUserVotes, setUncommittedUserVotes] = React.useState<Map<number, number>>(new Map());
-
-    //console.log(forumContractConfig)
-
-    const { data: statementCount } = useReadContract({
-        ...forumContractConfig,
-        functionName: 'statementCount',
-        args: [],
-    })
-    console.log("Statement count:", statementCount);
+    const { state: { userVotes }, dispatch } = useUserVotes();
+    const [statements, setStatements] = useState<Statement[]>([]);
 
     const { data: _statements } = useReadContract({
         ...forumContractConfig,
@@ -74,33 +27,11 @@ const Ranking: FC = () => {
         args: [0n, 10n],
     });
 
-    console.log("Statements:", _statements);
-
     useEffect(() => {
         if (_statements) {
             setStatements(_statements);
         }
-    }, [statementCount, _statements]);
-
-    const { data: userVoteSets } = useReadContract({
-        ...forumContractConfig,
-        functionName: 'getUserVoteSet',
-        args: [],
-    });
-
-    useEffect(() => {
-        if (userVoteSets !== undefined) {
-            const userVotesMap = new Map<number, number>();
-            userVoteSets.forEach((v, index) => {
-                userVotesMap.set(Number(v.statementId), Number(v.voteCount));
-            });
-            setUserVotes(userVotesMap);
-            setUncommittedUserVotes(userVotesMap);
-        }
-    }, [userVoteSets]);
-
-    //console.log("User vote count:", userVotes);
-    //console.log("Uncommitted user vote count:", uncommittedUserVotes);
+    }, [_statements]);
 
     return (
         <>  
@@ -117,15 +48,7 @@ const Ranking: FC = () => {
                             <Typography variant="h5" component="div">
                                 {stmt.voteCount}
                             </Typography>
-                            <VoteToggle userVoteCount={uncommittedUserVotes.get(Number(stmt.id)) || 0} onUserVoteChange={(v) => setUncommittedUserVotes((m) => {
-                                    let g = new Map(m);
-                                    g.set(Number(stmt.id), v);
-                                    const usedCredits = getUsedCredits(g);
-                                    if (usedCredits > USER_CREDIT_BUDGET) {
-                                        return m;
-                                    }
-                                    return g;
-                                })}/>
+                            <VoteToggle userVoteCount={userVotes?.get(Number(stmt.id)) || 0} onUserVoteChange={(n) => dispatch({ type: "UPDATE_VOTE", payload: { statementId: stmt.id, newVoteCount: BigInt(n)}})} />
                         </Stack>
                     </CardContent>
                 </Card>))}

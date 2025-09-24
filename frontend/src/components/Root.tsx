@@ -1,14 +1,33 @@
-import React, { FC, useRef, useState } from "react";
+import React, { FC, useContext, useRef, useState } from "react";
 import AppBar from "./AppBar";
 import Box from "@mui/material/Box";
 import { Outlet } from "react-router-dom";
 import { Button, Container, Stack, Tab, Tabs, TextField, Toolbar } from "@mui/material";
 import NavTabs from "./NavTabs";
+import { useUserVotes } from "../context/UserVoteContext";
+import { useWriteContract } from "wagmi";
+import { forumContractConfig } from "../contracts";
+
+
 
 const Root : FC = () => {
 
     const [text, setText] = useState("");
     const layoutRef = useRef<HTMLDivElement>(null);
+    const { writeContract } = useWriteContract();
+
+    const { commitVotes } = useUserVotes();
+
+    const createStatement = async () => {
+        if (text.length > 0) {
+            await writeContract({
+                ...forumContractConfig,
+                functionName: 'addStatement',
+                args: [text],
+            });
+            setText("");
+        }
+    }
 
     return (
         <Box ref={layoutRef}>
@@ -24,10 +43,8 @@ const Root : FC = () => {
                     onChange={(e) => setText(e.target.value)}
                 />
                 <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
-                    <Button onClick={() => createStatement(text, writeContract)}>Create Statement</Button>
-                    <Button onClick={() => {
-                        submitVotes(writeContract, uncommittedUserVotes);
-                    }}>Submit Votes</Button>
+                    <Button onClick={() => createStatement()}>Create Statement</Button>
+                    <Button onClick={() => commitVotes()}>Submit Votes</Button>
                 </Stack>
                 <Outlet />
             </Container>
