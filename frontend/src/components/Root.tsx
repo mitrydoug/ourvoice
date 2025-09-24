@@ -1,4 +1,4 @@
-import React, { FC, useContext, useRef, useState } from "react";
+import React, { FC, useRef, useState } from "react";
 import AppBar from "./AppBar";
 import Box from "@mui/material/Box";
 import { Outlet } from "react-router-dom";
@@ -6,10 +6,7 @@ import {
   Button,
   Container,
   Stack,
-  Tab,
-  Tabs,
   TextField,
-  Toolbar,
 } from "@mui/material";
 import NavTabs from "./NavTabs";
 import { useUserVotes } from "../context/UserVoteContext";

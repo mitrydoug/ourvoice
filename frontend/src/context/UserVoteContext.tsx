@@ -48,7 +48,6 @@ const reducer = (
     case "UPDATE_VOTE": {
       const { statementId, newVoteCount } = action.payload;
       newUserVotes = new Map(state.userVotes);
-      const currentCount = newUserVotes.get(Number(statementId)) || 0;
       newUserVotes.set(Number(statementId), Number(newVoteCount));
       break;
     }
@@ -125,7 +124,7 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
         args: [votesArray],
       });
     }
-  }, [state.userVotes]);
+  }, [state.userVotes, writeContract]);
 
   return (
     <UserVoteContext.Provider value={{ state, dispatch, commitVotes }}>

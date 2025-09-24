@@ -4,22 +4,6 @@ import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import { useLocation, useNavigate } from "react-router-dom";
 
-const validLinkNavigation = (
-  event: React.MouseEvent<HTMLAnchorElement, MouseEvent>,
-) => {
-  if (
-    event.defaultPrevented ||
-    event.button !== 0 || // ignore everything but left-click
-    event.metaKey ||
-    event.ctrlKey ||
-    event.altKey ||
-    event.shiftKey
-  ) {
-    return false;
-  }
-  return true;
-};
-
 interface LinkTabProps {
   label: string;
   href: string;
