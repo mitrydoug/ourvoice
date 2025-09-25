@@ -1,5 +1,5 @@
 {
-  "name": "voiceboard-frontend",
+  "name": "ourvoice-frontend",
   "version": "0.0.1",
   "description": "Web app for Voice Board DApp",
   "keywords": [
@@ -10,13 +10,13 @@
     "governance",
     "democracy"
   ],
-  "homepage": "https://github.com/mitrydoug/voiceboard#readme",
+  "homepage": "https://github.com/mitrydoug/ourvoice#readme",
   "bugs": {
-    "url": "https://github.com/mitrydoug/voiceboard/issues"
+    "url": "https://github.com/mitrydoug/ourvoice/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mitrydoug/voiceboard.git"
+    "url": "git+https://github.com/mitrydoug/ourvoice.git"
   },
   "license": "Apache-2.0",
   "author": "",
