@@ -1,22 +1,25 @@
-import React, { FC, useEffect } from 'react';
+import React, { FC, useEffect } from "react";
 
-import { createHashRouter, RouterProvider } from 'react-router-dom';
-import Top from './components/Top.tsx';
+import { createHashRouter, RouterProvider } from "react-router-dom";
+import Top from "./components/Top.tsx";
 
 import Root from "./components/Root.tsx";
-import { useWeb3AuthConnect } from '@web3auth/modal/react';
-import MySupport from './components/MySupport.tsx';
-import { UserVoteProvider } from './context/UserVoteContext.tsx';
-
+import { useWeb3AuthConnect } from "@web3auth/modal/react";
+import MySupport from "./components/MySupport.tsx";
+import { UserVoteProvider } from "./context/UserVoteContext.tsx";
 
 export const App: FC = () => {
-
-  const { connect, isConnected, loading: connectLoading, error: connectError } = useWeb3AuthConnect();
+  const {
+    connect,
+    isConnected,
+    loading: connectLoading,
+    error: connectError,
+  } = useWeb3AuthConnect();
 
   useEffect(() => {
-      connect();
-      console.log("Connecting to wallet...");
-  }, [isConnected, connectLoading, connectError, connect, 2]);
+    connect();
+    console.log("Connecting to wallet...");
+  }, [isConnected, connectLoading, connectError, connect]);
 
   const router = createHashRouter([
     {
@@ -33,7 +36,7 @@ export const App: FC = () => {
         {
           path: "/my-support",
           Component: MySupport,
-        }
+        },
       ],
     },
   ]);
@@ -43,6 +46,6 @@ export const App: FC = () => {
       <RouterProvider router={router} />
     </UserVoteProvider>
   );
-}
+};
 
 export default App;

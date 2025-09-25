@@ -1,5 +1,5 @@
 {
-  "name": "voiceboard-frontend",
+  "name": "ourvoice-frontend",
   "version": "0.0.1",
   "description": "Web app for Voice Board DApp",
   "keywords": [
@@ -10,21 +10,24 @@
     "governance",
     "democracy"
   ],
-  "homepage": "https://github.com/mitrydoug/voiceboard#readme",
+  "homepage": "https://github.com/mitrydoug/ourvoice#readme",
   "bugs": {
-    "url": "https://github.com/mitrydoug/voiceboard/issues"
+    "url": "https://github.com/mitrydoug/ourvoice/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mitrydoug/voiceboard.git"
+    "url": "git+https://github.com/mitrydoug/ourvoice.git"
   },
   "license": "Apache-2.0",
   "author": "",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "vite",
-    "build": "vite build"
+    "build": "vite build",
+    "format": "prettier --write .",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -43,7 +46,20 @@
     "wagmi": "^2.16.9"
   },
   "devDependencies": {
+    "@tanstack/eslint-plugin-query": "^5.90.1",
+    "@typescript-eslint/eslint-plugin": "^8.44.1",
+    "@typescript-eslint/parser": "^8.44.1",
     "@vitejs/plugin-react": "^5.0.0",
+    "eslint": "^9.36.0",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-no-relative-import-paths": "^1.6.1",
+    "eslint-plugin-prettier": "^5.5.4",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.21",
+    "prettier": "3.6.2",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.44.1",
     "vite": "^7.1.2",
     "vite-plugin-node-polyfills": "^0.24.0"
   }

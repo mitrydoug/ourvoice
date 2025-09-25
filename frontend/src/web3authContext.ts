@@ -1,5 +1,9 @@
-import { type Web3AuthContextConfig } from '@web3auth/modal/react'
-import { CHAIN_NAMESPACES, WEB3AUTH_NETWORK, type Web3AuthOptions } from '@web3auth/modal'
+import { type Web3AuthContextConfig } from "@web3auth/modal/react";
+import {
+  CHAIN_NAMESPACES,
+  WEB3AUTH_NETWORK,
+  type Web3AuthOptions,
+} from "@web3auth/modal";
 
 const HardhatNetwork = {
   chainNamespace: CHAIN_NAMESPACES.EIP155,
@@ -14,14 +18,15 @@ const HardhatNetwork = {
 };
 
 const web3AuthOptions: Web3AuthOptions = {
-  clientId: 'BOVYZL_vjpqhKWkaub-_RpX3I_OqBNxQdxy5YbTXz59mQahcyMAWWA5uChhZCGRAuIbivb83zAAUeh3rWdJTUqs', // Get your Client ID from Web3Auth Dashboard
+  clientId:
+    "BOVYZL_vjpqhKWkaub-_RpX3I_OqBNxQdxy5YbTXz59mQahcyMAWWA5uChhZCGRAuIbivb83zAAUeh3rWdJTUqs", // Get your Client ID from Web3Auth Dashboard
   web3AuthNetwork: WEB3AUTH_NETWORK.SAPPHIRE_DEVNET,
   chains: [HardhatNetwork],
   defaultChainId: "0x7A69",
-}
+};
 
 const web3AuthContextConfig: Web3AuthContextConfig = {
   web3AuthOptions,
-}
+};
 
-export default web3AuthContextConfig
+export default web3AuthContextConfig;
