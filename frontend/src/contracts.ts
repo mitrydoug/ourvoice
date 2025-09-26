@@ -186,6 +186,52 @@ export const forumContractConfig = {
       type: "function",
     },
     {
+      inputs: [
+        {
+          internalType: "uint256[]",
+          name: "_statementIds",
+          type: "uint256[]",
+        },
+      ],
+      name: "getStatementsById",
+      outputs: [
+        {
+          components: [
+            {
+              internalType: "uint256",
+              name: "id",
+              type: "uint256",
+            },
+            {
+              internalType: "string",
+              name: "text",
+              type: "string",
+            },
+            {
+              internalType: "uint256",
+              name: "voteCount",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "rank",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "timestamp",
+              type: "uint256",
+            },
+          ],
+          internalType: "struct Forum.Statement[]",
+          name: "",
+          type: "tuple[]",
+        },
+      ],
+      stateMutability: "view",
+      type: "function",
+    },
+    {
       inputs: [],
       name: "getUserVoteSet",
       outputs: [

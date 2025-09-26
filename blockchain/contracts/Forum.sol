@@ -77,6 +77,18 @@ contract Forum {
         return rankedStatements;
     }
 
+    function getStatementsById(
+        uint[] calldata _statementIds
+    ) external view returns (Statement[] memory) {
+        Statement[] memory stmts = new Statement[](_statementIds.length);
+        for (uint i = 0; i < _statementIds.length; i++) {
+            uint stmtId = _statementIds[i];
+            require(stmtId < statementCount, "Invalid statement ID");
+            stmts[i] = statements[stmtId];
+        }
+        return stmts;
+    }
+
     function rerankItem(uint _stmtId) internal {
         Statement memory statement = statements[_stmtId];
         uint _stmtRank = statement.rank;

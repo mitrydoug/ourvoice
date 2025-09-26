@@ -2,14 +2,9 @@ import React, { FC, useRef, useState } from "react";
 import AppBar from "./AppBar";
 import Box from "@mui/material/Box";
 import { Outlet } from "react-router-dom";
-import {
-  Button,
-  Container,
-  Stack,
-  TextField,
-} from "@mui/material";
+import { Button, Container, Stack, TextField } from "@mui/material";
 import NavTabs from "./NavTabs";
-import { useUserVotes } from "../context/UserVoteContext";
+import { useUserVotes } from "../state/UserVotes";
 import { useWriteContract } from "wagmi";
 import { forumContractConfig } from "../contracts";
 
