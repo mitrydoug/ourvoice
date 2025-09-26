@@ -33,9 +33,6 @@ const Ranking: FC = () => {
 
   return (
     <>
-      <Typography variant="h4" component="div" gutterBottom>
-        Top Statements
-      </Typography>
       {statementsPage?.map((stmt, idx) => (
         <Card key={`stmt-${idx}`}>
           <CardContent>

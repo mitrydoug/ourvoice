@@ -28,11 +28,17 @@ const Root: FC = () => {
 
   return (
     <Box ref={layoutRef}>
-      <AppBar />
       <Container
         component="main"
-        maxWidth="md"
-        sx={{ display: "flex", flexDirection: "column", my: 16, gap: 4 }}
+        maxWidth="sm"
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 4,
+          borderLeft: "1px solid black",
+          borderRight: "1px solid black",
+          minHeight: "100vh",
+        }}
       >
         <NavTabs
           tabs={[
@@ -40,15 +46,7 @@ const Root: FC = () => {
             { label: "My Support", href: "/my-support" },
           ]}
         />
-        <TextField
-          id="outlined-multiline-flexible"
-          label="Multiline"
-          multiline
-          maxRows={4}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-        />
-        <Stack
+        {/*<Stack
           direction="row"
           spacing={2}
           alignItems="center"
@@ -56,7 +54,7 @@ const Root: FC = () => {
         >
           <Button onClick={() => createStatement()}>Create Statement</Button>
           <Button onClick={() => commitVotes()}>Submit Votes</Button>
-        </Stack>
+        </Stack>*/}
         <Outlet />
       </Container>
     </Box>

@@ -41,9 +41,6 @@ const MySupport: FC = () => {
 
   return (
     <>
-      <Typography variant="h4" component="div" gutterBottom>
-        My Supported Statements
-      </Typography>
       {myStatements?.map((stmt, idx) => (
         <Card key={`stmt-${idx}`}>
           <CardContent>

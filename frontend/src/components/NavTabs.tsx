@@ -36,7 +36,7 @@ const NavTabs: FC<NavTabsProps> = ({ tabs }) => {
   console.log("Current path:", location.pathname, "Value:", value);
 
   return (
-    <Box sx={{ width: "100%" }}>
+    <Box sx={{ width: "100%", borderBottom: 1, borderColor: "divider" }}>
       <Tabs role="navigation" value={value !== -1 ? value : false}>
         {tabs.map((tab, index) => (
           <LinkTab
