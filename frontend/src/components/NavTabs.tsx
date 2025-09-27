@@ -21,6 +21,7 @@ const LinkTab: FC<LinkTabProps> = ({ label, href, selected }) => {
       }}
       aria-current={selected && "page"}
       label={label}
+      sx={{ flexGrow: 1 }}
     />
   );
 };

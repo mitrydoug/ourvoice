@@ -1,5 +1,5 @@
 import { Card, CardContent, Stack, Typography } from "@mui/material";
-import React, { FC, useEffect, useState } from "react";
+import React, { FC } from "react";
 import { forumContractConfig } from "../contracts";
 import { useReadContract } from "wagmi";
 import VoteToggle from "./VoteToggle";
