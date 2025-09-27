@@ -7,7 +7,7 @@ import React, {
   useReducer,
 } from "react";
 import { forumContractConfig } from "../contracts";
-import { useReadContract, useWriteContract } from "wagmi";
+import { useAccount, useReadContract, useWriteContract } from "wagmi";
 
 const USER_CREDIT_BUDGET = 100;
 
@@ -91,12 +91,17 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
 }) => {
   const [state, dispatch] = useReducer(reducer, { error: null });
   const { writeContract } = useWriteContract();
+  const { address } = useAccount();
+  console.log("UserVoteProvider for address: ", address);
 
   const { data: _votes } = useReadContract({
     ...forumContractConfig,
+    account: address,
     functionName: "getUserVoteSet",
     args: [],
   });
+
+  console.log("Fetched user votes from contract: ", _votes);
 
   useEffect(() => {
     // Load initial state from blockchain
@@ -107,7 +112,7 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
       });
     }
     dispatch({ type: "SET_VOTES", payload: { userVotes: votesMap } });
-  }, [_votes]);
+  }, [_votes, address]);
 
   const commitVotes = useCallback(async () => {
     if (state.userVotes) {
