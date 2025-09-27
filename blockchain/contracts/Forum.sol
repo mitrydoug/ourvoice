@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.28;
 
-//       v     v       v
-// 20 10 2 2 2 1 1 1 1 0 0 0 0 0
 
 contract Forum {
     uint public constant MAX_STATEMENT_LENGTH = 120;
@@ -10,13 +8,13 @@ contract Forum {
 
     struct Vote {
         uint statementId;
-        uint voteCount;
+        int voteCount;
     }
 
     struct Statement {
         uint id;
         string text;
-        uint voteCount;
+        int voteCount;
         uint rank;
         uint timestamp;
     }
@@ -29,12 +27,12 @@ contract Forum {
     // vote count -> rank
     // uint[10] internal firstPerVoteCount;
 
-    mapping(address => mapping(uint => uint)) public userVotes;
+    mapping(address => mapping(uint => int)) public userVotes;
     mapping(address => Vote[]) public userVoteSets;
     mapping(address => uint) public userUsedCredits;
 
-    event UserVote(address indexed user, string action, uint count);
-    event StatementVote(uint indexed id, uint voteCount);
+    event UserVote(address indexed user, string action, int count);
+    event StatementVote(uint indexed id, int voteCount);
 
     function addStatement(string calldata _statement) external {
         require(
@@ -52,6 +50,7 @@ contract Forum {
             timestamp: block.timestamp
         });
         statementRankings.push(statementCount);
+        rerankItem(statementCount);
         statementCount++;
     }
 
@@ -92,12 +91,12 @@ contract Forum {
     function rerankItem(uint _stmtId) internal {
         Statement memory statement = statements[_stmtId];
         uint _stmtRank = statement.rank;
-        uint _voteCount = statement.voteCount;
+        int _voteCount = statement.voteCount;
 
         while (true) {
             // check if we should bubble up
             if (_stmtRank > 0) {
-                uint _prevVoteCount = statements[
+                int _prevVoteCount = statements[
                     statementRankings[_stmtRank - 1]
                 ].voteCount;
                 if (_voteCount > _prevVoteCount) {
@@ -112,8 +111,8 @@ contract Forum {
                 }
             }
             // check if we should bubble down
-            if (_stmtRank < statementCount - 1) {
-                uint _succVoteCount = statements[
+            if (_stmtRank + 1 < statementCount) {
+                int _succVoteCount = statements[
                     statementRankings[_stmtRank + 1]
                 ].voteCount;
                 if (_voteCount < _succVoteCount) {
@@ -146,25 +145,15 @@ contract Forum {
             Vote memory _vote = _voteSet[i];
             require(_vote.statementId < statementCount, "Invalid statement ID");
 
-            uint _currentVote = userVotes[msg.sender][_vote.statementId];
+            int _currentVote = userVotes[msg.sender][_vote.statementId];
 
             if (_currentVote == _vote.voteCount) {
                 continue;
             }
 
-            // keep track of the credit difference
-            // (0, 1, true)
-            (uint smaller, uint larger, bool isRebate) = _currentVote <
-                _vote.voteCount
-                ? (_currentVote, _vote.voteCount, false)
-                : (_vote.voteCount, _currentVote, true);
-            uint absoluteDifference = larger * larger - smaller * smaller;
-
-            if (isRebate) {
-                _creditCost -= int(absoluteDifference);
-            } else {
-                _creditCost += int(absoluteDifference);
-            }
+            int _currentCost = _currentVote * _currentVote;
+            int _newCost = _vote.voteCount * _vote.voteCount;
+            _creditCost += _newCost - _currentCost;
 
             userVotes[msg.sender][_vote.statementId] = _vote.voteCount;
 
