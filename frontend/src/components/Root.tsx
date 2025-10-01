@@ -1,7 +1,15 @@
 import React, { FC, useEffect, useRef, useState } from "react";
 import Box from "@mui/material/Box";
 import { Outlet, useNavigate } from "react-router-dom";
-import { Avatar, Button, Container, IconButton, Stack } from "@mui/material";
+import {
+  Avatar,
+  Button,
+  Container,
+  IconButton,
+  LinearProgress,
+  Stack,
+  Typography,
+} from "@mui/material";
 import NavTabs from "./NavTabs";
 import { useUserVotes } from "../state/UserVotes";
 import { useAccount } from "wagmi";
@@ -24,11 +32,19 @@ const Root: FC = () => {
 
   const [writeModalOpen, setWriteModalOpen] = useState(false);
 
-  const { commitVotes } = useUserVotes();
+  const {
+    commitVotes,
+    state: { creditBudget, remainingCredits, hasUncommittedVotes },
+  } = useUserVotes();
   const navigate = useNavigate();
 
   const { address } = useAccount();
   const [avatar, setAvatar] = useState<string | null>(null);
+
+  const budgetRemaining =
+    remainingCredits && creditBudget
+      ? (remainingCredits / creditBudget) * 100
+      : 0;
 
   useEffect(() => {
     if (address) {
@@ -49,28 +65,45 @@ const Root: FC = () => {
             flexDirection: "column",
             gap: 4,
             borderLeft: "1px solid gray",
-            borderRight: "1px solid gray",
             minHeight: "100vh",
             overflowY: "auto",
             overflowX: "visible",
           }}
         >
-          <NavTabs
-            tabs={[
-              { label: "Top", href: "/top" },
-              { label: "My Support", href: "/my-support" },
-            ]}
-          />
-          {/*<Stack
-          direction="row"
-          spacing={2}
-          alignItems="center"
-          justifyContent="space-between"
-        >
-          <Button onClick={() => createStatement()}>Create Statement</Button>
-          <Button onClick={() => commitVotes()}>Submit Votes</Button>
-        </Stack>*/}
-          <Outlet />
+          <Stack spacing={1}>
+            <NavTabs
+              tabs={[
+                { label: "Top", href: "/top" },
+                { label: "My Support", href: "/my-support" },
+              ]}
+            />
+            <Stack
+              direction="row"
+              spacing={2}
+              alignItems="center"
+              justifyContent="space-between"
+              sx={{ borderBottom: "1px solid lightgray", pb: 1 }}
+            >
+              <Typography variant="body1" component="div">
+                Budget:
+              </Typography>
+              <LinearProgress
+                variant="determinate"
+                value={budgetRemaining}
+                sx={{ flexGrow: 1, height: 10, borderRadius: 5 }}
+              />
+              <Button
+                variant="contained"
+                sx={{ textTransform: "none" }}
+                onClick={commitVotes}
+                startIcon={<DoneAllIcon />}
+                disabled={!hasUncommittedVotes}
+              >
+                Submit Votes
+              </Button>
+            </Stack>
+            <Outlet />
+          </Stack>
         </Container>
         <Box
           component="nav"
@@ -99,38 +132,29 @@ const Root: FC = () => {
             </Box>
             <Button
               onClick={() => navigate("/top")}
-              sx={{ justifyContent: "flex-start" }}
+              sx={{
+                justifyContent: "flex-start",
+                textTransform: "none",
+                color: "black",
+              }}
+              start
             >
-              {" "}
-              Home{" "}
-            </Button>
-            <Button
-              onClick={() => navigate("/my-support")}
-              sx={{ justifyContent: "flex-start" }}
-            >
-              {" "}
-              My Support{" "}
+              <Typography variant="h6" component="div">
+                {" "}
+                Home{" "}
+              </Typography>
             </Button>
             <Box>
               <Button
                 variant="contained"
                 startIcon={<CreateIcon />}
-                sx={{ borderRadius: "16px" }}
+                sx={{ borderRadius: "16px", textTransform: "none" }}
                 onClick={() => setWriteModalOpen(true)}
               >
-                {" "}
-                Write{" "}
-              </Button>
-            </Box>
-            <Box>
-              <Button
-                variant="contained"
-                startIcon={<DoneAllIcon />}
-                sx={{ borderRadius: "16px" }}
-                onClick={commitVotes}
-              >
-                {" "}
-                Submit Votes{" "}
+                <Typography variant="h6" component="div">
+                  {" "}
+                  Write{" "}
+                </Typography>
               </Button>
             </Box>
           </Stack>

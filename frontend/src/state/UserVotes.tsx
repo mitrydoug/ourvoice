@@ -8,17 +8,21 @@ import React, {
 } from "react";
 import { forumContractConfig } from "../contracts";
 import { useAccount, useReadContract, useWriteContract } from "wagmi";
+import _ from "lodash";
 
 const USER_CREDIT_BUDGET = 100;
 
 interface UserVoteState {
   userVotes?: Map<number, number>;
   remainingCredits?: number;
+  creditBudget?: number;
+  committedVotes?: Map<number, number>;
+  hasUncommittedVotes?: boolean;
   error: string | null;
 }
 
 type SetVotesAction = {
-  type: "SET_VOTES";
+  type: "SYNC_COMMITTED_VOTES";
   payload: Pick<UserVoteState, "userVotes">;
 };
 
@@ -30,34 +34,35 @@ type UpdateVoteAction = {
 type UserVoteAction = SetVotesAction | UpdateVoteAction;
 
 // Actions:
-// - SET_STATE
-// - INCREMENT_VOTE
-// - DECREMENT_VOTE
+// - SYNC_COMMITTED_VOTES
+// - UPDATE_VOTE
 
 const reducer = (
   state: UserVoteState,
   action: UserVoteAction,
 ): UserVoteState => {
-  let newUserVotes: Map<number, number>;
+  let newState = { ...state };
 
   switch (action.type) {
-    case "SET_VOTES": {
-      newUserVotes = new Map(action.payload.userVotes);
+    case "SYNC_COMMITTED_VOTES": {
+      newState.userVotes = new Map(action.payload.userVotes);
+      newState.committedVotes = new Map(action.payload.userVotes);
       break;
     }
     case "UPDATE_VOTE": {
       const { statementId, newVoteCount } = action.payload;
-      newUserVotes = new Map(state.userVotes);
-      newUserVotes.set(Number(statementId), Number(newVoteCount));
+      newState.userVotes = new Map(state.userVotes);
+      newState.userVotes.set(Number(statementId), Number(newVoteCount));
       break;
     }
   }
 
-  const cost = Array.from(newUserVotes.values()).reduce(
+  const cost = Array.from(newState.userVotes.values()).reduce(
     (acc, v) => acc + v * v,
     0,
   );
-  let newState: UserVoteState;
+
+  // let newState: UserVoteState;
   if (cost > USER_CREDIT_BUDGET) {
     newState = {
       ...state,
@@ -65,9 +70,13 @@ const reducer = (
     };
   } else {
     newState = {
-      ...state,
-      userVotes: newUserVotes,
+      ...newState,
       remainingCredits: USER_CREDIT_BUDGET - cost,
+      creditBudget: USER_CREDIT_BUDGET,
+      hasUncommittedVotes: !_.isEqual(
+        newState.userVotes,
+        newState.committedVotes,
+      ),
       error: null,
     };
   }
@@ -111,7 +120,10 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
         votesMap.set(Number(v.statementId), Number(v.voteCount));
       });
     }
-    dispatch({ type: "SET_VOTES", payload: { userVotes: votesMap } });
+    dispatch({
+      type: "SYNC_COMMITTED_VOTES",
+      payload: { userVotes: votesMap },
+    });
   }, [_votes, address]);
 
   const commitVotes = useCallback(async () => {

@@ -1,9 +1,7 @@
-import { Card, CardContent, Stack, Typography } from "@mui/material";
 import React, { FC } from "react";
 import { forumContractConfig } from "../contracts";
 import { useReadContract } from "wagmi";
-import VoteToggle from "./VoteToggle";
-import { useUserVotes } from "../state/UserVotes";
+import StatementCard from "./StatementCard";
 
 const PAGE_SIZE = 25;
 
@@ -16,11 +14,6 @@ interface Statement {
 }
 
 const Ranking: FC = () => {
-  const {
-    state: { userVotes },
-    dispatch,
-  } = useUserVotes();
-
   const result = useReadContract({
     ...forumContractConfig,
     functionName: "getRankedStatementsPage",
@@ -34,32 +27,7 @@ const Ranking: FC = () => {
   return (
     <>
       {statementsPage?.map((stmt, idx) => (
-        <Card key={`stmt-${idx}`}>
-          <CardContent>
-            <Stack
-              direction="row"
-              spacing={2}
-              alignItems="center"
-              justifyContent="space-between"
-            >
-              <Typography variant="h5" component="div">
-                {stmt.rank + 1n} - {stmt.text}
-              </Typography>
-              <Typography variant="h5" component="div">
-                {stmt.voteCount}
-              </Typography>
-              <VoteToggle
-                userVoteCount={userVotes?.get(Number(stmt.id)) || 0}
-                onUserVoteChange={(n) =>
-                  dispatch({
-                    type: "UPDATE_VOTE",
-                    payload: { statementId: stmt.id, newVoteCount: BigInt(n) },
-                  })
-                }
-              />
-            </Stack>
-          </CardContent>
-        </Card>
+        <StatementCard key={`stmt-${idx}`} statement={stmt} />
       ))}
     </>
   );
