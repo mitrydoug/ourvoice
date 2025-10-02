@@ -13,7 +13,7 @@ interface Statement {
   timestamp: bigint;
 }
 
-const Ranking: FC = () => {
+const Top: FC = () => {
   const result = useReadContract({
     ...forumContractConfig,
     functionName: "getRankedStatementsPage",
@@ -33,4 +33,4 @@ const Ranking: FC = () => {
   );
 };
 
-export default Ranking;
+export default Top;
