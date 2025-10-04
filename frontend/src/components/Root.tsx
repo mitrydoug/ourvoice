@@ -56,7 +56,7 @@ const Root: FC = () => {
 
   return (
     <>
-      <Box ref={layoutRef} sx={{ position: "relative" }}>
+      <Box ref={layoutRef} sx={{ position: "relative", backgroundColor: "#f4f4f4ff" }}>
         <Container
           component="main"
           maxWidth="sm"
@@ -77,31 +77,6 @@ const Root: FC = () => {
                 { label: "My Support", href: "/my-support" },
               ]}
             />
-            <Stack
-              direction="row"
-              spacing={2}
-              alignItems="center"
-              justifyContent="space-between"
-              sx={{ borderBottom: "1px solid lightgray", pb: 1 }}
-            >
-              <Typography variant="body1" component="div">
-                Budget:
-              </Typography>
-              <LinearProgress
-                variant="determinate"
-                value={budgetRemaining}
-                sx={{ flexGrow: 1, height: 10, borderRadius: 5 }}
-              />
-              <Button
-                variant="contained"
-                sx={{ textTransform: "none" }}
-                onClick={commitVotes}
-                startIcon={<DoneAllIcon />}
-                disabled={!hasUncommittedVotes}
-              >
-                Submit Votes
-              </Button>
-            </Stack>
             <Outlet />
           </Stack>
         </Container>
@@ -117,8 +92,8 @@ const Root: FC = () => {
               `translateX(-100%) translateX(-${theme.breakpoints.values.sm / 2}px)`,
           }}
         >
-          <Stack spacing={1} sx={{}}>
-            <Box>
+          <Stack spacing={1} >
+            <Stack direction="row" justifyContent="center" alignItems="center">
               <IconButton
                 size="large"
                 aria-label="account of current user"
@@ -129,34 +104,44 @@ const Root: FC = () => {
               >
                 <Avatar src={avatar} />
               </IconButton>
-            </Box>
-            <Button
-              onClick={() => navigate("/top")}
-              sx={{
-                justifyContent: "flex-start",
-                textTransform: "none",
-                color: "black",
-              }}
-              start
-            >
-              <Typography variant="h6" component="div">
-                {" "}
-                Home{" "}
-              </Typography>
-            </Button>
-            <Box>
               <Button
                 variant="contained"
                 startIcon={<CreateIcon />}
-                sx={{ borderRadius: "16px", textTransform: "none" }}
+                sx={{ textTransform: "none" }}
                 onClick={() => setWriteModalOpen(true)}
               >
-                <Typography variant="h6" component="div">
+                <Typography variant="body1" component="div">
                   {" "}
                   Write{" "}
                 </Typography>
               </Button>
+            </Stack>
+            <Stack spacing={1} sx={{}}>
+            <Box>
+              <Stack
+              spacing={2}
+              justifyContent="space-between"
+              sx={{ pb: 1 }}
+            >
+              <Typography variant="body1" component="div" sx={{ alignSelf: "center" }}>
+                Unassigned: {remainingCredits} / {creditBudget}{" "}
+              </Typography>
+              <LinearProgress
+                variant="determinate"
+                value={budgetRemaining}
+                sx={{ flexGrow: 1, height: 10, borderRadius: 5 }}
+              />
+              <Button
+                variant="contained"
+                sx={{ textTransform: "none" }}
+                onClick={commitVotes}
+                disabled={!hasUncommittedVotes}
+              >
+                Submit Votes
+              </Button>
+            </Stack>
             </Box>
+          </Stack>
           </Stack>
         </Box>
       </Box>
