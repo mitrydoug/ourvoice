@@ -52,17 +52,19 @@ const VoteToggle: FC<VoteToggleProps> = ({
           <ArrowUpwardSharpIcon />
         </IconButton>
       </Stack>
-      <Typography color="text.secondary">
-        {cost}
-      </Typography>
-      <VoiceCreditIcon />
+      <Stack direction="row" alignItems="center" spacing={0.2}>
+        <Typography color="text.secondary">
+          {cost}
+        </Typography>
+        <VoiceCreditIcon />
+      </Stack>
     </Stack>
   );
 };
 
 const VoiceCreditIcon: FC = () => {
   return (
-    <Box sx={{ position: "relative", width: "1em", height: "1em" }}>
+    <Box sx={{ position: "relative", width: "1.2em", height: "1.2em" }}>
       <img src="credit-icon.svg" alt="Voice Credits" style={{ width: "100%", height: "100%" }} />
     </Box>
   );
