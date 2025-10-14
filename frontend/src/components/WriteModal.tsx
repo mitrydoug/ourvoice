@@ -1,7 +1,16 @@
-import { Box, Button, Modal, Stack, TextField } from "@mui/material";
+import {
+  Box,
+  Button,
+  Modal,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
 import React, { FC, useCallback, useState } from "react";
 import { useWriteContract } from "wagmi";
 import { forumContractConfig } from "../contracts";
+
+const MAX_STATEMENT_LENGTH = 280;
 
 const style = {
   position: "absolute",
@@ -37,6 +46,15 @@ const WriteModal: FC<WriteModalProps> = ({ open, onClose }) => {
     }
   }, [text, writeContract, setText, onClose]);
 
+  const updateText = useCallback(
+    (textVal: string) => {
+      if (textVal.length <= MAX_STATEMENT_LENGTH) {
+        setText(textVal);
+      }
+    },
+    [setText],
+  );
+
   return (
     <Modal
       open={open}
@@ -48,7 +66,7 @@ const WriteModal: FC<WriteModalProps> = ({ open, onClose }) => {
         <TextField
           placeholder="What's on your mind?"
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => updateText(e.target.value)}
           multiline
           rows={5}
           fullWidth
@@ -58,6 +76,23 @@ const WriteModal: FC<WriteModalProps> = ({ open, onClose }) => {
           sx={{ justifyContent: "flex-end", marginTop: 2 }}
           spacing={2}
         >
+          <Typography
+            variant="body2"
+            color={
+              text.length < MAX_STATEMENT_LENGTH * 0.8
+                ? "text.secondary"
+                : text.length < MAX_STATEMENT_LENGTH * 0.9
+                  ? "DarkOrange"
+                  : "red"
+            }
+            sx={{
+              alignSelf: "center",
+              fontWeight:
+                text.length < MAX_STATEMENT_LENGTH * 0.9 ? "normal" : "bold",
+            }}
+          >
+            {text.length} / {MAX_STATEMENT_LENGTH}
+          </Typography>
           <Button onClick={onClose}> Cancel </Button>
           <Button
             variant="contained"
