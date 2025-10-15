@@ -1,10 +1,11 @@
 import type { HardhatUserConfig } from "hardhat/config";
 
 import hardhatToolboxViemPlugin from "@nomicfoundation/hardhat-toolbox-viem";
+import hardhatKeystore from "@nomicfoundation/hardhat-keystore";
 import { configVariable } from "hardhat/config";
 
 const config: HardhatUserConfig = {
-  plugins: [hardhatToolboxViemPlugin],
+  plugins: [hardhatToolboxViemPlugin, hardhatKeystore],
   solidity: {
     profiles: {
       default: {
@@ -22,13 +23,11 @@ const config: HardhatUserConfig = {
     },
   },
   networks: {
-    hardhatMainnet: {
+    default: {
       type: "edr-simulated",
-      chainType: "l1",
-    },
-    hardhatOp: {
-      type: "edr-simulated",
-      chainType: "op",
+      forking: {
+        url: configVariable("SEPOLIA_RPC_URL"),
+      }
     },
     sepolia: {
       type: "http",
@@ -36,14 +35,6 @@ const config: HardhatUserConfig = {
       url: configVariable("SEPOLIA_RPC_URL"),
       accounts: [configVariable("SEPOLIA_PRIVATE_KEY")],
     },
-    celo_sepolia: {
-      type: "http",
-      url: "https://forno.celo-sepolia.celo-testnet.org",
-      chainId: 11142220,
-      accounts: [
-        configVariable("CELO_TESTER_PRIVATE_KEY")  
-      ]
-    }
   },
 };
 
