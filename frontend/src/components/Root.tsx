@@ -56,7 +56,10 @@ const Root: FC = () => {
 
   return (
     <>
-      <Box ref={layoutRef} sx={{ position: "relative", backgroundColor: "#f4f4f4ff" }}>
+      <Box
+        ref={layoutRef}
+        sx={{ position: "relative", backgroundColor: "#f4f4f4ff" }}
+      >
         <Container
           component="main"
           maxWidth="sm"
@@ -92,7 +95,7 @@ const Root: FC = () => {
               `translateX(-100%) translateX(-${theme.breakpoints.values.sm / 2}px)`,
           }}
         >
-          <Stack spacing={1} >
+          <Stack spacing={1}>
             <Stack direction="row" justifyContent="center" alignItems="center">
               <IconButton
                 size="large"
@@ -117,31 +120,35 @@ const Root: FC = () => {
               </Button>
             </Stack>
             <Stack spacing={1} sx={{}}>
-            <Box>
-              <Stack
-              spacing={2}
-              justifyContent="space-between"
-              sx={{ pb: 1 }}
-            >
-              <Typography variant="body1" component="div" sx={{ alignSelf: "center" }}>
-                Unassigned: {remainingCredits} / {creditBudget}{" "}
-              </Typography>
-              <LinearProgress
-                variant="determinate"
-                value={budgetRemaining}
-                sx={{ flexGrow: 1, height: 10, borderRadius: 5 }}
-              />
-              <Button
-                variant="contained"
-                sx={{ textTransform: "none" }}
-                onClick={commitVotes}
-                disabled={!hasUncommittedVotes}
-              >
-                Submit Votes
-              </Button>
+              <Box>
+                <Stack
+                  spacing={2}
+                  justifyContent="space-between"
+                  sx={{ pb: 1 }}
+                >
+                  <Typography
+                    variant="body1"
+                    component="div"
+                    sx={{ alignSelf: "center" }}
+                  >
+                    Unassigned: {remainingCredits} / {creditBudget}{" "}
+                  </Typography>
+                  <LinearProgress
+                    variant="determinate"
+                    value={budgetRemaining}
+                    sx={{ flexGrow: 1, height: 10, borderRadius: 5 }}
+                  />
+                  <Button
+                    variant="contained"
+                    sx={{ textTransform: "none" }}
+                    onClick={commitVotes}
+                    disabled={!hasUncommittedVotes}
+                  >
+                    Submit Votes
+                  </Button>
+                </Stack>
+              </Box>
             </Stack>
-            </Box>
-          </Stack>
           </Stack>
         </Box>
       </Box>
