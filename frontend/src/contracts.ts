@@ -1,5 +1,5 @@
 export const forumContractConfig = {
-  address: "0x033238731dAa4fC147844D0575c127126d509A41",
+  address: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
   abi: [
     {
       anonymous: false,

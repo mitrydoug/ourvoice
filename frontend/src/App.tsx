@@ -8,6 +8,7 @@ import { useWeb3AuthConnect } from "@web3auth/modal/react";
 import MySupport from "./components/MySupport.tsx";
 import { UserVoteProvider } from "./state/UserVotes.tsx";
 import { CssBaseline } from "@mui/material";
+import GetVerified from "./components/GetVerified.tsx";
 
 export const App: FC = () => {
   const {
@@ -37,6 +38,10 @@ export const App: FC = () => {
         {
           path: "/my-support",
           Component: MySupport,
+        },
+        {
+          path: "/verify",
+          Component: GetVerified,
         },
       ],
     },

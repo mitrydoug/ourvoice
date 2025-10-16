@@ -96,7 +96,7 @@ const Root: FC = () => {
           }}
         >
           <Stack spacing={1}>
-            <Stack direction="row" justifyContent="center" alignItems="center">
+            <Stack justifyContent="center" alignItems="center" spacing={1}>
               <IconButton
                 size="large"
                 aria-label="account of current user"
@@ -107,6 +107,16 @@ const Root: FC = () => {
               >
                 <Avatar src={avatar} />
               </IconButton>
+              <Button
+                variant="contained"
+                sx={{ textTransform: "none" }}
+                onClick={() => navigate("/verify")}
+              >
+                <Typography variant="body1" component="div">
+                  {" "}
+                  Get Verified{" "}
+                </Typography>
+              </Button>
               <Button
                 variant="contained"
                 startIcon={<CreateIcon />}
