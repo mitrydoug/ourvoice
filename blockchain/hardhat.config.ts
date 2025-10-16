@@ -23,7 +23,7 @@ const config: HardhatUserConfig = {
     },
   },
   networks: {
-    default: {
+    local_sepolia_fork: {
       type: "edr-simulated",
       forking: {
         url: configVariable("SEPOLIA_RPC_URL"),
