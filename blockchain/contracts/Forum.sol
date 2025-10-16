@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.28;
 
+import "./IdRegistry.sol";
 
 contract Forum {
     uint public constant MAX_STATEMENT_LENGTH = 120;
     uint public constant USER_CREDIT_BUDGET = 100;
+
+    IdRegistry public idRegistry;
 
     struct Vote {
         uint statementId;
@@ -33,6 +36,10 @@ contract Forum {
 
     event UserVote(address indexed user, string action, int count);
     event StatementVote(uint indexed id, int voteCount);
+
+    constructor(address _idRegistryAddress) {
+        idRegistry = IdRegistry(_idRegistryAddress);
+    }
 
     function addStatement(string calldata _statement) external {
         require(
