@@ -3,19 +3,29 @@ pragma solidity ^0.8.28;
 
 import "./IZKPassportVerifier.sol";
 
-contract IdRegistry {
+contract ZKRegistry {
+
+    struct Registration {
+        bytes32 uniqueIdentifier; // Unique identifier (e.g., hash of government ID)
+        string disclosedNationality;
+        uint256 registrationTimestamp; // Timestamp of registration
+    }
 
     IZKPassportVerifier public zkPassportVerifier;
-    string public constant MY_SCOPE = "our-voice-verify";
+    string public constant scope;
+    string public constant domain;
+    uint256 public constant registrationValidityPeriod = 365 days;
 
-    // Map users to their verified unique identifiers
-    mapping(address => bytes32) public userIdentifiers;
+    // Map users to their registrations and verified unique identifiers
+    mapping(address => Registration) public userRegistrations;
 
-    constructor(address _verifierAddress) {
+    constructor(string memory scope, string memory domain, address _verifierAddress) {
+        scope = scope;
+        domain = domain;
         zkPassportVerifier = IZKPassportVerifier(_verifierAddress);
     }
 
-    function register(ProofVerificationParams calldata params, bool isIDCard) public returns (bytes32) {
+    function register(ProofVerificationParams calldata params, bool isIDCard) external returns (bytes32) {
         // Verify the proof
         (bool verified, bytes32 uniqueIdentifier) = zkPassportVerifier.verifyProof(params);
         require(verified, "Proof is invalid");
@@ -23,7 +33,7 @@ contract IdRegistry {
         // Check the proof was generated using your domain name (scope) and the subscope
         // you specified
         require(
-          zkPassportVerifier.verifyScopes(params.publicInputs, "your-domain.com", MY_SCOPE),
+          zkPassportVerifier.verifyScopes(params.publicInputs, domain, scope),
           "Invalid scope"
         );
 
@@ -51,9 +61,23 @@ contract IdRegistry {
         require(bytes(boundData.customData).length == 0, "Custom data should be empty");
 
         // Store the unique identifier
-        userIdentifiers[msg.sender] = uniqueIdentifier;
+        userRegistrations[msg.sender] = Registration(uniqueIdentifier, nationality, block.timestamp);
 
-        return uniqueIdentifier;
+        return userRegistrations[msg.sender].uniqueIdentifier;
     }
 
+    function isRegistered(address user) public view returns (bool) {
+        return userRegistrations[user] != bytes32(0) && 
+               block.timestamp <= userRegistrations[user] + registrationValidityPeriod;
+    }
+
+    function getUserIdentifier(address user) external view returns (bytes32) {
+        require(isRegistered(user), "User is not registered or registration has expired");
+        return userIdentifiers[user];
+    }
+
+    function getUserNationality(address user) external view returns (string memory) {
+        require(isRegistered(user), "User is not registered or registration has expired");
+        return userRegistrations[user].disclosedNationality;
+    }
 }

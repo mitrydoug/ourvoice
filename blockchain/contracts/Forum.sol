@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.28;
 
-import "./IdRegistry.sol";
+import "./ZKRegistry.sol";
 
 contract Forum {
     uint public constant MAX_STATEMENT_LENGTH = 120;
@@ -38,7 +38,7 @@ contract Forum {
     event StatementVote(uint indexed id, int voteCount);
 
     constructor(address _idRegistryAddress) {
-        idRegistry = IdRegistry(_idRegistryAddress);
+        idRegistry = ZKRegistry(_idRegistryAddress);
     }
 
     function addStatement(string calldata _statement) external {
