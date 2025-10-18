@@ -25,6 +25,10 @@ export const App: FC = () => {
 
   const router = createHashRouter([
     {
+        path: "/verify",
+        Component: GetVerified,
+    },
+    {
       Component: Root,
       children: [
         {
@@ -38,10 +42,6 @@ export const App: FC = () => {
         {
           path: "/my-support",
           Component: MySupport,
-        },
-        {
-          path: "/verify",
-          Component: GetVerified,
         },
       ],
     },
