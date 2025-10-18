@@ -2,12 +2,13 @@
 pragma solidity ^0.8.28;
 
 import "./IZKPassportVerifier.sol";
+import "./IZKRegistry.sol";
 
-contract ZKRegistry {
+contract ZKRegistry is IZKRegistry {
 
     struct Registration {
         bytes32 uniqueIdentifier; // Unique identifier (e.g., hash of government ID)
-        string disclosedNationality;
+        DiscosedData disclosedData; // Information disclosed in the proof
         uint256 registrationTimestamp; // Timestamp of registration
     }
 
@@ -48,8 +49,6 @@ contract ZKRegistry {
           params,
           isIDCard
         );
-        // Alpha 3 code of the nationality (e.g. FRA, USA, etc.)
-        string memory nationality = disclosedData.nationality;
 
         // Use the getBoundData function to get the data bound to the proof
         BoundData memory boundData = zkPassportVerifier.getBoundData(params);
@@ -61,23 +60,18 @@ contract ZKRegistry {
         require(bytes(boundData.customData).length == 0, "Custom data should be empty");
 
         // Store the unique identifier
-        userRegistrations[msg.sender] = Registration(uniqueIdentifier, nationality, block.timestamp);
+        userRegistrations[msg.sender] = Registration(uniqueIdentifier, disclosedData, block.timestamp);
 
         return userRegistrations[msg.sender].uniqueIdentifier;
     }
 
     function isRegistered(address user) public view returns (bool) {
-        return userRegistrations[user] != bytes32(0) && 
-               block.timestamp <= userRegistrations[user] + registrationValidityPeriod;
+        return userRegistrations[user].uniqueIdentifier != bytes32(0) && 
+               block.timestamp <= userRegistrations[user].registrationTimestamp + registrationValidityPeriod;
     }
 
-    function getUserIdentifier(address user) external view returns (bytes32) {
+    function getUserRegistration(address user) external view returns (Registration memory) {
         require(isRegistered(user), "User is not registered or registration has expired");
         return userIdentifiers[user];
-    }
-
-    function getUserNationality(address user) external view returns (string memory) {
-        require(isRegistered(user), "User is not registered or registration has expired");
-        return userRegistrations[user].disclosedNationality;
     }
 }
