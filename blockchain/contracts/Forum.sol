@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.28;
 
-import "./ZKRegistry.sol";
+import "./IZKRegistry.sol";
 
 contract Forum {
     uint public constant MAX_STATEMENT_LENGTH = 120;
     uint public constant USER_CREDIT_BUDGET = 100;
 
-    IdRegistry public idRegistry;
+    IZKRegistry public zkRegistry;
 
     struct Vote {
         uint statementId;
@@ -30,22 +30,24 @@ contract Forum {
     // vote count -> rank
     // uint[10] internal firstPerVoteCount;
 
-    mapping(address => mapping(uint => int)) public userVotes;
-    mapping(address => Vote[]) public userVoteSets;
-    mapping(address => uint) public userUsedCredits;
+    mapping(bytes32 => mapping(uint => int)) public userVotes;
+    mapping(bytes32 => Vote[]) public userVoteSets;
+    mapping(bytes32 => uint) public userUsedCredits;
 
-    event UserVote(address indexed user, string action, int count);
+    event UserVote(bytes32 indexed user, string action, int count);
     event StatementVote(uint indexed id, int voteCount);
 
-    constructor(address _idRegistryAddress) {
-        idRegistry = ZKRegistry(_idRegistryAddress);
+    constructor(IZKRegistry _zkRegistry) {
+        zkRegistry = _zkRegistry;
     }
 
     function addStatement(string calldata _statement) external {
+        require(zkRegistry.isRegistered(msg.sender), "User is not registered");
         require(
             bytes(_statement).length <= MAX_STATEMENT_LENGTH,
             "Statement exceeds maximum length"
         );
+
         // Ensure the statement is not empty
         // check for duplicate statements if necessary
         // may want to do some rate-limiting here
@@ -139,10 +141,14 @@ contract Forum {
     }
 
     function getUserVoteSet() external view returns (Vote[] memory) {
-        return userVoteSets[msg.sender];
+        require(zkRegistry.isRegistered(msg.sender), "User is not registered");
+        bytes32 userId = zkRegistry.getUserIdentifier(msg.sender);
+        return userVoteSets[userId];
     }
 
     function vote(Vote[] calldata _voteSet) public {
+        require(zkRegistry.isRegistered(msg.sender), "User is not registered");
+        bytes32 userId = zkRegistry.getUserIdentifier(msg.sender);
         require(_voteSet.length > 0, "Vote set cannot be empty");
         // require(voteSet.length <= USER_BUDGET, "Vote set exceeds user budget");
 
@@ -152,7 +158,7 @@ contract Forum {
             Vote memory _vote = _voteSet[i];
             require(_vote.statementId < statementCount, "Invalid statement ID");
 
-            int _currentVote = userVotes[msg.sender][_vote.statementId];
+            int _currentVote = userVotes[userId][_vote.statementId];
 
             if (_currentVote == _vote.voteCount) {
                 continue;
@@ -162,7 +168,7 @@ contract Forum {
             int _newCost = _vote.voteCount * _vote.voteCount;
             _creditCost += _newCost - _currentCost;
 
-            userVotes[msg.sender][_vote.statementId] = _vote.voteCount;
+            userVotes[userId][_vote.statementId] = _vote.voteCount;
 
             // Update the statement's vote count
             statements[_vote.statementId].voteCount =
@@ -172,7 +178,7 @@ contract Forum {
 
             rerankItem(_vote.statementId);
 
-            emit UserVote(msg.sender, "vote", _vote.voteCount);
+            emit UserVote(userId, "vote", _vote.voteCount);
             emit StatementVote(
                 _vote.statementId,
                 statements[_vote.statementId].voteCount
@@ -180,19 +186,19 @@ contract Forum {
         }
 
         if (
-            int(userUsedCredits[msg.sender]) + _creditCost >
+            int(userUsedCredits[userId]) + _creditCost >
             int(USER_CREDIT_BUDGET)
         ) {
             revert("Insufficient credits for this vote set");
         }
 
-        userUsedCredits[msg.sender] = _creditCost >= 0
-            ? userUsedCredits[msg.sender] + uint(_creditCost)
-            : userUsedCredits[msg.sender] - uint(-_creditCost);
+        userUsedCredits[userId] = _creditCost >= 0
+            ? userUsedCredits[userId] + uint(_creditCost)
+            : userUsedCredits[userId] - uint(-_creditCost);
 
-        delete userVoteSets[msg.sender];
+        delete userVoteSets[userId];
         for (uint i = 0; i < _voteSet.length; i++) {
-            userVoteSets[msg.sender].push(_voteSet[i]);
+            userVoteSets[userId].push(_voteSet[i]);
         }
     }
 

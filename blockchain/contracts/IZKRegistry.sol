@@ -11,8 +11,7 @@ struct Registration {
 
 interface IZKRegistry {
 
-    function register(ProofVerificationParams calldata params, bool isIDCard) external returns (bytes32);
     function isRegistered(address user) external view returns (bool);
+    function getUserIdentifier(address user) external view returns (bytes32);
     function getUserRegistration(address user) external view returns (Registration memory);
-
 }

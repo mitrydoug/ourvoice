@@ -6,23 +6,17 @@ import "./IZKRegistry.sol";
 
 contract ZKRegistry is IZKRegistry {
 
-    struct Registration {
-        bytes32 uniqueIdentifier; // Unique identifier (e.g., hash of government ID)
-        DiscosedData disclosedData; // Information disclosed in the proof
-        uint256 registrationTimestamp; // Timestamp of registration
-    }
-
     IZKPassportVerifier public zkPassportVerifier;
-    string public constant scope;
-    string public constant domain;
+    string public scope;
+    string public domain;
     uint256 public constant registrationValidityPeriod = 365 days;
 
     // Map users to their registrations and verified unique identifiers
     mapping(address => Registration) public userRegistrations;
 
-    constructor(string memory scope, string memory domain, address _verifierAddress) {
-        scope = scope;
-        domain = domain;
+    constructor(string memory _scope, string memory _domain, address _verifierAddress) {
+        scope = _scope;
+        domain = _domain;
         zkPassportVerifier = IZKPassportVerifier(_verifierAddress);
     }
 
@@ -36,12 +30,6 @@ contract ZKRegistry is IZKRegistry {
         require(
           zkPassportVerifier.verifyScopes(params.publicInputs, domain, scope),
           "Invalid scope"
-        );
-
-        // Check if the user is at least 18 years old
-        bool isAgeAboveOrEqual = zkPassportVerifier.isAgeAboveOrEqual(
-          18,
-          params
         );
 
         // Get the disclosed data to retrieve the nationality
@@ -72,6 +60,11 @@ contract ZKRegistry is IZKRegistry {
 
     function getUserRegistration(address user) external view returns (Registration memory) {
         require(isRegistered(user), "User is not registered or registration has expired");
-        return userIdentifiers[user];
+        return userRegistrations[user];
+    }
+
+    function getUserIdentifier(address user) external view returns (bytes32) {
+        require(isRegistered(user), "User is not registered or registration has expired");
+        return userRegistrations[user].uniqueIdentifier;
     }
 }

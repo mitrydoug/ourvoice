@@ -6,11 +6,11 @@ pragma solidity ^0.8.21;
  */
 struct BoundData {
   // The address of the ID holder
-  userAddress: address;
+  address userAddress;
   // The chain id (block.chainid)
-  chainId: uint256;
+  uint256 chainId;
   // The custom data (encoded as ASCII string)
-  customData: string;
+  string customData;
 }
 
 /**
@@ -58,7 +58,7 @@ interface IZKPassportVerifier {
   /**
    * @notice Verifies a proof from ZKPassport
    * @param params The proof verification parameters
-   * @return isValid True if the proof is valid, false otherwise
+   * @return verified True if the proof is valid, false otherwise
    * @return uniqueIdentifier The unique identifier associated to the identity document that generated the proof
    */
   function verifyProof(ProofVerificationParams calldata params) external returns (bool verified, bytes32 uniqueIdentifier);
@@ -85,7 +85,7 @@ interface IZKPassportVerifier {
   function getDisclosedData(
     ProofVerificationParams calldata params,
     bool isIDCard
-  ) external view returns (DisclosedData);
+  ) external view returns (DisclosedData memory);
 
 
   // ===== Retrieve the bound data =====
@@ -95,7 +95,7 @@ interface IZKPassportVerifier {
    * @param params The proof verification parameters
    * @return boundData The data bound to the proof
    */
-  function getBoundData(ProofVerificationParams calldata params) external view returns (BoundData);
+  function getBoundData(ProofVerificationParams calldata params) external view returns (BoundData memory);
 
   // ===== Age verification =====
 
@@ -224,7 +224,7 @@ interface IZKPassportVerifier {
   function isBirthdateBefore(
     uint256 maxDate,
       ProofVerificationParams calldata params
-  ) public view returns (bool);
+  ) external view returns (bool);
 
   /**
    * @notice Checks if the birthdate is equal to the given date
@@ -248,7 +248,7 @@ interface IZKPassportVerifier {
   function isExpiryDateAfterOrEqual(
     uint256 minDate,
     ProofVerificationParams calldata params
-  ) public view returns (bool);
+  ) external view returns (bool);
 
   /**
    * @notice Checks if the expiry date is after the given date
