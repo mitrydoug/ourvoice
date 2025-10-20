@@ -1,5 +1,6 @@
 import hre from "hardhat";
-import ForumModule from "../ignition/modules/Forum.js";
+// import ForumModule from "../ignition/modules/Forum.js";
+import ForumModule from "../ignition/modules/Mocked.js";
 import { writeFileSync } from "fs";
 
 
