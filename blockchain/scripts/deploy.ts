@@ -6,13 +6,17 @@ import { writeFileSync } from "fs";
 
 async function main() {
   const connection = await hre.network.connect();
-  const { forum } = await connection.ignition.deploy(ForumModule);
+  const { registry, forum } = await connection.ignition.deploy(ForumModule);
 
   const configModuleText = (
     "export const forumContractConfig = {\n" +
     `  address: "${forum.address}",\n` +
     `  abi: ${JSON.stringify(forum.abi, null, 2)},\n` +
-    "} as const;\n"
+    "} as const;\n\n" +
+    "export const registryContractConfig = {\n" +
+    `  address: "${registry.address}",\n` +
+    `  abi: ${JSON.stringify(registry.abi, null, 2)},\n` +
+    "} as const;\n\n"
   );
 
   writeFileSync(

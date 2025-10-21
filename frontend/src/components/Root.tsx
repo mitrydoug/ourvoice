@@ -1,4 +1,4 @@
-import React, { FC, useEffect, useRef, useState } from "react";
+import React, { FC, useCallback, useEffect, useRef, useState } from "react";
 import Box from "@mui/material/Box";
 import { Outlet, useNavigate } from "react-router-dom";
 import {
@@ -12,12 +12,14 @@ import {
 } from "@mui/material";
 import NavTabs from "./NavTabs";
 import { useUserVotes } from "../state/UserVotes";
-import { useAccount } from "wagmi";
+import { useAccount, useReadContract, useWriteContract } from "wagmi";
 import CreateIcon from "@mui/icons-material/Create";
 import DoneAllIcon from "@mui/icons-material/DoneAll";
 
 import jazzicon from "@metamask/jazzicon";
 import WriteModal from "./WriteModal";
+import { registryContractConfig } from "../contracts";
+
 const metamaskIcon = (address: string) => {
   console.log(address);
   const jazziconData = jazzicon(16, parseInt(address.slice(2, 10), 16));
@@ -27,10 +29,14 @@ const metamaskIcon = (address: string) => {
   return `data:image/svg+xml,${encodeURIComponent(jazziconSvg)}`;
 };
 
+
+
 const Root: FC = () => {
   const layoutRef = useRef<HTMLDivElement>(null);
 
   const [writeModalOpen, setWriteModalOpen] = useState(false);
+
+  const { writeContract } = useWriteContract();
 
   const {
     commitVotes,
@@ -53,6 +59,45 @@ const Root: FC = () => {
       setAvatar(null);
     }
   }, [address]);
+
+  const result = useReadContract({
+    ...registryContractConfig,
+    functionName: "isRegistered",
+    args: [address ?? "0x0000000000000000000000000000000000000000"],
+    query: {
+      enabled: !!address,
+    }
+  });
+
+  const registerUser = useCallback(() => {
+
+    const disclosedData = {
+      name: "",
+      // The issuing country of the ID
+      issuingCountry: "",
+      // The nationality of the ID holder
+      nationality: "USA",
+      // The gender of the ID holder
+      gender: "",
+      // The birth date of the ID holder
+      birthDate: "",
+      // The expiry date of the ID
+      expiryDate: "",
+      // The document number of the ID
+      documentNumber: "",
+      // The type of the document
+      documentType: "",
+    }
+
+    writeContract({
+      ...registryContractConfig,
+      functionName: "register",
+      args: [disclosedData],
+    });
+    
+  }, [registryContractConfig, writeContract]);
+
+  console.log("isRegistered: ", result.data);
 
   return (
     <>
@@ -110,7 +155,7 @@ const Root: FC = () => {
               <Button
                 variant="contained"
                 sx={{ textTransform: "none" }}
-                onClick={() => navigate("/verify")}
+                onClick={registerUser /* navigate("/verify") */}
               >
                 <Typography variant="body1" component="div">
                   {" "}

@@ -450,3 +450,271 @@ export const forumContractConfig = {
   }
 ],
 } as const;
+
+export const registryContractConfig = {
+  address: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+  abi: [
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      }
+    ],
+    "name": "getUserIdentifier",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      }
+    ],
+    "name": "getUserRegistration",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "bytes32",
+            "name": "uniqueIdentifier",
+            "type": "bytes32"
+          },
+          {
+            "components": [
+              {
+                "internalType": "string",
+                "name": "name",
+                "type": "string"
+              },
+              {
+                "internalType": "string",
+                "name": "issuingCountry",
+                "type": "string"
+              },
+              {
+                "internalType": "string",
+                "name": "nationality",
+                "type": "string"
+              },
+              {
+                "internalType": "string",
+                "name": "gender",
+                "type": "string"
+              },
+              {
+                "internalType": "string",
+                "name": "birthDate",
+                "type": "string"
+              },
+              {
+                "internalType": "string",
+                "name": "expiryDate",
+                "type": "string"
+              },
+              {
+                "internalType": "string",
+                "name": "documentNumber",
+                "type": "string"
+              },
+              {
+                "internalType": "string",
+                "name": "documentType",
+                "type": "string"
+              }
+            ],
+            "internalType": "struct DisclosedData",
+            "name": "disclosedData",
+            "type": "tuple"
+          },
+          {
+            "internalType": "uint256",
+            "name": "registrationTimestamp",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct Registration",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      }
+    ],
+    "name": "isRegistered",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "string",
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "issuingCountry",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "nationality",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "gender",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "birthDate",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "expiryDate",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "documentNumber",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "documentType",
+            "type": "string"
+          }
+        ],
+        "internalType": "struct DisclosedData",
+        "name": "disclosedData",
+        "type": "tuple"
+      }
+    ],
+    "name": "register",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "registrationCount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "userRegistrations",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "uniqueIdentifier",
+        "type": "bytes32"
+      },
+      {
+        "components": [
+          {
+            "internalType": "string",
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "issuingCountry",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "nationality",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "gender",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "birthDate",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "expiryDate",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "documentNumber",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "documentType",
+            "type": "string"
+          }
+        ],
+        "internalType": "struct DisclosedData",
+        "name": "disclosedData",
+        "type": "tuple"
+      },
+      {
+        "internalType": "uint256",
+        "name": "registrationTimestamp",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+],
+} as const;
+
