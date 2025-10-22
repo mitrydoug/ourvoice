@@ -1,12 +1,12 @@
 import hre from "hardhat";
-// import ForumModule from "../ignition/modules/Forum.js";
-import ForumModule from "../ignition/modules/Mocked.js";
+import ForumForkedRegistryModule from "../ignition/modules/ForumForkedRegistry.js";
+// import ForumMockedRegistryModule from "../ignition/modules/ForumMockedRegistry.js";
 import { writeFileSync } from "fs";
 
 
 async function main() {
   const connection = await hre.network.connect();
-  const { registry, forum } = await connection.ignition.deploy(ForumModule);
+  const { registry, forum } = await connection.ignition.deploy(ForumForkedRegistryModule);
 
   const configModuleText = (
     "export const forumContractConfig = {\n" +

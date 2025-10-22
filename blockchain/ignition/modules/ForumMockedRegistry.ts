@@ -1,6 +1,6 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 
-export default buildModule("ForumModule", (m) => {
+export default buildModule("ForumMockedRegistryModule", (m) => {
 
   const mockedZKRegistry = m.contract("MockZKRegistry");
 

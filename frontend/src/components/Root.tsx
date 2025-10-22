@@ -1,4 +1,4 @@
-import React, { FC, useCallback, useEffect, useRef, useState } from "react";
+import React, { FC, useEffect, useRef, useState } from "react";
 import Box from "@mui/material/Box";
 import { Outlet, useNavigate } from "react-router-dom";
 import {
@@ -12,9 +12,8 @@ import {
 } from "@mui/material";
 import NavTabs from "./NavTabs";
 import { useUserVotes } from "../state/UserVotes";
-import { useAccount, useReadContract, useWriteContract } from "wagmi";
+import { useAccount, useReadContract } from "wagmi";
 import CreateIcon from "@mui/icons-material/Create";
-import DoneAllIcon from "@mui/icons-material/DoneAll";
 
 import jazzicon from "@metamask/jazzicon";
 import WriteModal from "./WriteModal";
@@ -30,13 +29,10 @@ const metamaskIcon = (address: string) => {
 };
 
 
-
 const Root: FC = () => {
   const layoutRef = useRef<HTMLDivElement>(null);
 
   const [writeModalOpen, setWriteModalOpen] = useState(false);
-
-  const { writeContract } = useWriteContract();
 
   const {
     commitVotes,
@@ -68,35 +64,6 @@ const Root: FC = () => {
       enabled: !!address,
     }
   });
-
-  const registerUser = useCallback(() => {
-
-    const disclosedData = {
-      name: "",
-      // The issuing country of the ID
-      issuingCountry: "",
-      // The nationality of the ID holder
-      nationality: "USA",
-      // The gender of the ID holder
-      gender: "",
-      // The birth date of the ID holder
-      birthDate: "",
-      // The expiry date of the ID
-      expiryDate: "",
-      // The document number of the ID
-      documentNumber: "",
-      // The type of the document
-      documentType: "",
-    }
-
-    writeContract({
-      ...registryContractConfig,
-      functionName: "register",
-      args: [disclosedData],
-    });
-    
-  }, [registryContractConfig, writeContract]);
-
   console.log("isRegistered: ", result.data);
 
   return (
@@ -155,7 +122,7 @@ const Root: FC = () => {
               <Button
                 variant="contained"
                 sx={{ textTransform: "none" }}
-                onClick={registerUser /* navigate("/verify") */}
+                onClick={() => navigate("/verify") }
               >
                 <Typography variant="body1" component="div">
                   {" "}

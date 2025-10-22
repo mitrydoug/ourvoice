@@ -1,7 +1,9 @@
-import React, { FC, useEffect, useMemo, useState } from "react";
+import React, { FC, useCallback, useEffect, useMemo, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { ZKPassport, ProofResult } from "@zkpassport/sdk";
 import { Box, Checkbox, CircularProgress, Container, Stack, Typography } from "@mui/material";
+import { useWriteContract } from "wagmi";
+import { registryContractConfig } from "../contracts";
 
 const MY_ICON_URL = "https://i.imgur.com/I86xH4n.png";
 const MY_SCOPE = "our-voice-verify";
@@ -16,6 +18,8 @@ export const GetVerified: FC = () => {
   const [verifyUrl, setVerifyUrl] = useState<string | null>(null);
 
   const zkPassport = useMemo(() => new ZKPassport(), []);
+
+  const { writeContract } = useWriteContract();
 
   useEffect(() => {
     const constructRequest = async () => {
@@ -83,19 +87,34 @@ export const GetVerified: FC = () => {
         const verifierParams = zkPassport.getSolidityVerifierParameters({
           proof: proof,
           // Use the same scope as the one you specified with the request function
-          scope: "my-scope",
-          // Enable dev mode if you want to use mock passports, otherwise keep it false
-          devMode: false,
+          scope: MY_SCOPE,
         });
 
-        // Verify the proof on-chain
-        // The function is defined in the next steps below
-        await verifyOnChain(
-          verifierParams,
-          walletProvider,
-          // Use the document type to determine if the proof is for an ID card or passport
-          result.document_type.disclose.result !== "passport",
-        );
+        console.log("Submitting on-chain verification transaction...");
+        console.log("Verifier parameters:", verifierParams);
+
+        const actualVerifierParams = {
+          vkeyHash: verifierParams.proofVerificationData.vkeyHash,
+          proof: verifierParams.proofVerificationData.proof,
+          publicInputs: verifierParams.proofVerificationData.publicInputs,
+          committedInputs: verifierParams.commitments.committedInputs,
+          committedInputCounts: verifierParams.commitments.committedInputCounts,
+          validityPeriodInSeconds: BigInt(verifierParams.serviceConfig.validityPeriodInSeconds),
+          domain: verifierParams.serviceConfig.domain,
+          scope: verifierParams.serviceConfig.scope,
+          devMode: verifierParams.serviceConfig.devMode,
+        }
+
+        writeContract({
+            ...registryContractConfig,
+            functionName: "register",
+            args: [actualVerifierParams, false],
+        }, {
+          onError: (error) => {
+            console.error("Error writing contract:", error);
+          }
+        });
+
       });
 
       onRequestReceived(() => {
@@ -122,6 +141,9 @@ export const GetVerified: FC = () => {
 
     constructRequest();
   }, [zkPassport, revealContry]);
+
+  const { address } = zkPassport.getSolidityVerifierDetails("ethereum_sepolia");
+  console.log("Verifier contract address:", address);
 
   return (<Container>
     <h1>Get Verified</h1>
