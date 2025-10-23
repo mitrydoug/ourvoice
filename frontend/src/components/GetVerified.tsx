@@ -83,6 +83,9 @@ export const GetVerified: FC = () => {
           return;
         }
 
+        const x = undefined;
+        const y = (x as string | undefined)?.length ?? 0;
+
         // Get the verification parameters
         const verifierParams = zkPassport.getSolidityVerifierParameters({
           proof: proof,
@@ -93,22 +96,10 @@ export const GetVerified: FC = () => {
         console.log("Submitting on-chain verification transaction...");
         console.log("Verifier parameters:", verifierParams);
 
-        const actualVerifierParams = {
-          vkeyHash: verifierParams.proofVerificationData.vkeyHash,
-          proof: verifierParams.proofVerificationData.proof,
-          publicInputs: verifierParams.proofVerificationData.publicInputs,
-          committedInputs: verifierParams.commitments.committedInputs,
-          committedInputCounts: verifierParams.commitments.committedInputCounts,
-          validityPeriodInSeconds: BigInt(verifierParams.serviceConfig.validityPeriodInSeconds),
-          domain: verifierParams.serviceConfig.domain,
-          scope: verifierParams.serviceConfig.scope,
-          devMode: verifierParams.serviceConfig.devMode,
-        }
-
         writeContract({
             ...registryContractConfig,
             functionName: "register",
-            args: [actualVerifierParams, false],
+            args: [verifierParams, false],
         }, {
           onError: (error) => {
             console.error("Error writing contract:", error);

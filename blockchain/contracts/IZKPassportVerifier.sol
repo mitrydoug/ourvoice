@@ -1,60 +1,66 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.21;
 
-/**
- * @notice The data that can be bound to the proof
- */
-struct BoundData {
-  // The address of the ID holder
-  address userAddress;
-  // The chain id (block.chainid)
-  uint256 chainId;
-  // The custom data (encoded as ASCII string)
-  string customData;
-}
-
-/**
- * @notice The data that can be disclosed by the proof
- */
-struct DisclosedData {
-    // The name of the ID holder (includes the angular brackets from the MRZ)
-    string name;
-    // The issuing country of the ID
-    string issuingCountry;
-    // The nationality of the ID holder
-    string nationality;
-    // The gender of the ID holder
-    string gender;
-    // The birth date of the ID holder
-    string birthDate;
-    // The expiry date of the ID
-    string expiryDate;
-    // The document number of the ID
-    string documentNumber;
-    // The type of the document
-    string documentType;
-}
-
-/**
- * @notice The parameters for verifying a proof
- * @dev this can be retrieved with the getSolidityVerifierParameters function in the SDK
- */
-struct ProofVerificationParams {
+struct ProofVerificationData {
   bytes32 vkeyHash;
   bytes proof;
   bytes32[] publicInputs;
+}
+
+struct Commitments {
   bytes committedInputs;
   uint256[] committedInputCounts;
+}
+
+struct ServiceConfig {
   uint256 validityPeriodInSeconds;
   string domain;
   string scope;
   bool devMode;
 }
 
+// Group parameters for the proof verification
+//
+// publicInputs:
+// - 0: certificate_registry_root: pub Field,
+// - 1: circuit_registry_root: pub Field,
+// - 2: current_date: pub u64,
+// - 3: service_scope: pub Field,
+// - 4: service_subscope: pub Field,
+// - 5:5+N: param_commitments: pub [Field; N],
+// - 5+N: nullifier_type: pub u8,
+// - 6+N: scoped_nullifier: pub Field,
+//
+// committedInputs: the preimages of the `param_commitments` of the disclosure proofs.
+// committedInputCounts: offsets to locate the committedInputs of each of the param_commitments of the public_inputs.
+struct ProofVerificationParams {
+  ProofVerificationData proofVerificationData;
+  Commitments commitments;
+  ServiceConfig serviceConfig;
+}
+
+struct DisclosedData {
+    string name;
+    string issuingCountry;
+    string nationality;
+    string gender;
+    string birthDate;
+    string expiryDate;
+    string documentNumber;
+    string documentType;
+}
+
+struct BoundData {
+  address senderAddress;
+  uint256 chainId;
+  string customData;
+}
+
 /**
  * @notice The public interface for the ZKPassport verifier contract
  */
 interface IZKPassportVerifier {
+
   /**
    * @notice Verifies a proof from ZKPassport
    * @param params The proof verification parameters
@@ -70,7 +76,12 @@ interface IZKPassportVerifier {
    * @param scope The scope to check against
    * @return True if the proof was generated for the given domain and scope, false otherwise
    */
-  function verifyScopes(bytes32[] calldata publicInputs, string calldata domain, string calldata scope) external view returns (bool);
+  function verifyScopes(
+    bytes32[] calldata publicInputs,
+    string calldata domain,
+    string calldata scope
+  ) external pure returns (bool);
+
 
   // ===== Helper functions to get the information revealed by the proof =====
 
@@ -78,291 +89,25 @@ interface IZKPassportVerifier {
 
   /**
    * @notice Gets the data disclosed by the proof
-   * @param params The proof verification parameters
-   * @param isIDCard Whether the proof is from an ID card
+   * @param commitments The commitments
+   * @param isIDCard Whether the proof is an ID card
    * @return disclosedData The data disclosed by the proof
    */
-  function getDisclosedData(
-    ProofVerificationParams calldata params,
+  function getDisclosedData(    
+    Commitments calldata commitments,
     bool isIDCard
-  ) external view returns (DisclosedData memory);
+  ) external pure returns (DisclosedData memory disclosedData);
 
 
   // ===== Retrieve the bound data =====
 
   /**
    * @notice Gets the data bound to the proof
-   * @param params The proof verification parameters
+   * @param commitments The commitments
    * @return boundData The data bound to the proof
    */
-  function getBoundData(ProofVerificationParams calldata params) external view returns (BoundData memory);
+  function getBoundData(
+    Commitments calldata commitments
+  ) external pure returns (BoundData memory boundData);
 
-  // ===== Age verification =====
-
-  /**
-   * @notice Checks if the age is above or equal to the given age
-   * @param minAge The age must be above or equal to this age
-   * @param params The proof verification parameters
-   * @return True if the age is above or equal to the given age, false otherwise
-   */
-  function isAgeAboveOrEqual(
-    uint8 minAge,
-    ProofVerificationParams calldata params
-  ) external view returns (bool);
-
-  /**
-   * @notice Checks if the age is above the given age
-   * @param minAge The age must be above this age
-   * @param params The proof verification parameters
-   * @return True if the age is above the given age, false otherwise
-   */
-  function isAgeAbove(
-    uint8 minAge,
-    ProofVerificationParams calldata params
-  ) external view returns (bool);
-
-  /**
-   * @notice Checks if the age is in the given range
-   * @param minAge The age must be greater than or equal to this age
-   * @param maxAge The age must be less than or equal to this age
-   * @param params The proof verification parameters
-   * @return True if the age is in the given range, false otherwise
-   */
-  function isAgeBetween(
-    uint8 minAge,
-    uint8 maxAge,
-    ProofVerificationParams calldata params
-  ) external view returns (bool);
-
-  /**
-   * @notice Checks if the age is below or equal to the given age
-   * @param maxAge The age must be below or equal to this age
-   * @param params The proof verification parameters
-   * @return True if the age is below or equal to the given age, false otherwise
-   */
-  function isAgeBelowOrEqual(
-    uint8 maxAge,
-    ProofVerificationParams calldata params
-  ) external view returns (bool);
-
-  /**
-   * @notice Checks if the age is below the given age
-   * @param maxAge The age must be below this age
-   * @param params The proof verification parameters
-   * @return True if the age is below the given age, false otherwise
-   */
-  function isAgeBelow(
-    uint8 maxAge,
-    ProofVerificationParams calldata params
-  ) external view returns (bool);
-
-  /**
-   * @notice Checks if the age is equal to the given age
-   * @param age The age must be equal to this age
-   * @param params The proof verification parameters
-   * @return True if the age is equal to the given age, false otherwise
-   */
-  function isAgeEqual(
-    uint8 age,
-    ProofVerificationParams calldata params
-  ) external view returns (bool);
-
-  // ===== Birthdate comparison =====
-
-  /**
-   * @notice Checks if the birthdate is after or equal to the given date
-   * @param minDate The birthdate must be after or equal to this date
-   * @param params The proof verification parameters
-   * @return True if the birthdate is after or equal to the given date, false otherwise
-   */
-  function isBirthdateAfterOrEqual(
-    uint256 minDate,
-    ProofVerificationParams calldata params
-  ) external view returns (bool);
-
-  /**
-   * @notice Checks if the birthdate is after the given date
-   * @param minDate The birthdate must be after this date
-   * @param params The proof verification parameters
-   * @return True if the birthdate is after the given date, false otherwise
-   */
-  function isBirthdateAfter(
-    uint256 minDate,
-    ProofVerificationParams calldata params
-  ) external view returns (bool);
-
-  /**
-   * @notice Checks if the birthdate is between the given dates
-   * @param minDate The birthdate must be after or equal to this date
-   * @param maxDate The birthdate must be before or equal to this date
-   * @param params The proof verification parameters
-   * @return True if the birthdate is between the given dates, false otherwise
-   */
-  function isBirthdateBetween(
-    uint256 minDate,
-    uint256 maxDate,
-    ProofVerificationParams calldata params
-  ) external view returns (bool);
-
-  /**
-   * @notice Checks if the birthdate is before or equal to the given date
-   * @param maxDate The birthdate must be before or equal to this date
-   * @param params The proof verification parameters
-   * @return True if the birthdate is before or equal to the given date, false otherwise
-   */
-  function isBirthdateBeforeOrEqual(
-    uint256 maxDate,
-    ProofVerificationParams calldata params
-  ) external view returns (bool);
-
-  /**
-   * @notice Checks if the birthdate is before the given date
-   * @param maxDate The birthdate must be before this date
-   * @param params The proof verification parameters
-   * @return True if the birthdate is before the given date, false otherwise
-   */
-  function isBirthdateBefore(
-    uint256 maxDate,
-      ProofVerificationParams calldata params
-  ) external view returns (bool);
-
-  /**
-   * @notice Checks if the birthdate is equal to the given date
-   * @param date The birthdate must be equal to this date
-   * @param params The proof verification parameters
-   * @return True if the birthdate is equal to the given date, false otherwise
-   */
-  function isBirthdateEqual(
-    uint256 date,
-    ProofVerificationParams calldata params
-  ) external view returns (bool);
-
-  // ===== Expiry date comparison =====
-
-  /**
-   * @notice Checks if the expiry date is after or equal to the given date
-   * @param minDate The expiry date must be after or equal to this date
-   * @param params The proof verification parameters
-   * @return True if the expiry date is after or equal to the given date, false otherwise
-   */
-  function isExpiryDateAfterOrEqual(
-    uint256 minDate,
-    ProofVerificationParams calldata params
-  ) external view returns (bool);
-
-  /**
-   * @notice Checks if the expiry date is after the given date
-   * @param minDate The expiry date must be after this date
-   * @param params The proof verification parameters
-   * @return True if the expiry date is after the given date, false otherwise
-   */
-  function isExpiryDateAfter(
-    uint256 minDate,
-    ProofVerificationParams calldata params
-  ) external view returns (bool);
-
-  /**
-   * @notice Checks if the expiry date is between the given dates
-   * @param minDate The expiry date must be after or equal to this date
-   * @param maxDate The expiry date must be before or equal to this date
-   * @param params The proof verification parameters
-   * @return True if the expiry date is between the given dates, false otherwise
-   */
-  function isExpiryDateBetween(
-    uint256 minDate,
-    uint256 maxDate,
-    ProofVerificationParams calldata params
-  ) external view returns (bool);
-
-  /**
-   * @notice Checks if the expiry date is before or equal to the given date
-   * @param maxDate The expiry date must be before or equal to this date
-   * @param params The proof verification parameters
-   * @return True if the expiry date is before or equal to the given date, false otherwise
-   */
-  function isExpiryDateBeforeOrEqual(
-    uint256 maxDate,
-    ProofVerificationParams calldata params
-  ) external view returns (bool);
-
-  /**
-   * @notice Checks if the expiry date is before the given date
-   * @param maxDate The expiry date must be before this date
-   * @param params The proof verification parameters
-   * @return True if the expiry date is before the given date, false otherwise
-   */
-  function isExpiryDateBefore(
-    uint256 maxDate,
-    ProofVerificationParams calldata params
-  ) external view returns (bool);
-
-  /**
-   * @notice Checks if the expiry date is equal to the given date
-   * @param date The expiry date must be equal to this date
-   * @param params The proof verification parameters
-   * @return True if the expiry date is equal to the given date, false otherwise
-   */
-  function isExpiryDateEqual(
-    uint256 date,
-    ProofVerificationParams calldata params
-  ) external view returns (bool);
-
-  // ===== Country inclusion =====
-
-  /**
-   * @notice Checks if the nationality is in the list of countries
-   * @param countryList The list of countries (needs to match exactly the list of countries in the proof)
-   * @param params The proof verification parameters
-   * @return True if the nationality is in the list of countries, false otherwise
-   */
-  function isNationalityIn(
-    string[] memory countryList,
-    ProofVerificationParams calldata params
-  ) external pure returns (bool);
-
-  /**
-   * @notice Checks if the issuing country is in the list of countries
-   * @param countryList The list of countries (needs to match exactly the list of countries in the proof)
-   * @param params The proof verification parameters
-   * @return True if the issuing country is in the list of countries, false otherwise
-   */
-  function isIssuingCountryIn(
-    string[] memory countryList,
-    ProofVerificationParams calldata params
-  ) external pure returns (bool);
-
-  // ===== Country exclusion =====
-
-  /**
-   * @notice Checks if the nationality is not in the list of countries
-   * @param countryList The list of countries (needs to match exactly the list of countries in the proof)
-   * Note: The list of countries must be sorted in alphabetical order
-   * @param params The proof verification parameters
-   * @return True if the nationality is not in the list of countries, false otherwise
-   */
-  function isNationalityOut(
-    string[] memory countryList,
-    ProofVerificationParams calldata params
-  ) external pure returns (bool);
-
-  /**
-   * @notice Checks if the issuing country is not in the list of countries
-   * @param countryList The list of countries (needs to match exactly the list of countries in the proof)
-   * Note: The list of countries must be sorted in alphabetical order
-   * @param params The proof verification parameters
-   * @return True if the issuing country is not in the list of countries, false otherwise
-   */
-  function isIssuingCountryOut(
-    string[] memory countryList,
-    ProofVerificationParams calldata params
-  ) external pure returns (bool);
-
-  // ===== Sanction checks =====
-  /**
-   * @notice Enforces that the proof checks against the expected sanction list(s)
-   * @param params The proof verification parameters
-   */
-  function enforceSanctionsRoot(
-    ProofVerificationParams calldata params
-  ) external view;
 }

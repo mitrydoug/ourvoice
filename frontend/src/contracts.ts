@@ -609,49 +609,70 @@ export const registryContractConfig = {
       {
         "components": [
           {
-            "internalType": "bytes32",
-            "name": "vkeyHash",
-            "type": "bytes32"
+            "components": [
+              {
+                "internalType": "bytes32",
+                "name": "vkeyHash",
+                "type": "bytes32"
+              },
+              {
+                "internalType": "bytes",
+                "name": "proof",
+                "type": "bytes"
+              },
+              {
+                "internalType": "bytes32[]",
+                "name": "publicInputs",
+                "type": "bytes32[]"
+              }
+            ],
+            "internalType": "struct ProofVerificationData",
+            "name": "proofVerificationData",
+            "type": "tuple"
           },
           {
-            "internalType": "bytes",
-            "name": "proof",
-            "type": "bytes"
+            "components": [
+              {
+                "internalType": "bytes",
+                "name": "committedInputs",
+                "type": "bytes"
+              },
+              {
+                "internalType": "uint256[]",
+                "name": "committedInputCounts",
+                "type": "uint256[]"
+              }
+            ],
+            "internalType": "struct Commitments",
+            "name": "commitments",
+            "type": "tuple"
           },
           {
-            "internalType": "bytes32[]",
-            "name": "publicInputs",
-            "type": "bytes32[]"
-          },
-          {
-            "internalType": "bytes",
-            "name": "committedInputs",
-            "type": "bytes"
-          },
-          {
-            "internalType": "uint256[]",
-            "name": "committedInputCounts",
-            "type": "uint256[]"
-          },
-          {
-            "internalType": "uint256",
-            "name": "validityPeriodInSeconds",
-            "type": "uint256"
-          },
-          {
-            "internalType": "string",
-            "name": "domain",
-            "type": "string"
-          },
-          {
-            "internalType": "string",
-            "name": "scope",
-            "type": "string"
-          },
-          {
-            "internalType": "bool",
-            "name": "devMode",
-            "type": "bool"
+            "components": [
+              {
+                "internalType": "uint256",
+                "name": "validityPeriodInSeconds",
+                "type": "uint256"
+              },
+              {
+                "internalType": "string",
+                "name": "domain",
+                "type": "string"
+              },
+              {
+                "internalType": "string",
+                "name": "scope",
+                "type": "string"
+              },
+              {
+                "internalType": "bool",
+                "name": "devMode",
+                "type": "bool"
+              }
+            ],
+            "internalType": "struct ServiceConfig",
+            "name": "serviceConfig",
+            "type": "tuple"
           }
         ],
         "internalType": "struct ProofVerificationParams",

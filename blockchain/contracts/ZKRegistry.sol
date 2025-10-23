@@ -4,6 +4,8 @@ pragma solidity ^0.8.28;
 import "./IZKPassportVerifier.sol";
 import "./IZKRegistry.sol";
 
+import "hardhat/console.sol";
+
 contract ZKRegistry is IZKRegistry {
 
     IZKPassportVerifier public zkPassportVerifier;
@@ -22,26 +24,31 @@ contract ZKRegistry is IZKRegistry {
 
     function register(ProofVerificationParams calldata params, bool isIDCard) external returns (bytes32) {
         // Verify the proof
+        console.log("Verifying proof for user:", msg.sender);
+        console.log(block.timestamp);
         (bool verified, bytes32 uniqueIdentifier) = zkPassportVerifier.verifyProof(params);
+        console.log("Proof verified:", verified);
         require(verified, "Proof is invalid");
+        console.log("Unique Identifier:");
 
         // Check the proof was generated using your domain name (scope) and the subscope
         // you specified
         require(
-          zkPassportVerifier.verifyScopes(params.publicInputs, domain, scope),
+          zkPassportVerifier.verifyScopes(params.proofVerificationData.publicInputs, domain, scope),
           "Invalid scope"
         );
 
         // Get the disclosed data to retrieve the nationality
         DisclosedData memory disclosedData = zkPassportVerifier.getDisclosedData(
-          params,
+          params.commitments,
           isIDCard
         );
 
+
         // Use the getBoundData function to get the data bound to the proof
-        BoundData memory boundData = zkPassportVerifier.getBoundData(params);
+        BoundData memory boundData = zkPassportVerifier.getBoundData(params.commitments);
         // Make sure the user's address is the one that is calling the contract
-        require(boundData.userAddress == msg.sender, "Not the expected sender");
+        require(boundData.senderAddress == msg.sender, "Not the expected sender");
         // Make sure the chain id is the same as the one you specified in the query builder
         require(boundData.chainId == block.chainid, "Invalid chain id");
         // If you didn't specify any custom data, make sure the string is empty

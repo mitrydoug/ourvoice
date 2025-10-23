@@ -2,10 +2,12 @@ import type { HardhatUserConfig } from "hardhat/config";
 
 import hardhatToolboxViemPlugin from "@nomicfoundation/hardhat-toolbox-viem";
 import hardhatKeystore from "@nomicfoundation/hardhat-keystore";
+import hardhatNetworkHelpers from "@nomicfoundation/hardhat-network-helpers";
+
 import { configVariable } from "hardhat/config";
 
 const config: HardhatUserConfig = {
-  plugins: [hardhatToolboxViemPlugin, hardhatKeystore],
+  plugins: [hardhatToolboxViemPlugin, hardhatNetworkHelpers, hardhatKeystore],
   solidity: {
     profiles: {
       default: {

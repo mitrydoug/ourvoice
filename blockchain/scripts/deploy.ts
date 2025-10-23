@@ -5,8 +5,9 @@ import { writeFileSync } from "fs";
 
 
 async function main() {
-  const connection = await hre.network.connect();
-  const { registry, forum } = await connection.ignition.deploy(ForumForkedRegistryModule);
+  const { ignition, networkHelpers } = await hre.network.connect();
+  await networkHelpers.time.increaseTo(Math.floor(Date.now() / 1000));
+  const { registry, forum } = await ignition.deploy(ForumForkedRegistryModule);
 
   const configModuleText = (
     "export const forumContractConfig = {\n" +
