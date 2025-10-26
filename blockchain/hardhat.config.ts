@@ -29,7 +29,7 @@ const config: HardhatUserConfig = {
       type: "edr-simulated",
       forking: {
         url: configVariable("SEPOLIA_RPC_URL"),
-        blockNumber: 9462275,
+        blockNumber: 9490783,
       }
     },
     sepolia: {

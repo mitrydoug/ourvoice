@@ -30,23 +30,14 @@ const metamaskIcon = (address: string) => {
 
 
 const Root: FC = () => {
+
+  const navigate = useNavigate();
   const layoutRef = useRef<HTMLDivElement>(null);
 
-  const [writeModalOpen, setWriteModalOpen] = useState(false);
-
-  const {
-    commitVotes,
-    state: { creditBudget, remainingCredits, hasUncommittedVotes },
-  } = useUserVotes();
-  const navigate = useNavigate();
-
-  const { address } = useAccount();
   const [avatar, setAvatar] = useState<string | null>(null);
+  const { address } = useAccount();
 
-  const budgetRemaining =
-    remainingCredits && creditBudget
-      ? (remainingCredits / creditBudget) * 100
-      : 0;
+  const [writeModalOpen, setWriteModalOpen] = useState(false);
 
   useEffect(() => {
     if (address) {
@@ -56,15 +47,13 @@ const Root: FC = () => {
     }
   }, [address]);
 
-  const result = useReadContract({
-    ...registryContractConfig,
-    functionName: "isRegistered",
-    args: [address ?? "0x0000000000000000000000000000000000000000"],
-    query: {
-      enabled: !!address,
-    }
-  });
-  console.log("isRegistered: ", result.data);
+  const {
+    isUserVerified,
+    commitVotes,
+    state: userVoteState,
+  } = useUserVotes();
+
+  const budgetRemaining = isUserVerified && userVoteState.remainingCredits && userVoteState.creditBudget ? (userVoteState.remainingCredits / userVoteState.creditBudget) * 100  : 0;
 
   return (
     <>
@@ -129,48 +118,52 @@ const Root: FC = () => {
                   Get Verified{" "}
                 </Typography>
               </Button>
-              <Button
-                variant="contained"
-                startIcon={<CreateIcon />}
-                sx={{ textTransform: "none" }}
-                onClick={() => setWriteModalOpen(true)}
-              >
-                <Typography variant="body1" component="div">
-                  {" "}
-                  Write{" "}
-                </Typography>
-              </Button>
-            </Stack>
-            <Stack spacing={1} sx={{}}>
-              <Box>
-                <Stack
-                  spacing={2}
-                  justifyContent="space-between"
-                  sx={{ pb: 1 }}
+              { isUserVerified &&
+                <Button
+                  variant="contained"
+                  startIcon={<CreateIcon />}
+                  sx={{ textTransform: "none" }}
+                  onClick={() => setWriteModalOpen(true)}
                 >
-                  <Typography
-                    variant="body1"
-                    component="div"
-                    sx={{ alignSelf: "center" }}
-                  >
-                    Unassigned: {remainingCredits} / {creditBudget}{" "}
+                  <Typography variant="body1" component="div">
+                    {" "}
+                    Write{" "}
                   </Typography>
-                  <LinearProgress
-                    variant="determinate"
-                    value={budgetRemaining}
-                    sx={{ flexGrow: 1, height: 10, borderRadius: 5 }}
-                  />
-                  <Button
-                    variant="contained"
-                    sx={{ textTransform: "none" }}
-                    onClick={commitVotes}
-                    disabled={!hasUncommittedVotes}
-                  >
-                    Submit Votes
-                  </Button>
-                </Stack>
-              </Box>
+                </Button>
+              }
             </Stack>
+            { isUserVerified &&
+              <Stack spacing={1}>
+                <Box>
+                  <Stack
+                    spacing={2}
+                    justifyContent="space-between"
+                    sx={{ pb: 1 }}
+                  >
+                    <Typography
+                      variant="body1"
+                      component="div"
+                      sx={{ alignSelf: "center" }}
+                    >
+                      Unassigned: {userVoteState.remainingCredits} / {userVoteState.creditBudget}{" "}
+                    </Typography>
+                    <LinearProgress
+                      variant="determinate"
+                      value={budgetRemaining}
+                      sx={{ flexGrow: 1, height: 10, borderRadius: 5 }}
+                    />
+                    <Button
+                      variant="contained"
+                      sx={{ textTransform: "none" }}
+                      onClick={commitVotes}
+                      disabled={!userVoteState.hasUncommittedVotes}
+                    >
+                      Submit Votes
+                    </Button>
+                  </Stack>
+                </Box>
+              </Stack>
+            }
           </Stack>
         </Box>
       </Box>

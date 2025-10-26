@@ -83,9 +83,6 @@ export const GetVerified: FC = () => {
           return;
         }
 
-        const x = undefined;
-        const y = (x as string | undefined)?.length ?? 0;
-
         // Get the verification parameters
         const verifierParams = zkPassport.getSolidityVerifierParameters({
           proof: proof,

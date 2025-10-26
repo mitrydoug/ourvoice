@@ -38,21 +38,17 @@ contract ZKRegistry is IZKRegistry {
           "Invalid scope"
         );
 
-        // Get the disclosed data to retrieve the nationality
-        DisclosedData memory disclosedData = zkPassportVerifier.getDisclosedData(
-          params.commitments,
-          isIDCard
+        DisclosedData memory disclosedData = DisclosedData(
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
         );
 
-
-        // Use the getBoundData function to get the data bound to the proof
-        BoundData memory boundData = zkPassportVerifier.getBoundData(params.commitments);
-        // Make sure the user's address is the one that is calling the contract
-        require(boundData.senderAddress == msg.sender, "Not the expected sender");
-        // Make sure the chain id is the same as the one you specified in the query builder
-        require(boundData.chainId == block.chainid, "Invalid chain id");
-        // If you didn't specify any custom data, make sure the string is empty
-        require(bytes(boundData.customData).length == 0, "Custom data should be empty");
 
         // Store the unique identifier
         userRegistrations[msg.sender] = Registration(uniqueIdentifier, disclosedData, block.timestamp);

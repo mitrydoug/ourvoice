@@ -6,11 +6,12 @@ import React, {
   useEffect,
   useReducer,
 } from "react";
-import { forumContractConfig } from "../contracts";
+import { forumContractConfig, registryContractConfig } from "../contracts";
 import { useAccount, useReadContract, useWriteContract } from "wagmi";
 import _ from "lodash";
 
 const USER_CREDIT_BUDGET = 100;
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 interface UserVoteState {
   userVotes?: Map<number, number>;
@@ -85,13 +86,21 @@ const reducer = (
   return newState;
 };
 
-interface UserVoteContextValue {
+type UserNotVerifiedContextValue = {
+  isUserVerified: false;
+  state: undefined;
+  dispatch: undefined;
+  commitVotes: undefined;
+};
+
+type UserVoteContextValue = {
+  isUserVerified: true;
   state: UserVoteState;
   dispatch: React.Dispatch<UserVoteAction>;
   commitVotes: () => void;
 }
 
-export const UserVoteContext = createContext<UserVoteContextValue | undefined>(
+export const UserVoteContext = createContext<UserNotVerifiedContextValue | UserVoteContextValue | undefined>(
   undefined,
 );
 
@@ -103,27 +112,39 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
   const { address } = useAccount();
   console.log("UserVoteProvider for address: ", address);
 
+  const { data: isUserVerified } = useReadContract({
+    ...registryContractConfig,
+    functionName: "isRegistered",
+    args: [address ?? ZERO_ADDRESS],
+    query: {
+      enabled: !!address,
+    }
+  });
+
   const { data: _votes } = useReadContract({
     ...forumContractConfig,
     account: address,
     functionName: "getUserVoteSet",
     args: [],
+    query: {
+      enabled: Boolean(address && isUserVerified),
+    }
   });
 
   console.log("Fetched user votes from contract: ", _votes);
 
   useEffect(() => {
-    // Load initial state from blockchain
-    const votesMap = new Map<number, number>();
+    // Load state from blockchain
     if (_votes) {
+      const votesMap = new Map<number, number>();
       _votes.forEach((v) => {
         votesMap.set(Number(v.statementId), Number(v.voteCount));
       });
+      dispatch({
+        type: "SYNC_COMMITTED_VOTES",
+        payload: { userVotes: votesMap },
+      });
     }
-    dispatch({
-      type: "SYNC_COMMITTED_VOTES",
-      payload: { userVotes: votesMap },
-    });
   }, [_votes, address]);
 
   const commitVotes = useCallback(async () => {
@@ -143,11 +164,17 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
     }
   }, [state.userVotes, writeContract]);
 
-  return (
-    <UserVoteContext.Provider value={{ state, dispatch, commitVotes }}>
+  if (isUserVerified) {
+    return (
+      <UserVoteContext.Provider value={{ isUserVerified, state, dispatch, commitVotes }}>
+        {children}
+      </UserVoteContext.Provider>
+    );
+  } else {
+    return <UserVoteContext.Provider value={{ isUserVerified: !!isUserVerified, state: undefined, dispatch: undefined, commitVotes: undefined }}>
       {children}
     </UserVoteContext.Provider>
-  );
+  }
 };
 
 export const useUserVotes = () => {
