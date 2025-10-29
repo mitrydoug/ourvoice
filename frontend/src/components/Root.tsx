@@ -59,7 +59,7 @@ const Root: FC = () => {
     <>
       <Box
         ref={layoutRef}
-        sx={{ position: "relative", backgroundColor: "#f4f4f4ff" }}
+        sx={{ position: "relative" }}
       >
         <Container
           component="main"
