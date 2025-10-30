@@ -15,6 +15,7 @@ contract ZKRegistry is IZKRegistry {
 
     // Map users to their registrations and verified unique identifiers
     mapping(address => Registration) public userRegistrations;
+    mapping(bytes32 => address) public identifierToAddress;
 
     constructor(string memory _scope, string memory _domain, address _verifierAddress) {
         scope = _scope;
@@ -22,7 +23,7 @@ contract ZKRegistry is IZKRegistry {
         zkPassportVerifier = IZKPassportVerifier(_verifierAddress);
     }
 
-    function register(ProofVerificationParams calldata params, bool isIDCard) external returns (bytes32) {
+    function register(ProofVerificationParams calldata params) external returns (bytes32) {
         // Verify the proof
         console.log("Verifying proof for user:", msg.sender);
         console.log(block.timestamp);
@@ -50,8 +51,15 @@ contract ZKRegistry is IZKRegistry {
         );
 
 
-        // Store the unique identifier
-        userRegistrations[msg.sender] = Registration(uniqueIdentifier, disclosedData, block.timestamp);
+        if (identifierToAddress[uniqueIdentifier] != address(0)) {
+            userRegistrations[msg.sender] = userRegistrations[identifierToAddress[uniqueIdentifier]];
+            delete userRegistrations[identifierToAddress[uniqueIdentifier]];
+            identifierToAddress[uniqueIdentifier] = msg.sender;
+        } else {
+            // Store the unique identifier
+            userRegistrations[msg.sender] = Registration(uniqueIdentifier, disclosedData, block.timestamp);
+            identifierToAddress[uniqueIdentifier] = msg.sender;
+        }
 
         return userRegistrations[msg.sender].uniqueIdentifier;
     }
