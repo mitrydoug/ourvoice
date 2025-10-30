@@ -27,8 +27,8 @@ export const App: FC = () => {
 
   const router = createHashRouter([
     {
-        path: "/verify",
-        Component: GetVerified,
+      path: "/verify",
+      Component: GetVerified,
     },
     {
       Component: Root,

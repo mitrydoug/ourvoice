@@ -98,11 +98,11 @@ type UserVoteContextValue = {
   state: UserVoteState;
   dispatch: React.Dispatch<UserVoteAction>;
   commitVotes: () => void;
-}
+};
 
-export const UserVoteContext = createContext<UserNotVerifiedContextValue | UserVoteContextValue | undefined>(
-  undefined,
-);
+export const UserVoteContext = createContext<
+  UserNotVerifiedContextValue | UserVoteContextValue | undefined
+>(undefined);
 
 export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
   children,
@@ -118,7 +118,7 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
     args: [address ?? ZERO_ADDRESS],
     query: {
       enabled: !!address,
-    }
+    },
   });
 
   const { data: _votes } = useReadContract({
@@ -128,7 +128,7 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
     args: [],
     query: {
       enabled: Boolean(address && isUserVerified),
-    }
+    },
   });
 
   console.log("Fetched user votes from contract: ", _votes);
@@ -166,14 +166,25 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
 
   if (isUserVerified) {
     return (
-      <UserVoteContext.Provider value={{ isUserVerified, state, dispatch, commitVotes }}>
+      <UserVoteContext.Provider
+        value={{ isUserVerified, state, dispatch, commitVotes }}
+      >
         {children}
       </UserVoteContext.Provider>
     );
   } else {
-    return <UserVoteContext.Provider value={{ isUserVerified: !!isUserVerified, state: undefined, dispatch: undefined, commitVotes: undefined }}>
-      {children}
-    </UserVoteContext.Provider>
+    return (
+      <UserVoteContext.Provider
+        value={{
+          isUserVerified: !!isUserVerified,
+          state: undefined,
+          dispatch: undefined,
+          commitVotes: undefined,
+        }}
+      >
+        {children}
+      </UserVoteContext.Provider>
+    );
   }
 };
 

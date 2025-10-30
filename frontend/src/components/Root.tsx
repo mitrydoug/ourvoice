@@ -12,12 +12,11 @@ import {
 } from "@mui/material";
 import NavTabs from "./NavTabs";
 import { useUserVotes } from "../state/UserVotes";
-import { useAccount, useReadContract } from "wagmi";
+import { useAccount } from "wagmi";
 import CreateIcon from "@mui/icons-material/Create";
 
 import jazzicon from "@metamask/jazzicon";
 import WriteModal from "./WriteModal";
-import { registryContractConfig } from "../contracts";
 
 const metamaskIcon = (address: string) => {
   console.log(address);
@@ -28,9 +27,7 @@ const metamaskIcon = (address: string) => {
   return `data:image/svg+xml,${encodeURIComponent(jazziconSvg)}`;
 };
 
-
 const Root: FC = () => {
-
   const navigate = useNavigate();
   const layoutRef = useRef<HTMLDivElement>(null);
 
@@ -47,20 +44,18 @@ const Root: FC = () => {
     }
   }, [address]);
 
-  const {
-    isUserVerified,
-    commitVotes,
-    state: userVoteState,
-  } = useUserVotes();
+  const { isUserVerified, commitVotes, state: userVoteState } = useUserVotes();
 
-  const budgetRemaining = isUserVerified && userVoteState.remainingCredits && userVoteState.creditBudget ? (userVoteState.remainingCredits / userVoteState.creditBudget) * 100  : 0;
+  const budgetRemaining =
+    isUserVerified &&
+    userVoteState.remainingCredits &&
+    userVoteState.creditBudget
+      ? (userVoteState.remainingCredits / userVoteState.creditBudget) * 100
+      : 0;
 
   return (
     <>
-      <Box
-        ref={layoutRef}
-        sx={{ position: "relative" }}
-      >
+      <Box ref={layoutRef} sx={{ position: "relative" }}>
         <Container
           component="main"
           maxWidth="sm"
@@ -78,7 +73,9 @@ const Root: FC = () => {
             <NavTabs
               tabs={[
                 { label: "Top", href: "/top" },
-                { label: "My Support", href: "/my-support" },
+                ...(isUserVerified
+                  ? [{ label: "My Support", href: "/my-support" }]
+                  : []),
               ]}
             />
             <Outlet />
@@ -111,14 +108,14 @@ const Root: FC = () => {
               <Button
                 variant="contained"
                 sx={{ textTransform: "none" }}
-                onClick={() => navigate("/verify") }
+                onClick={() => navigate("/verify")}
               >
                 <Typography variant="body1" component="div">
                   {" "}
                   Get Verified{" "}
                 </Typography>
               </Button>
-              { isUserVerified &&
+              {isUserVerified && (
                 <Button
                   variant="contained"
                   startIcon={<CreateIcon />}
@@ -130,9 +127,9 @@ const Root: FC = () => {
                     Write{" "}
                   </Typography>
                 </Button>
-              }
+              )}
             </Stack>
-            { isUserVerified &&
+            {isUserVerified && (
               <Stack spacing={1}>
                 <Box>
                   <Stack
@@ -145,7 +142,8 @@ const Root: FC = () => {
                       component="div"
                       sx={{ alignSelf: "center" }}
                     >
-                      Unassigned: {userVoteState.remainingCredits} / {userVoteState.creditBudget}{" "}
+                      Unassigned: {userVoteState.remainingCredits} /{" "}
+                      {userVoteState.creditBudget}{" "}
                     </Typography>
                     <LinearProgress
                       variant="determinate"
@@ -163,7 +161,7 @@ const Root: FC = () => {
                   </Stack>
                 </Box>
               </Stack>
-            }
+            )}
           </Stack>
         </Box>
       </Box>

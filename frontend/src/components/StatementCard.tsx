@@ -1,8 +1,5 @@
 import {
-  Box,
   Card,
-  CardActions,
-  CardContent,
   Stack,
   Typography,
 } from "@mui/material";
@@ -32,7 +29,8 @@ type StatementCardProps = {
 
 export const StatementCard: FC<StatementCardProps> = ({ statement }) => {
   const {
-    state: { userVotes, committedVotes },
+    isUserVerified,
+    state: userVoteState,
     dispatch,
   } = useUserVotes();
 
@@ -94,22 +92,26 @@ export const StatementCard: FC<StatementCardProps> = ({ statement }) => {
                 {statement.voteCount > statementOneWeekAgo.voteCount ? <KeyboardArrowUpIcon /> : statement.voteCount < statementOneWeekAgo.voteCount ? <KeyboardArrowDownIcon /> : <RemoveIcon />}
               </Box>
             )*/}
-            <VoteToggle
-              userVoteCount={userVotes?.get(Number(statement.id)) || 0}
-              uncommitedVote={
-                (userVotes?.get(Number(statement.id)) || 0) !==
-                (committedVotes?.get(Number(statement.id)) || 0)
-              }
-              onUserVoteChange={(n) =>
-                dispatch({
-                  type: "UPDATE_VOTE",
-                  payload: {
-                    statementId: statement.id,
-                    newVoteCount: BigInt(n),
-                  },
-                })
-              }
-            />
+            {isUserVerified ? (
+              <VoteToggle
+                userVoteCount={
+                  userVoteState.userVotes?.get(Number(statement.id)) || 0
+                }
+                uncommitedVote={
+                  (userVoteState.userVotes?.get(Number(statement.id)) || 0) !==
+                  (userVoteState.committedVotes?.get(Number(statement.id)) || 0)
+                }
+                onUserVoteChange={(n) =>
+                  dispatch({
+                    type: "UPDATE_VOTE",
+                    payload: {
+                      statementId: statement.id,
+                      newVoteCount: BigInt(n),
+                    },
+                  })
+                }
+              />
+            ) : null}
           </Stack>
         </Stack>
       </Stack>

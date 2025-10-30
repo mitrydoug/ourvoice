@@ -1,6 +1,5 @@
 import { createTheme } from "@mui/material";
 
-
 export const theme = createTheme({
   colorSchemes: {
     light: {
@@ -16,8 +15,8 @@ export const theme = createTheme({
         },
         text: {
           primary: "#323232ff",
-        }
-      }
+        },
+      },
     },
     dark: true,
   },
@@ -28,7 +27,7 @@ export const theme = createTheme({
     MuiButton: {
       defaultProps: {
         variant: "contained",
-      }
+      },
     },
-  }
+  },
 });
