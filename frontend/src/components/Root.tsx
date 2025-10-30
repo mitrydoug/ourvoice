@@ -14,10 +14,10 @@ import NavTabs from "./NavTabs";
 import { useUserVotes } from "../state/UserVotes";
 import { useAccount } from "wagmi";
 import CreateIcon from "@mui/icons-material/Create";
-import DoneAllIcon from "@mui/icons-material/DoneAll";
 
 import jazzicon from "@metamask/jazzicon";
 import WriteModal from "./WriteModal";
+
 const metamaskIcon = (address: string) => {
   console.log(address);
   const jazziconData = jazzicon(16, parseInt(address.slice(2, 10), 16));
@@ -28,23 +28,13 @@ const metamaskIcon = (address: string) => {
 };
 
 const Root: FC = () => {
+  const navigate = useNavigate();
   const layoutRef = useRef<HTMLDivElement>(null);
 
-  const [writeModalOpen, setWriteModalOpen] = useState(false);
-
-  const {
-    commitVotes,
-    state: { creditBudget, remainingCredits, hasUncommittedVotes },
-  } = useUserVotes();
-  const navigate = useNavigate();
-
-  const { address } = useAccount();
   const [avatar, setAvatar] = useState<string | null>(null);
+  const { address } = useAccount();
 
-  const budgetRemaining =
-    remainingCredits && creditBudget
-      ? (remainingCredits / creditBudget) * 100
-      : 0;
+  const [writeModalOpen, setWriteModalOpen] = useState(false);
 
   useEffect(() => {
     if (address) {
@@ -54,9 +44,18 @@ const Root: FC = () => {
     }
   }, [address]);
 
+  const { isUserVerified, commitVotes, state: userVoteState } = useUserVotes();
+
+  const budgetRemaining =
+    isUserVerified &&
+    userVoteState.remainingCredits &&
+    userVoteState.creditBudget
+      ? (userVoteState.remainingCredits / userVoteState.creditBudget) * 100
+      : 0;
+
   return (
     <>
-      <Box ref={layoutRef} sx={{ position: "relative", backgroundColor: "#f4f4f4ff" }}>
+      <Box ref={layoutRef} sx={{ position: "relative" }}>
         <Container
           component="main"
           maxWidth="sm"
@@ -74,7 +73,9 @@ const Root: FC = () => {
             <NavTabs
               tabs={[
                 { label: "Top", href: "/top" },
-                { label: "My Support", href: "/my-support" },
+                ...(isUserVerified
+                  ? [{ label: "My Support", href: "/my-support" }]
+                  : []),
               ]}
             />
             <Outlet />
@@ -92,8 +93,8 @@ const Root: FC = () => {
               `translateX(-100%) translateX(-${theme.breakpoints.values.sm / 2}px)`,
           }}
         >
-          <Stack spacing={1} >
-            <Stack direction="row" justifyContent="center" alignItems="center">
+          <Stack spacing={1}>
+            <Stack justifyContent="center" alignItems="center" spacing={1}>
               <IconButton
                 size="large"
                 aria-label="account of current user"
@@ -106,42 +107,61 @@ const Root: FC = () => {
               </IconButton>
               <Button
                 variant="contained"
-                startIcon={<CreateIcon />}
                 sx={{ textTransform: "none" }}
-                onClick={() => setWriteModalOpen(true)}
+                onClick={() => navigate("/verify")}
               >
                 <Typography variant="body1" component="div">
                   {" "}
-                  Write{" "}
+                  Get Verified{" "}
                 </Typography>
               </Button>
+              {isUserVerified && (
+                <Button
+                  variant="contained"
+                  startIcon={<CreateIcon />}
+                  sx={{ textTransform: "none" }}
+                  onClick={() => setWriteModalOpen(true)}
+                >
+                  <Typography variant="body1" component="div">
+                    {" "}
+                    Write{" "}
+                  </Typography>
+                </Button>
+              )}
             </Stack>
-            <Stack spacing={1} sx={{}}>
-            <Box>
-              <Stack
-              spacing={2}
-              justifyContent="space-between"
-              sx={{ pb: 1 }}
-            >
-              <Typography variant="body1" component="div" sx={{ alignSelf: "center" }}>
-                Unassigned: {remainingCredits} / {creditBudget}{" "}
-              </Typography>
-              <LinearProgress
-                variant="determinate"
-                value={budgetRemaining}
-                sx={{ flexGrow: 1, height: 10, borderRadius: 5 }}
-              />
-              <Button
-                variant="contained"
-                sx={{ textTransform: "none" }}
-                onClick={commitVotes}
-                disabled={!hasUncommittedVotes}
-              >
-                Submit Votes
-              </Button>
-            </Stack>
-            </Box>
-          </Stack>
+            {isUserVerified && (
+              <Stack spacing={1}>
+                <Box>
+                  <Stack
+                    spacing={2}
+                    justifyContent="space-between"
+                    sx={{ pb: 1 }}
+                  >
+                    <Typography
+                      variant="body1"
+                      component="div"
+                      sx={{ alignSelf: "center" }}
+                    >
+                      Unassigned: {userVoteState.remainingCredits} /{" "}
+                      {userVoteState.creditBudget}{" "}
+                    </Typography>
+                    <LinearProgress
+                      variant="determinate"
+                      value={budgetRemaining}
+                      sx={{ flexGrow: 1, height: 10, borderRadius: 5 }}
+                    />
+                    <Button
+                      variant="contained"
+                      sx={{ textTransform: "none" }}
+                      onClick={commitVotes}
+                      disabled={!userVoteState.hasUncommittedVotes}
+                    >
+                      Submit Votes
+                    </Button>
+                  </Stack>
+                </Box>
+              </Stack>
+            )}
           </Stack>
         </Box>
       </Box>
