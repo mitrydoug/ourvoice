@@ -12,18 +12,21 @@ contract ZKRegistry is IZKRegistry {
     string public scope;
     string public domain;
     uint256 public constant registrationValidityPeriod = 365 days;
+    bool public devMode;
 
     // Map users to their registrations and verified unique identifiers
     mapping(address => Registration) public userRegistrations;
     mapping(bytes32 => address) public identifierToAddress;
 
-    constructor(string memory _scope, string memory _domain, address _verifierAddress) {
+    constructor(string memory _scope, string memory _domain, address _verifierAddress, bool _devMode) {
         scope = _scope;
         domain = _domain;
+        devMode = _devMode;
         zkPassportVerifier = IZKPassportVerifier(_verifierAddress);
     }
 
     function register(ProofVerificationParams calldata params) external returns (bytes32) {
+        require(devMode || !params.serviceConfig.devMode, "dev proofs only allowed in dev mode");
         // Verify the proof
         console.log("Verifying proof for user:", msg.sender);
         console.log(block.timestamp);

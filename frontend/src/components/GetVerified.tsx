@@ -132,6 +132,8 @@ const Verify: FC<VerifyProps> = ({ methodIndex, onBack }) => {
         scope: MY_SCOPE,
         // To verify proofs on EVM chains, you need to set the mode to "compressed-evm"
         mode: "compressed-evm",
+        // TODO: remove when productionizing
+        devMode: true,
       });
 
       // Build your query with the required attributes or conditions you want to verify
