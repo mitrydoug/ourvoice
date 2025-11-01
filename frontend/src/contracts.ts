@@ -457,40 +457,6 @@ export const registryContractConfig = {
   {
     "inputs": [
       {
-        "internalType": "string",
-        "name": "_scope",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "_domain",
-        "type": "string"
-      },
-      {
-        "internalType": "address",
-        "name": "_verifierAddress",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "constructor"
-  },
-  {
-    "inputs": [],
-    "name": "domain",
-    "outputs": [
-      {
-        "internalType": "string",
-        "name": "",
-        "type": "string"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
         "internalType": "address",
         "name": "user",
         "type": "address"
@@ -624,81 +590,7 @@ export const registryContractConfig = {
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "components": [
-          {
-            "components": [
-              {
-                "internalType": "bytes32",
-                "name": "vkeyHash",
-                "type": "bytes32"
-              },
-              {
-                "internalType": "bytes",
-                "name": "proof",
-                "type": "bytes"
-              },
-              {
-                "internalType": "bytes32[]",
-                "name": "publicInputs",
-                "type": "bytes32[]"
-              }
-            ],
-            "internalType": "struct ProofVerificationData",
-            "name": "proofVerificationData",
-            "type": "tuple"
-          },
-          {
-            "components": [
-              {
-                "internalType": "bytes",
-                "name": "committedInputs",
-                "type": "bytes"
-              },
-              {
-                "internalType": "uint256[]",
-                "name": "committedInputCounts",
-                "type": "uint256[]"
-              }
-            ],
-            "internalType": "struct Commitments",
-            "name": "commitments",
-            "type": "tuple"
-          },
-          {
-            "components": [
-              {
-                "internalType": "uint256",
-                "name": "validityPeriodInSeconds",
-                "type": "uint256"
-              },
-              {
-                "internalType": "string",
-                "name": "domain",
-                "type": "string"
-              },
-              {
-                "internalType": "string",
-                "name": "scope",
-                "type": "string"
-              },
-              {
-                "internalType": "bool",
-                "name": "devMode",
-                "type": "bool"
-              }
-            ],
-            "internalType": "struct ServiceConfig",
-            "name": "serviceConfig",
-            "type": "tuple"
-          }
-        ],
-        "internalType": "struct ProofVerificationParams",
-        "name": "params",
-        "type": "tuple"
-      }
-    ],
+    "inputs": [],
     "name": "register",
     "outputs": [
       {
@@ -708,32 +600,6 @@ export const registryContractConfig = {
       }
     ],
     "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "registrationValidityPeriod",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "scope",
-    "outputs": [
-      {
-        "internalType": "string",
-        "name": "",
-        "type": "string"
-      }
-    ],
-    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -802,19 +668,6 @@ export const registryContractConfig = {
         "internalType": "uint256",
         "name": "registrationTimestamp",
         "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "zkPassportVerifier",
-    "outputs": [
-      {
-        "internalType": "contract IZKPassportVerifier",
-        "name": "",
-        "type": "address"
       }
     ],
     "stateMutability": "view",
