@@ -11,9 +11,15 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import FormGroup from '@mui/material/FormGroup';
 import MenuItem from '@mui/material/MenuItem';
 import Menu from '@mui/material/Menu';
-import { Avatar, Stack } from '@mui/material';
+import { Avatar, Button, Paper, Popover, Stack } from '@mui/material';
 import jazzicon from "@metamask/jazzicon";
 import { useAccount } from 'wagmi';
+import { useNavigate } from 'react-router-dom';
+import { useUserVotes } from '../state/UserVotes';
+import CreateIcon from "@mui/icons-material/Create";
+import WriteModal from './WriteModal';
+import ChooseForumModal, { FORUMS } from './ChooseForumModal';
+import DoneAllIcon from '@mui/icons-material/DoneAll';
 
 
 const MIC_ICON = (
@@ -45,6 +51,10 @@ export default function MenuAppBar() {
 
   const [avatar, setAvatar] = useState<string | null>(null);
   const { address } = useAccount();
+  const [writeModalOpen, setWriteModalOpen] = useState(false);
+  const [chooseForumModalOpen, setChooseForumModalOpen] = useState(false);
+  const [forum, setForum] = useState("global");
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (address) {
@@ -54,46 +64,121 @@ export default function MenuAppBar() {
     }
   }, [address]);
 
+  const { isUserVerified, commitVotes } = useUserVotes();
+
   const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
+    console.log("here! ")
     setAnchorEl(event.currentTarget);
   };
 
   const handleClose = () => {
+
     setAnchorEl(null);
   };
 
+  const open = Boolean(anchorEl);
+  const id = open ? 'simple-popover' : undefined;
+
   return (
-    <AppBar position="static" color="transparent" elevation={0}>
-        <Toolbar>
-          <Stack direction="row" spacing={4} alignItems="center" flexGrow={1}>
-            <Stack direction="row" alignItems="center" sx={{ color: 'primary.main' }}>
-              <Box sx={{ height: "2.75rem", width: "2.75rem" }}>{MIC_ICON}</Box>
-              <Typography variant="h4" component="div" sx={{ fontFamily: 'Sriracha', fontWeight: 'bold', color: "primary.main" }}>
-                Our Voice
-              </Typography>
+    <>
+      <AppBar position="static" color="transparent" elevation={0}>
+          <Toolbar>
+            <Stack direction="row" spacing={3} alignItems="center" flexGrow={1}>
+              <Stack direction="row" alignItems="center" sx={{ color: 'primary.main' }}>
+                <Box sx={{ height: "2.75rem", width: "2.75rem" }}>{MIC_ICON}</Box>
+                <Typography variant="h4" component="div" sx={{ fontFamily: 'Sriracha', fontWeight: 'bold', color: "primary.main" }}>
+                  Our Voice
+                </Typography>
+              </Stack>
+              <IconButton
+                size="medium"
+                aria-controls="menu-appbar"
+                aria-haspopup="true"
+                onClick={() => { setChooseForumModalOpen(true); }}
+                color="inherit"
+              >
+                <Avatar src={FORUMS[forum].iconSrc} variant="rounded" style={{ height: "1.7rem", width: "1.7rem" }}/>
+              </IconButton>
+              
+              <span style={{ flexGrow: 1 }}></span>
+              <IconButton
+                size="medium"
+                aria-label="account of current user"
+                aria-controls="menu-appbar"
+                aria-haspopup="true"
+                aria-describedby={id}
+                onClick={handleMenu}
+                color="inherit"
+              >
+                <Avatar src={avatar} />
+              </IconButton>
+              <Popover
+                id={id}
+                open={open}
+                anchorEl={anchorEl}
+                onClose={handleClose}
+                anchorOrigin={{
+                  vertical: 'bottom',
+                  horizontal: 'right',
+                }}
+                transformOrigin={{
+                  vertical: 'top',
+                  horizontal: 'right',
+                }}
+              >
+                <Paper sx={{ p: 2 }}>
+                  <Stack spacing={2}>
+                  { isUserVerified ? (
+                    <>
+                      <Button
+                        variant="contained"
+                        startIcon={<CreateIcon />}
+                        sx={{ textTransform: "none" }}
+                        onClick={() => setWriteModalOpen(true)}
+                      >
+                        <Typography variant="body1" component="div">
+                          {" "}
+                          Write{" "}
+                        </Typography>
+                      </Button>
+                      <Button
+                        variant="contained"
+                        startIcon={<DoneAllIcon />}
+                        sx={{ textTransform: "none" }}
+                        onClick={commitVotes}
+                      >
+                        <Typography variant="body1" component="div">
+                          {" "}
+                          Commit{" "}
+                        </Typography>
+                      </Button>
+                    </>
+                  ) : (
+                    <Button
+                      sx={{ textTransform: "none" }}
+                      onClick={() => navigate("/verify")}
+                    >
+                      <Typography variant="body1" component="div">
+                        {" "}
+                        Get Verified{" "}
+                      </Typography>
+                    </Button>
+                  )}
+                  </Stack>
+                </Paper>
+              </Popover>
             </Stack>
-            <IconButton
-              size="medium"
-              aria-controls="menu-appbar"
-              aria-haspopup="true"
-              onClick={() => {}}
-              color="inherit"
-            >
-              <Avatar src="us.svg" variant="rounded" style={{ height: "1.7rem", width: "1.7rem" }}/>
-            </IconButton>
-            <span style={{ flexGrow: 1 }}></span>
-            <IconButton
-              size="medium"
-              aria-label="account of current user"
-              aria-controls="menu-appbar"
-              aria-haspopup="true"
-              onClick={() => {}}
-              color="inherit"
-            >
-              <Avatar src={avatar} />
-            </IconButton>
-            </Stack>
-        </Toolbar>
-      </AppBar>
+          </Toolbar>
+        </AppBar>
+        <WriteModal
+          open={writeModalOpen}
+          onClose={() => setWriteModalOpen(false)}
+        />
+        <ChooseForumModal
+          open={chooseForumModalOpen}
+          onClose={() => setChooseForumModalOpen(false)}
+          chooseForum={(forum: string) => { setForum(forum); setChooseForumModalOpen(false); }}
+        />
+      </>
   );
 }

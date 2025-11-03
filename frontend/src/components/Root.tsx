@@ -18,6 +18,7 @@ import CreateIcon from "@mui/icons-material/Create";
 
 import WriteModal from "./WriteModal";
 import MenuAppBar from "./AppBar";
+import ChooseForumModal from "./ChooseForumModal";
 
 
 
@@ -28,6 +29,7 @@ const Root: FC = () => {
 
 
   const [writeModalOpen, setWriteModalOpen] = useState(false);
+
 
 
 
@@ -65,8 +67,9 @@ const Root: FC = () => {
                   : []),
               ]}
             />
-            <Outlet />
+            
           </Stack>*/ }
+          <Outlet />
         </Container>
         {/*<Box
           component="nav"
