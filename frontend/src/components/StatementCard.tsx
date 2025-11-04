@@ -6,12 +6,13 @@ import {
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ArrowUpwardSharpIcon from "@mui/icons-material/ArrowUpwardSharp";
 import RemoveIcon from "@mui/icons-material/Remove";
-import { forumContractConfig } from "../contracts";
+import { FORUMS, FORUM_ABI } from "../contracts";
 
 import React, { FC } from "react";
 import { useUserVotes } from "../state/UserVotes";
 import VoteToggle from "./VoteToggle";
 import { useBlockNumber, useReadContract } from "wagmi";
+import { useForum } from "../state/Forum";
 
 const LOOK_BACK_BLOCKS = BigInt(1);
 
@@ -33,11 +34,12 @@ export const StatementCard: FC<StatementCardProps> = ({ statement }) => {
     state: userVoteState,
     dispatch,
   } = useUserVotes();
+  const { forumConfig } = useForum();
 
   const { data: blockNumber } = useBlockNumber();
 
   const result = useReadContract({
-    ...forumContractConfig,
+    ...forumConfig,
     functionName: "getStatementsById",
     args: [[statement.id]],
     blockNumber: blockNumber ? blockNumber - LOOK_BACK_BLOCKS : undefined,

@@ -6,9 +6,10 @@ import React, {
   useEffect,
   useReducer,
 } from "react";
-import { forumContractConfig, registryContractConfig } from "../contracts";
+import { registryContractConfig } from "../contracts";
 import { useAccount, useReadContract, useWriteContract } from "wagmi";
 import _ from "lodash";
+import { useForum } from "./Forum";
 
 const USER_CREDIT_BUDGET = 100;
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
@@ -110,6 +111,7 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
   const [state, dispatch] = useReducer(reducer, { error: null });
   const { writeContract } = useWriteContract();
   const { address } = useAccount();
+  const { forumConfig } = useForum();
   console.log("UserVoteProvider for address: ", address);
 
   const { data: isUserVerified } = useReadContract({
@@ -122,7 +124,7 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
   });
 
   const { data: _votes } = useReadContract({
-    ...forumContractConfig,
+    ...forumConfig,
     account: address,
     functionName: "getUserVoteSet",
     args: [],
@@ -157,7 +159,7 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
         }),
       );
       writeContract({
-        ...forumContractConfig,
+        ...forumConfig,
         functionName: "vote",
         args: [votesArray],
       });

@@ -1,3 +1,4 @@
+import React, { FC, useState } from "react";
 import {
   Box,
   Button,
@@ -10,9 +11,6 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import React, { FC, useCallback, useState } from "react";
-import { useWriteContract } from "wagmi";
-import { forumContractConfig } from "../contracts";
 
 export const FORUMS: { [key: string] : {label: string, value: string, iconSrc: string } } = {
   "global": { label: "Global", value: "global", iconSrc: "earth.png" },
@@ -39,7 +37,6 @@ type ChooseForumModalProps = {
 };
 
 const ChooseForumModal: FC<ChooseForumModalProps> = ({ open, onClose, chooseForum }) => {
-  const { writeContract } = useWriteContract();
   const [text, setText] = useState("");
 
   return (

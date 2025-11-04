@@ -20,6 +20,7 @@ import CreateIcon from "@mui/icons-material/Create";
 import WriteModal from './WriteModal';
 import ChooseForumModal, { FORUMS } from './ChooseForumModal';
 import DoneAllIcon from '@mui/icons-material/DoneAll';
+import { useForum } from '../state/Forum';
 
 
 const MIC_ICON = (
@@ -53,7 +54,7 @@ export default function MenuAppBar() {
   const { address } = useAccount();
   const [writeModalOpen, setWriteModalOpen] = useState(false);
   const [chooseForumModalOpen, setChooseForumModalOpen] = useState(false);
-  const [forum, setForum] = useState("global");
+  const {name: forumName, setForum} = useForum();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -81,7 +82,7 @@ export default function MenuAppBar() {
 
   return (
     <>
-      <AppBar position="static" color="transparent" elevation={0}>
+      <AppBar position="static" color="transparent" elevation={0} sx={{ mt: 2 }}>
           <Toolbar>
             <Stack direction="row" spacing={3} alignItems="center" flexGrow={1}>
               <Stack direction="row" alignItems="center" sx={{ color: 'primary.main' }}>
@@ -97,7 +98,7 @@ export default function MenuAppBar() {
                 onClick={() => { setChooseForumModalOpen(true); }}
                 color="inherit"
               >
-                <Avatar src={FORUMS[forum].iconSrc} variant="rounded" style={{ height: "1.7rem", width: "1.7rem" }}/>
+                <Avatar src={FORUMS[forumName].iconSrc} variant="rounded" style={{ height: "1.7rem", width: "1.7rem" }}/>
               </IconButton>
               
               <span style={{ flexGrow: 1 }}></span>
