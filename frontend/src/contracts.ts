@@ -10,6 +10,11 @@ export const FORUM_ABI = [
         "internalType": "contract IZKRegistry",
         "name": "_zkRegistry",
         "type": "address"
+      },
+      {
+        "internalType": "string",
+        "name": "_nationality",
+        "type": "string"
       }
     ],
     "stateMutability": "nonpayable",
@@ -265,6 +270,32 @@ export const FORUM_ABI = [
         "internalType": "struct Forum.Vote[]",
         "name": "",
         "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "isMember",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "nationality",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
       }
     ],
     "stateMutability": "view",
@@ -592,7 +623,13 @@ export const registryContractConfig = {
     "type": "function"
   },
   {
-    "inputs": [],
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "nationality",
+        "type": "string"
+      }
+    ],
     "name": "register",
     "outputs": [
       {

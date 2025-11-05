@@ -10,13 +10,13 @@ contract MockZKRegistry is IZKRegistry {
     mapping(address => Registration) public userRegistrations;
     mapping(bytes32 => address) public identifierToAddress;
 
-    function register() external returns (bytes32) {
+    function register(string memory nationality) external returns (bytes32) {
         bytes32 uniqueIdentifier = keccak256(abi.encode(msg.sender));
 
         DisclosedData memory disclosedData = DisclosedData(
             "",
             "",
-            "",
+            nationality,
             "",
             "",
             "",

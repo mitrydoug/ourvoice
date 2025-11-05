@@ -115,13 +115,16 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
   console.log("UserVoteProvider for address: ", address);
 
   const { data: isUserVerified } = useReadContract({
-    ...registryContractConfig,
-    functionName: "isRegistered",
-    args: [address ?? ZERO_ADDRESS],
+    ...forumConfig,
+    account: address,
+    functionName: "isMember",
+    args: [],
     query: {
       enabled: !!address,
     },
   });
+
+  console.log("User verified status: ", isUserVerified);
 
   const { data: _votes } = useReadContract({
     ...forumConfig,
@@ -169,7 +172,7 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
   if (isUserVerified) {
     return (
       <UserVoteContext.Provider
-        value={{ isUserVerified, state, dispatch, commitVotes }}
+        value={{ isUserVerified: isUserVerified, state, dispatch, commitVotes }}
       >
         {children}
       </UserVoteContext.Provider>

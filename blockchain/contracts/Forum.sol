@@ -34,33 +34,15 @@ contract Forum {
     mapping(bytes32 => Vote[]) public userVoteSets;
     mapping(bytes32 => uint) public userUsedCredits;
 
+    // Membership criteria
+    string public nationality;
+
     event UserVote(bytes32 indexed user, string action, int count);
     event StatementVote(uint indexed id, int voteCount);
 
-    constructor(IZKRegistry _zkRegistry) {
+    constructor(IZKRegistry _zkRegistry, string memory _nationality) {
         zkRegistry = _zkRegistry;
-    }
-
-    function addStatement(string calldata _statement) external {
-        require(zkRegistry.isRegistered(msg.sender), "User is not registered");
-        require(
-            bytes(_statement).length <= MAX_STATEMENT_LENGTH,
-            "Statement exceeds maximum length"
-        );
-
-        // Ensure the statement is not empty
-        // check for duplicate statements if necessary
-        // may want to do some rate-limiting here
-        statements[statementCount] = Statement({
-            id: statementCount,
-            text: _statement,
-            voteCount: 0,
-            rank: statementCount,
-            timestamp: block.timestamp
-        });
-        statementRankings.push(statementCount);
-        rerankItem(statementCount);
-        statementCount++;
+        nationality = _nationality;
     }
 
     function getRankedStatement(
@@ -95,6 +77,22 @@ contract Forum {
             stmts[i] = statements[stmtId];
         }
         return stmts;
+    }
+
+    function isMember() public view returns (bool) {
+        if (!zkRegistry.isRegistered(msg.sender)) {
+            return false;
+        }
+        if (bytes(nationality).length == 0) {
+            return true;
+        }
+        Registration memory registration = zkRegistry.getUserRegistration(msg.sender);
+        return keccak256(bytes(registration.disclosedData.nationality)) == keccak256(bytes(nationality));
+    }
+
+    modifier onlyMembers() {
+        require(isMember(), "Only members can perform this action");
+        _;
     }
 
     function rerankItem(uint _stmtId) internal {
@@ -140,8 +138,28 @@ contract Forum {
         statements[_stmtId].rank = _stmtRank;
     }
 
-    function getUserVoteSet() external view returns (Vote[] memory) {
-        require(zkRegistry.isRegistered(msg.sender), "User is not registered");
+    function addStatement(string calldata _statement) external onlyMembers {
+        require(
+            bytes(_statement).length <= MAX_STATEMENT_LENGTH,
+            "Statement exceeds maximum length"
+        );
+
+        // Ensure the statement is not empty
+        // check for duplicate statements if necessary
+        // may want to do some rate-limiting here
+        statements[statementCount] = Statement({
+            id: statementCount,
+            text: _statement,
+            voteCount: 0,
+            rank: statementCount,
+            timestamp: block.timestamp
+        });
+        statementRankings.push(statementCount);
+        rerankItem(statementCount);
+        statementCount++;
+    }
+
+    function getUserVoteSet() external view onlyMembers returns (Vote[] memory) {
         bytes32 userId = zkRegistry.getUserIdentifier(msg.sender);
         return userVoteSets[userId];
     }
