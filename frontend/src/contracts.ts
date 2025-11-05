@@ -1,7 +1,7 @@
 export const FORUMS = {
   "global": "0x16C632BafA9b3ce39bdCDdB00c3D486741685425",
   "us": "0x197baBc40fC361e9c324e9e690c016A609ac09D4"
-};
+} as const;
 
 export const FORUM_ABI = [
   {
@@ -451,7 +451,7 @@ export const FORUM_ABI = [
     "stateMutability": "view",
     "type": "function"
   }
-];
+] as const;
 
 export const registryContractConfig = {
   address: "0xf4Dc5d7C18e71D728f04AfA31E91EE065D738221",
