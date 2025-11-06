@@ -23,7 +23,7 @@ export const ForumProvider: FC<{ children: React.ReactNode }> = ({
 }) => {
 
   const [forumName, setForumName] = React.useState<ForumName>("global");
-  const address = useMemo(() => FORUMS[forumName], [FORUMS, forumName]);
+  const address = useMemo(() => FORUMS[forumName], [forumName]);
 
   const setForum = useCallback((name: ForumName) => {
     setForumName(name);
