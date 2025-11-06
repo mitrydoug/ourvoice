@@ -127,7 +127,7 @@ const Verify: FC<VerifyProps> = ({ methodIndex, onBack }) => {
       {
         ...registryContractConfig,
         functionName: "register",
-        args: [],
+        args: [''],
       },
       {
         onError: (error) => {
