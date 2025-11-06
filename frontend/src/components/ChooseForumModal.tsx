@@ -57,7 +57,7 @@ const ChooseForumModal: FC<ChooseForumModalProps> = ({ open, onClose, chooseForu
           {Object.values(FORUMS).filter((forum) =>
             forum.label.toLowerCase().includes(text.toLowerCase())
           ).map((forum) => (
-            <ListItem disablePadding>
+            <ListItem key={forum.value} disablePadding>
               <ListItemButton onClick={() => {chooseForum(forum.value);}}>
                 <ListItemIcon>
                   <img src={forum.iconSrc} style={{ height: "1.5rem", width: "1.5rem" }} />
