@@ -1,51 +1,20 @@
-import React, { FC, useEffect, useRef, useState } from "react";
+import React, { FC, useRef, useState } from "react";
 import Box from "@mui/material/Box";
-import { Outlet, useNavigate } from "react-router-dom";
-import {
-  Avatar,
-  Button,
-  Container,
-  IconButton,
-  LinearProgress,
-  Stack,
-  Typography,
-} from "@mui/material";
-import NavTabs from "./NavTabs";
+import { Outlet } from "react-router-dom";
+import { Container } from "@mui/material";
 import { useUserVotes } from "../state/UserVotes";
-import { useAccount } from "wagmi";
-import CreateIcon from "@mui/icons-material/Create";
 
-import jazzicon from "@metamask/jazzicon";
 import WriteModal from "./WriteModal";
-
-const metamaskIcon = (address: string) => {
-  console.log(address);
-  const jazziconData = jazzicon(16, parseInt(address.slice(2, 10), 16));
-  const jazziconSvg = new XMLSerializer().serializeToString(
-    jazziconData.children[0],
-  );
-  return `data:image/svg+xml,${encodeURIComponent(jazziconSvg)}`;
-};
+import MenuAppBar from "./AppBar";
 
 const Root: FC = () => {
-  const navigate = useNavigate();
   const layoutRef = useRef<HTMLDivElement>(null);
-
-  const [avatar, setAvatar] = useState<string | null>(null);
-  const { address } = useAccount();
 
   const [writeModalOpen, setWriteModalOpen] = useState(false);
 
-  useEffect(() => {
-    if (address) {
-      setAvatar(metamaskIcon(address));
-    } else {
-      setAvatar(null);
-    }
-  }, [address]);
+  const { isUserVerified, state: userVoteState } = useUserVotes();
 
-  const { isUserVerified, commitVotes, state: userVoteState } = useUserVotes();
-
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const budgetRemaining =
     isUserVerified &&
     userVoteState.remainingCredits &&
@@ -58,18 +27,18 @@ const Root: FC = () => {
       <Box ref={layoutRef} sx={{ position: "relative" }}>
         <Container
           component="main"
-          maxWidth="sm"
+          maxWidth="lg"
           sx={{
             display: "flex",
             flexDirection: "column",
             gap: 4,
-            borderLeft: "1px solid gray",
             minHeight: "100vh",
             overflowY: "auto",
             overflowX: "visible",
           }}
         >
-          <Stack spacing={1}>
+          <MenuAppBar />
+          {/*<Stack spacing={1}>
             <NavTabs
               tabs={[
                 { label: "Top", href: "/top" },
@@ -78,10 +47,11 @@ const Root: FC = () => {
                   : []),
               ]}
             />
-            <Outlet />
-          </Stack>
+            
+          </Stack>*/}
+          <Outlet />
         </Container>
-        <Box
+        {/*<Box
           component="nav"
           sx={{
             position: "fixed",
@@ -95,16 +65,6 @@ const Root: FC = () => {
         >
           <Stack spacing={1}>
             <Stack justifyContent="center" alignItems="center" spacing={1}>
-              <IconButton
-                size="large"
-                aria-label="account of current user"
-                aria-controls="menu-appbar"
-                aria-haspopup="true"
-                onClick={() => {}}
-                color="inherit"
-              >
-                <Avatar src={avatar} />
-              </IconButton>
               <Button
                 variant="contained"
                 sx={{ textTransform: "none" }}
@@ -163,7 +123,7 @@ const Root: FC = () => {
               </Stack>
             )}
           </Stack>
-        </Box>
+        </Box>*/}
       </Box>
       <WriteModal
         open={writeModalOpen}

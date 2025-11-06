@@ -11,6 +11,7 @@ import { CssBaseline, ThemeProvider } from "@mui/material";
 import GetVerified from "./components/GetVerified.tsx";
 
 import { theme } from "./theme.ts";
+import { ForumProvider } from "./state/Forum.tsx";
 
 export const App: FC = () => {
   const {
@@ -52,9 +53,11 @@ export const App: FC = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <UserVoteProvider>
-        <RouterProvider router={router} />
-      </UserVoteProvider>
+      <ForumProvider>
+        <UserVoteProvider>
+          <RouterProvider router={router} />
+        </UserVoteProvider>
+      </ForumProvider>
     </ThemeProvider>
   );
 };

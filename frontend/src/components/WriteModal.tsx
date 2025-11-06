@@ -8,7 +8,7 @@ import {
 } from "@mui/material";
 import React, { FC, useCallback, useState } from "react";
 import { useWriteContract } from "wagmi";
-import { forumContractConfig } from "../contracts";
+import { FORUM_ABI, useForum } from "../state/Forum";
 
 const MAX_STATEMENT_LENGTH = 280;
 
@@ -33,18 +33,20 @@ type WriteModalProps = {
 const WriteModal: FC<WriteModalProps> = ({ open, onClose }) => {
   const { writeContract } = useWriteContract();
   const [text, setText] = useState("");
+  const { forumContractAddress } = useForum();
 
   const submitStatement = useCallback(() => {
     if (text.length > 0) {
       writeContract({
-        ...forumContractConfig,
+        address: forumContractAddress,
+        abi: FORUM_ABI,
         functionName: "addStatement",
         args: [text],
       });
       setText("");
       onClose();
     }
-  }, [text, writeContract, setText, onClose]);
+  }, [text, writeContract, setText, onClose, forumContractAddress]);
 
   const updateText = useCallback(
     (textVal: string) => {

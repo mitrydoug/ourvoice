@@ -1,7 +1,7 @@
 import React, { FC } from "react";
-import { forumContractConfig } from "../contracts";
 import { useReadContract } from "wagmi";
 import StatementCard from "./StatementCard";
+import { useForum, FORUM_ABI } from "../state/Forum";
 
 const PAGE_SIZE = 25;
 
@@ -14,8 +14,11 @@ interface Statement {
 }
 
 const Top: FC = () => {
+  const { forumContractAddress } = useForum();
+
   const result = useReadContract({
-    ...forumContractConfig,
+    address: forumContractAddress,
+    abi: FORUM_ABI,
     functionName: "getRankedStatementsPage",
     args: [0n, BigInt(PAGE_SIZE)],
   });

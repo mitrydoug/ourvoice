@@ -8,13 +8,33 @@ import "./IZKRegistry.sol";
 contract MockZKRegistry is IZKRegistry {
 
     mapping(address => Registration) public userRegistrations;
-    uint256 public registrationCount;
+    mapping(bytes32 => address) public identifierToAddress;
 
-    function register(DisclosedData calldata disclosedData) external returns (bytes32) {
-        bytes32 mockUniqueIdentifier = keccak256(abi.encode(msg.sender, disclosedData));
-        userRegistrations[msg.sender] = Registration(mockUniqueIdentifier, disclosedData, block.timestamp);
-        registrationCount += 1;
-        return mockUniqueIdentifier;
+    function register(string memory nationality) external returns (bytes32) {
+        bytes32 uniqueIdentifier = keccak256(abi.encode(msg.sender));
+
+        DisclosedData memory disclosedData = DisclosedData(
+            "",
+            "",
+            nationality,
+            "",
+            "",
+            "",
+            "",
+            ""
+        );
+
+        if (identifierToAddress[uniqueIdentifier] != address(0)) {
+            userRegistrations[msg.sender] = userRegistrations[identifierToAddress[uniqueIdentifier]];
+            delete userRegistrations[identifierToAddress[uniqueIdentifier]];
+            identifierToAddress[uniqueIdentifier] = msg.sender;
+        } else {
+            // Store the unique identifier
+            userRegistrations[msg.sender] = Registration(uniqueIdentifier, disclosedData, block.timestamp);
+            identifierToAddress[uniqueIdentifier] = msg.sender;
+        }
+
+        return userRegistrations[msg.sender].uniqueIdentifier;
     }
 
     function isRegistered(address user) public view returns (bool) {

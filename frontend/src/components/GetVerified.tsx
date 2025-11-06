@@ -1,4 +1,4 @@
-import React, { FC, useEffect, useMemo, useState } from "react";
+import React, { FC, useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { ZKPassport, ProofResult } from "@zkpassport/sdk";
@@ -20,6 +20,8 @@ import VerifiedIcon from "@mui/icons-material/Verified";
 
 const MY_ICON_URL = "https://i.imgur.com/I86xH4n.png";
 const MY_SCOPE = "our-voice-verify";
+
+const DEV_MODE = true;
 
 type VERIFY_PHASE =
   | "PRE_SCAN"
@@ -120,6 +122,25 @@ const Verify: FC<VerifyProps> = ({ methodIndex, onBack }) => {
 
   const { writeContract } = useWriteContract();
 
+  const devModeRegister = useCallback(() => {
+    writeContract(
+      {
+        ...registryContractConfig,
+        functionName: "register",
+        args: [""],
+      },
+      {
+        onError: (error) => {
+          console.error("Error writing contract:", error);
+        },
+      },
+    );
+
+    setTimeout(() => {
+      navigate("/");
+    }, 5000);
+  }, [writeContract, navigate]);
+
   useEffect(() => {
     const constructRequest = async () => {
       // Create a request with your app details
@@ -132,6 +153,8 @@ const Verify: FC<VerifyProps> = ({ methodIndex, onBack }) => {
         scope: MY_SCOPE,
         // To verify proofs on EVM chains, you need to set the mode to "compressed-evm"
         mode: "compressed-evm",
+        // TODO: remove when productionizing
+        devMode: DEV_MODE,
       });
 
       // Build your query with the required attributes or conditions you want to verify
@@ -246,53 +269,62 @@ const Verify: FC<VerifyProps> = ({ methodIndex, onBack }) => {
         <Stack direction="row" justifyContent="center">
           {verifyUrl && (
             <Paper elevation={3} sx={{ p: 2, borderRadius: 5 }}>
-              {verifyPhase === "PRE_SCAN" ? (
-                <QRCodeSVG value={verifyUrl} size={256} level="L" />
-              ) : (
-                <Box
-                  sx={{
-                    width: 256,
-                    height: 256,
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    flexDirection: "column",
-                    gap: 5,
-                  }}
-                >
-                  {verifyPhase === "GENERATING_PROOF" ? (
-                    <>
-                      <CircularProgress size="3rem" />
+              <Stack spacing={2}>
+                {verifyPhase === "PRE_SCAN" ? (
+                  <>
+                    <QRCodeSVG value={verifyUrl} size={256} level="L" />
+                    {DEV_MODE && (
+                      <Button onClick={() => devModeRegister()}>
+                        [DEV_MODE] Register
+                      </Button>
+                    )}
+                  </>
+                ) : (
+                  <Box
+                    sx={{
+                      width: 256,
+                      height: 256,
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      flexDirection: "column",
+                      gap: 5,
+                    }}
+                  >
+                    {verifyPhase === "GENERATING_PROOF" ? (
+                      <>
+                        <CircularProgress size="3rem" />
+                        <Typography variant="body1" gutterBottom>
+                          Generating your proof, please wait...
+                        </Typography>
+                      </>
+                    ) : verifyPhase === "PROOF_GENERATED" ? (
+                      <>
+                        <CircularProgress size="3rem" />
+                        <Typography variant="body1" gutterBottom>
+                          Proof generated! Verifying on-chain...
+                        </Typography>
+                      </>
+                    ) : verifyPhase === "VERIFIED" ? (
+                      <>
+                        <VerifiedIcon fontSize="large" />
+                        <Typography variant="body1" gutterBottom>
+                          You have been successfully verified! Returning to
+                          home...
+                        </Typography>
+                      </>
+                    ) : verifyPhase === "REJECTED" ? (
                       <Typography variant="body1" gutterBottom>
-                        Generating your proof, please wait...
+                        Verification rejected. Please try again.
                       </Typography>
-                    </>
-                  ) : verifyPhase === "PROOF_GENERATED" ? (
-                    <>
-                      <CircularProgress size="3rem" />
+                    ) : verifyPhase === "ERROR" ? (
                       <Typography variant="body1" gutterBottom>
-                        Proof generated! Verifying on-chain...
+                        An error occurred during verification. Please try again.
                       </Typography>
-                    </>
-                  ) : verifyPhase === "VERIFIED" ? (
-                    <>
-                      <VerifiedIcon fontSize="large" />
-                      <Typography variant="body1" gutterBottom>
-                        You have been successfully verified! Returning to
-                        home...
-                      </Typography>
-                    </>
-                  ) : verifyPhase === "REJECTED" ? (
-                    <Typography variant="body1" gutterBottom>
-                      Verification rejected. Please try again.
-                    </Typography>
-                  ) : verifyPhase === "ERROR" ? (
-                    <Typography variant="body1" gutterBottom>
-                      An error occurred during verification. Please try again.
-                    </Typography>
-                  ) : null}
-                </Box>
-              )}
+                    ) : null}
+                  </Box>
+                )}
+              </Stack>
             </Paper>
           )}
         </Stack>
