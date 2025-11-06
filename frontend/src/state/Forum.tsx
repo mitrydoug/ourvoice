@@ -42,7 +42,7 @@ export const useForum = () => {
   const state = useContext(ForumContext);
   if (!state) {
     throw new Error(
-      "useUserVoteContext must be used within a UserVoteProvider",
+      "useForum must be used within a ForumProvider",
     );
   }
   return state;
