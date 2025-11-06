@@ -60,7 +60,7 @@ const ChooseForumModal: FC<ChooseForumModalProps> = ({ open, onClose, chooseForu
             <ListItem key={forum.value} disablePadding>
               <ListItemButton onClick={() => {chooseForum(forum.value);}}>
                 <ListItemIcon>
-                  <img src={forum.iconSrc} style={{ height: "1.5rem", width: "1.5rem" }} />
+                  <img src={forum.iconSrc} alt={`${forum.label} flag`} style={{ height: "1.5rem", width: "1.5rem" }} />
                 </ListItemIcon>
                 {forum.label}
               </ListItemButton>
