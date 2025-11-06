@@ -127,7 +127,7 @@ const Verify: FC<VerifyProps> = ({ methodIndex, onBack }) => {
       {
         ...registryContractConfig,
         functionName: "register",
-        args: [''],
+        args: [""],
       },
       {
         onError: (error) => {
@@ -139,8 +139,7 @@ const Verify: FC<VerifyProps> = ({ methodIndex, onBack }) => {
     setTimeout(() => {
       navigate("/");
     }, 5000);
-
-  }, [writeContract, registryContractConfig]);
+  }, [writeContract, navigate]);
 
   useEffect(() => {
     const constructRequest = async () => {
@@ -269,14 +268,16 @@ const Verify: FC<VerifyProps> = ({ methodIndex, onBack }) => {
         </Typography>
         <Stack direction="row" justifyContent="center">
           {verifyUrl && (
-            <Paper elevation={3} sx={{ p: 2, borderRadius: 5, }}>
+            <Paper elevation={3} sx={{ p: 2, borderRadius: 5 }}>
               <Stack spacing={2}>
                 {verifyPhase === "PRE_SCAN" ? (
                   <>
-                  <QRCodeSVG value={verifyUrl} size={256} level="L" />
-                  { DEV_MODE && (
-                    <Button onClick={() => devModeRegister()}>[DEV_MODE] Register</Button>
-                  )}
+                    <QRCodeSVG value={verifyUrl} size={256} level="L" />
+                    {DEV_MODE && (
+                      <Button onClick={() => devModeRegister()}>
+                        [DEV_MODE] Register
+                      </Button>
+                    )}
                   </>
                 ) : (
                   <Box

@@ -1,40 +1,20 @@
-import React, { FC, useEffect, useRef, useState } from "react";
+import React, { FC, useRef, useState } from "react";
 import Box from "@mui/material/Box";
-import { Outlet, useNavigate } from "react-router-dom";
-import {
-  Avatar,
-  Button,
-  Container,
-  IconButton,
-  LinearProgress,
-  Stack,
-  Typography,
-} from "@mui/material";
-import NavTabs from "./NavTabs";
+import { Outlet } from "react-router-dom";
+import { Container } from "@mui/material";
 import { useUserVotes } from "../state/UserVotes";
-import { useAccount } from "wagmi";
-import CreateIcon from "@mui/icons-material/Create";
-
 
 import WriteModal from "./WriteModal";
 import MenuAppBar from "./AppBar";
-import ChooseForumModal from "./ChooseForumModal";
-
-
 
 const Root: FC = () => {
-  const navigate = useNavigate();
   const layoutRef = useRef<HTMLDivElement>(null);
-
-
 
   const [writeModalOpen, setWriteModalOpen] = useState(false);
 
+  const { isUserVerified, state: userVoteState } = useUserVotes();
 
-
-
-  const { isUserVerified, commitVotes, state: userVoteState } = useUserVotes();
-
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const budgetRemaining =
     isUserVerified &&
     userVoteState.remainingCredits &&
@@ -68,7 +48,7 @@ const Root: FC = () => {
               ]}
             />
             
-          </Stack>*/ }
+          </Stack>*/}
           <Outlet />
         </Container>
         {/*<Box

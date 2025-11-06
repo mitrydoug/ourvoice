@@ -1,9 +1,8 @@
 import React, { FC } from "react";
 import { useReadContract } from "wagmi";
-import { FORUMS, FORUM_ABI } from "../contracts";
 import { useUserVotes } from "../state/UserVotes";
 import StatementCard from "./StatementCard";
-import { useForum } from "../state/Forum";
+import { useForum, FORUM_ABI } from "../state/Forum";
 
 interface Statement {
   id: bigint;
@@ -17,7 +16,7 @@ const MySupport: FC = () => {
   const {
     state: { userVotes },
   } = useUserVotes();
-  const { forumConfig } = useForum();
+  const { forumContractAddress } = useForum();
 
   console.log("User votes map: ", userVotes);
 
@@ -30,7 +29,8 @@ const MySupport: FC = () => {
   console.log("Fetching statements for IDs: ", statementIds);
 
   const result = useReadContract({
-    ...forumConfig,
+    address: forumContractAddress,
+    abi: FORUM_ABI,
     functionName: "getStatementsById",
     args: [statementIds],
   });

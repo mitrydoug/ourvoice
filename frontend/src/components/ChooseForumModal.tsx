@@ -1,20 +1,19 @@
 import React, { FC, useState } from "react";
 import {
   Box,
-  Button,
   List,
   ListItem,
   ListItemButton,
   ListItemIcon,
   Modal,
-  Stack,
   TextField,
-  Typography,
 } from "@mui/material";
 
-export const FORUMS: { [key: string] : {label: string, value: string, iconSrc: string } } = {
-  "global": { label: "Global", value: "global", iconSrc: "earth.png" },
-  "us": { label: "United States", value: "us", iconSrc: "us.svg" },
+export const FORUMS: {
+  [key: string]: { label: string; value: string; iconSrc: string };
+} = {
+  global: { label: "Global", value: "global", iconSrc: "earth.png" },
+  us: { label: "United States", value: "us", iconSrc: "us.svg" },
 };
 
 const style = {
@@ -36,7 +35,11 @@ type ChooseForumModalProps = {
   chooseForum: (forum: string) => void;
 };
 
-const ChooseForumModal: FC<ChooseForumModalProps> = ({ open, onClose, chooseForum }) => {
+const ChooseForumModal: FC<ChooseForumModalProps> = ({
+  open,
+  onClose,
+  chooseForum,
+}) => {
   const [text, setText] = useState("");
 
   return (
@@ -54,18 +57,28 @@ const ChooseForumModal: FC<ChooseForumModalProps> = ({ open, onClose, chooseForu
           fullWidth
         />
         <List>
-          {Object.values(FORUMS).filter((forum) =>
-            forum.label.toLowerCase().includes(text.toLowerCase())
-          ).map((forum) => (
-            <ListItem key={forum.value} disablePadding>
-              <ListItemButton onClick={() => {chooseForum(forum.value);}}>
-                <ListItemIcon>
-                  <img src={forum.iconSrc} alt={`${forum.label} flag`} style={{ height: "1.5rem", width: "1.5rem" }} />
-                </ListItemIcon>
-                {forum.label}
-              </ListItemButton>
-            </ListItem>
-          ))}
+          {Object.values(FORUMS)
+            .filter((forum) =>
+              forum.label.toLowerCase().includes(text.toLowerCase()),
+            )
+            .map((forum) => (
+              <ListItem key={forum.value} disablePadding>
+                <ListItemButton
+                  onClick={() => {
+                    chooseForum(forum.value);
+                  }}
+                >
+                  <ListItemIcon>
+                    <img
+                      src={forum.iconSrc}
+                      alt={`${forum.label} flag`}
+                      style={{ height: "1.5rem", width: "1.5rem" }}
+                    />
+                  </ListItemIcon>
+                  {forum.label}
+                </ListItemButton>
+              </ListItem>
+            ))}
         </List>
       </Box>
     </Modal>

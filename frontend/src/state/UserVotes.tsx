@@ -6,13 +6,11 @@ import React, {
   useEffect,
   useReducer,
 } from "react";
-import { registryContractConfig } from "../contracts";
 import { useAccount, useReadContract, useWriteContract } from "wagmi";
 import _ from "lodash";
-import { useForum } from "./Forum";
+import { FORUM_ABI, useForum } from "./Forum";
 
 const USER_CREDIT_BUDGET = 100;
-const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 interface UserVoteState {
   userVotes?: Map<number, number>;
@@ -111,11 +109,12 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
   const [state, dispatch] = useReducer(reducer, { error: null });
   const { writeContract } = useWriteContract();
   const { address } = useAccount();
-  const { forumConfig } = useForum();
+  const { forumContractAddress } = useForum();
   console.log("UserVoteProvider for address: ", address);
 
   const { data: isUserVerified } = useReadContract({
-    ...forumConfig,
+    address: forumContractAddress,
+    abi: FORUM_ABI,
     account: address,
     functionName: "isMember",
     args: [],
@@ -127,7 +126,8 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
   console.log("User verified status: ", isUserVerified);
 
   const { data: _votes } = useReadContract({
-    ...forumConfig,
+    address: forumContractAddress,
+    abi: FORUM_ABI,
     account: address,
     functionName: "getUserVoteSet",
     args: [],
@@ -162,12 +162,13 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
         }),
       );
       writeContract({
-        ...forumConfig,
+        address: forumContractAddress,
+        abi: FORUM_ABI,
         functionName: "vote",
         args: [votesArray],
       });
     }
-  }, [state.userVotes, writeContract]);
+  }, [state.userVotes, writeContract, forumContractAddress]);
 
   if (isUserVerified) {
     return (
