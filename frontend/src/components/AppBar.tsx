@@ -12,6 +12,7 @@ import { useUserVotes } from "../state/UserVotes";
 import CreateIcon from "@mui/icons-material/Create";
 import WriteModal from "./WriteModal";
 import ChooseForumModal, { FORUMS } from "./ChooseForumModal";
+import LogoutIcon from '@mui/icons-material/Logout';
 import DoneAllIcon from "@mui/icons-material/DoneAll";
 import { useForum } from "../state/Forum";
 
@@ -71,7 +72,7 @@ export default function MenuAppBar() {
     }
   }, [address]);
 
-  const { isUserVerified, commitVotes } = useUserVotes();
+  const { isUserVerified, commitVotes, state: userVoteState } = useUserVotes();
 
   const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
     console.log("here! ");
@@ -84,6 +85,8 @@ export default function MenuAppBar() {
 
   const open = Boolean(anchorEl);
   const id = open ? "simple-popover" : undefined;
+
+  console.log('userVoteState', userVoteState);
 
   return (
     <>
@@ -130,6 +133,32 @@ export default function MenuAppBar() {
             </IconButton>
 
             <span style={{ flexGrow: 1 }}></span>
+             {isUserVerified && (
+                <>
+                  <Stack alignItems="center">
+                    <Typography variant="body2">Credits</Typography>
+                    <Typography>{userVoteState.remainingCredits}/{userVoteState.creditBudget}</Typography>
+                  </Stack>
+                  <IconButton
+                    onClick={commitVotes}
+                    disabled={!userVoteState.hasUncommittedVotes}
+                  >
+                    <DoneAllIcon sx={{ color: userVoteState.hasUncommittedVotes ? "primary.main" : "" }}/>
+                  </IconButton>
+                  <Button
+                    variant="contained"
+                    size="small"
+                    startIcon={<CreateIcon />}
+                    sx={{ textTransform: "none" }}
+                    onClick={() => setWriteModalOpen(true)}
+                  >
+                    <Typography variant="body1" component="div">
+                      {" "}
+                      Write{" "}
+                    </Typography>
+                  </Button>
+                </>
+             )}
             <IconButton
               size="medium"
               aria-label="account of current user"
@@ -161,24 +190,13 @@ export default function MenuAppBar() {
                     <>
                       <Button
                         variant="contained"
-                        startIcon={<CreateIcon />}
-                        sx={{ textTransform: "none" }}
-                        onClick={() => setWriteModalOpen(true)}
-                      >
-                        <Typography variant="body1" component="div">
-                          {" "}
-                          Write{" "}
-                        </Typography>
-                      </Button>
-                      <Button
-                        variant="contained"
-                        startIcon={<DoneAllIcon />}
+                        endIcon={<LogoutIcon />}
                         sx={{ textTransform: "none" }}
                         onClick={commitVotes}
                       >
                         <Typography variant="body1" component="div">
                           {" "}
-                          Commit{" "}
+                          Disconnect{" "}
                         </Typography>
                       </Button>
                     </>

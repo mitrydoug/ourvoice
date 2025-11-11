@@ -2,6 +2,7 @@ import React, { FC } from "react";
 import { useReadContract } from "wagmi";
 import StatementCard from "./StatementCard";
 import { useForum, FORUM_ABI } from "../state/Forum";
+import { Stack } from "@mui/material";
 
 const PAGE_SIZE = 25;
 
@@ -28,11 +29,11 @@ const Top: FC = () => {
   console.log("Top statements: ", statementsPage);
 
   return (
-    <>
+    <Stack spacing={1}>
       {statementsPage?.map((stmt, idx) => (
         <StatementCard key={`stmt-${idx}`} statement={stmt} />
       ))}
-    </>
+    </Stack>
   );
 };
 

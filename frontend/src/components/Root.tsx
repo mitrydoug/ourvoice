@@ -14,14 +14,6 @@ const Root: FC = () => {
 
   const { isUserVerified, state: userVoteState } = useUserVotes();
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const budgetRemaining =
-    isUserVerified &&
-    userVoteState.remainingCredits &&
-    userVoteState.creditBudget
-      ? (userVoteState.remainingCredits / userVoteState.creditBudget) * 100
-      : 0;
-
   return (
     <>
       <Box ref={layoutRef} sx={{ position: "relative" }}>

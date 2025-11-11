@@ -24,7 +24,7 @@ export const App: FC = () => {
   useEffect(() => {
     connect();
     console.log("Connecting to wallet...");
-  }, [isConnected, connectLoading, connectError, connect]);
+  }, [isConnected, connectLoading, connectError, connect, 1]);
 
   const router = createHashRouter([
     {

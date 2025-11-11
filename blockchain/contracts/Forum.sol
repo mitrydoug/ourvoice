@@ -167,32 +167,36 @@ contract Forum {
     function vote(Vote[] calldata _voteSet) public {
         require(zkRegistry.isRegistered(msg.sender), "User is not registered");
         bytes32 userId = zkRegistry.getUserIdentifier(msg.sender);
-        require(_voteSet.length > 0, "Vote set cannot be empty");
         // require(voteSet.length <= USER_BUDGET, "Vote set exceeds user budget");
 
-        int _creditCost = 0;
+        Vote[] memory previousVoteSet = userVoteSets[userId];
+        for (uint i = 0; i < previousVoteSet.length; i++) {
+            Vote memory _prevVote = previousVoteSet[i];
+            statements[_prevVote.statementId].voteCount =
+                statements[_prevVote.statementId].voteCount -
+                userVotes[userId][_prevVote.statementId];
+            rerankItem(_prevVote.statementId);
+            userVotes[userId][_prevVote.statementId] = 0;
+        }
+
+        delete userVoteSets[userId];
+
+        uint _creditCost = 0;
 
         for (uint i = 0; i < _voteSet.length; i++) {
             Vote memory _vote = _voteSet[i];
             require(_vote.statementId < statementCount, "Invalid statement ID");
+            require(_vote.voteCount != 0, "Vote count cannot be zero");
 
-            int _currentVote = userVotes[userId][_vote.statementId];
-
-            if (_currentVote == _vote.voteCount) {
-                continue;
-            }
-
-            int _currentCost = _currentVote * _currentVote;
-            int _newCost = _vote.voteCount * _vote.voteCount;
-            _creditCost += _newCost - _currentCost;
+            _creditCost += uint(_vote.voteCount * _vote.voteCount);
 
             userVotes[userId][_vote.statementId] = _vote.voteCount;
+            userVoteSets[userId].push(_vote);
 
             // Update the statement's vote count
             statements[_vote.statementId].voteCount =
                 statements[_vote.statementId].voteCount +
-                _vote.voteCount -
-                _currentVote;
+                _vote.voteCount;
 
             rerankItem(_vote.statementId);
 
@@ -203,21 +207,11 @@ contract Forum {
             );
         }
 
-        if (
-            int(userUsedCredits[userId]) + _creditCost >
-            int(USER_CREDIT_BUDGET)
-        ) {
+        if (_creditCost > USER_CREDIT_BUDGET) {
             revert("Insufficient credits for this vote set");
         }
 
-        userUsedCredits[userId] = _creditCost >= 0
-            ? userUsedCredits[userId] + uint(_creditCost)
-            : userUsedCredits[userId] - uint(-_creditCost);
-
-        delete userVoteSets[userId];
-        for (uint i = 0; i < _voteSet.length; i++) {
-            userVoteSets[userId].push(_voteSet[i]);
-        }
+        userUsedCredits[userId] = USER_CREDIT_BUDGET - _creditCost;
     }
 
     fallback() external {}
