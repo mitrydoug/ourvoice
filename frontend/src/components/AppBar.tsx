@@ -16,6 +16,8 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import DoneAllIcon from "@mui/icons-material/DoneAll";
 import Settings from '@mui/icons-material/Settings';
 import Logout from '@mui/icons-material/Logout';
+import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
+import HowToRegIcon from '@mui/icons-material/HowToReg';
 import { useForum } from "../state/Forum";
 
 const MIC_ICON = (
@@ -213,12 +215,29 @@ export default function MenuAppBar() {
               anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
             >
               {isUserVerified ? (
-                  <MenuItem>Verified!</MenuItem>
+                  <MenuItem>
+                    <ListItemIcon>
+                      <Avatar
+                        src={FORUMS[forumName].iconSrc}
+                        variant="rounded"
+                        style={{ height: "1.2rem", width: "1.2rem", margin: "0px" }}
+                      />
+                    </ListItemIcon>
+                    Verified!
+                  </MenuItem>
                 ) : (
-                  <MenuItem onClick={() => navigate("/verify")}>Get verified</MenuItem>
+                  <MenuItem onClick={() => navigate("/verify")}>
+                    <ListItemIcon>
+                      <HowToRegIcon fontSize="small" />
+                    </ListItemIcon>
+                    Get verified
+                  </MenuItem>
                 )
               }
               <MenuItem onClick={() => navigate("/my-support")}>
+                <ListItemIcon>
+                  <FavoriteBorderIcon fontSize="small" />
+                </ListItemIcon>
                 My Support
               </MenuItem>
               <Divider />
