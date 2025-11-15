@@ -99,7 +99,7 @@ export default function MenuAppBar() {
         elevation={0}
         sx={{ mt: 2 }}
       >
-        <Toolbar>
+        <Toolbar disableGutters>
           <Stack direction="row" spacing={3} alignItems="center" flexGrow={1}>
             <Stack
               direction="row"
