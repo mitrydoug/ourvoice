@@ -19,7 +19,6 @@ const Root: FC = () => {
       <Box ref={layoutRef} sx={{ position: "relative" }}>
         <Container
           component="main"
-          maxWidth="lg"
           sx={{
             display: "flex",
             flexDirection: "column",
@@ -27,6 +26,8 @@ const Root: FC = () => {
             minHeight: "100vh",
             overflowY: "auto",
             overflowX: "visible",
+            mb: 8,
+            pb: 1
           }}
         >
           <MenuAppBar />
