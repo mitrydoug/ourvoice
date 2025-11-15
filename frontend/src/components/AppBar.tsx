@@ -4,9 +4,9 @@ import Box from "@mui/material/Box";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
-import { Avatar, Button, Paper, Popover, Stack } from "@mui/material";
+import { Avatar, Button, Divider, ListItemIcon, Menu, MenuItem, Paper, Popover, Stack } from "@mui/material";
 import jazzicon from "@metamask/jazzicon";
-import { useAccount } from "wagmi";
+import { useAccount, useDisconnect } from "wagmi";
 import { useNavigate } from "react-router-dom";
 import { useUserVotes } from "../state/UserVotes";
 import CreateIcon from "@mui/icons-material/Create";
@@ -14,6 +14,8 @@ import WriteModal from "./WriteModal";
 import ChooseForumModal, { FORUMS } from "./ChooseForumModal";
 import LogoutIcon from '@mui/icons-material/Logout';
 import DoneAllIcon from "@mui/icons-material/DoneAll";
+import Settings from '@mui/icons-material/Settings';
+import Logout from '@mui/icons-material/Logout';
 import { useForum } from "../state/Forum";
 
 const MIC_ICON = (
@@ -63,6 +65,7 @@ export default function MenuAppBar() {
   const [chooseForumModalOpen, setChooseForumModalOpen] = useState(false);
   const { name: forumName, setForum } = useForum();
   const navigate = useNavigate();
+  const { disconnect } = useDisconnect();
 
   useEffect(() => {
     if (address) {
@@ -170,50 +173,63 @@ export default function MenuAppBar() {
             >
               <Avatar src={avatar} />
             </IconButton>
-            <Popover
-              id={id}
-              open={open}
+            <Menu
               anchorEl={anchorEl}
+              id="account-menu"
+              open={open}
               onClose={handleClose}
-              anchorOrigin={{
-                vertical: "bottom",
-                horizontal: "right",
+              onClick={handleClose}
+              slotProps={{
+                paper: {
+                  elevation: 0,
+                  sx: {
+                    overflow: 'visible',
+                    filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
+                    mt: 1.5,
+                    '& .MuiAvatar-root': {
+                      width: 32,
+                      height: 32,
+                      ml: -0.5,
+                      mr: 1,
+                    },
+                    '&::before': {
+                      content: '""',
+                      display: 'block',
+                      position: 'absolute',
+                      top: 0,
+                      right: 14,
+                      width: 10,
+                      height: 10,
+                      bgcolor: 'background.paper',
+                      transform: 'translateY(-50%) rotate(45deg)',
+                      zIndex: 0,
+                    },
+                  },
+                },
               }}
-              transformOrigin={{
-                vertical: "top",
-                horizontal: "right",
-              }}
+              transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+              anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
             >
-              <Paper sx={{ p: 2 }}>
-                <Stack spacing={2}>
-                  {isUserVerified ? (
-                    <>
-                      <Button
-                        variant="contained"
-                        endIcon={<LogoutIcon />}
-                        sx={{ textTransform: "none" }}
-                        onClick={commitVotes}
-                      >
-                        <Typography variant="body1" component="div">
-                          {" "}
-                          Disconnect{" "}
-                        </Typography>
-                      </Button>
-                    </>
-                  ) : (
-                    <Button
-                      sx={{ textTransform: "none" }}
-                      onClick={() => navigate("/verify")}
-                    >
-                      <Typography variant="body1" component="div">
-                        {" "}
-                        Get Verified{" "}
-                      </Typography>
-                    </Button>
-                  )}
-                </Stack>
-              </Paper>
-            </Popover>
+              <MenuItem onClick={() => {}}>
+                <Avatar /> Profile
+              </MenuItem>
+              <MenuItem onClick={() => {}}>
+                <Avatar /> My account
+              </MenuItem>
+              <Divider />
+              <MenuItem onClick={() => {}}>
+                <ListItemIcon>
+                  <Settings fontSize="small" />
+                </ListItemIcon>
+                Settings
+              </MenuItem>
+              <MenuItem onClick={() => disconnect()}>
+                <ListItemIcon>
+                  <Logout fontSize="small" />
+                </ListItemIcon>
+                Logout
+              </MenuItem>
+            </Menu>
           </Stack>
         </Toolbar>
       </AppBar>
