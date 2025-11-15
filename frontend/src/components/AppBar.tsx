@@ -7,7 +7,7 @@ import IconButton from "@mui/material/IconButton";
 import { Avatar, Button, Divider, ListItemIcon, Menu, MenuItem, Paper, Popover, Stack } from "@mui/material";
 import jazzicon from "@metamask/jazzicon";
 import { useAccount, useDisconnect } from "wagmi";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useUserVotes } from "../state/UserVotes";
 import CreateIcon from "@mui/icons-material/Create";
 import WriteModal from "./WriteModal";
@@ -100,25 +100,27 @@ export default function MenuAppBar() {
         sx={{ mt: 2 }}
       >
         <Toolbar disableGutters>
-          <Stack direction="row" spacing={3} alignItems="center" flexGrow={1}>
-            <Stack
-              direction="row"
-              alignItems="center"
-              sx={{ color: "primary.main" }}
-            >
-              <Box sx={{ height: "2.75rem", width: "2.75rem" }}>{MIC_ICON}</Box>
-              <Typography
-                variant="h4"
-                component="div"
-                sx={{
-                  fontFamily: "Sriracha",
-                  fontWeight: "bold",
-                  color: "primary.main",
-                }}
+          <Stack direction="row" spacing={2} alignItems="center" flexGrow={1}>
+            <Link to="/" style={{ textDecoration: "none" }}>
+              <Stack
+                direction="row"
+                alignItems="center"
+                sx={{ color: "primary.main", cursor: "pointer" }}
               >
-                Our Voice
-              </Typography>
-            </Stack>
+                <Box sx={{ height: "2.75rem", width: "2.75rem" }}>{MIC_ICON}</Box>
+                <Typography
+                  variant="h4"
+                  component="div"
+                  sx={{
+                    fontFamily: "Sriracha",
+                    fontWeight: "bold",
+                    color: "primary.main",
+                  }}
+                >
+                  Our Voice
+                </Typography>
+              </Stack>
+            </Link>
             <IconButton
               size="medium"
               aria-controls="menu-appbar"
@@ -210,19 +212,16 @@ export default function MenuAppBar() {
               transformOrigin={{ horizontal: 'right', vertical: 'top' }}
               anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
             >
-              <MenuItem onClick={() => {}}>
-                <Avatar /> Profile
-              </MenuItem>
-              <MenuItem onClick={() => {}}>
-                <Avatar /> My account
+              {isUserVerified ? (
+                  <MenuItem>Verified!</MenuItem>
+                ) : (
+                  <MenuItem onClick={() => navigate("/verify")}>Get verified</MenuItem>
+                )
+              }
+              <MenuItem onClick={() => navigate("/my-support")}>
+                My Support
               </MenuItem>
               <Divider />
-              <MenuItem onClick={() => {}}>
-                <ListItemIcon>
-                  <Settings fontSize="small" />
-                </ListItemIcon>
-                Settings
-              </MenuItem>
               <MenuItem onClick={() => disconnect()}>
                 <ListItemIcon>
                   <Logout fontSize="small" />
