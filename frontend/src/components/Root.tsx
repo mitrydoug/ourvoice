@@ -27,7 +27,7 @@ const Root: FC = () => {
             overflowY: "auto",
             overflowX: "visible",
             mb: 8,
-            pb: 1
+            pb: 1,
           }}
         >
           <MenuAppBar />

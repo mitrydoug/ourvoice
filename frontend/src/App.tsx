@@ -14,7 +14,6 @@ import { theme } from "./theme.ts";
 import { ForumProvider } from "./state/Forum.tsx";
 
 export const App: FC = () => {
-
   const router = createHashRouter([
     {
       path: "/verify",

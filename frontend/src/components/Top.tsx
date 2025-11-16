@@ -8,7 +8,6 @@ import StatementList from "./StatementList";
 
 const PAGE_SIZE = 10;
 
-
 const Top: FC = () => {
   const { forumContractAddress } = useForum();
 
@@ -21,28 +20,37 @@ const Top: FC = () => {
         abi: FORUM_ABI,
         functionName: "statementCount",
         args: [],
-      },{
+      },
+      {
         address: forumContractAddress,
         abi: FORUM_ABI,
         functionName: "getRankedStatementsPage",
-        args: [BigInt((page-1) * PAGE_SIZE), BigInt(PAGE_SIZE)],
-      }
+        args: [BigInt((page - 1) * PAGE_SIZE), BigInt(PAGE_SIZE)],
+      },
     ],
   });
 
+  const statementsCount =
+    result.data && (result.data[0].result as bigint | undefined);
+  const statementsPage =
+    result.data && (result.data[1].result as Statement[] | undefined);
 
-  const statementsCount = result.data && result.data[0].result as bigint | undefined;
-  const statementsPage = result.data && result.data[1].result as Statement[] | undefined;
-
-  const lastPage = Math.min(Math.max(10, 2 * page), Math.floor(Number(statementsCount) / PAGE_SIZE) + 1);
+  const lastPage = Math.min(
+    Math.max(10, 2 * page),
+    Math.floor(Number(statementsCount) / PAGE_SIZE) + 1,
+  );
   console.log("page is ", page);
   console.log("lastPage is ", lastPage);
 
-  return (statementsPage ? (
-    <StatementList statements={statementsPage} pageCount={lastPage} onPageChange={setPage}/>
+  return statementsPage ? (
+    <StatementList
+      statements={statementsPage}
+      pageCount={lastPage}
+      onPageChange={setPage}
+    />
   ) : (
     <></>
-  ));
+  );
 };
 
 export default Top;

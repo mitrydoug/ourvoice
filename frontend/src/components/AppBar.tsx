@@ -4,7 +4,17 @@ import Box from "@mui/material/Box";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
-import { Avatar, Button, Divider, ListItemIcon, Menu, MenuItem, Paper, Popover, Stack } from "@mui/material";
+import {
+  Avatar,
+  Button,
+  Divider,
+  ListItemIcon,
+  Menu,
+  MenuItem,
+  Paper,
+  Popover,
+  Stack,
+} from "@mui/material";
 import jazzicon from "@metamask/jazzicon";
 import { useAccount, useDisconnect } from "wagmi";
 import { Link, useNavigate } from "react-router-dom";
@@ -12,12 +22,12 @@ import { useUserVotes } from "../state/UserVotes";
 import CreateIcon from "@mui/icons-material/Create";
 import WriteModal from "./WriteModal";
 import ChooseForumModal, { FORUMS } from "./ChooseForumModal";
-import LogoutIcon from '@mui/icons-material/Logout';
+import LogoutIcon from "@mui/icons-material/Logout";
 import DoneAllIcon from "@mui/icons-material/DoneAll";
-import Settings from '@mui/icons-material/Settings';
-import Logout from '@mui/icons-material/Logout';
-import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
-import HowToRegIcon from '@mui/icons-material/HowToReg';
+import Settings from "@mui/icons-material/Settings";
+import Logout from "@mui/icons-material/Logout";
+import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
+import HowToRegIcon from "@mui/icons-material/HowToReg";
 import { useForum } from "../state/Forum";
 import { useWeb3AuthConnect } from "@web3auth/modal/react";
 
@@ -108,7 +118,7 @@ export default function MenuAppBar() {
   const open = Boolean(anchorEl);
   const id = open ? "simple-popover" : undefined;
 
-  console.log('userVoteState', userVoteState);
+  console.log("userVoteState", userVoteState);
 
   return (
     <>
@@ -126,7 +136,9 @@ export default function MenuAppBar() {
                 alignItems="center"
                 sx={{ color: "primary.main", cursor: "pointer" }}
               >
-                <Box sx={{ height: "2.75rem", width: "2.75rem" }}>{MIC_ICON}</Box>
+                <Box sx={{ height: "2.75rem", width: "2.75rem" }}>
+                  {MIC_ICON}
+                </Box>
                 <Typography
                   variant="h4"
                   component="div"
@@ -161,13 +173,22 @@ export default function MenuAppBar() {
               <>
                 <Stack alignItems="center">
                   <Typography variant="body2">Credits</Typography>
-                  <Typography>{userVoteState.remainingCredits}/{userVoteState.creditBudget}</Typography>
+                  <Typography>
+                    {userVoteState.remainingCredits}/
+                    {userVoteState.creditBudget}
+                  </Typography>
                 </Stack>
                 <IconButton
                   onClick={commitVotes}
                   disabled={!userVoteState.hasUncommittedVotes}
                 >
-                  <DoneAllIcon sx={{ color: userVoteState.hasUncommittedVotes ? "primary.main" : "" }}/>
+                  <DoneAllIcon
+                    sx={{
+                      color: userVoteState.hasUncommittedVotes
+                        ? "primary.main"
+                        : "",
+                    }}
+                  />
                 </IconButton>
                 <Button
                   variant="contained"
@@ -183,7 +204,7 @@ export default function MenuAppBar() {
                 </Button>
               </>
             )}
-            { address ? (
+            {address ? (
               <>
                 <IconButton
                   size="medium"
@@ -206,32 +227,32 @@ export default function MenuAppBar() {
                     paper: {
                       elevation: 0,
                       sx: {
-                        overflow: 'visible',
-                        filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
+                        overflow: "visible",
+                        filter: "drop-shadow(0px 2px 8px rgba(0,0,0,0.32))",
                         mt: 1.5,
-                        '& .MuiAvatar-root': {
+                        "& .MuiAvatar-root": {
                           width: 32,
                           height: 32,
                           ml: -0.5,
                           mr: 1,
                         },
-                        '&::before': {
+                        "&::before": {
                           content: '""',
-                          display: 'block',
-                          position: 'absolute',
+                          display: "block",
+                          position: "absolute",
                           top: 0,
                           right: 14,
                           width: 10,
                           height: 10,
-                          bgcolor: 'background.paper',
-                          transform: 'translateY(-50%) rotate(45deg)',
+                          bgcolor: "background.paper",
+                          transform: "translateY(-50%) rotate(45deg)",
                           zIndex: 0,
                         },
                       },
                     },
                   }}
-                  transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-                  anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+                  transformOrigin={{ horizontal: "right", vertical: "top" }}
+                  anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
                 >
                   {isUserVerified ? (
                     <>
@@ -240,12 +261,16 @@ export default function MenuAppBar() {
                           <Avatar
                             src={FORUMS[forumName].iconSrc}
                             variant="rounded"
-                            style={{ height: "1.2rem", width: "1.2rem", margin: "0px" }}
+                            style={{
+                              height: "1.2rem",
+                              width: "1.2rem",
+                              margin: "0px",
+                            }}
                           />
                         </ListItemIcon>
                         Verified!
                       </MenuItem>
-                                    
+
                       <MenuItem onClick={() => navigate("/my-support")}>
                         <ListItemIcon>
                           <FavoriteBorderIcon fontSize="small" />
@@ -253,15 +278,14 @@ export default function MenuAppBar() {
                         My Support
                       </MenuItem>
                     </>
-                    ) : (
-                      <MenuItem onClick={() => navigate("/verify")}>
-                        <ListItemIcon>
-                          <HowToRegIcon fontSize="small" />
-                        </ListItemIcon>
-                        Get verified
-                      </MenuItem>
-                    )
-                  }
+                  ) : (
+                    <MenuItem onClick={() => navigate("/verify")}>
+                      <ListItemIcon>
+                        <HowToRegIcon fontSize="small" />
+                      </ListItemIcon>
+                      Get verified
+                    </MenuItem>
+                  )}
                   <Divider />
                   <MenuItem onClick={() => disconnect()}>
                     <ListItemIcon>

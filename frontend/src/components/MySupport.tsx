@@ -42,11 +42,7 @@ const MySupport: FC = () => {
 
   console.log("My supported statements: ", myStatements);
 
-  return (myStatements ? (
-    <StatementList statements={myStatements} />
-  ) : (
-    <></>
-  ));
+  return myStatements ? <StatementList statements={myStatements} /> : <></>;
 };
 
 export default MySupport;
