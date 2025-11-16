@@ -52,7 +52,11 @@ const reducer = (
     case "UPDATE_VOTE": {
       const { statementId, newVoteCount } = action.payload;
       newState.userVotes = new Map(state.userVotes);
-      newState.userVotes.set(Number(statementId), Number(newVoteCount));
+      if (newVoteCount === BigInt(0)) {
+        newState.userVotes.delete(Number(statementId));
+      } else {
+        newState.userVotes.set(Number(statementId), Number(newVoteCount));
+      }
       break;
     }
   }

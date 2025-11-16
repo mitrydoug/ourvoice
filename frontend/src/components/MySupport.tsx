@@ -3,6 +3,7 @@ import { useReadContract } from "wagmi";
 import { useUserVotes } from "../state/UserVotes";
 import StatementCard from "./StatementCard";
 import { useForum, FORUM_ABI } from "../state/Forum";
+import StatementList from "./StatementList";
 
 interface Statement {
   id: bigint;
@@ -35,17 +36,13 @@ const MySupport: FC = () => {
     args: [statementIds],
   });
 
+  console.log("Read contract result: ", result);
+
   const myStatements = result.data as Statement[] | undefined;
 
   console.log("My supported statements: ", myStatements);
 
-  return (
-    <>
-      {myStatements?.map((stmt, idx) => (
-        <StatementCard key={`stmt-${idx}`} statement={stmt} />
-      ))}
-    </>
-  );
+  return myStatements ? <StatementList statements={myStatements} /> : <></>;
 };
 
 export default MySupport;

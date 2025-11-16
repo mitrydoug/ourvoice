@@ -4,16 +4,32 @@ import Box from "@mui/material/Box";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
-import { Avatar, Button, Paper, Popover, Stack } from "@mui/material";
+import {
+  Avatar,
+  Button,
+  Divider,
+  ListItemIcon,
+  Menu,
+  MenuItem,
+  Paper,
+  Popover,
+  Stack,
+} from "@mui/material";
 import jazzicon from "@metamask/jazzicon";
-import { useAccount } from "wagmi";
-import { useNavigate } from "react-router-dom";
+import { useAccount, useDisconnect } from "wagmi";
+import { Link, useNavigate } from "react-router-dom";
 import { useUserVotes } from "../state/UserVotes";
 import CreateIcon from "@mui/icons-material/Create";
 import WriteModal from "./WriteModal";
 import ChooseForumModal, { FORUMS } from "./ChooseForumModal";
+import LogoutIcon from "@mui/icons-material/Logout";
 import DoneAllIcon from "@mui/icons-material/DoneAll";
+import Settings from "@mui/icons-material/Settings";
+import Logout from "@mui/icons-material/Logout";
+import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
+import HowToRegIcon from "@mui/icons-material/HowToReg";
 import { useForum } from "../state/Forum";
+import { useWeb3AuthConnect } from "@web3auth/modal/react";
 
 const MIC_ICON = (
   <svg
@@ -62,6 +78,23 @@ export default function MenuAppBar() {
   const [chooseForumModalOpen, setChooseForumModalOpen] = useState(false);
   const { name: forumName, setForum } = useForum();
   const navigate = useNavigate();
+  const { disconnect } = useDisconnect();
+
+  const [connectRequested, setConnectRequested] = useState(false);
+  const {
+    connect,
+    isConnected,
+    loading: connectLoading,
+    error: connectError,
+  } = useWeb3AuthConnect();
+
+  useEffect(() => {
+    if (!isConnected && connectRequested) {
+      connect();
+      console.log("Connecting to wallet...");
+      setConnectRequested(false);
+    }
+  }, [isConnected, connectRequested, connect]);
 
   useEffect(() => {
     if (address) {
@@ -71,7 +104,7 @@ export default function MenuAppBar() {
     }
   }, [address]);
 
-  const { isUserVerified, commitVotes } = useUserVotes();
+  const { isUserVerified, commitVotes, state: userVoteState } = useUserVotes();
 
   const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
     console.log("here! ");
@@ -85,6 +118,8 @@ export default function MenuAppBar() {
   const open = Boolean(anchorEl);
   const id = open ? "simple-popover" : undefined;
 
+  console.log("userVoteState", userVoteState);
+
   return (
     <>
       <AppBar
@@ -93,26 +128,30 @@ export default function MenuAppBar() {
         elevation={0}
         sx={{ mt: 2 }}
       >
-        <Toolbar>
-          <Stack direction="row" spacing={3} alignItems="center" flexGrow={1}>
-            <Stack
-              direction="row"
-              alignItems="center"
-              sx={{ color: "primary.main" }}
-            >
-              <Box sx={{ height: "2.75rem", width: "2.75rem" }}>{MIC_ICON}</Box>
-              <Typography
-                variant="h4"
-                component="div"
-                sx={{
-                  fontFamily: "Sriracha",
-                  fontWeight: "bold",
-                  color: "primary.main",
-                }}
+        <Toolbar disableGutters>
+          <Stack direction="row" spacing={2} alignItems="center" flexGrow={1}>
+            <Link to="/" style={{ textDecoration: "none" }}>
+              <Stack
+                direction="row"
+                alignItems="center"
+                sx={{ color: "primary.main", cursor: "pointer" }}
               >
-                Our Voice
-              </Typography>
-            </Stack>
+                <Box sx={{ height: "2.75rem", width: "2.75rem" }}>
+                  {MIC_ICON}
+                </Box>
+                <Typography
+                  variant="h4"
+                  component="div"
+                  sx={{
+                    fontFamily: "Sriracha",
+                    fontWeight: "bold",
+                    color: "primary.main",
+                  }}
+                >
+                  Our Voice
+                </Typography>
+              </Stack>
+            </Link>
             <IconButton
               size="medium"
               aria-controls="menu-appbar"
@@ -130,72 +169,145 @@ export default function MenuAppBar() {
             </IconButton>
 
             <span style={{ flexGrow: 1 }}></span>
-            <IconButton
-              size="medium"
-              aria-label="account of current user"
-              aria-controls="menu-appbar"
-              aria-haspopup="true"
-              aria-describedby={id}
-              onClick={handleMenu}
-              color="inherit"
-            >
-              <Avatar src={avatar} />
-            </IconButton>
-            <Popover
-              id={id}
-              open={open}
-              anchorEl={anchorEl}
-              onClose={handleClose}
-              anchorOrigin={{
-                vertical: "bottom",
-                horizontal: "right",
-              }}
-              transformOrigin={{
-                vertical: "top",
-                horizontal: "right",
-              }}
-            >
-              <Paper sx={{ p: 2 }}>
-                <Stack spacing={2}>
+            {isUserVerified && (
+              <>
+                <Stack alignItems="center">
+                  <Typography variant="body2">Credits</Typography>
+                  <Typography>
+                    {userVoteState.remainingCredits}/
+                    {userVoteState.creditBudget}
+                  </Typography>
+                </Stack>
+                <IconButton
+                  onClick={commitVotes}
+                  disabled={!userVoteState.hasUncommittedVotes}
+                >
+                  <DoneAllIcon
+                    sx={{
+                      color: userVoteState.hasUncommittedVotes
+                        ? "primary.main"
+                        : "",
+                    }}
+                  />
+                </IconButton>
+                <Button
+                  variant="contained"
+                  size="small"
+                  startIcon={<CreateIcon />}
+                  sx={{ textTransform: "none" }}
+                  onClick={() => setWriteModalOpen(true)}
+                >
+                  <Typography variant="body1" component="div">
+                    {" "}
+                    Write{" "}
+                  </Typography>
+                </Button>
+              </>
+            )}
+            {address ? (
+              <>
+                <IconButton
+                  size="medium"
+                  aria-label="account of current user"
+                  aria-controls="menu-appbar"
+                  aria-haspopup="true"
+                  aria-describedby={id}
+                  onClick={handleMenu}
+                  color="inherit"
+                >
+                  <Avatar src={avatar} />
+                </IconButton>
+                <Menu
+                  anchorEl={anchorEl}
+                  id="account-menu"
+                  open={open}
+                  onClose={handleClose}
+                  onClick={handleClose}
+                  slotProps={{
+                    paper: {
+                      elevation: 0,
+                      sx: {
+                        overflow: "visible",
+                        filter: "drop-shadow(0px 2px 8px rgba(0,0,0,0.32))",
+                        mt: 1.5,
+                        "& .MuiAvatar-root": {
+                          width: 32,
+                          height: 32,
+                          ml: -0.5,
+                          mr: 1,
+                        },
+                        "&::before": {
+                          content: '""',
+                          display: "block",
+                          position: "absolute",
+                          top: 0,
+                          right: 14,
+                          width: 10,
+                          height: 10,
+                          bgcolor: "background.paper",
+                          transform: "translateY(-50%) rotate(45deg)",
+                          zIndex: 0,
+                        },
+                      },
+                    },
+                  }}
+                  transformOrigin={{ horizontal: "right", vertical: "top" }}
+                  anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
+                >
                   {isUserVerified ? (
                     <>
-                      <Button
-                        variant="contained"
-                        startIcon={<CreateIcon />}
-                        sx={{ textTransform: "none" }}
-                        onClick={() => setWriteModalOpen(true)}
-                      >
-                        <Typography variant="body1" component="div">
-                          {" "}
-                          Write{" "}
-                        </Typography>
-                      </Button>
-                      <Button
-                        variant="contained"
-                        startIcon={<DoneAllIcon />}
-                        sx={{ textTransform: "none" }}
-                        onClick={commitVotes}
-                      >
-                        <Typography variant="body1" component="div">
-                          {" "}
-                          Commit{" "}
-                        </Typography>
-                      </Button>
+                      <MenuItem>
+                        <ListItemIcon>
+                          <Avatar
+                            src={FORUMS[forumName].iconSrc}
+                            variant="rounded"
+                            style={{
+                              height: "1.2rem",
+                              width: "1.2rem",
+                              margin: "0px",
+                            }}
+                          />
+                        </ListItemIcon>
+                        Verified!
+                      </MenuItem>
+
+                      <MenuItem onClick={() => navigate("/my-support")}>
+                        <ListItemIcon>
+                          <FavoriteBorderIcon fontSize="small" />
+                        </ListItemIcon>
+                        My Support
+                      </MenuItem>
                     </>
                   ) : (
-                    <Button
-                      sx={{ textTransform: "none" }}
-                      onClick={() => navigate("/verify")}
-                    >
-                      <Typography variant="body1" component="div">
-                        {" "}
-                        Get Verified{" "}
-                      </Typography>
-                    </Button>
+                    <MenuItem onClick={() => navigate("/verify")}>
+                      <ListItemIcon>
+                        <HowToRegIcon fontSize="small" />
+                      </ListItemIcon>
+                      Get verified
+                    </MenuItem>
                   )}
-                </Stack>
-              </Paper>
-            </Popover>
+                  <Divider />
+                  <MenuItem onClick={() => disconnect()}>
+                    <ListItemIcon>
+                      <Logout fontSize="small" />
+                    </ListItemIcon>
+                    Disconnect
+                  </MenuItem>
+                </Menu>
+              </>
+            ) : (
+              <Button
+                variant="contained"
+                size="small"
+                sx={{ textTransform: "none" }}
+                onClick={() => setConnectRequested(true)}
+              >
+                <Typography variant="body1" component="div">
+                  {" "}
+                  Connect{" "}
+                </Typography>
+              </Button>
+            )}
           </Stack>
         </Toolbar>
       </AppBar>

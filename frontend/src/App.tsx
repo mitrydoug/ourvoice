@@ -14,18 +14,6 @@ import { theme } from "./theme.ts";
 import { ForumProvider } from "./state/Forum.tsx";
 
 export const App: FC = () => {
-  const {
-    connect,
-    isConnected,
-    loading: connectLoading,
-    error: connectError,
-  } = useWeb3AuthConnect();
-
-  useEffect(() => {
-    connect();
-    console.log("Connecting to wallet...");
-  }, [isConnected, connectLoading, connectError, connect]);
-
   const router = createHashRouter([
     {
       path: "/verify",
