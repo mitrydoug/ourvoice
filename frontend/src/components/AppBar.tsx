@@ -215,6 +215,7 @@ export default function MenuAppBar() {
               anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
             >
               {isUserVerified ? (
+                <>
                   <MenuItem>
                     <ListItemIcon>
                       <Avatar
@@ -225,6 +226,14 @@ export default function MenuAppBar() {
                     </ListItemIcon>
                     Verified!
                   </MenuItem>
+                                
+                  <MenuItem onClick={() => navigate("/my-support")}>
+                    <ListItemIcon>
+                      <FavoriteBorderIcon fontSize="small" />
+                    </ListItemIcon>
+                    My Support
+                  </MenuItem>
+                </>
                 ) : (
                   <MenuItem onClick={() => navigate("/verify")}>
                     <ListItemIcon>
@@ -234,18 +243,12 @@ export default function MenuAppBar() {
                   </MenuItem>
                 )
               }
-              <MenuItem onClick={() => navigate("/my-support")}>
-                <ListItemIcon>
-                  <FavoriteBorderIcon fontSize="small" />
-                </ListItemIcon>
-                My Support
-              </MenuItem>
               <Divider />
               <MenuItem onClick={() => disconnect()}>
                 <ListItemIcon>
                   <Logout fontSize="small" />
                 </ListItemIcon>
-                Logout
+                Disconnect
               </MenuItem>
             </Menu>
           </Stack>

@@ -1,40 +1,48 @@
-import React, { FC } from "react";
-import { useReadContract } from "wagmi";
+import React, { FC, useState } from "react";
+import { useReadContract, useReadContracts } from "wagmi";
 import StatementCard from "./StatementCard";
 import { useForum, FORUM_ABI } from "../state/Forum";
 import { Stack } from "@mui/material";
+import { Statement } from "../types";
+import StatementList from "./StatementList";
 
-const PAGE_SIZE = 25;
+const PAGE_SIZE = 8;
 
-interface Statement {
-  id: bigint;
-  text: string;
-  voteCount: bigint;
-  rank: bigint;
-  timestamp: bigint;
-}
 
 const Top: FC = () => {
   const { forumContractAddress } = useForum();
 
-  const result = useReadContract({
-    address: forumContractAddress,
-    abi: FORUM_ABI,
-    functionName: "getRankedStatementsPage",
-    args: [0n, BigInt(PAGE_SIZE)],
+  const [page, setPage] = useState(1);
+
+  const result = useReadContracts({
+    contracts: [
+      {
+        address: forumContractAddress,
+        abi: FORUM_ABI,
+        functionName: "statementCount",
+        args: [],
+      },{
+        address: forumContractAddress,
+        abi: FORUM_ABI,
+        functionName: "getRankedStatementsPage",
+        args: [BigInt((page-1) * PAGE_SIZE), BigInt(PAGE_SIZE)],
+      }
+    ],
   });
 
-  const statementsPage = result.data as Statement[] | undefined;
 
-  console.log("Top statements: ", statementsPage);
+  const statementsCount = result.data && result.data[0].result as bigint | undefined;
+  const statementsPage = result.data && result.data[1].result as Statement[] | undefined;
 
-  return (
-    <Stack spacing={1}>
-      {statementsPage?.map((stmt, idx) => (
-        <StatementCard key={`stmt-${idx}`} statement={stmt} />
-      ))}
-    </Stack>
-  );
+  const lastPage = Math.min(Math.max(10, 2 * page), Math.floor(Number(statementsCount) / PAGE_SIZE) + 1);
+  console.log("page is ", page);
+  console.log("lastPage is ", lastPage);
+
+  return (statementsPage ? (
+    <StatementList statements={statementsPage} pageCount={lastPage} onPageChange={setPage}/>
+  ) : (
+    <></>
+  ));
 };
 
 export default Top;
