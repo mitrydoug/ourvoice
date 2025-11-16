@@ -1,8 +1,6 @@
 import React, { FC, useState } from "react";
-import { useReadContract, useReadContracts } from "wagmi";
-import StatementCard from "./StatementCard";
+import { useReadContracts } from "wagmi";
 import { useForum, FORUM_ABI } from "../state/Forum";
-import { Stack } from "@mui/material";
 import { Statement } from "../types";
 import StatementList from "./StatementList";
 
