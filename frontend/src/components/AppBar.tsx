@@ -77,10 +77,7 @@ export default function MenuAppBar() {
   const { disconnect } = useDisconnect();
 
   const [connectRequested, setConnectRequested] = useState(false);
-  const {
-    connect,
-    isConnected,
-  } = useWeb3AuthConnect();
+  const { connect, isConnected } = useWeb3AuthConnect();
 
   useEffect(() => {
     if (!isConnected && connectRequested) {
