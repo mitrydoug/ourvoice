@@ -6,7 +6,7 @@ import { Stack } from "@mui/material";
 import { Statement } from "../types";
 import StatementList from "./StatementList";
 
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 10;
 
 
 const Top: FC = () => {

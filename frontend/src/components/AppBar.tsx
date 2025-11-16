@@ -19,6 +19,7 @@ import Logout from '@mui/icons-material/Logout';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import HowToRegIcon from '@mui/icons-material/HowToReg';
 import { useForum } from "../state/Forum";
+import { useWeb3AuthConnect } from "@web3auth/modal/react";
 
 const MIC_ICON = (
   <svg
@@ -68,6 +69,22 @@ export default function MenuAppBar() {
   const { name: forumName, setForum } = useForum();
   const navigate = useNavigate();
   const { disconnect } = useDisconnect();
+
+  const [connectRequested, setConnectRequested] = useState(false);
+  const {
+    connect,
+    isConnected,
+    loading: connectLoading,
+    error: connectError,
+  } = useWeb3AuthConnect();
+
+  useEffect(() => {
+    if (!isConnected && connectRequested) {
+      connect();
+      console.log("Connecting to wallet...");
+      setConnectRequested(false);
+    }
+  }, [isConnected, connectRequested, connect]);
 
   useEffect(() => {
     if (address) {
@@ -140,117 +157,133 @@ export default function MenuAppBar() {
             </IconButton>
 
             <span style={{ flexGrow: 1 }}></span>
-             {isUserVerified && (
-                <>
-                  <Stack alignItems="center">
-                    <Typography variant="body2">Credits</Typography>
-                    <Typography>{userVoteState.remainingCredits}/{userVoteState.creditBudget}</Typography>
-                  </Stack>
-                  <IconButton
-                    onClick={commitVotes}
-                    disabled={!userVoteState.hasUncommittedVotes}
-                  >
-                    <DoneAllIcon sx={{ color: userVoteState.hasUncommittedVotes ? "primary.main" : "" }}/>
-                  </IconButton>
-                  <Button
-                    variant="contained"
-                    size="small"
-                    startIcon={<CreateIcon />}
-                    sx={{ textTransform: "none" }}
-                    onClick={() => setWriteModalOpen(true)}
-                  >
-                    <Typography variant="body1" component="div">
-                      {" "}
-                      Write{" "}
-                    </Typography>
-                  </Button>
-                </>
-             )}
-            <IconButton
-              size="medium"
-              aria-label="account of current user"
-              aria-controls="menu-appbar"
-              aria-haspopup="true"
-              aria-describedby={id}
-              onClick={handleMenu}
-              color="inherit"
-            >
-              <Avatar src={avatar} />
-            </IconButton>
-            <Menu
-              anchorEl={anchorEl}
-              id="account-menu"
-              open={open}
-              onClose={handleClose}
-              onClick={handleClose}
-              slotProps={{
-                paper: {
-                  elevation: 0,
-                  sx: {
-                    overflow: 'visible',
-                    filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
-                    mt: 1.5,
-                    '& .MuiAvatar-root': {
-                      width: 32,
-                      height: 32,
-                      ml: -0.5,
-                      mr: 1,
+            {isUserVerified && (
+              <>
+                <Stack alignItems="center">
+                  <Typography variant="body2">Credits</Typography>
+                  <Typography>{userVoteState.remainingCredits}/{userVoteState.creditBudget}</Typography>
+                </Stack>
+                <IconButton
+                  onClick={commitVotes}
+                  disabled={!userVoteState.hasUncommittedVotes}
+                >
+                  <DoneAllIcon sx={{ color: userVoteState.hasUncommittedVotes ? "primary.main" : "" }}/>
+                </IconButton>
+                <Button
+                  variant="contained"
+                  size="small"
+                  startIcon={<CreateIcon />}
+                  sx={{ textTransform: "none" }}
+                  onClick={() => setWriteModalOpen(true)}
+                >
+                  <Typography variant="body1" component="div">
+                    {" "}
+                    Write{" "}
+                  </Typography>
+                </Button>
+              </>
+            )}
+            { address ? (
+              <>
+                <IconButton
+                  size="medium"
+                  aria-label="account of current user"
+                  aria-controls="menu-appbar"
+                  aria-haspopup="true"
+                  aria-describedby={id}
+                  onClick={handleMenu}
+                  color="inherit"
+                >
+                  <Avatar src={avatar} />
+                </IconButton>
+                <Menu
+                  anchorEl={anchorEl}
+                  id="account-menu"
+                  open={open}
+                  onClose={handleClose}
+                  onClick={handleClose}
+                  slotProps={{
+                    paper: {
+                      elevation: 0,
+                      sx: {
+                        overflow: 'visible',
+                        filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
+                        mt: 1.5,
+                        '& .MuiAvatar-root': {
+                          width: 32,
+                          height: 32,
+                          ml: -0.5,
+                          mr: 1,
+                        },
+                        '&::before': {
+                          content: '""',
+                          display: 'block',
+                          position: 'absolute',
+                          top: 0,
+                          right: 14,
+                          width: 10,
+                          height: 10,
+                          bgcolor: 'background.paper',
+                          transform: 'translateY(-50%) rotate(45deg)',
+                          zIndex: 0,
+                        },
+                      },
                     },
-                    '&::before': {
-                      content: '""',
-                      display: 'block',
-                      position: 'absolute',
-                      top: 0,
-                      right: 14,
-                      width: 10,
-                      height: 10,
-                      bgcolor: 'background.paper',
-                      transform: 'translateY(-50%) rotate(45deg)',
-                      zIndex: 0,
-                    },
-                  },
-                },
-              }}
-              transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-              anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-            >
-              {isUserVerified ? (
-                <>
-                  <MenuItem>
+                  }}
+                  transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+                  anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+                >
+                  {isUserVerified ? (
+                    <>
+                      <MenuItem>
+                        <ListItemIcon>
+                          <Avatar
+                            src={FORUMS[forumName].iconSrc}
+                            variant="rounded"
+                            style={{ height: "1.2rem", width: "1.2rem", margin: "0px" }}
+                          />
+                        </ListItemIcon>
+                        Verified!
+                      </MenuItem>
+                                    
+                      <MenuItem onClick={() => navigate("/my-support")}>
+                        <ListItemIcon>
+                          <FavoriteBorderIcon fontSize="small" />
+                        </ListItemIcon>
+                        My Support
+                      </MenuItem>
+                    </>
+                    ) : (
+                      <MenuItem onClick={() => navigate("/verify")}>
+                        <ListItemIcon>
+                          <HowToRegIcon fontSize="small" />
+                        </ListItemIcon>
+                        Get verified
+                      </MenuItem>
+                    )
+                  }
+                  <Divider />
+                  <MenuItem onClick={() => disconnect()}>
                     <ListItemIcon>
-                      <Avatar
-                        src={FORUMS[forumName].iconSrc}
-                        variant="rounded"
-                        style={{ height: "1.2rem", width: "1.2rem", margin: "0px" }}
-                      />
+                      <Logout fontSize="small" />
                     </ListItemIcon>
-                    Verified!
+                    Disconnect
                   </MenuItem>
-                                
-                  <MenuItem onClick={() => navigate("/my-support")}>
-                    <ListItemIcon>
-                      <FavoriteBorderIcon fontSize="small" />
-                    </ListItemIcon>
-                    My Support
-                  </MenuItem>
-                </>
-                ) : (
-                  <MenuItem onClick={() => navigate("/verify")}>
-                    <ListItemIcon>
-                      <HowToRegIcon fontSize="small" />
-                    </ListItemIcon>
-                    Get verified
-                  </MenuItem>
-                )
-              }
-              <Divider />
-              <MenuItem onClick={() => disconnect()}>
-                <ListItemIcon>
-                  <Logout fontSize="small" />
-                </ListItemIcon>
-                Disconnect
-              </MenuItem>
-            </Menu>
+                </Menu>
+              </>
+            ) : (
+              <Button
+                variant="contained"
+                size="small"
+                sx={{ textTransform: "none" }}
+                onClick={() => setConnectRequested(true)}
+              >
+                <Typography variant="body1" component="div">
+                  {" "}
+                  Connect{" "}
+                </Typography>
+              </Button>
+            )}
           </Stack>
         </Toolbar>
       </AppBar>
