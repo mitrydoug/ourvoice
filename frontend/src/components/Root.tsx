@@ -2,7 +2,6 @@ import React, { FC, useRef, useState } from "react";
 import Box from "@mui/material/Box";
 import { Outlet } from "react-router-dom";
 import { Container } from "@mui/material";
-import { useUserVotes } from "../state/UserVotes";
 
 import WriteModal from "./WriteModal";
 import MenuAppBar from "./AppBar";
@@ -11,8 +10,6 @@ const Root: FC = () => {
   const layoutRef = useRef<HTMLDivElement>(null);
 
   const [writeModalOpen, setWriteModalOpen] = useState(false);
-
-  const { isUserVerified, state: userVoteState } = useUserVotes();
 
   return (
     <>

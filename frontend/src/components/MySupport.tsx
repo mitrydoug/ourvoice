@@ -1,7 +1,6 @@
 import React, { FC } from "react";
 import { useReadContract } from "wagmi";
 import { useUserVotes } from "../state/UserVotes";
-import StatementCard from "./StatementCard";
 import { useForum, FORUM_ABI } from "../state/Forum";
 import StatementList from "./StatementList";
 

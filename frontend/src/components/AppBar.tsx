@@ -11,8 +11,6 @@ import {
   ListItemIcon,
   Menu,
   MenuItem,
-  Paper,
-  Popover,
   Stack,
 } from "@mui/material";
 import jazzicon from "@metamask/jazzicon";
@@ -22,9 +20,7 @@ import { useUserVotes } from "../state/UserVotes";
 import CreateIcon from "@mui/icons-material/Create";
 import WriteModal from "./WriteModal";
 import ChooseForumModal, { FORUMS } from "./ChooseForumModal";
-import LogoutIcon from "@mui/icons-material/Logout";
 import DoneAllIcon from "@mui/icons-material/DoneAll";
-import Settings from "@mui/icons-material/Settings";
 import Logout from "@mui/icons-material/Logout";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import HowToRegIcon from "@mui/icons-material/HowToReg";
@@ -81,12 +77,7 @@ export default function MenuAppBar() {
   const { disconnect } = useDisconnect();
 
   const [connectRequested, setConnectRequested] = useState(false);
-  const {
-    connect,
-    isConnected,
-    loading: connectLoading,
-    error: connectError,
-  } = useWeb3AuthConnect();
+  const { connect, isConnected } = useWeb3AuthConnect();
 
   useEffect(() => {
     if (!isConnected && connectRequested) {
