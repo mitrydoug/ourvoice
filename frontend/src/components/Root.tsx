@@ -23,8 +23,7 @@ const Root: FC = () => {
             minHeight: "100vh",
             overflowY: "auto",
             overflowX: "visible",
-            mb: 8,
-            pb: 1,
+            pb: 8,
           }}
         >
           <MenuAppBar />

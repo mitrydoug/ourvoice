@@ -35,7 +35,7 @@ const Top: FC = () => {
 
   const lastPage = Math.min(
     Math.max(10, 2 * page),
-    Math.floor(Number(statementsCount) / PAGE_SIZE) + 1,
+    Math.floor((Number(statementsCount) - 1) / PAGE_SIZE) + 1,
   );
   console.log("page is ", page);
   console.log("lastPage is ", lastPage);
