@@ -43,6 +43,7 @@ const Top: FC = () => {
   return statementsPage ? (
     <StatementList
       statements={statementsPage}
+      page={page}
       pageCount={lastPage}
       onPageChange={setPage}
     />
