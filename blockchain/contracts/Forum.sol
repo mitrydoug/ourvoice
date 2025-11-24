@@ -1,13 +1,14 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.28;
 
-import "./IZKRegistry.sol";
+import "./IOurVoiceRegistry.sol";
+import "./StringUtils.sol";
 
 contract Forum {
     uint public constant MAX_STATEMENT_LENGTH = 120;
     uint public constant USER_CREDIT_BUDGET = 100;
 
-    IZKRegistry public zkRegistry;
+    AOurVoiceRegistry public ourVoiceRegistry;
 
     struct Vote {
         uint statementId;
@@ -40,8 +41,8 @@ contract Forum {
     event UserVote(bytes32 indexed user, string action, int count);
     event StatementVote(uint indexed id, int voteCount);
 
-    constructor(IZKRegistry _zkRegistry, string memory _nationality) {
-        zkRegistry = _zkRegistry;
+    constructor(AOurVoiceRegistry _ourVoiceRegistry, string memory _nationality) {
+        ourVoiceRegistry = _ourVoiceRegistry;
         nationality = _nationality;
     }
 
@@ -80,14 +81,14 @@ contract Forum {
     }
 
     function isMember() public view returns (bool) {
-        if (!zkRegistry.isRegistered(msg.sender)) {
+        if (!ourVoiceRegistry.isRegistered(msg.sender)) {
             return false;
         }
         if (bytes(nationality).length == 0) {
             return true;
         }
-        Registration memory registration = zkRegistry.getUserRegistration(msg.sender);
-        return keccak256(bytes(registration.disclosedData.nationality)) == keccak256(bytes(nationality));
+        Registration memory registration = ourVoiceRegistry.getUserRegistration(msg.sender);
+        return StringUtils.equals(registration.nationality, nationality);
     }
 
     modifier onlyMembers() {
@@ -160,13 +161,13 @@ contract Forum {
     }
 
     function getUserVoteSet() external view onlyMembers returns (Vote[] memory) {
-        bytes32 userId = zkRegistry.getUserIdentifier(msg.sender);
+        bytes32 userId = ourVoiceRegistry.getUserIdentifier(msg.sender);
         return userVoteSets[userId];
     }
 
     function vote(Vote[] calldata _voteSet) public {
-        require(zkRegistry.isRegistered(msg.sender), "User is not registered");
-        bytes32 userId = zkRegistry.getUserIdentifier(msg.sender);
+        require(ourVoiceRegistry.isRegistered(msg.sender), "User is not registered");
+        bytes32 userId = ourVoiceRegistry.getUserIdentifier(msg.sender);
         // require(voteSet.length <= USER_BUDGET, "Vote set exceeds user budget");
 
         Vote[] memory previousVoteSet = userVoteSets[userId];

@@ -11,6 +11,7 @@ import GetVerified from "./components/GetVerified.tsx";
 
 import { theme } from "./theme.ts";
 import { ForumProvider } from "./state/Forum.tsx";
+import Account from "./components/Account.tsx";
 
 export const App: FC = () => {
   const router = createHashRouter([
@@ -32,6 +33,10 @@ export const App: FC = () => {
         {
           path: "/my-support",
           Component: MySupport,
+        },
+        {
+          path: "/account",
+          Component: Account,
         },
       ],
     },

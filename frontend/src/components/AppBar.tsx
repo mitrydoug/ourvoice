@@ -13,7 +13,6 @@ import {
   MenuItem,
   Stack,
 } from "@mui/material";
-import jazzicon from "@metamask/jazzicon";
 import { useAccount, useDisconnect } from "wagmi";
 import { Link, useNavigate } from "react-router-dom";
 import { useUserVotes } from "../state/UserVotes";
@@ -23,8 +22,10 @@ import ChooseForumModal, { FORUMS } from "./ChooseForumModal";
 import DoneAllIcon from "@mui/icons-material/DoneAll";
 import Logout from "@mui/icons-material/Logout";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
+import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined';
 import HowToRegIcon from "@mui/icons-material/HowToReg";
 import { useForum } from "../state/Forum";
+import { metamaskIcon } from "../util";
 import { useWeb3AuthConnect } from "@web3auth/modal/react";
 
 const MIC_ICON = (
@@ -55,15 +56,6 @@ const MIC_ICON = (
     </g>
   </svg>
 );
-
-const metamaskIcon = (address: string) => {
-  console.log(address);
-  const jazziconData = jazzicon(16, parseInt(address.slice(2, 10), 16));
-  const jazziconSvg = new XMLSerializer().serializeToString(
-    jazziconData.children[0],
-  );
-  return `data:image/svg+xml,${encodeURIComponent(jazziconSvg)}`;
-};
 
 export default function MenuAppBar() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -182,10 +174,7 @@ export default function MenuAppBar() {
                   />
                 </IconButton>
                 <Button
-                  variant="contained"
-                  size="small"
                   startIcon={<CreateIcon />}
-                  sx={{ textTransform: "none" }}
                   onClick={() => setWriteModalOpen(true)}
                 >
                   <Typography variant="body1" component="div">
@@ -247,19 +236,11 @@ export default function MenuAppBar() {
                 >
                   {isUserVerified ? (
                     <>
-                      <MenuItem>
+                      <MenuItem onClick={() => navigate("/account")}>
                         <ListItemIcon>
-                          <Avatar
-                            src={FORUMS[forumName].iconSrc}
-                            variant="rounded"
-                            style={{
-                              height: "1.2rem",
-                              width: "1.2rem",
-                              margin: "0px",
-                            }}
-                          />
+                          <PersonOutlineOutlinedIcon />
                         </ListItemIcon>
-                        Verified!
+                        Account
                       </MenuItem>
 
                       <MenuItem onClick={() => navigate("/my-support")}>
@@ -288,9 +269,6 @@ export default function MenuAppBar() {
               </>
             ) : (
               <Button
-                variant="contained"
-                size="small"
-                sx={{ textTransform: "none" }}
                 onClick={() => setConnectRequested(true)}
               >
                 <Typography variant="body1" component="div">

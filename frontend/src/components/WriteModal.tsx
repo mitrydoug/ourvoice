@@ -97,7 +97,6 @@ const WriteModal: FC<WriteModalProps> = ({ open, onClose }) => {
           </Typography>
           <Button onClick={onClose}> Cancel </Button>
           <Button
-            variant="contained"
             disabled={text.length === 0}
             onClick={submitStatement}
           >
