@@ -24,9 +24,11 @@ import Logout from "@mui/icons-material/Logout";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
 import HowToRegIcon from "@mui/icons-material/HowToReg";
+import SearchIcon from "@mui/icons-material/Search";
 import { useForum } from "../state/Forum";
 import { metamaskIcon } from "../util";
 import { useWeb3AuthConnect } from "@web3auth/modal/react";
+import SearchModal from "./SearchModal";
 
 const MIC_ICON = (
   <svg
@@ -64,6 +66,7 @@ export default function MenuAppBar() {
   const { address } = useAccount();
   const [writeModalOpen, setWriteModalOpen] = useState(false);
   const [chooseForumModalOpen, setChooseForumModalOpen] = useState(false);
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
   const { name: forumName, setForum } = useForum();
   const navigate = useNavigate();
   const { disconnect } = useDisconnect();
@@ -149,6 +152,14 @@ export default function MenuAppBar() {
                 variant="rounded"
                 style={{ height: "1.7rem", width: "1.7rem" }}
               />
+            </IconButton>
+            <IconButton
+              size="medium"
+              aria-label="search"
+              onClick={() => setSearchModalOpen(true)}
+              color="inherit"
+            >
+              <SearchIcon />
             </IconButton>
 
             <span style={{ flexGrow: 1 }}></span>
@@ -289,6 +300,10 @@ export default function MenuAppBar() {
           setForum(forum);
           setChooseForumModalOpen(false);
         }}
+      />
+      <SearchModal
+        open={searchModalOpen}
+        onClose={() => setSearchModalOpen(false)}
       />
     </>
   );
