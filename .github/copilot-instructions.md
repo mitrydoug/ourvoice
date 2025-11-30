@@ -11,7 +11,7 @@ The project is organized into two main directories:
   - `scripts/`: Hardhat scripts for deployment and testing
   - `ignition/`: Hardhat ignition modules
 
-Npm is used in both for managing dependencies and defining scripts. `frontend` involves typical React development, while `backend` focuses on smart contract development using Solidity.
+Npm is used in both for managing dependencies and defining scripts. `frontend` involves typical React development, while `blockchain` focuses on smart contract development using Solidity.
 
 ## Frontend Development
 
