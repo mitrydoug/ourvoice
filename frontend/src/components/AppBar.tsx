@@ -22,7 +22,7 @@ import ChooseForumModal, { FORUMS } from "./ChooseForumModal";
 import DoneAllIcon from "@mui/icons-material/DoneAll";
 import Logout from "@mui/icons-material/Logout";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
-import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined';
+import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
 import HowToRegIcon from "@mui/icons-material/HowToReg";
 import { useForum } from "../state/Forum";
 import { metamaskIcon } from "../util";
@@ -268,9 +268,7 @@ export default function MenuAppBar() {
                 </Menu>
               </>
             ) : (
-              <Button
-                onClick={() => setConnectRequested(true)}
-              >
+              <Button onClick={() => setConnectRequested(true)}>
                 <Typography variant="body1" component="div">
                   {" "}
                   Connect{" "}

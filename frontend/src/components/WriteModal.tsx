@@ -96,10 +96,7 @@ const WriteModal: FC<WriteModalProps> = ({ open, onClose }) => {
             {text.length} / {MAX_STATEMENT_LENGTH}
           </Typography>
           <Button onClick={onClose}> Cancel </Button>
-          <Button
-            disabled={text.length === 0}
-            onClick={submitStatement}
-          >
+          <Button disabled={text.length === 0} onClick={submitStatement}>
             Submit
           </Button>
         </Stack>
