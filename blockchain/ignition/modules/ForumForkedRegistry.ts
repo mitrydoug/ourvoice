@@ -2,7 +2,7 @@ import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 
 const VERIFIER_ADDRESS = "0x1D000001000EFD9a6371f4d90bB8920D5431c0D8";
 const MY_SCOPE = "our-voice-verify";
-const FORUMS = ["global", "us", "zk"];
+const FORUMS = ["global", "us", "zkr"];
 
 export default buildModule("ForumForkedRegistryModule", (m) => {
 

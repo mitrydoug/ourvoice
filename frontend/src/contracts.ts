@@ -1,7 +1,7 @@
 export const FORUMS = {
-  "global": "0x16C632BafA9b3ce39bdCDdB00c3D486741685425",
-  "us": "0x197baBc40fC361e9c324e9e690c016A609ac09D4",
-  "zk": "0xCa5C373257fC94a3C4bb258392Aa7fB61A4b7116"
+  "global": "0x59af82D8315d9E18936AE4c6480CEd9869f4c2D2",
+  "us": "0x8F1955E85960237eE39BEB66834781bdEc78A4e0",
+  "zkr": "0xF05730EC59952ba1D185ad5b3c860f90D9D79b74"
 } as const;
 
 export const FORUM_ABI = [
@@ -486,7 +486,7 @@ export const FORUM_ABI = [
 ] as const;
 
 export const registryContractConfig = {
-  address: "0xf4Dc5d7C18e71D728f04AfA31E91EE065D738221",
+  address: "0x65476c09EB5917335d331533Ff4388FA62b4e9f5",
   abi: [
   {
     "inputs": [
