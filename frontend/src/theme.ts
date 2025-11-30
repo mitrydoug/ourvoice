@@ -27,6 +27,8 @@ export const theme = createTheme({
     MuiButton: {
       defaultProps: {
         variant: "contained",
+        size: "small",
+        sx: { textTransform: "none" },
       },
     },
   },

@@ -23,97 +23,12 @@ const Root: FC = () => {
             minHeight: "100vh",
             overflowY: "auto",
             overflowX: "visible",
-            mb: 8,
-            pb: 1,
+            pb: 8,
           }}
         >
           <MenuAppBar />
-          {/*<Stack spacing={1}>
-            <NavTabs
-              tabs={[
-                { label: "Top", href: "/top" },
-                ...(isUserVerified
-                  ? [{ label: "My Support", href: "/my-support" }]
-                  : []),
-              ]}
-            />
-            
-          </Stack>*/}
           <Outlet />
         </Container>
-        {/*<Box
-          component="nav"
-          sx={{
-            position: "fixed",
-            left: "50%",
-            top: "0px",
-            padding: "10px",
-            width: "200px",
-            transform: (theme) =>
-              `translateX(-100%) translateX(-${theme.breakpoints.values.sm / 2}px)`,
-          }}
-        >
-          <Stack spacing={1}>
-            <Stack justifyContent="center" alignItems="center" spacing={1}>
-              <Button
-                variant="contained"
-                sx={{ textTransform: "none" }}
-                onClick={() => navigate("/verify")}
-              >
-                <Typography variant="body1" component="div">
-                  {" "}
-                  Get Verified{" "}
-                </Typography>
-              </Button>
-              {isUserVerified && (
-                <Button
-                  variant="contained"
-                  startIcon={<CreateIcon />}
-                  sx={{ textTransform: "none" }}
-                  onClick={() => setWriteModalOpen(true)}
-                >
-                  <Typography variant="body1" component="div">
-                    {" "}
-                    Write{" "}
-                  </Typography>
-                </Button>
-              )}
-            </Stack>
-            {isUserVerified && (
-              <Stack spacing={1}>
-                <Box>
-                  <Stack
-                    spacing={2}
-                    justifyContent="space-between"
-                    sx={{ pb: 1 }}
-                  >
-                    <Typography
-                      variant="body1"
-                      component="div"
-                      sx={{ alignSelf: "center" }}
-                    >
-                      Unassigned: {userVoteState.remainingCredits} /{" "}
-                      {userVoteState.creditBudget}{" "}
-                    </Typography>
-                    <LinearProgress
-                      variant="determinate"
-                      value={budgetRemaining}
-                      sx={{ flexGrow: 1, height: 10, borderRadius: 5 }}
-                    />
-                    <Button
-                      variant="contained"
-                      sx={{ textTransform: "none" }}
-                      onClick={commitVotes}
-                      disabled={!userVoteState.hasUncommittedVotes}
-                    >
-                      Submit Votes
-                    </Button>
-                  </Stack>
-                </Box>
-              </Stack>
-            )}
-          </Stack>
-        </Box>*/}
       </Box>
       <WriteModal
         open={writeModalOpen}

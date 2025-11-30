@@ -5,12 +5,14 @@ import StatementCard from "./StatementCard";
 
 type StatementListProps = {
   statements: Statement[];
+  page: number;
   pageCount: number;
   onPageChange: (page: number) => void;
 };
 
 const StatementList: FC<StatementListProps> = ({
   statements,
+  page,
   pageCount,
   onPageChange,
 }) => {
@@ -23,6 +25,7 @@ const StatementList: FC<StatementListProps> = ({
       </Stack>
       <Box sx={{ display: "flex", justifyContent: "center" }}>
         <Pagination
+          page={page}
           count={pageCount}
           onChange={(e, page) => onPageChange(page)}
         />

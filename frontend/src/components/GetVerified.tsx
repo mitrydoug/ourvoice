@@ -207,6 +207,7 @@ const Verify: FC<VerifyProps> = ({ methodIndex, onBack }) => {
           proof: proof,
           // Use the same scope as the one you specified with the request function
           scope: MY_SCOPE,
+          devMode: DEV_MODE,
         });
 
         console.log("Submitting on-chain verification transaction...");

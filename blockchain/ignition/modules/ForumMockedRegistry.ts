@@ -31,7 +31,7 @@ export default buildModule("ForumMockedRegistryModule", (m) => {
   const address2 = m.getAccount(1);
   const address3 = m.getAccount(2);
 
-  const mockedZKRegistry = m.contract("MockZKRegistry");
+  const mockedZKRegistry = m.contract("MockOurVoiceRegistry");
 
   m.call(mockedZKRegistry, "register", ["us"], { from: address1, id: "register1" });
   m.call(mockedZKRegistry, "register", [""], { from: address2, id: "register2" });
