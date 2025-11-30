@@ -1,2 +1,0 @@
-const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/index.umd-DiUxRK6k.js","assets/index-Bdr1VOpO.js"])))=>i.map(i=>d[i]);
-import{h as n,i as o,j as a}from"./index-Bdr1VOpO.js";function u(e){return n(this,void 0,void 0,function(){var i;return o(this,function(t){switch(t.label){case 0:return[4,a(()=>import("./index.umd-DiUxRK6k.js").then(r=>r.i),__vite__mapDeps([0,1]))];case 1:return i=t.sent(),e._plugins=i,[2]}})})}export{u as loadLegacyVideoPlugins};
