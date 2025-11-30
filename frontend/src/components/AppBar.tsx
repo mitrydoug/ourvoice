@@ -8,10 +8,12 @@ import {
   Avatar,
   Button,
   Divider,
+  InputAdornment,
   ListItemIcon,
   Menu,
   MenuItem,
   Stack,
+  TextField,
 } from "@mui/material";
 import { useAccount, useDisconnect } from "wagmi";
 import { Link, useNavigate } from "react-router-dom";
@@ -24,9 +26,11 @@ import Logout from "@mui/icons-material/Logout";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
 import HowToRegIcon from "@mui/icons-material/HowToReg";
+import SearchIcon from "@mui/icons-material/Search";
 import { useForum } from "../state/Forum";
 import { metamaskIcon } from "../util";
 import { useWeb3AuthConnect } from "@web3auth/modal/react";
+import SearchModal from "./SearchModal";
 
 const MIC_ICON = (
   <svg
@@ -64,6 +68,7 @@ export default function MenuAppBar() {
   const { address } = useAccount();
   const [writeModalOpen, setWriteModalOpen] = useState(false);
   const [chooseForumModalOpen, setChooseForumModalOpen] = useState(false);
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
   const { name: forumName, setForum } = useForum();
   const navigate = useNavigate();
   const { disconnect } = useDisconnect();
@@ -184,6 +189,28 @@ export default function MenuAppBar() {
                 </Button>
               </>
             )}
+            <TextField
+              placeholder="Search..."
+              size="small"
+              onClick={() => setSearchModalOpen(true)}
+              slotProps={{
+                input: {
+                  readOnly: true,
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon fontSize="small" />
+                    </InputAdornment>
+                  ),
+                  sx: { cursor: "pointer" },
+                },
+              }}
+              sx={{
+                width: "150px",
+                "& .MuiOutlinedInput-root": {
+                  cursor: "pointer",
+                },
+              }}
+            />
             {address ? (
               <>
                 <IconButton
@@ -289,6 +316,10 @@ export default function MenuAppBar() {
           setForum(forum);
           setChooseForumModalOpen(false);
         }}
+      />
+      <SearchModal
+        open={searchModalOpen}
+        onClose={() => setSearchModalOpen(false)}
       />
     </>
   );
