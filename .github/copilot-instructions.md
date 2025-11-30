@@ -36,4 +36,4 @@ Only work on `blockchain/` files when specifically assigned. Use Hardhat for sma
 1. Follow Typescript/React best practices and idiomatic patterns
 2. Maintain existing code structure and organization
 3. Use dependency injection patterns where appropriate
-5. Document public APIs and complex logic. Suggest changes to documentation where appropriate.
+4. Document public APIs and complex logic. Suggest changes to documentation where appropriate.
