@@ -45,7 +45,7 @@ jobs:
 
       - name: Build
         if: github.event.action != 'closed'
-        run: npm run build
+        run: npm run build -- --base=/ourvoice/pr-preview/pr-${{ github.event.pull_request.number }}/
 
       - name: Deploy PR Preview
         uses: rossjrw/pr-preview-action@v1
