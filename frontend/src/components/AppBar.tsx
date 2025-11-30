@@ -8,10 +8,12 @@ import {
   Avatar,
   Button,
   Divider,
+  InputAdornment,
   ListItemIcon,
   Menu,
   MenuItem,
   Stack,
+  TextField,
 } from "@mui/material";
 import { useAccount, useDisconnect } from "wagmi";
 import { Link, useNavigate } from "react-router-dom";
@@ -153,14 +155,6 @@ export default function MenuAppBar() {
                 style={{ height: "1.7rem", width: "1.7rem" }}
               />
             </IconButton>
-            <IconButton
-              size="medium"
-              aria-label="search"
-              onClick={() => setSearchModalOpen(true)}
-              color="inherit"
-            >
-              <SearchIcon />
-            </IconButton>
 
             <span style={{ flexGrow: 1 }}></span>
             {isUserVerified && (
@@ -195,6 +189,28 @@ export default function MenuAppBar() {
                 </Button>
               </>
             )}
+            <TextField
+              placeholder="Search..."
+              size="small"
+              onClick={() => setSearchModalOpen(true)}
+              slotProps={{
+                input: {
+                  readOnly: true,
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon fontSize="small" />
+                    </InputAdornment>
+                  ),
+                  sx: { cursor: "pointer" },
+                },
+              }}
+              sx={{
+                width: "150px",
+                "& .MuiOutlinedInput-root": {
+                  cursor: "pointer",
+                },
+              }}
+            />
             {address ? (
               <>
                 <IconButton

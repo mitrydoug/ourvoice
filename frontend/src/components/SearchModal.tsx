@@ -1,4 +1,10 @@
-import { Box, IconButton, InputAdornment, Modal, TextField } from "@mui/material";
+import {
+  Box,
+  IconButton,
+  InputAdornment,
+  Modal,
+  TextField,
+} from "@mui/material";
 import React, { FC, useState } from "react";
 import SearchIcon from "@mui/icons-material/Search";
 
