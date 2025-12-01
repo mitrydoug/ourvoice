@@ -38,6 +38,10 @@ const config: HardhatUserConfig = {
       url: configVariable("SEPOLIA_RPC_URL"),
       accounts: [configVariable("SEPOLIA_PRIVATE_KEY")],
     },
+    compose_hardhat: {
+      type: "http",
+      url: "http://hardhat_node:8545",
+    }
   },
 };
 
