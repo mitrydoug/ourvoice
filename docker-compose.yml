@@ -4,6 +4,7 @@ services:
     working_dir: /app
     volumes:
       - ./frontend:/app
+      - ./frontend/src/contracts.ts:/app/src/contracts.ts
     ports:
       - "5173:5173"
     command: sh -c "npm install && npm run dev -- --host"
@@ -31,6 +32,7 @@ services:
     working_dir: /app
     volumes:
       - ./blockchain:/app
+      - ./frontend/:/frontend
     command: sh -c "npm install && npx hardhat run scripts/deploy.ts --network compose_hardhat"
     depends_on:
       hardhat_node:
