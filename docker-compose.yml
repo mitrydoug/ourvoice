@@ -1,6 +1,6 @@
 services:
   frontend:
-    image: node:25-alpine
+    image: node:22-alpine
     working_dir: /app
     volumes:
       - ./frontend:/app
@@ -13,13 +13,16 @@ services:
       context: ./blockchain
       dockerfile: Dockerfile
     working_dir: /app
+    environment:
+      - SEPOLIA_RPC_URL
+      - SEPOLIA_PRIVATE_KEY
     volumes:
       - ./blockchain:/app
     expose:
       - "8545"
     ports:
       - "8545:8545"
-    command: sh -c "npm install && npx hardhat node"
+    command: sh -c "npm install && npx hardhat node --network local_sepolia_fork"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8545"]
       interval: 10s
@@ -33,7 +36,7 @@ services:
     volumes:
       - ./blockchain:/app
       - ./frontend/:/frontend
-    command: sh -c "npm install && npx hardhat run scripts/deploy.ts --network compose_hardhat"
+    command: sh -c "npm install && npx hardhat ignition deploy ignition/modules/ForumForkedRegistry.ts --network compose_hardhat"
     depends_on:
       hardhat_node:
         condition: service_healthy
