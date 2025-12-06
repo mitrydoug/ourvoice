@@ -5,11 +5,17 @@ import { writeFileSync } from "fs";
 
 
 async function main() {
+
+  const deployMode = process.env.DEPLOY_MODE;
+
   const { ignition, networkHelpers } = await hre.network.connect();
   await networkHelpers.time.increaseTo(Math.floor(Date.now() / 1000));
-  const { registry, ...forums } = await ignition.deploy(ForumForkedRegistryModule);
 
-
+  const { registry, ...forums } = (
+    deployMode == "forked" ?
+    await ignition.deploy(ForumForkedRegistryModule) :
+    await ignition.deploy(ForumMockedRegistryModule)
+  );
 
   console.log("Deployed OurVoiceRegistry at:", registry.address);
   for (const [name, contract] of Object.entries(forums)) {

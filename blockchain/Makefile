@@ -14,4 +14,11 @@ compile:
 
 .PHONY: deploy
 deploy: clean compile deploy-only
-	
+
+.PHONY: deploy-fork
+deploy-fork: export DEPLOY_MODE = "fork"
+deploy-fork: clean compile deploy-only
+
+.PHONY: deploy-mock
+deploy-fork: export DEPLOY_MODE = "mock"
+deploy-fork: clean compile deploy-only
