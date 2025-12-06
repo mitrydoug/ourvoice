@@ -31,6 +31,8 @@ contract OurVoiceRegistry is AOurVoiceRegistry {
         console.log("Proof verified:", verified);
         require(verified, "Proof is invalid");
         console.log("Unique Identifier:");
+        console.log("Scope:", scope);
+        console.log("Domain:", domain);
 
         if (userIdFromAddress[msg.sender] != NO_USER) {
             require(userIdFromAddress[msg.sender] == uniqueIdentifier, "Address already registered with different identifier");

@@ -29,7 +29,7 @@ const config: HardhatUserConfig = {
       type: "edr-simulated",
       forking: {
         url: configVariable("SEPOLIA_RPC_URL"),
-        blockNumber: 9700694,
+        blockNumber: 9777820,
       }
     },
     sepolia: {
@@ -38,6 +38,10 @@ const config: HardhatUserConfig = {
       url: configVariable("SEPOLIA_RPC_URL"),
       accounts: [configVariable("SEPOLIA_PRIVATE_KEY")],
     },
+    compose_hardhat: {
+      type: "http",
+      url: "http://hardhat_node:8545",
+    }
   },
 };
 

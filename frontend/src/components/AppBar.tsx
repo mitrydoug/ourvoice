@@ -157,6 +157,28 @@ export default function MenuAppBar() {
             </IconButton>
 
             <span style={{ flexGrow: 1 }}></span>
+            <TextField
+              placeholder="Search..."
+              size="small"
+              onClick={() => setSearchModalOpen(true)}
+              slotProps={{
+                input: {
+                  readOnly: true,
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon fontSize="small" />
+                    </InputAdornment>
+                  ),
+                  sx: { cursor: "pointer" },
+                },
+              }}
+              sx={{
+                width: "150px",
+                "& .MuiOutlinedInput-root": {
+                  cursor: "pointer",
+                },
+              }}
+            />
             {isUserVerified && (
               <>
                 <Stack alignItems="center">
@@ -189,28 +211,6 @@ export default function MenuAppBar() {
                 </Button>
               </>
             )}
-            <TextField
-              placeholder="Search..."
-              size="small"
-              onClick={() => setSearchModalOpen(true)}
-              slotProps={{
-                input: {
-                  readOnly: true,
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon fontSize="small" />
-                    </InputAdornment>
-                  ),
-                  sx: { cursor: "pointer" },
-                },
-              }}
-              sx={{
-                width: "150px",
-                "& .MuiOutlinedInput-root": {
-                  cursor: "pointer",
-                },
-              }}
-            />
             {address ? (
               <>
                 <IconButton

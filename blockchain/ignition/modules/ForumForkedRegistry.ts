@@ -8,7 +8,7 @@ export default buildModule("ForumForkedRegistryModule", (m) => {
 
   const ZKPassportVerifier = m.contractAt("IZKPassportVerifier", VERIFIER_ADDRESS);
 
-  const OurVoiceRegistry = m.contract("OurVoiceRegistry", [MY_SCOPE, "127.0.0.1", ZKPassportVerifier, true]);
+  const OurVoiceRegistry = m.contract("OurVoiceRegistry", [MY_SCOPE, "localhost", ZKPassportVerifier, true]);
 
   const forums = Object.fromEntries(
     FORUMS.map((forum) => {
