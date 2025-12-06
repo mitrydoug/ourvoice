@@ -8,9 +8,9 @@ services:
     ports:
       - "5173:5173"
     command: sh -c "npm install && npm run dev -- --host"
-  hardhat_fork:
+  hardhat_forked:
     profiles:
-      - hardhat-fork
+      - forked
     build:
       context: ./blockchain
       dockerfile: Dockerfile
@@ -23,9 +23,9 @@ services:
     ports:
       - "8545:8545"
     command: sh -c "npm install && npx hardhat node --network local_sepolia_fork"
-  hardhat_mock:
+  hardhat_mocked:
     profiles:
-      - hardhat-mock
+      - mocked
     build:
       context: ./blockchain
       dockerfile: Dockerfile
@@ -38,3 +38,17 @@ services:
     ports:
       - "8545:8545"
     command: sh -c "npm install && npx hardhat node"
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    working_dir: /app
+    environment:
+      - FORUM_CONTRACT_ADDRESS
+    volumes:
+      - ./backend:/app
+    command: sh -c "
+      source .venv/bin/activate
+      && python -m pip install uv
+      && python -m uv pip sync requirements.txt
+      && python src/ourvoice/main.py --forum-contract-address ${FORUM_CONTRACT_ADDRESS} --ethereum-node-url ws://hardhat_mocked:8545"
