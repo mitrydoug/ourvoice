@@ -11,4 +11,9 @@ export default defineConfig({
       buffer: "buffer",
     },
   },
+  server: {
+    headers: {
+      "Access-Control-Allow-Origin": "http://localhost:8983",
+    }
+  },
 });
