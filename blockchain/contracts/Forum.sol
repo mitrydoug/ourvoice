@@ -38,6 +38,7 @@ contract Forum {
     // Membership criteria
     string public nationality;
 
+    event StatementAdded(uint indexed id, string statement);
     event UserVote(bytes32 indexed user, string action, int count);
     event StatementVote(uint indexed id, int voteCount);
 
@@ -157,6 +158,7 @@ contract Forum {
         });
         statementRankings.push(statementCount);
         rerankItem(statementCount);
+        emit StatementAdded(statementCount, _statement);
         statementCount++;
     }
 

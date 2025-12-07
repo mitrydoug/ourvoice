@@ -31,6 +31,25 @@ export const FORUM_ABI = [
       },
       {
         "indexed": false,
+        "internalType": "string",
+        "name": "statement",
+        "type": "string"
+      }
+    ],
+    "name": "StatementAdded",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "id",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
         "internalType": "int256",
         "name": "voteCount",
         "type": "int256"

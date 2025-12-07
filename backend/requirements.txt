@@ -87,16 +87,22 @@ pydantic==2.12.5
     #   web3
 pydantic-core==2.41.5
     # via pydantic
+pysolr==3.11.0
+    # via -r requirements.in
 pyunormalize==17.0.0
     # via web3
 regex==2025.11.3
     # via parsimonious
 requests==2.32.5
-    # via web3
+    # via
+    #   pysolr
+    #   web3
 rlp==4.1.0
     # via
     #   eth-account
     #   eth-rlp
+setuptools==80.9.0
+    # via pysolr
 toolz==1.1.0
     # via cytoolz
 types-requests==2.32.4.20250913
