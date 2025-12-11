@@ -55,6 +55,22 @@ services:
           --forum-contract-address ${FORUM_CONTRACT_ADDRESS} \
           --ethereum-node-url ws://hardhat_mocked:8545 \
           --solr-url http://solr:8983/solr/ourvoice"
+  backend_service:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    working_dir: /app
+    environment:
+      - SOLR_URL=http://solr:8983/solr/ourvoice
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    command: sh -c "
+      source .venv/bin/activate
+      && python -m pip install uv
+      && python -m uv pip sync requirements.txt
+      && fastapi run src/ourvoice/search_service/main.py"
   solr:
     image: solr:9-slim
     ports:
