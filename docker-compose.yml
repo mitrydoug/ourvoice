@@ -72,15 +72,20 @@ services:
       solr:
         condition: service_healthy
     restart: "no"
-    command: |-
-      curl --request POST
-      --url http://solr:8983/api/collections
-      --header 'Content-Type: application/json'
-      --data '{
-        "name": "ourvoice",
-        "numShards": 1,
-        "replicationFactor": 1
-      }'
+    command:
+      - sh
+      - '-c'
+      - >-
+        curl --request POST
+        --url http://solr:8983/api/collections
+        --header 'Content-Type: application/json'
+        --data '{"name": "ourvoice", "numShards": 1, "replicationFactor": 1}' &&
+        curl --request POST
+        --url http://solr:8983/api/collections/ourvoice/schema
+        --header 'Content-Type: application/json'
+        --data @/data/ourvoice-solr-schema.json
+    volumes:
+      - ./backend/ourvoice-solr-schema.json:/data/ourvoice-solr-schema.json:ro
   backend:
     build:
       context: ./backend

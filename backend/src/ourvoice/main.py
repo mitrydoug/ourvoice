@@ -42,8 +42,8 @@ async def subscribe_to_transfer_events(
                 )
                 doc = {
                     "id": str(log.args.id),
-                    "statementId_i": log.args.id,
-                    "statement_text_en": log.args.statement,
+                    "statementId": log.args.id,
+                    "statementText": log.args.statement,
                 }
                 solr_client.add([doc])
                 pprint(f"Indexed statement ID {log.args.id} into Solr")

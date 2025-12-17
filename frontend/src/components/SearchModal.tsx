@@ -34,11 +34,11 @@ type SearchModalProps = {
 const SOLR_URL = "http://localhost:8983/solr/ourvoice";
 
 const fetchSolrDocs = async (searchText: string) => {
-  const query=`statement_text_en:${searchText}`;
-  const response = await fetch(`${SOLR_URL}/select?q=${encodeURIComponent(query)}`);
+  console.log("Fetching Solr docs for:", searchText);
+  const response = await fetch(`http://localhost:8000/search?statement_text=${encodeURIComponent(searchText)}`);
   const data = await response.json();
   console.log("Solr Response:", data);
-  return data.response.docs;
+  return data;
 };
 
 const SearchModal: FC<SearchModalProps> = ({ open, onClose }) => {
@@ -90,7 +90,7 @@ const SearchModal: FC<SearchModalProps> = ({ open, onClose }) => {
         <List>
           {solrDocs.map((doc, idx) => (
             <ListItem key={`solr-doc-${idx}`}>
-              <ListItemText primary={doc.statement} />
+              <ListItemText primary={doc.statement_text} />
             </ListItem>
           ))}
         </List>

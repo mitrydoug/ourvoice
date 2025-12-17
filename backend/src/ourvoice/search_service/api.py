@@ -1,12 +1,11 @@
-
-
 from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
+
 class SearchResult(BaseModel):
     statement_id: int
-    statement: str
+    statement_text: str
 
 
 def create_api(app: FastAPI) -> None:
@@ -21,11 +20,11 @@ def create_api(app: FastAPI) -> None:
 
     @app.get("/search")
     async def search(statement_text: str) -> list[SearchResult]:
-        results = app.solr_client.search(f'statement_text_en:"{statement_text}"')
+        results = app.solr_client.search(f'statementText:{statement_text}')
         return [
             SearchResult(
-                statement_id=result["statementId_i"],
-                statement=result["statement_text_en"][0],
+                statement_id=result["statementId"],
+                statement_text=result["statementText"],
             )
             for result in results
         ]
