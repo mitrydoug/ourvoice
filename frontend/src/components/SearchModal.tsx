@@ -35,7 +35,9 @@ const SOLR_URL = "http://localhost:8983/solr/ourvoice";
 
 const fetchSolrDocs = async (searchText: string) => {
   console.log("Fetching Solr docs for:", searchText);
-  const response = await fetch(`http://localhost:8000/search?statement_text=${encodeURIComponent(searchText)}`);
+  const response = await fetch(
+    `http://localhost:8000/search?statement_text=${encodeURIComponent(searchText)}`,
+  );
   const data = await response.json();
   console.log("Solr Response:", data);
   return data;
