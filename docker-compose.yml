@@ -7,8 +7,11 @@ services:
       - ./frontend/src/contracts.ts:/app/src/contracts.ts
     ports:
       - "5173:5173"
+    depends_on: [hardhat_mocked]
     command: sh -c "npm install && npm run dev -- --host"
-  hardhat_node:
+  hardhat_forked:
+    profiles:
+      - forked
     build:
       context: ./blockchain
       dockerfile: Dockerfile
@@ -18,25 +21,103 @@ services:
       - SEPOLIA_PRIVATE_KEY
     volumes:
       - ./blockchain:/app
-    expose:
-      - "8545"
     ports:
       - "8545:8545"
     command: sh -c "npm install && npx hardhat node --network local_sepolia_fork"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8545"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-  smart_contracts:
+      interval: 30s
+      retries: 3
+      timeout: 2s
+      start_period: 2m
+      start_interval: 5s
+  hardhat_mocked:
     build:
       context: ./blockchain
       dockerfile: Dockerfile
     working_dir: /app
     volumes:
       - ./blockchain:/app
-      - ./frontend/:/frontend
-    command: sh -c "npm install && npx hardhat ignition deploy ignition/modules/ForumForkedRegistry.ts --network compose_hardhat"
+    ports:
+      - "8545:8545"
+    command: sh -c "npm install && npx hardhat node"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8545"]
+      interval: 30s
+      retries: 3
+      timeout: 2s
+      start_period: 2m
+      start_interval: 5s
+  zoo:
+    image: zookeeper:3.9
+    environment:
+      ZOO_4LW_COMMANDS_WHITELIST: "mntr,conf,ruok"
+  solr:
+    image: solr:9-slim
+    ports:
+      - "8983:8983"
+    environment:
+      ZK_HOST: "zoo:2181"
+    depends_on: [zoo]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8983/solr/"]
+      interval: 30s
+      retries: 3
+      timeout: 2s
+      start_period: 30s
+      start_interval: 5s
+  solr_setup:
+    image: curlimages/curl:latest
     depends_on:
-      hardhat_node:
+      solr:
         condition: service_healthy
+    restart: "no"
+    command:
+      - sh
+      - '-c'
+      - >-
+        curl --request POST
+        --url http://solr:8983/api/collections
+        --header 'Content-Type: application/json'
+        --data '{"name": "ourvoice", "numShards": 1, "replicationFactor": 1}' &&
+        curl --request POST
+        --url http://solr:8983/api/collections/ourvoice/schema
+        --header 'Content-Type: application/json'
+        --data @/data/ourvoice-solr-schema.json
+    volumes:
+      - ./backend/ourvoice-solr-schema.json:/data/ourvoice-solr-schema.json:ro
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    working_dir: /app
+    environment:
+      - FORUM_CONTRACT_ADDRESS
+    volumes:
+      - ./backend:/app
+    depends_on: [solr_setup, hardhat_mocked]
+    command: sh -c "
+      source .venv/bin/activate
+      && python -m pip install uv
+      && python -m uv pip sync requirements.txt
+      && python src/ourvoice/main.py \
+          --forum-contract-address ${FORUM_CONTRACT_ADDRESS} \
+          --ethereum-node-url ws://hardhat_mocked:8545 \
+          --solr-url http://solr:8983/solr/ourvoice"
+  backend_service:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    working_dir: /app
+    environment:
+      - SOLR_URL=http://solr:8983/solr/ourvoice
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    depends_on: [solr_setup, hardhat_mocked]
+    command: sh -c "
+      source .venv/bin/activate
+      && python -m pip install uv
+      && python -m uv pip sync requirements.txt
+      && fastapi run src/ourvoice/search_service/main.py"

@@ -1,7 +1,6 @@
 export const FORUMS = {
-  global: "0xc1B99A2c5EF269D1f0F60F47f4d9d71Ff8cEd15A",
-  us: "0x8b3116CdD7544928D90050dE5ecbdDfaeF9a87cE",
-  zkr: "0x5C5e1EE0986a9B8299e6cd3e623486De4b58aC1D",
+  global: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+  us: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
 } as const;
 
 export const FORUM_ABI = [
@@ -20,6 +19,25 @@ export const FORUM_ABI = [
     ],
     stateMutability: "nonpayable",
     type: "constructor",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "uint256",
+        name: "id",
+        type: "uint256",
+      },
+      {
+        indexed: false,
+        internalType: "string",
+        name: "statement",
+        type: "string",
+      },
+    ],
+    name: "StatementAdded",
+    type: "event",
   },
   {
     anonymous: false,
@@ -486,60 +504,8 @@ export const FORUM_ABI = [
 ] as const;
 
 export const registryContractConfig = {
-  address: "0x5005213025865bf26e73526F5CddE3f8e2fb4fDA",
+  address: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
   abi: [
-    {
-      inputs: [
-        {
-          internalType: "string",
-          name: "_scope",
-          type: "string",
-        },
-        {
-          internalType: "string",
-          name: "_domain",
-          type: "string",
-        },
-        {
-          internalType: "address",
-          name: "_verifierAddress",
-          type: "address",
-        },
-        {
-          internalType: "bool",
-          name: "_devMode",
-          type: "bool",
-        },
-      ],
-      stateMutability: "nonpayable",
-      type: "constructor",
-    },
-    {
-      inputs: [],
-      name: "devMode",
-      outputs: [
-        {
-          internalType: "bool",
-          name: "",
-          type: "bool",
-        },
-      ],
-      stateMutability: "view",
-      type: "function",
-    },
-    {
-      inputs: [],
-      name: "domain",
-      outputs: [
-        {
-          internalType: "string",
-          name: "",
-          type: "string",
-        },
-      ],
-      stateMutability: "view",
-      type: "function",
-    },
     {
       inputs: [
         {
@@ -617,70 +583,9 @@ export const registryContractConfig = {
     {
       inputs: [
         {
-          components: [
-            {
-              internalType: "bytes32",
-              name: "version",
-              type: "bytes32",
-            },
-            {
-              components: [
-                {
-                  internalType: "bytes32",
-                  name: "vkeyHash",
-                  type: "bytes32",
-                },
-                {
-                  internalType: "bytes",
-                  name: "proof",
-                  type: "bytes",
-                },
-                {
-                  internalType: "bytes32[]",
-                  name: "publicInputs",
-                  type: "bytes32[]",
-                },
-              ],
-              internalType: "struct ProofVerificationData",
-              name: "proofVerificationData",
-              type: "tuple",
-            },
-            {
-              internalType: "bytes",
-              name: "committedInputs",
-              type: "bytes",
-            },
-            {
-              components: [
-                {
-                  internalType: "uint256",
-                  name: "validityPeriodInSeconds",
-                  type: "uint256",
-                },
-                {
-                  internalType: "string",
-                  name: "domain",
-                  type: "string",
-                },
-                {
-                  internalType: "string",
-                  name: "scope",
-                  type: "string",
-                },
-                {
-                  internalType: "bool",
-                  name: "devMode",
-                  type: "bool",
-                },
-              ],
-              internalType: "struct ServiceConfig",
-              name: "serviceConfig",
-              type: "tuple",
-            },
-          ],
-          internalType: "struct ProofVerificationParams",
-          name: "_params",
-          type: "tuple",
+          internalType: "string",
+          name: "nationality",
+          type: "string",
         },
       ],
       name: "register",
@@ -692,19 +597,6 @@ export const registryContractConfig = {
         },
       ],
       stateMutability: "nonpayable",
-      type: "function",
-    },
-    {
-      inputs: [],
-      name: "scope",
-      outputs: [
-        {
-          internalType: "string",
-          name: "",
-          type: "string",
-        },
-      ],
-      stateMutability: "view",
       type: "function",
     },
     {
@@ -745,19 +637,6 @@ export const registryContractConfig = {
           internalType: "string",
           name: "nationality",
           type: "string",
-        },
-      ],
-      stateMutability: "view",
-      type: "function",
-    },
-    {
-      inputs: [],
-      name: "zkPassportVerifier",
-      outputs: [
-        {
-          internalType: "contract IZKPassportVerifier",
-          name: "",
-          type: "address",
         },
       ],
       stateMutability: "view",
