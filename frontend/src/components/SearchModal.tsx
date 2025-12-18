@@ -28,7 +28,7 @@ const style = {
 type SearchResult = {
   statement_id: string;
   statement_text: string;
-}
+};
 
 type SearchModalProps = {
   open: boolean;
