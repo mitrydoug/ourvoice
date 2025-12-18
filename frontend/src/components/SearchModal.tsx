@@ -10,7 +10,6 @@ import {
 } from "@mui/material";
 import React, { FC, useEffect, useState } from "react";
 import SearchIcon from "@mui/icons-material/Search";
-import StatementList from "./StatementList";
 
 const style = {
   position: "absolute",
@@ -26,12 +25,15 @@ const style = {
   p: 2,
 };
 
+type SearchResult = {
+  statement_id: string;
+  statement_text: string;
+}
+
 type SearchModalProps = {
   open: boolean;
   onClose: () => void;
 };
-
-const SOLR_URL = "http://localhost:8983/solr/ourvoice";
 
 const fetchSolrDocs = async (searchText: string) => {
   console.log("Fetching Solr docs for:", searchText);
@@ -45,7 +47,7 @@ const fetchSolrDocs = async (searchText: string) => {
 
 const SearchModal: FC<SearchModalProps> = ({ open, onClose }) => {
   const [searchText, setSearchText] = useState("");
-  const [solrDocs, setSolrDocs] = useState<any[]>([]);
+  const [solrDocs, setSolrDocs] = useState<SearchResult[]>([]);
 
   console.log("Solr Docs:", solrDocs);
 
