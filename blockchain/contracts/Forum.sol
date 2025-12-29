@@ -5,8 +5,14 @@ import "./IOurVoiceRegistry.sol";
 import "./StringUtils.sol";
 
 contract Forum {
+    // Maximum length (in chars) of a statement
     uint public constant MAX_STATEMENT_LENGTH = 120;
-    uint public constant USER_CREDIT_BUDGET = 100;
+    // Amount of credits a user is credited weekly
+    uint public constant USER_CREDIT_WEEKLY_ALLOWANCE = 1000;
+    // We only track this many statements for ranking purposes
+    uint public constant MAX_RANKED_STATEMENTS = 1000;
+
+    uint public constant SUPPORT_HALF_LIFE = 7 days;
 
     AOurVoiceRegistry public ourVoiceRegistry;
 
@@ -31,15 +37,24 @@ contract Forum {
     // vote count -> rank
     // uint[10] internal firstPerVoteCount;
 
-    mapping(bytes32 => mapping(uint => int)) public userVotes;
-    mapping(bytes32 => Vote[]) public userVoteSets;
-    mapping(bytes32 => uint) public userUsedCredits;
+    struct VotePosition {
+        int voteCount;
+        uint lastVoteTimestamp;
+    }
+
+    mapping(bytes32 => mapping(uint => VotePosition)) public userVotes;
+
+    struct UserBalance {
+        uint credits;
+        uint lastUpdatedTimestamp;
+    }
+
+    mapping(bytes32 => UserBalance) public userCredits;
 
     // Membership criteria
     string public nationality;
 
     event StatementAdded(uint indexed id, string statement);
-    event UserVote(bytes32 indexed user, string action, int count);
     event StatementVote(uint indexed id, int voteCount);
 
     constructor(AOurVoiceRegistry _ourVoiceRegistry, string memory _nationality) {
@@ -79,6 +94,21 @@ contract Forum {
             stmts[i] = statements[stmtId];
         }
         return stmts;
+    }
+
+    function getStatementSupport(uint _stmtId) external view returns (int) {
+        require(_stmtId < statementCount, "Invalid statement ID");
+
+        return statements[_stmtId].voteCount;
+    }
+
+    function getStatementRankingThreshold() external view returns (int) {
+        if (statementCount < MAX_RANKED_STATEMENTS) {
+            return 0;
+        }
+        // NOTE: not it
+        uint thresholdStmtId = statementRankings[MAX_RANKED_STATEMENTS - 1];
+        return statements[thresholdStmtId].voteCount;
     }
 
     function isMember() public view returns (bool) {
@@ -156,6 +186,7 @@ contract Forum {
             rank: statementCount,
             timestamp: block.timestamp
         });
+
         statementRankings.push(statementCount);
         rerankItem(statementCount);
         emit StatementAdded(statementCount, _statement);
