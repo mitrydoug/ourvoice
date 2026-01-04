@@ -13,7 +13,7 @@ contract Forum {
     uint public constant USER_CREDIT_ALLOWANCE_PER_STEP = 25;
     // We only track this many statements for ranking purposes
     uint public constant MAX_RANKED_STATEMENTS = 1000;
-    uint public constant MIN_STATEMENT_SUPPORT_TO_RANK = 1;
+    int public constant MIN_STATEMENT_SUPPORT_TO_RANK = 1;
 
     AOurVoiceRegistry public ourVoiceRegistry;
 
@@ -22,31 +22,45 @@ contract Forum {
         int value;
     }
 
+    struct StatementSupport {
+        uint statementId;
+        int support;
+    }
+
     struct Support {
         int value;
         uint lastUpdated;
+    }
+
+    struct StatementImpl {
+        uint id;
+        string text;
+        uint createdTimestamp;
+        Support support;
+        int rank;
     }
 
     struct Statement {
         uint id;
         string text;
         uint createdTimestamp;
-        Support support;
-        uint rank;
+        int support;
+        int rank;
     }
 
     // number of statements in the forum
     uint public statementCount;
-    // statement ID -> Statement
-    mapping(uint => Statement) public statements;
+    // statement ID -> StatementImpl
+    mapping(uint => StatementImpl) public statements;
 
 
     // rank -> statement ID
     uint[] public statementRankings;
     // number of ranked statements
-    uint public rankedCount; 
+    uint public rankedCount;
 
-    mapping(bytes32 => mapping(uint => Support)) public userSupport;
+    mapping(bytes32 => mapping(uint => Support)) public userSupportMap;
+    mapping(bytes32 => uint[]) public userSupportedStatements;
 
     struct UserBalance {
         uint credits;
@@ -59,18 +73,30 @@ contract Forum {
     string public nationality;
 
     event StatementAdded(uint indexed id, string statement);
-    event StatementVote(uint indexed id, int voteCount);
 
     constructor(AOurVoiceRegistry _ourVoiceRegistry, string memory _nationality) {
         ourVoiceRegistry = _ourVoiceRegistry;
         nationality = _nationality;
     }
 
+    function _resolveStatement(uint _statementId) internal view returns (Statement memory) {
+        StatementImpl memory _statement = statements[_statementId];
+        int currentSupport = _getCurrentSupportValue(_statement.support);
+        int currentRank = _statement.rank >= 0 && _statement.rank < int(rankedCount) ? _statement.rank : -1;
+        return Statement({
+            id: _statement.id,
+            text: _statement.text,
+            createdTimestamp: _statement.createdTimestamp,
+            support: currentSupport,
+            rank: currentRank
+        });
+    }
+
     function getRankedStatement(
         uint _rank
     ) external view returns (Statement memory) {
-        require(_rank < statementCount, "Rank is larger than statement count");
-        return statements[statementRankings[_rank]];
+        require(_rank < rankedCount, "Rank is larger than statement count");
+        return _resolveStatement(statementRankings[_rank]);
     }
 
     function getRankedStatementsPage(
@@ -79,11 +105,11 @@ contract Forum {
     ) external view returns (Statement[] memory) {
         require(_start <= statementCount, "Start is larger than statement count");
 
-        uint _length = _start + _limit <= statementCount ? _limit : statementCount - _start;
+        uint _length = _start + _limit <= rankedCount ? _limit : rankedCount - _start;
 
         Statement[] memory rankedStatements = new Statement[](_length);
         for (uint i = 0; i < _length; i++) {
-            rankedStatements[i] = statements[statementRankings[_start + i]];
+            rankedStatements[i] = _resolveStatement(statementRankings[_start + i]);
         }
         return rankedStatements;
     }
@@ -95,7 +121,7 @@ contract Forum {
         for (uint i = 0; i < _statementIds.length; i++) {
             uint stmtId = _statementIds[i];
             require(stmtId < statementCount, "Invalid statement ID");
-            stmts[i] = statements[stmtId];
+            stmts[i] = _resolveStatement(stmtId);
         }
         return stmts;
     }
@@ -120,11 +146,11 @@ contract Forum {
         if (rankedCount == 0) {
             return;
         }
-        if (_getCurrentSupportValue(statementRankings[rankedCount - 1].support) < MIN_STATEMENT_SUPPORT_TO_RANK) {
+        if (_getCurrentSupportValue(statements[statementRankings[rankedCount - 1]].support) < MIN_STATEMENT_SUPPORT_TO_RANK) {
             // perform a binary search to find the new rankedCount
             uint low = 0;
             uint high = rankedCount - 1;
-            while (low <= high) {
+            while (low < high) {
                 uint mid = (low + high) / 2;
                 if (_getCurrentSupportValue(statements[statementRankings[mid]].support) < MIN_STATEMENT_SUPPORT_TO_RANK) {
                     high = mid;
@@ -132,90 +158,102 @@ contract Forum {
                     low = mid + 1;
                 }
             }
+            rankedCount = low;
         }
     }
 
     function _getRankingThreshold() internal view returns (int) {
-        if (statementCount < MAX_RANKED_STATEMENTS) {
+        if (rankedCount < MAX_RANKED_STATEMENTS) {
             return MIN_STATEMENT_SUPPORT_TO_RANK;
         }
-        uint _lowestRankedStatementId = statementRankings[statementCount - 1];
-        return statements[_lowestRankedStatementId].support.supportValue;
+        uint _lowestRankedStatementId = statementRankings[rankedCount - 1];
+        return _getCurrentSupportValue(statements[_lowestRankedStatementId].support) + 1;
     }
 
 
     function _updateStatementRanking(uint _statementId) internal {
 
-        Statement memory statement = statements[_stmtId];
-        uint _stmtRank = statement.rank;
-        int _voteCount = statement.voteCount;
-
-
-
-        while (true) {
-            // check if we should bubble up
-            if (_stmtRank > 0) {
-                int _prevVoteCount = statements[
-                    statementRankings[_stmtRank - 1]
-                ].voteCount;
-                if (_voteCount > _prevVoteCount) {
-                    uint _otherRank = _stmtRank - 1;
-                    statementRankings[_stmtRank] = statements[
-                        statementRankings[_otherRank]
-                    ].id;
-                    statements[statementRankings[_otherRank]].rank = _stmtRank;
-                    statementRankings[_otherRank] = statement.id;
-                    _stmtRank = _otherRank;
-                    continue;
-                }
-            }
-            // check if we should bubble down
-            if (_stmtRank + 1 < statementCount) {
-                int _succVoteCount = statements[
-                    statementRankings[_stmtRank + 1]
-                ].voteCount;
-                if (_voteCount < _succVoteCount) {
-                    uint _otherRank = _stmtRank + 1;
-                    statementRankings[_stmtRank] = statements[
-                        statementRankings[_otherRank]
-                    ].id;
-                    statements[statementRankings[_otherRank]].rank = _stmtRank;
-                    statementRankings[_otherRank] = statement.id;
-                    _stmtRank = _otherRank;
-                    continue;
-                }
-            }
-            break; // no more swaps needed
+        _rankingMaintenance();
+        int _rankingThreshold = _getRankingThreshold();
+        StatementImpl memory statement = statements[_statementId];
+        if (_getCurrentSupportValue(statement.support) < _rankingThreshold) {
+            return;
         }
-        statements[_stmtId].rank = _stmtRank;
+
+        // statement will be ranked
+        uint _rank;
+        if (rankedCount < MAX_RANKED_STATEMENTS) {
+            _rank = rankedCount;
+            rankedCount += 1;
+        } else {
+            _rank = rankedCount - 1;
+        }
+
+        if (statementRankings.length == _rank) {
+            statementRankings.push();
+        }
+
+        while (_rank >= 1 && _getCurrentSupportValue(statement.support) > _getCurrentSupportValue(statements[statementRankings[_rank-1]].support)) {
+            statementRankings[_rank] = statementRankings[_rank - 1];
+            statements[statementRankings[_rank]].rank = int(_rank);
+            _rank -= 1;
+        }
+        statementRankings[_rank] = _statementId;
     }
 
-    function addStatement(string calldata _statement) external onlyMembers {
+    function addStatement(string calldata _statementText) external onlyMembers {
         require(
-            bytes(_statement).length <= MAX_STATEMENT_LENGTH,
+            bytes(_statementText).length <= MAX_STATEMENT_LENGTH,
             "Statement exceeds maximum length"
         );
 
         // Ensure the statement is not empty
         // check for duplicate statements if necessary
         // may want to do some rate-limiting here
-        statements[statementCount] = Statement({
+        statements[statementCount] = StatementImpl({
             id: statementCount,
-            text: _statement,
-            createdTimestamp: block.timestamp
+            text: _statementText,
+            createdTimestamp: block.timestamp,
+            support: Support({
+                value: 0,
+                lastUpdated: block.timestamp
+            }),
+            rank: -1
         });
 
-        emit StatementAdded(statementCount, _statement);
+        emit StatementAdded(statementCount, _statementText);
         statementCount++;
     }
 
-    function getUserVoteSet() external view onlyMembers returns (Vote[] memory) {
+    function getUserStatementSupport() external view onlyMembers returns (StatementSupport[] memory) {
         bytes32 userId = ourVoiceRegistry.getUserIdentifier(msg.sender);
-        return userVoteSets[userId];
+        
+        uint _numSupported = 0;
+        for(uint i=0; i < userSupportedStatements[userId].length; i++) {
+            uint statementId = userSupportedStatements[userId][i];
+            Support storage support = userSupportMap[userId][statementId];
+            if (_getCurrentSupportValue(support) != 0) {
+                _numSupported++;
+            }
+        }
+
+        StatementSupport[] memory supportedStatements = new StatementSupport[](_numSupported);
+        for (uint i=0; i < userSupportedStatements[userId].length; i++) {
+            uint statementId = userSupportedStatements[userId][i];
+            Support storage support = userSupportMap[userId][statementId];
+            int currentSupport = _getCurrentSupportValue(support);
+            if (currentSupport != 0) {
+                supportedStatements[i] = StatementSupport({
+                    statementId: statementId,
+                    support: currentSupport
+                });
+            }
+        }
+        return supportedStatements;
     }
 
-    function _updateUserBalanceToBeCurrent(UserBalance storage _balance) internal view {
-        uint _elapsedSteps = ellapsedStepsBetweenTimestamps(
+    function _updateUserBalanceToBeCurrent(UserBalance storage _balance) internal {
+        uint _elapsedSteps = DecayUtils.ellapsedStepsBetweenTimestamps(
             _balance.lastUpdated,
             block.timestamp
         );
@@ -225,7 +263,7 @@ contract Forum {
         }
     }
 
-    function _getCurrentSupportValue(Support storage _support) internal view returns (int) {
+    function _getCurrentSupportValue(Support memory _support) internal view returns (int) {
         return DecayUtils.decayValue(
             _support.value,
             _support.lastUpdated,
@@ -233,7 +271,15 @@ contract Forum {
         );
     }
 
-    function _updateSupportToBeCurrent(Support storage _support) internal view {
+    function _getCurrentUserBalance(UserBalance memory _balance) internal view returns (uint) {
+        uint _elapsedSteps = DecayUtils.ellapsedStepsBetweenTimestamps(
+            _balance.lastUpdated,
+            block.timestamp
+        );
+        return _balance.credits + (_elapsedSteps * USER_CREDIT_ALLOWANCE_PER_STEP);
+    }
+
+    function _updateSupportToBeCurrent(Support storage _support) internal {
         _support.value = DecayUtils.decayValue(
             _support.value,
             _support.lastUpdated,
@@ -247,11 +293,49 @@ contract Forum {
         return (absSupport * (absSupport + 1)) / 2;
     }
 
+    function _updateUserSupportedStatements(
+        bytes32 _userId,
+        uint _statementId
+    ) internal {
+
+        int _firstEmptySlot = -1;
+        int _secondEmptySlot = -1;
+        int _lastOccupiedSlot = -1;
+        for (uint i = 0; i < userSupportedStatements[_userId].length; i++) {
+            uint _currStatementId = userSupportedStatements[_userId][i];
+            if (_getCurrentSupportValue(userSupportMap[_userId][_currStatementId]) == 0) {
+                if (_firstEmptySlot == -1) {
+                    _firstEmptySlot = int(i);
+                } else if (_secondEmptySlot == -1) {
+                    _secondEmptySlot = int(i);
+                }
+            } else {
+                _lastOccupiedSlot = int(i);
+            }
+        }
+
+        if (_firstEmptySlot == -1) {
+            // no empty slots, just append
+            userSupportedStatements[_userId].push(_statementId);
+        } else {
+            userSupportedStatements[_userId][uint(_firstEmptySlot)] = _statementId;
+        }
+
+        if (_secondEmptySlot != -1 && _lastOccupiedSlot != -1 && _lastOccupiedSlot > _secondEmptySlot) {
+            userSupportedStatements[_userId][uint(_secondEmptySlot)] = userSupportedStatements[_userId][uint(_lastOccupiedSlot)];
+            userSupportedStatements[_userId].pop();
+            if (uint(_lastOccupiedSlot) < userSupportedStatements[_userId].length) {
+                userSupportedStatements[_userId].pop();
+            }
+        }
+    }
+
+
     function adjustSupport(SupportAdjustment[] calldata _supportAdjustments) public {
         require(ourVoiceRegistry.isRegistered(msg.sender), "User is not registered");
-        bytes32 userId = ourVoiceRegistry.getUserIdentifier(msg.sender);
+        bytes32 _userId = ourVoiceRegistry.getUserIdentifier(msg.sender);
 
-        UserBalance storage _userBalance = userCredits[userId];
+        UserBalance storage _userBalance = userCredits[_userId];
         _updateUserBalanceToBeCurrent(_userBalance);
 
         int _totalCostChange = 0;
@@ -261,16 +345,21 @@ contract Forum {
             require(_adjustment.statementId < statementCount, "Invalid statement ID");
 
             Support storage _currentStatementSupport = statements[_adjustment.statementId].support;
-            Support storage _currentUserSupport = userSupport[userId][_adjustment.statementId];
+            Support storage _currentUserSupport = userSupportMap[_userId][_adjustment.statementId];
             _updateSupportToBeCurrent(_currentStatementSupport);
             _updateSupportToBeCurrent(_currentUserSupport);
 
-            uint _oldCost = _costOfUserSupport(_currentSupport.supportValue);
-            uint _newCost = _costOfUserSupport(_currentSupport.supportValue + _adjustment.value);
+            uint _oldCost = _costOfUserSupport(_currentUserSupport.value);
+            uint _newCost = _costOfUserSupport(_currentUserSupport.value + _adjustment.value);
             _totalCostChange += int(_newCost) - int(_oldCost);
 
-            _currentStatementSupport.supportValue += _adjustment.value;
-            _currentUserSupport.supportValue += _adjustment.value;
+            _currentStatementSupport.value += _adjustment.value;
+            _currentUserSupport.value += _adjustment.value;
+
+            _updateUserSupportedStatements(
+                _userId,
+                _adjustment.statementId
+            );
 
             _updateStatementRanking(_adjustment.statementId);
         }
