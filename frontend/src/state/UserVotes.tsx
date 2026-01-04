@@ -12,56 +12,56 @@ import { FORUM_ABI, useForum } from "./Forum";
 
 const USER_CREDIT_BUDGET = 100;
 
-interface UserVoteState {
-  userVotes?: Map<number, number>;
+interface UserSupportState {
+  userSupport?: Map<number, number>;
   remainingCredits?: number;
   creditBudget?: number;
-  committedVotes?: Map<number, number>;
-  hasUncommittedVotes?: boolean;
+  committedSupport?: Map<number, number>;
+  hasUncommittedChanges?: boolean;
   error: string | null;
 }
 
-type SetVotesAction = {
-  type: "SYNC_COMMITTED_VOTES";
-  payload: Pick<UserVoteState, "userVotes">;
+type SetSupportAction = {
+  type: "SYNC_COMMITTED_SUPPORT";
+  payload: Pick<UserSupportState, "userSupport">;
 };
 
-type UpdateVoteAction = {
-  type: "UPDATE_VOTE";
-  payload: { statementId: bigint; newVoteCount: bigint };
+type UpdateSupportAction = {
+  type: "UPDATE_SUPPORT";
+  payload: { statementId: bigint; newSupportValue: bigint };
 };
 
-type UserVoteAction = SetVotesAction | UpdateVoteAction;
+type UserSupportAction = SetSupportAction | UpdateSupportAction;
 
 // Actions:
-// - SYNC_COMMITTED_VOTES
-// - UPDATE_VOTE
+// - SYNC_COMMITTED_SUPPORT
+// - UPDATE_SUPPORT
 
 const reducer = (
-  state: UserVoteState,
-  action: UserVoteAction,
-): UserVoteState => {
+  state: UserSupportState,
+  action: UserSupportAction,
+): UserSupportState => {
   let newState = { ...state };
 
   switch (action.type) {
-    case "SYNC_COMMITTED_VOTES": {
-      newState.userVotes = new Map(action.payload.userVotes);
-      newState.committedVotes = new Map(action.payload.userVotes);
+    case "SYNC_COMMITTED_SUPPORT": {
+      newState.userSupport = new Map(action.payload.userSupport);
+      newState.committedSupport = new Map(action.payload.userSupport);
       break;
     }
-    case "UPDATE_VOTE": {
-      const { statementId, newVoteCount } = action.payload;
-      newState.userVotes = new Map(state.userVotes);
-      if (newVoteCount === BigInt(0)) {
-        newState.userVotes.delete(Number(statementId));
+    case "UPDATE_SUPPORT": {
+      const { statementId, newSupportValue } = action.payload;
+      newState.userSupport = new Map(state.userSupport);
+      if (newSupportValue === BigInt(0)) {
+        newState.userSupport.delete(Number(statementId));
       } else {
-        newState.userVotes.set(Number(statementId), Number(newVoteCount));
+        newState.userSupport.set(Number(statementId), Number(newSupportValue));
       }
       break;
     }
   }
 
-  const cost = Array.from(newState.userVotes.values()).reduce(
+  const cost = Array.from(newState.userSupport.values()).reduce(
     (acc, v) => acc + v * v,
     0,
   );
@@ -70,16 +70,16 @@ const reducer = (
   if (cost > USER_CREDIT_BUDGET) {
     newState = {
       ...state,
-      error: `Vote cost ${cost} exceeds budget of ${USER_CREDIT_BUDGET}`,
+      error: `Support cost ${cost} exceeds budget of ${USER_CREDIT_BUDGET}`,
     };
   } else {
     newState = {
       ...newState,
       remainingCredits: USER_CREDIT_BUDGET - cost,
       creditBudget: USER_CREDIT_BUDGET,
-      hasUncommittedVotes: !_.isEqual(
-        newState.userVotes,
-        newState.committedVotes,
+      hasUncommittedChanges: !_.isEqual(
+        newState.userSupport,
+        newState.committedSupport,
       ),
       error: null,
     };
@@ -93,18 +93,18 @@ type UserNotVerifiedContextValue = {
   isUserVerified: false;
   state: undefined;
   dispatch: undefined;
-  commitVotes: undefined;
+  commitSupport: undefined;
 };
 
-type UserVoteContextValue = {
+type UserSupportContextValue = {
   isUserVerified: true;
-  state: UserVoteState;
-  dispatch: React.Dispatch<UserVoteAction>;
-  commitVotes: () => void;
+  state: UserSupportState;
+  dispatch: React.Dispatch<UserSupportAction>;
+  commitSupport: () => void;
 };
 
 export const UserVoteContext = createContext<
-  UserNotVerifiedContextValue | UserVoteContextValue | undefined
+  UserNotVerifiedContextValue | UserSupportContextValue | undefined
 >(undefined);
 
 export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
@@ -129,55 +129,77 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
 
   console.log("User verified status: ", isUserVerified);
 
-  const { data: _votes } = useReadContract({
+  const { data: _support } = useReadContract({
     address: forumContractAddress,
     abi: FORUM_ABI,
     account: address,
-    functionName: "getUserVoteSet",
+    functionName: "getUserStatementSupport",
     args: [],
     query: {
       enabled: Boolean(address && isUserVerified),
     },
   });
 
-  console.log("Fetched user votes from contract: ", _votes);
+  console.log("Fetched user support from contract: ", _support);
 
   useEffect(() => {
     // Load state from blockchain
-    if (_votes) {
-      const votesMap = new Map<number, number>();
-      _votes.forEach((v) => {
-        votesMap.set(Number(v.statementId), Number(v.voteCount));
+    if (_support) {
+      const supportMap = new Map<number, number>();
+      _support.forEach((s) => {
+        supportMap.set(Number(s.statementId), Number(s.support));
       });
       dispatch({
-        type: "SYNC_COMMITTED_VOTES",
-        payload: { userVotes: votesMap },
+        type: "SYNC_COMMITTED_SUPPORT",
+        payload: { userSupport: supportMap },
       });
     }
-  }, [_votes, address]);
+  }, [_support, address]);
 
-  const commitVotes = useCallback(async () => {
-    if (state.userVotes) {
-      console.log("Committing votes: ", state.userVotes);
-      const votesArray = Array.from(state.userVotes.entries()).map(
-        ([id, count]) => ({
-          statementId: BigInt(id),
-          voteCount: BigInt(count),
-        }),
-      );
-      writeContract({
-        address: forumContractAddress,
-        abi: FORUM_ABI,
-        functionName: "vote",
-        args: [votesArray],
+  const commitSupport = useCallback(async () => {
+    if (state.userSupport && state.committedSupport) {
+      console.log("Committing support changes: ", state.userSupport);
+      
+      // Calculate adjustments (difference from committed state)
+      const adjustments: { statementId: bigint; value: bigint }[] = [];
+      
+      // Process new/changed support values
+      state.userSupport.forEach((newValue, statementId) => {
+        const oldValue = state.committedSupport!.get(statementId) || 0;
+        const delta = newValue - oldValue;
+        if (delta !== 0) {
+          adjustments.push({
+            statementId: BigInt(statementId),
+            value: BigInt(delta),
+          });
+        }
       });
+      
+      // Process removed support (statements that were in committed but not in new)
+      state.committedSupport.forEach((oldValue, statementId) => {
+        if (!state.userSupport!.has(statementId)) {
+          adjustments.push({
+            statementId: BigInt(statementId),
+            value: BigInt(-oldValue),
+          });
+        }
+      });
+      
+      if (adjustments.length > 0) {
+        writeContract({
+          address: forumContractAddress,
+          abi: FORUM_ABI,
+          functionName: "adjustSupport",
+          args: [adjustments],
+        });
+      }
     }
-  }, [state.userVotes, writeContract, forumContractAddress]);
+  }, [state.userSupport, state.committedSupport, writeContract, forumContractAddress]);
 
   if (isUserVerified) {
     return (
       <UserVoteContext.Provider
-        value={{ isUserVerified: isUserVerified, state, dispatch, commitVotes }}
+        value={{ isUserVerified: isUserVerified, state, dispatch, commitSupport }}
       >
         {children}
       </UserVoteContext.Provider>
@@ -189,7 +211,7 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
           isUserVerified: !!isUserVerified,
           state: undefined,
           dispatch: undefined,
-          commitVotes: undefined,
+          commitSupport: undefined,
         }}
       >
         {children}

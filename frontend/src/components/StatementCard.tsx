@@ -14,9 +14,9 @@ const LOOK_BACK_BLOCKS = BigInt(1);
 interface Statement {
   id: bigint;
   text: string;
-  voteCount: bigint;
+  createdTimestamp: bigint;
+  support: bigint;
   rank: bigint;
-  timestamp: bigint;
 }
 
 type StatementCardProps = {
@@ -54,7 +54,7 @@ export const StatementCard: FC<StatementCardProps> = ({ statement }) => {
           <Typography variant="h6">{statement.text}</Typography>
           <Stack direction="row" alignItems="flex-end" spacing={2}>
             <Typography color="text.secondary">
-              {statement.voteCount.toString()} votes
+              {statement.support.toString()} support
             </Typography>
             <Stack
               direction="row"
@@ -89,18 +89,18 @@ export const StatementCard: FC<StatementCardProps> = ({ statement }) => {
             {isUserVerified ? (
               <VoteToggle
                 userVoteCount={
-                  userVoteState.userVotes?.get(Number(statement.id)) || 0
+                  userVoteState.userSupport?.get(Number(statement.id)) || 0
                 }
                 uncommitedVote={
-                  (userVoteState.userVotes?.get(Number(statement.id)) || 0) !==
-                  (userVoteState.committedVotes?.get(Number(statement.id)) || 0)
+                  (userVoteState.userSupport?.get(Number(statement.id)) || 0) !==
+                  (userVoteState.committedSupport?.get(Number(statement.id)) || 0)
                 }
                 onUserVoteChange={(n) =>
                   dispatch({
-                    type: "UPDATE_VOTE",
+                    type: "UPDATE_SUPPORT",
                     payload: {
                       statementId: statement.id,
-                      newVoteCount: BigInt(n),
+                      newSupportValue: BigInt(n),
                     },
                   })
                 }
