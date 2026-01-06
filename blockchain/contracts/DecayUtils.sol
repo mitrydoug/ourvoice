@@ -2,7 +2,6 @@
 pragma solidity ^0.8.28;
 
 library DecayUtils {
-
     uint public constant UINT_BITS = 256;
     uint public constant HALF_LIFE_STEPS = 42;
     uint public constant STEP_DURATION_SECONDS = 4 hours;
@@ -14,14 +13,16 @@ library DecayUtils {
     uint public constant DECAY_MULTIPLIER_16_STEPS = 0xC497178FBBAE583A;
     uint public constant DECAY_MULTIPLIER_32_STEPS = 0x96F7B540E51D8332;
 
-    function approxDecayHalvingEvery42Steps(int startValue, uint steps) internal pure returns (int) {
-
+    function approxDecayHalvingEvery42Steps(
+        int startValue,
+        uint steps
+    ) internal pure returns (int) {
         if (startValue == 0) {
             return 0;
         }
 
         bool sign = startValue > 0;
-        uint value = sign ? uint(startValue) : uint(-startValue); 
+        uint value = sign ? uint(startValue) : uint(-startValue);
 
         uint _halvings = steps / HALF_LIFE_STEPS;
         value >>= _halvings;
@@ -35,7 +36,9 @@ library DecayUtils {
 
         if (steps >= 32) {
             if (bitsUpperBound + DECAY_MULTIPLIER_BITS > UINT_BITS) {
-                uint _shift = bitsUpperBound + DECAY_MULTIPLIER_BITS - UINT_BITS;
+                uint _shift = bitsUpperBound +
+                    DECAY_MULTIPLIER_BITS -
+                    UINT_BITS;
                 value >>= _shift;
                 bitsUpperBound -= _shift;
                 toShift -= _shift;
@@ -48,7 +51,9 @@ library DecayUtils {
 
         if (steps >= 16) {
             if (bitsUpperBound + DECAY_MULTIPLIER_BITS > UINT_BITS) {
-                uint _shift = bitsUpperBound + DECAY_MULTIPLIER_BITS - UINT_BITS;
+                uint _shift = bitsUpperBound +
+                    DECAY_MULTIPLIER_BITS -
+                    UINT_BITS;
                 value >>= _shift;
                 bitsUpperBound -= _shift;
                 toShift -= _shift;
@@ -61,7 +66,9 @@ library DecayUtils {
 
         if (steps >= 8) {
             if (bitsUpperBound + DECAY_MULTIPLIER_BITS > UINT_BITS) {
-                uint _shift = bitsUpperBound + DECAY_MULTIPLIER_BITS - UINT_BITS;
+                uint _shift = bitsUpperBound +
+                    DECAY_MULTIPLIER_BITS -
+                    UINT_BITS;
                 value >>= _shift;
                 bitsUpperBound -= _shift;
                 toShift -= _shift;
@@ -74,7 +81,9 @@ library DecayUtils {
 
         if (steps >= 4) {
             if (bitsUpperBound + DECAY_MULTIPLIER_BITS > UINT_BITS) {
-                uint _shift = bitsUpperBound + DECAY_MULTIPLIER_BITS - UINT_BITS;
+                uint _shift = bitsUpperBound +
+                    DECAY_MULTIPLIER_BITS -
+                    UINT_BITS;
                 value >>= _shift;
                 bitsUpperBound -= _shift;
                 toShift -= _shift;
@@ -87,7 +96,9 @@ library DecayUtils {
 
         if (steps >= 2) {
             if (bitsUpperBound + DECAY_MULTIPLIER_BITS > UINT_BITS) {
-                uint _shift = bitsUpperBound + DECAY_MULTIPLIER_BITS - UINT_BITS;
+                uint _shift = bitsUpperBound +
+                    DECAY_MULTIPLIER_BITS -
+                    UINT_BITS;
                 value >>= _shift;
                 bitsUpperBound -= _shift;
                 toShift -= _shift;
@@ -100,7 +111,9 @@ library DecayUtils {
 
         if (steps >= 1) {
             if (bitsUpperBound + DECAY_MULTIPLIER_BITS > UINT_BITS) {
-                uint _shift = bitsUpperBound + DECAY_MULTIPLIER_BITS - UINT_BITS;
+                uint _shift = bitsUpperBound +
+                    DECAY_MULTIPLIER_BITS -
+                    UINT_BITS;
                 value >>= _shift;
                 bitsUpperBound -= _shift;
                 toShift -= _shift;
@@ -117,22 +130,33 @@ library DecayUtils {
         return sign ? int(value) : -int(value);
     }
 
-    function ellapsedStepsBetweenTimestamps(uint fromTimestamp, uint toTimestamp) public pure returns (uint) {
-        require(fromTimestamp <= toTimestamp, "fromTimestamp must be <= toTimestamp");
-        return (toTimestamp / STEP_DURATION_SECONDS) - (fromTimestamp / STEP_DURATION_SECONDS);
+    function ellapsedStepsBetweenTimestamps(
+        uint fromTimestamp,
+        uint toTimestamp
+    ) public pure returns (uint) {
+        require(
+            fromTimestamp <= toTimestamp,
+            "fromTimestamp must be <= toTimestamp"
+        );
+        return
+            (toTimestamp / STEP_DURATION_SECONDS) -
+            (fromTimestamp / STEP_DURATION_SECONDS);
     }
 
-    function decayValue(int startValue, uint fromTimestamp, uint toTimestamp) external pure returns (int) {
-        
-        uint elapsedSteps = ellapsedStepsBetweenTimestamps(fromTimestamp, toTimestamp);
+    function decayValue(
+        int startValue,
+        uint fromTimestamp,
+        uint toTimestamp
+    ) external pure returns (int) {
+        uint elapsedSteps = ellapsedStepsBetweenTimestamps(
+            fromTimestamp,
+            toTimestamp
+        );
 
         if (startValue == 0 || elapsedSteps == 0) {
             return startValue;
         }
-        
+
         return approxDecayHalvingEvery42Steps(startValue, elapsedSteps);
     }
-
-    
-
 }
