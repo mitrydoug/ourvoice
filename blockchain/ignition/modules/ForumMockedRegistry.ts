@@ -89,7 +89,7 @@ export default buildModule("ForumMockedRegistryModule", (m) => {
         forum,
         m.contract(
           "Forum",
-          [mockedZKRegistry, forum == "global" ? "" : forum],
+          [mockedZKRegistry, forum == "global" ? "" : forum, 0],
           { id: `Forum_${forum}`, libraries: { DecayUtils: decayUtilsLib } },
         ),
       ];

@@ -16,7 +16,7 @@ contract ForumTest is Test {
     function setUp() public {
         vm.warp(MOCK_TEST_TIMESTAMP);
         mockRegistry = new MockOurVoiceRegistry();
-        forum = new Forum(mockRegistry, "");
+        forum = new Forum(mockRegistry, "", 0);
     }
 
     modifier registeredMember() {
@@ -109,33 +109,6 @@ contract ForumTest is Test {
         Forum.Statement memory statement = _getStatementById(0);
         assertEq(statement.support, 1, "Support should be incremented to 1");
     }
-
-    /**
-     * Remaining checks to implement:
-     *
-     * 1. Tests about adjusting statement support and its effect on ranking:
-     * - adjusting a statement's support from 0 to 1 does not cause it to become ranked
-     * - adjusting a statement's support to > 1 causes it to become ranked
-     * - adjusting a ranked statement's support affects its rank correctly
-     *   - cover change in rank and no change in rank cases
-     * - removing support from a ranked statement affects its rank correctly
-     *   - cover no change in rank, change to lower rank, and removal from ranking cases
-     *
-     * 2. Tests about user balance and cost of support adjustments:
-     * - user balance decreases correctly when adding support
-     * - user balance increases correctly when removing support
-     * - user cannot add support if they do not have enough balance
-     * - the cost of N units of support is equal to the Nth triangular number
-     * - the marginal cost of the n+1th unit of support is n+1
-     * - multiple support adjustments in one transaction are handled correctly
-     *
-     * 3. Tests related to decay of support over time:
-     * - a statement's support decays correctly over time
-     * - adjusting support of a statement accounts for decay correctly
-     * - ranking is updated correctly after support decay
-     * - a user's statement support decays correctly over time
-     * - user balance calculations account for decay of statement support correctly
-     */
 
     // ======================================================================
     // Section 1: Tests about adjusting statement support and its effect on ranking
@@ -578,7 +551,7 @@ contract ForumTest is Test {
             9,
             "User support should have decayed to 9"
         );
-        
+
         // Advance time by another 96 steps
         vm.warp(vm.getBlockTimestamp() + 96 * 4 hours);
 
@@ -630,9 +603,123 @@ contract ForumTest is Test {
             "Balance should increase by decayed support cost plus time allowance"
         );
     }
-}
 
-/**
- * - statements fall off user support list when support decays to 0
- * - statement eviction behavior when max ranked statements exceeded
- */
+    function testStatementsFallOffUserSupportListWhenSupportDecaysToZero()
+        external
+        registeredMember
+    {
+        forum.addStatement("Test statement");
+        _addStatementSupport(0, 10);
+
+        // Verify statement is in user's support list
+        Forum.StatementSupport[] memory userSupport = forum
+            .getUserStatementSupport();
+        assertEq(
+            userSupport.length,
+            1,
+            "User should have 1 supported statement"
+        );
+        assertEq(userSupport[0].statementId, 0, "Statement ID should be 0");
+        assertEq(userSupport[0].support, 10, "User support should be 10");
+
+        // Wait long enough for support to decay to 0 (168 steps = 4 half-lives)
+        // 10 -> 5 -> 2 -> 1 -> 0
+        vm.warp(vm.getBlockTimestamp() + 168 * 4 hours);
+
+        // Check that the statement is no longer in user's support list
+        userSupport = forum.getUserStatementSupport();
+        assertEq(
+            userSupport.length,
+            0,
+            "User should have no supported statements after decay to 0"
+        );
+    }
+
+    function testLowestRankStatementIsEvictedWhenMaxRankedStatementsExceeded()
+        external
+    {
+        // Create a forum with a low max ranked statements limit for testing
+        Forum testForum = new Forum(mockRegistry, "", 3);
+
+        // Register and create statements
+        mockRegistry.register("");
+
+        testForum.addStatement("Statement A");
+        testForum.addStatement("Statement B");
+        testForum.addStatement("Statement C");
+        testForum.addStatement("Statement D");
+
+        // Add support to fill up the ranking
+        Forum.SupportAdjustment[]
+            memory adjustments = new Forum.SupportAdjustment[](3);
+        adjustments[0] = Forum.SupportAdjustment({statementId: 0, value: 5});
+        adjustments[1] = Forum.SupportAdjustment({statementId: 1, value: 4});
+        adjustments[2] = Forum.SupportAdjustment({statementId: 2, value: 3});
+        testForum.adjustSupport(adjustments);
+
+        // Verify we have 3 ranked statements
+        assertEq(testForum.rankedCount(), 3, "Should have 3 ranked statements");
+        assertEq(
+            testForum.getRankedStatement(0).id,
+            0,
+            "Statement A should be rank 0"
+        );
+        assertEq(
+            testForum.getRankedStatement(1).id,
+            1,
+            "Statement B should be rank 1"
+        );
+        assertEq(
+            testForum.getRankedStatement(2).id,
+            2,
+            "Statement C should be rank 2"
+        );
+
+        // Now add high support to Statement D, which should evict Statement C (lowest rank)
+        Forum.SupportAdjustment[]
+            memory adjustment = new Forum.SupportAdjustment[](1);
+        adjustment[0] = Forum.SupportAdjustment({statementId: 3, value: 6});
+        testForum.adjustSupport(adjustment);
+
+        // Verify we still have 3 ranked statements
+        assertEq(
+            testForum.rankedCount(),
+            3,
+            "Should still have 3 ranked statements"
+        );
+
+        // Verify Statement D is now ranked
+        assertEq(
+            testForum.getRankedStatement(0).id,
+            3,
+            "Statement D should be rank 0"
+        );
+        assertEq(
+            testForum.getRankedStatement(1).id,
+            0,
+            "Statement A should be rank 1"
+        );
+        assertEq(
+            testForum.getRankedStatement(2).id,
+            1,
+            "Statement B should be rank 2"
+        );
+
+        // Verify Statement C was evicted (rank should be -1)
+        uint[] memory statementIds = new uint[](1);
+        statementIds[0] = 2;
+        Forum.Statement[] memory statements = testForum.getStatementsById(
+            statementIds
+        );
+        assertEq(
+            statements[0].rank,
+            -1,
+            "Statement C should no longer be ranked"
+        );
+        assertEq(
+            statements[0].support,
+            3,
+            "Statement C should still have 3 support"
+        );
+    }
+}

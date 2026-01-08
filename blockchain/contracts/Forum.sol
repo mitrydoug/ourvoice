@@ -16,6 +16,9 @@ contract Forum {
     uint public constant MAX_RANKED_STATEMENTS = 1000;
     int public constant MIN_STATEMENT_SUPPORT_TO_RANK = 2;
 
+    // Configurable max ranked statements (defaults to MAX_RANKED_STATEMENTS)
+    uint public immutable maxRankedStatements;
+
     AOurVoiceRegistry public ourVoiceRegistry;
 
     struct SupportAdjustment {
@@ -76,10 +79,14 @@ contract Forum {
 
     constructor(
         AOurVoiceRegistry _ourVoiceRegistry,
-        string memory _nationality
+        string memory _nationality,
+        uint _maxRankedStatements
     ) {
         ourVoiceRegistry = _ourVoiceRegistry;
         nationality = _nationality;
+        maxRankedStatements = _maxRankedStatements == 0
+            ? MAX_RANKED_STATEMENTS
+            : _maxRankedStatements;
     }
 
     function _resolveStatement(
@@ -98,7 +105,9 @@ contract Forum {
             });
     }
 
-    function _getStatementRank(StatementImpl memory _statement) internal view returns (int) {
+    function _getStatementRank(
+        StatementImpl memory _statement
+    ) internal view returns (int) {
         return _statement.rank < int(rankedCount) ? _statement.rank : -1;
     }
 
@@ -190,7 +199,7 @@ contract Forum {
     }
 
     function _getRankingThreshold() internal view returns (int) {
-        if (rankedCount < MAX_RANKED_STATEMENTS) {
+        if (rankedCount < maxRankedStatements) {
             return MIN_STATEMENT_SUPPORT_TO_RANK;
         }
         uint _lowestRankedStatementId = statementRankings[rankedCount - 1];
@@ -208,18 +217,21 @@ contract Forum {
         if (_getStatementRank(statement) != -1) {
             _rank = uint(statement.rank);
         } else {
-
             int _rankingThreshold = _getRankingThreshold();
-            
-            if (_getCurrentSupportValue(statement.support) < _rankingThreshold) {
+
+            if (
+                _getCurrentSupportValue(statement.support) < _rankingThreshold
+            ) {
                 return;
             }
 
-            if (rankedCount < MAX_RANKED_STATEMENTS) {
+            if (rankedCount < maxRankedStatements) {
                 _rank = rankedCount;
                 rankedCount += 1;
             } else {
                 _rank = rankedCount - 1;
+                // Mark the evicted statement as unranked
+                statements[statementRankings[_rank]].rank = -1;
             }
 
             if (statementRankings.length == _rank) {
@@ -230,9 +242,9 @@ contract Forum {
         while (
             _rank >= 1 &&
             _getCurrentSupportValue(statement.support) >
-                _getCurrentSupportValue(
-                    statements[statementRankings[_rank - 1]].support
-                )
+            _getCurrentSupportValue(
+                statements[statementRankings[_rank - 1]].support
+            )
         ) {
             statementRankings[_rank] = statementRankings[_rank - 1];
             statements[statementRankings[_rank]].rank = int(_rank);
@@ -242,9 +254,9 @@ contract Forum {
         while (
             _rank + 1 < rankedCount &&
             _getCurrentSupportValue(statement.support) <
-                _getCurrentSupportValue(
-                    statements[statementRankings[_rank + 1]].support
-                )
+            _getCurrentSupportValue(
+                statements[statementRankings[_rank + 1]].support
+            )
         ) {
             statementRankings[_rank] = statementRankings[_rank + 1];
             statements[statementRankings[_rank]].rank = int(_rank);

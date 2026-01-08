@@ -23,7 +23,7 @@ export default buildModule("ForumForkedRegistryModule", (m) => {
         forum,
         m.contract(
           "Forum",
-          [OurVoiceRegistry, forum == "global" ? "" : forum],
+          [OurVoiceRegistry, forum == "global" ? "" : forum, 0],
           { id: `Forum_${forum}` },
         ),
       ];
