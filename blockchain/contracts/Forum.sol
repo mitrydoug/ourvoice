@@ -63,7 +63,7 @@ contract Forum {
     uint public rankedCount;
 
     mapping(bytes32 => mapping(uint => Support)) public userSupportMap;
-    mapping(bytes32 => uint[]) public userSupportedStatements;
+    mapping(bytes32 => uint[]) internal _userSupportedStatements;
 
     struct UserBalance {
         uint credits;
@@ -242,9 +242,9 @@ contract Forum {
         while (
             _rank >= 1 &&
             _getCurrentSupportValue(statement.support) >
-            _getCurrentSupportValue(
-                statements[statementRankings[_rank - 1]].support
-            )
+                _getCurrentSupportValue(
+                    statements[statementRankings[_rank - 1]].support
+                )
         ) {
             statementRankings[_rank] = statementRankings[_rank - 1];
             statements[statementRankings[_rank]].rank = int(_rank);
@@ -254,9 +254,9 @@ contract Forum {
         while (
             _rank + 1 < rankedCount &&
             _getCurrentSupportValue(statement.support) <
-            _getCurrentSupportValue(
-                statements[statementRankings[_rank + 1]].support
-            )
+                _getCurrentSupportValue(
+                    statements[statementRankings[_rank + 1]].support
+                )
         ) {
             statementRankings[_rank] = statementRankings[_rank + 1];
             statements[statementRankings[_rank]].rank = int(_rank);
@@ -303,8 +303,8 @@ contract Forum {
         bytes32 userId = ourVoiceRegistry.getUserIdentifier(msg.sender);
 
         uint _numSupported = 0;
-        for (uint i = 0; i < userSupportedStatements[userId].length; i++) {
-            uint statementId = userSupportedStatements[userId][i];
+        for (uint i = 0; i < _userSupportedStatements[userId].length; i++) {
+            uint statementId = _userSupportedStatements[userId][i];
             Support storage support = userSupportMap[userId][statementId];
             if (_getCurrentSupportValue(support) != 0) {
                 _numSupported++;
@@ -314,8 +314,8 @@ contract Forum {
         StatementSupport[] memory supportedStatements = new StatementSupport[](
             _numSupported
         );
-        for (uint i = 0; i < userSupportedStatements[userId].length; i++) {
-            uint statementId = userSupportedStatements[userId][i];
+        for (uint i = 0; i < _userSupportedStatements[userId].length; i++) {
+            uint statementId = _userSupportedStatements[userId][i];
             Support storage support = userSupportMap[userId][statementId];
             int currentSupport = _getCurrentSupportValue(support);
             if (currentSupport != 0) {
@@ -373,7 +373,7 @@ contract Forum {
         _support.lastUpdated = block.timestamp;
     }
 
-    function _costOfUserSupport(int _userSupport) public pure returns (uint) {
+    function _costOfUserSupport(int _userSupport) internal pure returns (uint) {
         uint absSupport = uint(
             _userSupport >= 0 ? _userSupport : -_userSupport
         );
@@ -387,8 +387,8 @@ contract Forum {
         int _firstEmptySlot = -1;
         int _secondEmptySlot = -1;
         int _lastOccupiedSlot = -1;
-        for (uint i = 0; i < userSupportedStatements[_userId].length; i++) {
-            uint _currStatementId = userSupportedStatements[_userId][i];
+        for (uint i = 0; i < _userSupportedStatements[_userId].length; i++) {
+            uint _currStatementId = _userSupportedStatements[_userId][i];
             if (
                 _getCurrentSupportValue(
                     userSupportMap[_userId][_currStatementId]
@@ -406,9 +406,9 @@ contract Forum {
 
         if (_firstEmptySlot == -1) {
             // no empty slots, just append
-            userSupportedStatements[_userId].push(_statementId);
+            _userSupportedStatements[_userId].push(_statementId);
         } else {
-            userSupportedStatements[_userId][
+            _userSupportedStatements[_userId][
                 uint(_firstEmptySlot)
             ] = _statementId;
         }
@@ -418,16 +418,10 @@ contract Forum {
             _lastOccupiedSlot != -1 &&
             _lastOccupiedSlot > _secondEmptySlot
         ) {
-            userSupportedStatements[_userId][
+            _userSupportedStatements[_userId][
                 uint(_secondEmptySlot)
-            ] = userSupportedStatements[_userId][uint(_lastOccupiedSlot)];
-            userSupportedStatements[_userId].pop();
-            if (
-                uint(_lastOccupiedSlot) <
-                userSupportedStatements[_userId].length
-            ) {
-                userSupportedStatements[_userId].pop();
-            }
+            ] = _userSupportedStatements[_userId][uint(_lastOccupiedSlot)];
+            _userSupportedStatements[_userId].pop();
         }
     }
 

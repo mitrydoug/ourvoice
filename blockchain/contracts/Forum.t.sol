@@ -6,17 +6,39 @@ import {console} from "forge-std/console.sol";
 
 import {Forum} from "./Forum.sol";
 import {MockOurVoiceRegistry} from "./MockOurVoiceRegistry.sol";
+import {AOurVoiceRegistry} from "./IOurVoiceRegistry.sol";
+
+// Test harness to expose internal methods for testing
+contract ForumHarness is Forum {
+    constructor(
+        AOurVoiceRegistry _ourVoiceRegistry,
+        string memory _nationality,
+        uint _maxRankedStatements
+    ) Forum(_ourVoiceRegistry, _nationality, _maxRankedStatements) {}
+
+    function exposed_costOfUserSupport(
+        int _userSupport
+    ) external pure returns (uint) {
+        return _costOfUserSupport(_userSupport);
+    }
+
+    function exposed_userSupportedStatements(
+        bytes32 userId
+    ) external view returns (uint[] memory) {
+        return _userSupportedStatements[userId];
+    }
+}
 
 contract ForumTest is Test {
     uint MOCK_TEST_TIMESTAMP = 1767572846;
 
     MockOurVoiceRegistry mockRegistry;
-    Forum forum;
+    ForumHarness forum;
 
     function setUp() public {
         vm.warp(MOCK_TEST_TIMESTAMP);
         mockRegistry = new MockOurVoiceRegistry();
-        forum = new Forum(mockRegistry, "", 0);
+        forum = new ForumHarness(mockRegistry, "", 0);
     }
 
     modifier registeredMember() {
@@ -333,15 +355,43 @@ contract ForumTest is Test {
 
     function testCostIsTriangularNumber() external view {
         // Verify cost formula: cost(n) = n(n+1)/2
-        assertEq(forum._costOfUserSupport(0), 0, "Cost of 0 should be 0");
-        assertEq(forum._costOfUserSupport(1), 1, "Cost of 1 should be 1");
-        assertEq(forum._costOfUserSupport(2), 3, "Cost of 2 should be 3");
-        assertEq(forum._costOfUserSupport(3), 6, "Cost of 3 should be 6");
-        assertEq(forum._costOfUserSupport(4), 10, "Cost of 4 should be 10");
-        assertEq(forum._costOfUserSupport(5), 15, "Cost of 5 should be 15");
-        assertEq(forum._costOfUserSupport(10), 55, "Cost of 10 should be 55");
         assertEq(
-            forum._costOfUserSupport(100),
+            forum.exposed_costOfUserSupport(0),
+            0,
+            "Cost of 0 should be 0"
+        );
+        assertEq(
+            forum.exposed_costOfUserSupport(1),
+            1,
+            "Cost of 1 should be 1"
+        );
+        assertEq(
+            forum.exposed_costOfUserSupport(2),
+            3,
+            "Cost of 2 should be 3"
+        );
+        assertEq(
+            forum.exposed_costOfUserSupport(3),
+            6,
+            "Cost of 3 should be 6"
+        );
+        assertEq(
+            forum.exposed_costOfUserSupport(4),
+            10,
+            "Cost of 4 should be 10"
+        );
+        assertEq(
+            forum.exposed_costOfUserSupport(5),
+            15,
+            "Cost of 5 should be 15"
+        );
+        assertEq(
+            forum.exposed_costOfUserSupport(10),
+            55,
+            "Cost of 10 should be 55"
+        );
+        assertEq(
+            forum.exposed_costOfUserSupport(100),
             5050,
             "Cost of 100 should be 5050"
         );
@@ -350,13 +400,13 @@ contract ForumTest is Test {
     function testNegativeSupportCostSameAsPositive() external view {
         // Verify negative support has same cost as positive
         assertEq(
-            forum._costOfUserSupport(-5),
-            forum._costOfUserSupport(5),
+            forum.exposed_costOfUserSupport(-5),
+            forum.exposed_costOfUserSupport(5),
             "Cost of -5 should equal cost of 5"
         );
         assertEq(
-            forum._costOfUserSupport(-10),
-            forum._costOfUserSupport(10),
+            forum.exposed_costOfUserSupport(-10),
+            forum.exposed_costOfUserSupport(10),
             "Cost of -10 should equal cost of 10"
         );
     }
@@ -639,7 +689,7 @@ contract ForumTest is Test {
         external
     {
         // Create a forum with a low max ranked statements limit for testing
-        Forum testForum = new Forum(mockRegistry, "", 3);
+        ForumHarness testForum = new ForumHarness(mockRegistry, "", 3);
 
         // Register and create statements
         mockRegistry.register("");
@@ -721,5 +771,160 @@ contract ForumTest is Test {
             3,
             "Statement C should still have 3 support"
         );
+    }
+
+    // ======================================================================
+    // Section 4: Tests for userSupportedStatements maintenance
+    // ======================================================================
+
+    function testNewItemsAreAddedToFirstEmptySlot() external registeredMember {
+        // Create multiple statements
+        forum.addStatement("Statement A");
+        forum.addStatement("Statement B");
+        forum.addStatement("Statement C");
+        forum.addStatement("Statement D");
+
+        // Support statements A, B, and C
+        _addStatementSupport(0, 10);
+        _addStatementSupport(1, 10);
+        _addStatementSupport(2, 10);
+
+        // Remove all support from B (creating an empty slot)
+        _addStatementSupport(1, -10);
+
+        // Now add support to statement D
+        // It should reuse the empty slot where B was (index 1)
+        _addStatementSupport(3, 5);
+
+        // Verify the final state by checking the order of returned statements
+        // If D reused B's slot, the order should be A (index 0), D (index 1), C (index 2)
+        Forum.StatementSupport[] memory userSupport = forum
+            .getUserStatementSupport();
+        assertEq(
+            userSupport.length,
+            3,
+            "User should have 3 supported statements (A, C, D)"
+        );
+
+        // Check that statements are returned in order A, D, C
+        assertEq(
+            userSupport[0].statementId,
+            0,
+            "First statement should be A (index 0)"
+        );
+        assertEq(
+            userSupport[0].support,
+            10,
+            "Statement A should have 10 support"
+        );
+
+        assertEq(
+            userSupport[1].statementId,
+            3,
+            "Second statement should be D (reusing B's slot at index 1)"
+        );
+        assertEq(
+            userSupport[1].support,
+            5,
+            "Statement D should have 5 support"
+        );
+
+        assertEq(
+            userSupport[2].statementId,
+            2,
+            "Third statement should be C (index 2)"
+        );
+        assertEq(
+            userSupport[2].support,
+            10,
+            "Statement C should have 10 support"
+        );
+    }
+
+    function testArrayCompactsWhenTwoEmptySlotsExist()
+        external
+        registeredMember
+    {
+        // Create 5 statements: A, B, C, D, E
+        forum.addStatement("Statement A");
+        forum.addStatement("Statement B");
+        forum.addStatement("Statement C");
+        forum.addStatement("Statement D");
+        forum.addStatement("Statement E");
+
+        // Support all 5 statements - array will be [A, B, C, D, E]
+        _addStatementSupport(0, 10);
+        _addStatementSupport(1, 10);
+        _addStatementSupport(2, 10);
+        _addStatementSupport(3, 10);
+        _addStatementSupport(4, 10);
+
+        // Verify we have 5 statements
+        Forum.StatementSupport[] memory userSupport = forum
+            .getUserStatementSupport();
+        assertEq(userSupport.length, 5, "Should have 5 supported statements");
+
+        // Get userId for raw array length checks
+        bytes32 userId = keccak256(abi.encode(address(this)));
+
+        // Check initial length
+        uint initialLength = forum
+            .exposed_userSupportedStatements(userId)
+            .length;
+        assertEq(initialLength, 5, "Initial raw array length should be 5");
+
+        // Remove support from B (creating one empty slot at index 1)
+        _addStatementSupport(1, -10);
+
+        // Remove support from C (creating second empty slot at index 2)
+        // This triggers compaction: last occupied element (E at index 4) moves to index 2, array pops
+        _addStatementSupport(2, -10);
+
+        // Verify that raw array length reduced by 1 due to compaction
+        uint lengthAfterRemovals = forum
+            .exposed_userSupportedStatements(userId)
+            .length;
+        assertEq(
+            lengthAfterRemovals,
+            4,
+            "Raw array length should reduce from 5 to 4 when creating two empty slots triggers compaction"
+        );
+
+        // Now add support to a new statement F
+        // F fills the first empty slot; no further compaction occurs
+        forum.addStatement("Statement F");
+        _addStatementSupport(5, 5);
+
+        // Verify array length stays at 4 (F just filled an empty slot)
+        uint lengthAfterF = forum
+            .exposed_userSupportedStatements(userId)
+            .length;
+        assertEq(
+            lengthAfterF,
+            4,
+            "Raw array length should stay at 4 after F fills the first empty slot"
+        );
+
+        // Verify the array compacted and is now [A, F, E, D]
+        userSupport = forum.getUserStatementSupport();
+        assertEq(
+            userSupport.length,
+            4,
+            "Array should have compacted to 4 statements"
+        );
+
+        // Check the order: A, F, E, D
+        assertEq(userSupport[0].statementId, 0, "Index 0 should be A");
+        assertEq(
+            userSupport[1].statementId,
+            5,
+            "Index 1 should be F (filled first empty slot)"
+        );
+        assertEq(
+            userSupport[2].statementId,
+            4,
+            "Index 2 should be E (moved from index 4 to second empty slot)"
+        );
+        assertEq(userSupport[3].statementId, 3, "Index 3 should be D");
     }
 }
