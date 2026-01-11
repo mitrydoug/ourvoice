@@ -4,7 +4,7 @@ pragma solidity ^0.8.28;
 library DecayUtils {
     uint public constant UINT_BITS = 256;
     uint public constant HALF_LIFE_STEPS = 42;
-    uint public constant STEP_DURATION_SECONDS = 4 hours;
+    uint public constant STEP_DURATION_SECONDS = 10 seconds;
     uint public constant DECAY_MULTIPLIER_BITS = 64;
     uint public constant DECAY_MULTIPLIER_1_STEP = 0xFBCF4D652629F24A;
     uint public constant DECAY_MULTIPLIER_2_STEPS = 0xF7B029A299CFF9E0;

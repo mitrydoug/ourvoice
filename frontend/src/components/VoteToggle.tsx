@@ -4,20 +4,18 @@ import IconButton from "@mui/material/IconButton";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ArrowUpwardSharpIcon from "@mui/icons-material/ArrowUpwardSharp";
 import Stack from "@mui/material/Stack";
-import { Box } from "@mui/material";
 
 interface VoteToggleProps {
-  userVoteCount: number;
-  uncommitedVote: boolean;
+  userSupport: number;
+  uncommitedSupport: boolean;
   onUserVoteChange: (newVoteCount: number) => void;
 }
 
 const VoteToggle: FC<VoteToggleProps> = ({
-  userVoteCount,
-  uncommitedVote,
+  userSupport,
+  uncommitedSupport,
   onUserVoteChange,
 }) => {
-  const cost = userVoteCount * userVoteCount;
 
   return (
     <Stack direction="row" alignItems="center" spacing={1}>
@@ -29,44 +27,28 @@ const VoteToggle: FC<VoteToggleProps> = ({
           border: "1px solid lightgray",
           borderRadius: "50vh",
           p: 0,
-          backgroundColor: uncommitedVote ? "lightyellow" : "transparent",
+          backgroundColor: uncommitedSupport ? "lightyellow" : "transparent",
         }}
       >
         <IconButton
           color="primary"
-          onClick={() => onUserVoteChange(userVoteCount - 1)}
+          onClick={() => onUserVoteChange(userSupport - 1)}
           sx={{ p: 0.2 }}
         >
           <ArrowDownwardIcon />
         </IconButton>
         <Typography color="text.secondary" sx={{ position: "relative" }}>
-          {userVoteCount}
+          {userSupport}
         </Typography>
         <IconButton
           color="primary"
-          onClick={() => onUserVoteChange(userVoteCount + 1)}
+          onClick={() => onUserVoteChange(userSupport + 1)}
           sx={{ p: 0.2 }}
         >
           <ArrowUpwardSharpIcon />
         </IconButton>
       </Stack>
-      <Stack direction="row" alignItems="center" spacing={0.2}>
-        <Typography color="text.secondary">{cost}</Typography>
-        <VoiceCreditIcon />
-      </Stack>
     </Stack>
-  );
-};
-
-const VoiceCreditIcon: FC = () => {
-  return (
-    <Box sx={{ position: "relative", width: "1.2em", height: "1.2em" }}>
-      <img
-        src="credit-icon.svg"
-        alt="Voice Credits"
-        style={{ width: "100%", height: "100%" }}
-      />
-    </Box>
   );
 };
 
