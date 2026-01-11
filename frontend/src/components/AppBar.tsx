@@ -92,7 +92,11 @@ export default function MenuAppBar() {
     }
   }, [address]);
 
-  const { isUserVerified, commitVotes, state: userVoteState } = useUserVotes();
+  const {
+    isUserVerified,
+    commitSupport,
+    state: userVoteState,
+  } = useUserVotes();
 
   const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
     console.log("here! ");
@@ -189,12 +193,12 @@ export default function MenuAppBar() {
                   </Typography>
                 </Stack>
                 <IconButton
-                  onClick={commitVotes}
-                  disabled={!userVoteState.hasUncommittedVotes}
+                  onClick={commitSupport}
+                  disabled={!userVoteState.hasUncommittedChanges}
                 >
                   <DoneAllIcon
                     sx={{
-                      color: userVoteState.hasUncommittedVotes
+                      color: userVoteState.hasUncommittedChanges
                         ? "primary.main"
                         : "",
                     }}

@@ -1,6 +1,6 @@
 export const FORUMS = {
-  global: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
-  us: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+  global: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+  us: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
 } as const;
 
 export const FORUM_ABI = [
@@ -40,52 +40,21 @@ export const FORUM_ABI = [
     type: "event",
   },
   {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: "uint256",
-        name: "id",
-        type: "uint256",
-      },
-      {
-        indexed: false,
-        internalType: "int256",
-        name: "voteCount",
-        type: "int256",
-      },
-    ],
-    name: "StatementVote",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: "bytes32",
-        name: "user",
-        type: "bytes32",
-      },
-      {
-        indexed: false,
-        internalType: "string",
-        name: "action",
-        type: "string",
-      },
-      {
-        indexed: false,
-        internalType: "int256",
-        name: "count",
-        type: "int256",
-      },
-    ],
-    name: "UserVote",
-    type: "event",
-  },
-  {
     stateMutability: "nonpayable",
     type: "fallback",
+  },
+  {
+    inputs: [],
+    name: "MAX_RANKED_STATEMENTS",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
   },
   {
     inputs: [],
@@ -102,7 +71,20 @@ export const FORUM_ABI = [
   },
   {
     inputs: [],
-    name: "USER_CREDIT_BUDGET",
+    name: "MIN_STATEMENT_SUPPORT_TO_RANK",
+    outputs: [
+      {
+        internalType: "int256",
+        name: "",
+        type: "int256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "USER_CREDIT_ALLOWANCE_PER_STEP",
     outputs: [
       {
         internalType: "uint256",
@@ -116,12 +98,56 @@ export const FORUM_ABI = [
   {
     inputs: [
       {
+        internalType: "int256",
+        name: "_userSupport",
+        type: "int256",
+      },
+    ],
+    name: "_costOfUserSupport",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "pure",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
         internalType: "string",
-        name: "_statement",
+        name: "_statementText",
         type: "string",
       },
     ],
     name: "addStatement",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        components: [
+          {
+            internalType: "uint256",
+            name: "statementId",
+            type: "uint256",
+          },
+          {
+            internalType: "int256",
+            name: "value",
+            type: "int256",
+          },
+        ],
+        internalType: "struct Forum.SupportAdjustment[]",
+        name: "_supportAdjustments",
+        type: "tuple[]",
+      },
+    ],
+    name: "adjustSupport",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",
@@ -149,19 +175,19 @@ export const FORUM_ABI = [
             type: "string",
           },
           {
+            internalType: "uint256",
+            name: "createdTimestamp",
+            type: "uint256",
+          },
+          {
             internalType: "int256",
-            name: "voteCount",
+            name: "support",
             type: "int256",
           },
           {
-            internalType: "uint256",
+            internalType: "int256",
             name: "rank",
-            type: "uint256",
-          },
-          {
-            internalType: "uint256",
-            name: "timestamp",
-            type: "uint256",
+            type: "int256",
           },
         ],
         internalType: "struct Forum.Statement",
@@ -200,19 +226,19 @@ export const FORUM_ABI = [
             type: "string",
           },
           {
+            internalType: "uint256",
+            name: "createdTimestamp",
+            type: "uint256",
+          },
+          {
             internalType: "int256",
-            name: "voteCount",
+            name: "support",
             type: "int256",
           },
           {
-            internalType: "uint256",
+            internalType: "int256",
             name: "rank",
-            type: "uint256",
-          },
-          {
-            internalType: "uint256",
-            name: "timestamp",
-            type: "uint256",
+            type: "int256",
           },
         ],
         internalType: "struct Forum.Statement[]",
@@ -246,19 +272,19 @@ export const FORUM_ABI = [
             type: "string",
           },
           {
+            internalType: "uint256",
+            name: "createdTimestamp",
+            type: "uint256",
+          },
+          {
             internalType: "int256",
-            name: "voteCount",
+            name: "support",
             type: "int256",
           },
           {
-            internalType: "uint256",
+            internalType: "int256",
             name: "rank",
-            type: "uint256",
-          },
-          {
-            internalType: "uint256",
-            name: "timestamp",
-            type: "uint256",
+            type: "int256",
           },
         ],
         internalType: "struct Forum.Statement[]",
@@ -271,7 +297,7 @@ export const FORUM_ABI = [
   },
   {
     inputs: [],
-    name: "getUserVoteSet",
+    name: "getUserStatementSupport",
     outputs: [
       {
         components: [
@@ -282,11 +308,11 @@ export const FORUM_ABI = [
           },
           {
             internalType: "int256",
-            name: "voteCount",
+            name: "support",
             type: "int256",
           },
         ],
-        internalType: "struct Forum.Vote[]",
+        internalType: "struct Forum.StatementSupport[]",
         name: "",
         type: "tuple[]",
       },
@@ -328,6 +354,19 @@ export const FORUM_ABI = [
         internalType: "contract AOurVoiceRegistry",
         name: "",
         type: "address",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "rankedCount",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
       },
     ],
     stateMutability: "view",
@@ -386,125 +425,117 @@ export const FORUM_ABI = [
         type: "string",
       },
       {
-        internalType: "int256",
-        name: "voteCount",
-        type: "int256",
-      },
-      {
         internalType: "uint256",
-        name: "rank",
+        name: "createdTimestamp",
         type: "uint256",
       },
-      {
-        internalType: "uint256",
-        name: "timestamp",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "bytes32",
-        name: "",
-        type: "bytes32",
-      },
-    ],
-    name: "userUsedCredits",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "bytes32",
-        name: "",
-        type: "bytes32",
-      },
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
-    name: "userVoteSets",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "statementId",
-        type: "uint256",
-      },
-      {
-        internalType: "int256",
-        name: "voteCount",
-        type: "int256",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "bytes32",
-        name: "",
-        type: "bytes32",
-      },
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
-    name: "userVotes",
-    outputs: [
-      {
-        internalType: "int256",
-        name: "",
-        type: "int256",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
       {
         components: [
           {
-            internalType: "uint256",
-            name: "statementId",
-            type: "uint256",
-          },
-          {
             internalType: "int256",
-            name: "voteCount",
+            name: "value",
             type: "int256",
           },
+          {
+            internalType: "uint256",
+            name: "lastUpdated",
+            type: "uint256",
+          },
         ],
-        internalType: "struct Forum.Vote[]",
-        name: "_voteSet",
-        type: "tuple[]",
+        internalType: "struct Forum.Support",
+        name: "support",
+        type: "tuple",
+      },
+      {
+        internalType: "int256",
+        name: "rank",
+        type: "int256",
       },
     ],
-    name: "vote",
-    outputs: [],
-    stateMutability: "nonpayable",
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "",
+        type: "bytes32",
+      },
+    ],
+    name: "userCredits",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "credits",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "lastUpdated",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "",
+        type: "bytes32",
+      },
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    name: "userSupportMap",
+    outputs: [
+      {
+        internalType: "int256",
+        name: "value",
+        type: "int256",
+      },
+      {
+        internalType: "uint256",
+        name: "lastUpdated",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "",
+        type: "bytes32",
+      },
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    name: "userSupportedStatements",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
     type: "function",
   },
 ] as const;
 
 export const registryContractConfig = {
-  address: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+  address: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
   abi: [
     {
       inputs: [

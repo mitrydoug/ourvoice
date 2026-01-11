@@ -14,7 +14,9 @@
   "author": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "format": "npx prettier --write contracts/**/*.sol",
+    "format:check": "npx prettier --check contracts/**/*.sol"
   },
   "type": "module",
   "devDependencies": {
@@ -23,8 +25,10 @@
     "@nomicfoundation/hardhat-network-helpers": "^3.0.1",
     "@nomicfoundation/hardhat-toolbox-viem": "^5.0.0",
     "@types/node": "^22.17.2",
-    "forge-std": "github:foundry-rs/forge-std#v1.9.4",
+    "forge-std": "github:foundry-rs/forge-std#v1.11.0",
     "hardhat": "^3.0.0",
+    "prettier": "^3.7.4",
+    "prettier-plugin-solidity": "^2.2.1",
     "typescript": "~5.8.0",
     "viem": "^2.33.3"
   }

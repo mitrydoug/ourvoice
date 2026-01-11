@@ -3,19 +3,16 @@ import ForumForkedRegistryModule from "../ignition/modules/ForumForkedRegistry.j
 import ForumMockedRegistryModule from "../ignition/modules/ForumMockedRegistry.js";
 import { writeFileSync } from "fs";
 
-
 async function main() {
-
   const deployMode = process.env.DEPLOY_MODE;
 
   const { ignition, networkHelpers } = await hre.network.connect();
   await networkHelpers.time.increaseTo(Math.floor(Date.now() / 1000));
 
-  const { registry, ...forums } = (
-    deployMode == "forked" ?
-    await ignition.deploy(ForumForkedRegistryModule) :
-    await ignition.deploy(ForumMockedRegistryModule)
-  );
+  const { registry, ...forums } =
+    deployMode == "forked"
+      ? await ignition.deploy(ForumForkedRegistryModule)
+      : await ignition.deploy(ForumMockedRegistryModule);
 
   console.log("Deployed OurVoiceRegistry at:", registry.address);
   for (const [name, contract] of Object.entries(forums)) {
@@ -23,24 +20,18 @@ async function main() {
   }
 
   const forumAddresses = Object.fromEntries(
-    Object.entries(forums).map(([name, contract]) => [
-      name, contract.address]
-    )
+    Object.entries(forums).map(([name, contract]) => [name, contract.address]),
   );
 
-  const configModuleText = (
+  const configModuleText =
     `export const FORUMS = ${JSON.stringify(forumAddresses, null, 2)} as const;\n\n` +
     `export const FORUM_ABI = ${JSON.stringify(forums["global"].abi, null, 2)} as const;\n\n` +
     "export const registryContractConfig = {\n" +
     `  address: "${registry.address}",\n` +
     `  abi: ${JSON.stringify(registry.abi, null, 2)},\n` +
-    "} as const;\n\n"
-  );
+    "} as const;\n\n";
 
-  writeFileSync(
-    "../frontend/src/contracts.ts",
-    configModuleText
-  );
+  writeFileSync("../frontend/src/contracts.ts", configModuleText);
 }
 
 main().catch(console.error);
