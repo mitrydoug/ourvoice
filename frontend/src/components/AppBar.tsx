@@ -189,7 +189,7 @@ export default function MenuAppBar() {
                   <Typography variant="body2">Credits</Typography>
                   <Typography>
                     {userVoteState.remainingCredits}/
-                    {userVoteState.creditBudget}
+                    {userVoteState.onChain?.credits}
                   </Typography>
                 </Stack>
                 <IconButton
@@ -317,7 +317,7 @@ export default function MenuAppBar() {
         open={chooseForumModalOpen}
         onClose={() => setChooseForumModalOpen(false)}
         chooseForum={(forum: string) => {
-          setForum(forum);
+          setForum(forum as "global" | "us");
           setChooseForumModalOpen(false);
         }}
       />

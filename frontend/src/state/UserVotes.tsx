@@ -6,36 +6,42 @@ import React, {
   useEffect,
   useReducer,
 } from "react";
-import { useAccount, useReadContract, useWriteContract } from "wagmi";
-import _ from "lodash";
+import { useAccount, useReadContract, useReadContracts, useWriteContract } from "wagmi";
 import { FORUM_ABI, useForum } from "./Forum";
+import { stat } from "fs";
 
-const USER_CREDIT_BUDGET = 100;
-
-interface UserSupportState {
-  userSupport?: Map<number, number>;
-  remainingCredits?: number;
-  creditBudget?: number;
-  committedSupport?: Map<number, number>;
-  hasUncommittedChanges?: boolean;
-  error: string | null;
+interface OnChainUserState {
+  credits: number;
+  statementSupport: Map<number, number>;
 }
 
-type SetSupportAction = {
-  type: "SYNC_COMMITTED_SUPPORT";
-  payload: Pick<UserSupportState, "userSupport">;
+interface UserSupportState {
+  onChain?: OnChainUserState;
+  statementSupportAdjustments: Map<number, number>;
+  remainingCredits: number;
+  hasUncommittedChanges: boolean;
+  hasEnoughCredits: boolean;
+}
+
+type SyncOnChainState = {
+  type: "SYNC_ONCHAIN_STATE";
+  payload: Pick<UserSupportState, "onChain">;
 };
 
-type UpdateSupportAction = {
-  type: "UPDATE_SUPPORT";
-  payload: { statementId: bigint; newSupportValue: bigint };
+type UpdateSupportAdjustment = {
+  type: "UPDATE_SUPPORT_ADJUSTMENT";
+  payload: { statementId: bigint; newSupportAdjustmentValue: bigint };
 };
 
-type UserSupportAction = SetSupportAction | UpdateSupportAction;
+type ClearSupportAdjustments = {
+  type: "CLEAR_SUPPORT_ADJUSTMENTS";
+};
+
+type UserSupportAction = SyncOnChainState | UpdateSupportAdjustment | ClearSupportAdjustments;
 
 // Actions:
 // - SYNC_COMMITTED_SUPPORT
-// - UPDATE_SUPPORT
+// - UPDATE_SUPPORT_ADJUSTMENT
 
 const reducer = (
   state: UserSupportState,
@@ -44,46 +50,43 @@ const reducer = (
   let newState = { ...state };
 
   switch (action.type) {
-    case "SYNC_COMMITTED_SUPPORT": {
-      newState.userSupport = new Map(action.payload.userSupport);
-      newState.committedSupport = new Map(action.payload.userSupport);
+    case "SYNC_ONCHAIN_STATE": {
+      newState.onChain = action.payload.onChain;
       break;
     }
-    case "UPDATE_SUPPORT": {
-      const { statementId, newSupportValue } = action.payload;
-      newState.userSupport = new Map(state.userSupport);
-      if (newSupportValue === BigInt(0)) {
-        newState.userSupport.delete(Number(statementId));
+    case "UPDATE_SUPPORT_ADJUSTMENT": {
+      const { statementId, newSupportAdjustmentValue } = action.payload;
+      newState.statementSupportAdjustments = new Map(state.statementSupportAdjustments);
+      if (newSupportAdjustmentValue === BigInt(0)) {
+        newState.statementSupportAdjustments.delete(Number(statementId));
       } else {
-        newState.userSupport.set(Number(statementId), Number(newSupportValue));
+        newState.statementSupportAdjustments.set(Number(statementId), Number(newSupportAdjustmentValue));
       }
       break;
     }
+    case "CLEAR_SUPPORT_ADJUSTMENTS": {
+      newState.statementSupportAdjustments = new Map();
+      break;
+    }
   }
 
-  const cost = Array.from(newState.userSupport.values()).reduce(
-    (acc, v) => acc + v * v,
-    0,
-  );
+  let adjustmentCost = 0;
+  const supportedStatementIds = new Set(newState.onChain?.statementSupport.keys()).union(new Set(newState.statementSupportAdjustments?.keys()));
 
-  // let newState: UserVoteState;
-  if (cost > USER_CREDIT_BUDGET) {
-    newState = {
-      ...state,
-      error: `Support cost ${cost} exceeds budget of ${USER_CREDIT_BUDGET}`,
-    };
-  } else {
-    newState = {
-      ...newState,
-      remainingCredits: USER_CREDIT_BUDGET - cost,
-      creditBudget: USER_CREDIT_BUDGET,
-      hasUncommittedChanges: !_.isEqual(
-        newState.userSupport,
-        newState.committedSupport,
-      ),
-      error: null,
-    };
+  for (const statementId of supportedStatementIds) {
+    const committedSupport = newState.onChain?.statementSupport.get(statementId) || 0;
+    const adjustment = newState.statementSupportAdjustments?.get(statementId) || 0;
+    const adjusted = committedSupport + adjustment;
+    const [start, end] = committedSupport < adjusted ? [committedSupport + 1, adjusted] : [adjusted + 1, committedSupport];
+    adjustmentCost += (start + end) * (end - start + 1) / 2;
   }
+
+  newState = {
+    ...newState,
+    remainingCredits: newState.onChain.credits - adjustmentCost,
+    hasUncommittedChanges: newState.statementSupportAdjustments.size > 0,
+    hasEnoughCredits: newState.remainingCredits >= 0,
+  };
 
   console.log("Updating state: ", newState);
   return newState;
@@ -110,7 +113,7 @@ export const UserVoteContext = createContext<
 export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [state, dispatch] = useReducer(reducer, { error: null });
+  const [state, dispatch] = useReducer(reducer, { onChain: undefined, statementSupportAdjustments: new Map(), remainingCredits: 0, hasUncommittedChanges: false, hasEnoughCredits: true });
   const { writeContract } = useWriteContract();
   const { address } = useAccount();
   const { forumContractAddress } = useForum();
@@ -129,74 +132,68 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
 
   console.log("User verified status: ", isUserVerified);
 
-  const { data: _support } = useReadContract({
-    address: forumContractAddress,
-    abi: FORUM_ABI,
-    account: address,
-    functionName: "getUserStatementSupport",
-    args: [],
-    query: {
-      enabled: Boolean(address && isUserVerified),
-    },
+  const [
+    { data: onChainUserStatementSupport },
+    { data: onChainUserBalance },
+  ] = useReadContracts({
+    allowFailure: false,
+    contracts: [
+      {
+        address: forumContractAddress,
+        abi: FORUM_ABI,
+        account: address,
+        functionName: "getUserStatementSupport",
+        args: [],
+        query: {
+          enabled: Boolean(address && isUserVerified),
+        },
+      },
+      {
+        address: forumContractAddress,
+        abi: FORUM_ABI,
+        account: address,
+        functionName: "getUserBalance",
+        args: [],
+        query: {
+          enabled: Boolean(address && isUserVerified),
+        },
+      },
+    ],
   });
 
-  console.log("Fetched user support from contract: ", _support);
+  console.log("Fetched user support from contract: ", onChainUserStatementSupport);
 
   useEffect(() => {
     // Load state from blockchain
-    if (_support) {
-      const supportMap = new Map<number, number>();
-      _support.forEach((s) => {
-        supportMap.set(Number(s.statementId), Number(s.support));
+    if (onChainUserStatementSupport && onChainUserBalance) {
+      const _supportMap = new Map<number, number>();
+      onChainUserStatementSupport.forEach((s) => {
+        _supportMap.set(Number(s.statementId), Number(s.support));
       });
       dispatch({
-        type: "SYNC_COMMITTED_SUPPORT",
-        payload: { userSupport: supportMap },
+        type: "SYNC_ONCHAIN_STATE",
+        payload: { onChain: { credits: onChainUserBalance, statementSupport: _supportMap } },
       });
     }
-  }, [_support, address]);
+  }, [onChainUserStatementSupport, onChainUserBalance]);
 
   const commitSupport = useCallback(async () => {
-    if (state.userSupport && state.committedSupport) {
-      console.log("Committing support changes: ", state.userSupport);
+    if (state.hasUncommittedChanges && state.hasEnoughCredits) {
+      console.log("Committing support changes: ", state.statementSupportAdjustments);
 
       // Calculate adjustments (difference from committed state)
-      const adjustments: { statementId: bigint; value: bigint }[] = [];
+      const supportAdjustments = state.statementSupportAdjustments.forEach(
+        (value, statementId) => ({ statementId: BigInt(statementId), value: BigInt(value) }));
 
-      // Process new/changed support values
-      state.userSupport.forEach((newValue, statementId) => {
-        const oldValue = state.committedSupport!.get(statementId) || 0;
-        const delta = newValue - oldValue;
-        if (delta !== 0) {
-          adjustments.push({
-            statementId: BigInt(statementId),
-            value: BigInt(delta),
-          });
-        }
+      writeContract({
+        address: forumContractAddress,
+        abi: FORUM_ABI,
+        functionName: "adjustSupport",
+        args: [supportAdjustments],
       });
-
-      // Process removed support (statements that were in committed but not in new)
-      state.committedSupport.forEach((oldValue, statementId) => {
-        if (!state.userSupport!.has(statementId)) {
-          adjustments.push({
-            statementId: BigInt(statementId),
-            value: BigInt(-oldValue),
-          });
-        }
-      });
-
-      if (adjustments.length > 0) {
-        writeContract({
-          address: forumContractAddress,
-          abi: FORUM_ABI,
-          functionName: "adjustSupport",
-          args: [adjustments],
-        });
-      }
     }
   }, [
-    state.userSupport,
-    state.committedSupport,
+    state,
     writeContract,
     forumContractAddress,
   ]);

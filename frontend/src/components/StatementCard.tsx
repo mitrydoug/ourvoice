@@ -1,9 +1,10 @@
+import React, { FC } from "react";
 import { Card, Stack, Typography } from "@mui/material";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ArrowUpwardSharpIcon from "@mui/icons-material/ArrowUpwardSharp";
 import RemoveIcon from "@mui/icons-material/Remove";
 
-import React, { FC } from "react";
+
 import { useUserVotes } from "../state/UserVotes";
 import VoteToggle from "./VoteToggle";
 import { useBlockNumber, useReadContract } from "wagmi";
@@ -89,20 +90,17 @@ export const StatementCard: FC<StatementCardProps> = ({ statement }) => {
             {isUserVerified ? (
               <VoteToggle
                 userVoteCount={
-                  userVoteState.userSupport?.get(Number(statement.id)) || 0
+                  (userVoteState.statementSupportAdjustments?.get(Number(statement.id)) || 0) + (userVoteState.onChain?.statementSupport.get(Number(statement.id)) || 0)
                 }
                 uncommitedVote={
-                  (userVoteState.userSupport?.get(Number(statement.id)) ||
-                    0) !==
-                  (userVoteState.committedSupport?.get(Number(statement.id)) ||
-                    0)
+                  (userVoteState.onChain?.statementSupport.get(Number(statement.id)) || 0) !== 0
                 }
                 onUserVoteChange={(n) =>
                   dispatch({
-                    type: "UPDATE_SUPPORT",
+                    type: "UPDATE_SUPPORT_ADJUSTMENT",
                     payload: {
                       statementId: statement.id,
-                      newSupportValue: BigInt(n),
+                      newSupportAdjustmentValue: BigInt(n),
                     },
                   })
                 }
