@@ -92,7 +92,11 @@ export default function MenuAppBar() {
     }
   }, [address]);
 
-  const { isUserVerified, commitSupport, state: userVoteState } = useUserVotes();
+  const {
+    isUserVerified,
+    commitSupport,
+    state: userVoteState,
+  } = useUserVotes();
 
   const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
     console.log("here! ");

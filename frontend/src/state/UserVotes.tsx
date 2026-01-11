@@ -159,10 +159,10 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
   const commitSupport = useCallback(async () => {
     if (state.userSupport && state.committedSupport) {
       console.log("Committing support changes: ", state.userSupport);
-      
+
       // Calculate adjustments (difference from committed state)
       const adjustments: { statementId: bigint; value: bigint }[] = [];
-      
+
       // Process new/changed support values
       state.userSupport.forEach((newValue, statementId) => {
         const oldValue = state.committedSupport!.get(statementId) || 0;
@@ -174,7 +174,7 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
           });
         }
       });
-      
+
       // Process removed support (statements that were in committed but not in new)
       state.committedSupport.forEach((oldValue, statementId) => {
         if (!state.userSupport!.has(statementId)) {
@@ -184,7 +184,7 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
           });
         }
       });
-      
+
       if (adjustments.length > 0) {
         writeContract({
           address: forumContractAddress,
@@ -194,12 +194,22 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
         });
       }
     }
-  }, [state.userSupport, state.committedSupport, writeContract, forumContractAddress]);
+  }, [
+    state.userSupport,
+    state.committedSupport,
+    writeContract,
+    forumContractAddress,
+  ]);
 
   if (isUserVerified) {
     return (
       <UserVoteContext.Provider
-        value={{ isUserVerified: isUserVerified, state, dispatch, commitSupport }}
+        value={{
+          isUserVerified: isUserVerified,
+          state,
+          dispatch,
+          commitSupport,
+        }}
       >
         {children}
       </UserVoteContext.Provider>

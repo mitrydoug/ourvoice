@@ -92,8 +92,10 @@ export const StatementCard: FC<StatementCardProps> = ({ statement }) => {
                   userVoteState.userSupport?.get(Number(statement.id)) || 0
                 }
                 uncommitedVote={
-                  (userVoteState.userSupport?.get(Number(statement.id)) || 0) !==
-                  (userVoteState.committedSupport?.get(Number(statement.id)) || 0)
+                  (userVoteState.userSupport?.get(Number(statement.id)) ||
+                    0) !==
+                  (userVoteState.committedSupport?.get(Number(statement.id)) ||
+                    0)
                 }
                 onUserVoteChange={(n) =>
                   dispatch({
