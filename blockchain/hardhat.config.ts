@@ -25,6 +25,13 @@ const config: HardhatUserConfig = {
     },
   },
   networks: {
+    default: {
+      type: "edr-simulated",
+      mining: {
+        auto: true,
+        interval: 12000,
+      }
+    },
     local_sepolia_fork: {
       type: "edr-simulated",
       forking: {
