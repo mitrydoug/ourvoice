@@ -97,7 +97,8 @@ services:
       - ./backend:/app
     depends_on: [solr_setup, hardhat_mocked]
     command: sh -c "
-      source .venv/bin/activate
+      python3.12 -m venv .venv
+      && source .venv/bin/activate
       && python -m pip install uv
       && python -m uv pip sync requirements.txt
       && python src/ourvoice/main.py \
@@ -117,7 +118,8 @@ services:
       - "8000:8000"
     depends_on: [solr_setup, hardhat_mocked]
     command: sh -c "
-      source .venv/bin/activate
+      python3.12 -m venv .venv
+      && source .venv/bin/activate
       && python -m pip install uv
       && python -m uv pip sync requirements.txt
       && fastapi run src/ourvoice/search_service/main.py"
