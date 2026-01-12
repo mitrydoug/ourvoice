@@ -6,9 +6,18 @@ import React, {
   useEffect,
   useReducer,
 } from "react";
-import { useAccount, useReadContract, useReadContracts, useWriteContract } from "wagmi";
+import { useAccount, useBlockNumber, useReadContract, useReadContracts, useWriteContract } from "wagmi";
 import { FORUM_ABI, useForum } from "./Forum";
-import { stat } from "fs";
+
+interface StatementSupport {
+  statementId: bigint;
+  support: bigint;
+}
+
+interface SupportAdjustment {
+  statementId: bigint;
+  value: bigint;
+}
 
 interface OnChainUserState {
   credits: number;
@@ -25,7 +34,7 @@ interface UserSupportState {
 
 type SyncOnChainState = {
   type: "SYNC_ONCHAIN_STATE";
-  payload: Pick<UserSupportState, "onChain">;
+  payload: { credits: bigint; statementSupport: StatementSupport[]};
 };
 
 type UpdateSupportAdjustment = {
@@ -51,7 +60,14 @@ const reducer = (
 
   switch (action.type) {
     case "SYNC_ONCHAIN_STATE": {
-      newState.onChain = action.payload.onChain;
+      const _supportMap = new Map<number, number>();
+      action.payload.statementSupport.forEach((s) => {
+        _supportMap.set(Number(s.statementId), Number(s.support));
+      });
+      newState.onChain = {
+        credits: Number(action.payload.credits),
+        statementSupport: _supportMap,
+      };
       break;
     }
     case "UPDATE_SUPPORT_ADJUSTMENT": {
@@ -83,7 +99,7 @@ const reducer = (
 
   newState = {
     ...newState,
-    remainingCredits: newState.onChain.credits - adjustmentCost,
+    remainingCredits: newState.onChain ? newState.onChain.credits - adjustmentCost: 0,
     hasUncommittedChanges: newState.statementSupportAdjustments.size > 0,
     hasEnoughCredits: newState.remainingCredits >= 0,
   };
@@ -132,58 +148,59 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
 
   console.log("User verified status: ", isUserVerified);
 
-  const [
-    { data: onChainUserStatementSupport },
-    { data: onChainUserBalance },
-  ] = useReadContracts({
+  const { data, refetch } = useReadContracts({
     allowFailure: false,
+    account: address,
     contracts: [
       {
         address: forumContractAddress,
         abi: FORUM_ABI,
-        account: address,
         functionName: "getUserStatementSupport",
         args: [],
-        query: {
-          enabled: Boolean(address && isUserVerified),
-        },
+
       },
       {
         address: forumContractAddress,
         abi: FORUM_ABI,
-        account: address,
         functionName: "getUserBalance",
         args: [],
-        query: {
-          enabled: Boolean(address && isUserVerified),
-        },
       },
     ],
+    query: {
+      enabled: Boolean(address && isUserVerified),
+    },
   });
+
+  const [onChainUserStatementSupport, onChainUserBalance] = data || [];
 
   console.log("Fetched user support from contract: ", onChainUserStatementSupport);
 
   useEffect(() => {
     // Load state from blockchain
     if (onChainUserStatementSupport && onChainUserBalance) {
-      const _supportMap = new Map<number, number>();
-      onChainUserStatementSupport.forEach((s) => {
-        _supportMap.set(Number(s.statementId), Number(s.support));
-      });
       dispatch({
         type: "SYNC_ONCHAIN_STATE",
-        payload: { onChain: { credits: onChainUserBalance, statementSupport: _supportMap } },
+        payload: { credits: onChainUserBalance, statementSupport: onChainUserStatementSupport },
       });
     }
   }, [onChainUserStatementSupport, onChainUserBalance]);
+
+  const { data: blockNumber } = useBlockNumber({
+    watch: true,
+  });
+
+  useEffect(() => {
+    refetch();
+  }, [blockNumber]);
 
   const commitSupport = useCallback(async () => {
     if (state.hasUncommittedChanges && state.hasEnoughCredits) {
       console.log("Committing support changes: ", state.statementSupportAdjustments);
 
       // Calculate adjustments (difference from committed state)
-      const supportAdjustments = state.statementSupportAdjustments.forEach(
-        (value, statementId) => ({ statementId: BigInt(statementId), value: BigInt(value) }));
+      const supportAdjustments: SupportAdjustment[] = [];
+      state.statementSupportAdjustments.forEach(
+        (value, statementId) => supportAdjustments.push({ statementId: BigInt(statementId), value: BigInt(value) }));
 
       writeContract({
         address: forumContractAddress,
@@ -191,6 +208,8 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
         functionName: "adjustSupport",
         args: [supportAdjustments],
       });
+
+      dispatch({ type: "CLEAR_SUPPORT_ADJUSTMENTS" });
     }
   }, [
     state,
