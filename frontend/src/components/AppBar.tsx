@@ -188,17 +188,17 @@ export default function MenuAppBar() {
                 <Stack alignItems="center">
                   <Typography variant="body2">Credits</Typography>
                   <Typography>
-                    {userVoteState.remainingCredits}/
+                    {userVoteState.staged.credits}/
                     {userVoteState.onChain?.credits}
                   </Typography>
                 </Stack>
                 <IconButton
                   onClick={commitSupport}
-                  disabled={!userVoteState.hasUncommittedChanges}
+                  disabled={!userVoteState.hasStagedChanges}
                 >
                   <DoneAllIcon
                     sx={{
-                      color: userVoteState.hasUncommittedChanges
+                      color: userVoteState.hasStagedChanges
                         ? "primary.main"
                         : "",
                     }}

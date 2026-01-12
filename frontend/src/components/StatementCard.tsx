@@ -89,18 +89,18 @@ export const StatementCard: FC<StatementCardProps> = ({ statement }) => {
             )*/}
             {isUserVerified ? (
               <VoteToggle
-                userVoteCount={
-                  (userVoteState.statementSupportAdjustments?.get(Number(statement.id)) || 0) + (userVoteState.onChain?.statementSupport.get(Number(statement.id)) || 0)
+                userSupport={
+                  userVoteState.staged.statementSupport.get(Number(statement.id)) || 0
                 }
-                uncommitedVote={
-                  (userVoteState.onChain?.statementSupport.get(Number(statement.id)) || 0) !== 0
+                uncommitedSupport={
+                  (userVoteState.staged.statementSupport.get(Number(statement.id)) !== userVoteState.onChain?.statementSupport.get(Number(statement.id)))
                 }
                 onUserVoteChange={(n) =>
                   dispatch({
-                    type: "UPDATE_SUPPORT_ADJUSTMENT",
+                    type: "STAGE_USER_SUPPORT",
                     payload: {
                       statementId: statement.id,
-                      newSupportAdjustmentValue: BigInt(n),
+                      newSupport: BigInt(n),
                     },
                   })
                 }

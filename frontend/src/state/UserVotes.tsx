@@ -19,16 +19,15 @@ interface SupportAdjustment {
   value: bigint;
 }
 
-interface OnChainUserState {
+interface UserSupport {
   credits: number;
   statementSupport: Map<number, number>;
 }
 
 interface UserSupportState {
-  onChain?: OnChainUserState;
-  statementSupportAdjustments: Map<number, number>;
-  remainingCredits: number;
-  hasUncommittedChanges: boolean;
+  onChain?: UserSupport;
+  staged: UserSupport;
+  hasStagedChanges: boolean;
   hasEnoughCredits: boolean;
 }
 
@@ -37,16 +36,16 @@ type SyncOnChainState = {
   payload: { credits: bigint; statementSupport: StatementSupport[]};
 };
 
-type UpdateSupportAdjustment = {
-  type: "UPDATE_SUPPORT_ADJUSTMENT";
-  payload: { statementId: bigint; newSupportAdjustmentValue: bigint };
+type StageUserSupport = {
+  type: "STAGE_USER_SUPPORT";
+  payload: { statementId: bigint; newSupport: bigint };
 };
 
-type ClearSupportAdjustments = {
-  type: "CLEAR_SUPPORT_ADJUSTMENTS";
+type ClearStagedSupport = {
+  type: "CLEAR_STAGED_SUPPORT";
 };
 
-type UserSupportAction = SyncOnChainState | UpdateSupportAdjustment | ClearSupportAdjustments;
+type UserSupportAction = SyncOnChainState | StageUserSupport | ClearStagedSupport;
 
 // Actions:
 // - SYNC_COMMITTED_SUPPORT
@@ -70,38 +69,45 @@ const reducer = (
       };
       break;
     }
-    case "UPDATE_SUPPORT_ADJUSTMENT": {
-      const { statementId, newSupportAdjustmentValue } = action.payload;
-      newState.statementSupportAdjustments = new Map(state.statementSupportAdjustments);
-      if (newSupportAdjustmentValue === BigInt(0)) {
-        newState.statementSupportAdjustments.delete(Number(statementId));
+    case "STAGE_USER_SUPPORT": {
+      const { statementId, newSupport } = action.payload;
+      newState.staged.statementSupport = new Map(state.staged.statementSupport);
+      if (newSupport === BigInt(0)) {
+        newState.staged.statementSupport.delete(Number(statementId));
       } else {
-        newState.statementSupportAdjustments.set(Number(statementId), Number(newSupportAdjustmentValue));
+        newState.staged.statementSupport.set(Number(statementId), Number(newSupport));
       }
       break;
     }
-    case "CLEAR_SUPPORT_ADJUSTMENTS": {
-      newState.statementSupportAdjustments = new Map();
+    case "CLEAR_STAGED_SUPPORT": {
+      newState.staged = {
+        credits: newState.onChain ? newState.onChain.credits : 0,
+        statementSupport: new Map(state.onChain ? state.onChain.statementSupport : []),
+      }
       break;
     }
   }
 
   let adjustmentCost = 0;
-  const supportedStatementIds = new Set(newState.onChain?.statementSupport.keys()).union(new Set(newState.statementSupportAdjustments?.keys()));
+  const supportedStatementIds = new Set(newState.onChain?.statementSupport.keys()).union(new Set(newState.staged.statementSupport.keys()));
 
   for (const statementId of supportedStatementIds) {
-    const committedSupport = newState.onChain?.statementSupport.get(statementId) || 0;
-    const adjustment = newState.statementSupportAdjustments?.get(statementId) || 0;
-    const adjusted = committedSupport + adjustment;
-    const [start, end] = committedSupport < adjusted ? [committedSupport + 1, adjusted] : [adjusted + 1, committedSupport];
+    const onChainSupport = newState.onChain?.statementSupport.get(statementId) || 0;
+    const stagedSupport = newState.staged.statementSupport.get(statementId) || 0;
+    const [start, end] = onChainSupport < stagedSupport ? [onChainSupport + 1, stagedSupport] : [stagedSupport + 1, onChainSupport];
     adjustmentCost += (start + end) * (end - start + 1) / 2;
   }
 
+  const stagedCredits = (newState.onChain?.credits || 0) - adjustmentCost;
+
   newState = {
     ...newState,
-    remainingCredits: newState.onChain ? newState.onChain.credits - adjustmentCost: 0,
-    hasUncommittedChanges: newState.statementSupportAdjustments.size > 0,
-    hasEnoughCredits: newState.remainingCredits >= 0,
+    staged: {
+      ...newState.staged,
+      credits: stagedCredits,
+    },
+    hasStagedChanges: adjustmentCost > 0,
+    hasEnoughCredits: stagedCredits >= 0,
   };
 
   console.log("Updating state: ", newState);
@@ -129,7 +135,7 @@ export const UserVoteContext = createContext<
 export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [state, dispatch] = useReducer(reducer, { onChain: undefined, statementSupportAdjustments: new Map(), remainingCredits: 0, hasUncommittedChanges: false, hasEnoughCredits: true });
+  const [state, dispatch] = useReducer(reducer, { onChain: undefined, staged: {credits: 0, statementSupport:  new Map()}, hasStagedChanges: false, hasEnoughCredits: true });
   const { writeContract } = useWriteContract();
   const { address } = useAccount();
   const { forumContractAddress } = useForum();
@@ -194,13 +200,20 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
   }, [blockNumber]);
 
   const commitSupport = useCallback(async () => {
-    if (state.hasUncommittedChanges && state.hasEnoughCredits) {
-      console.log("Committing support changes: ", state.statementSupportAdjustments);
+    if (state.hasStagedChanges && state.hasEnoughCredits) {
+      console.log("Committing support changes: ", state.staged.statementSupport);
 
-      // Calculate adjustments (difference from committed state)
       const supportAdjustments: SupportAdjustment[] = [];
-      state.statementSupportAdjustments.forEach(
-        (value, statementId) => supportAdjustments.push({ statementId: BigInt(statementId), value: BigInt(value) }));
+      const supportedStatementIds = new Set(state.onChain?.statementSupport.keys()).union(new Set(state.staged.statementSupport.keys()));
+
+      for (const statementId of supportedStatementIds) {
+        const onChainSupport = state.onChain?.statementSupport.get(statementId) || 0;
+        const stagedSupport = state.staged.statementSupport.get(statementId) || 0;
+        const adjustment = stagedSupport - onChainSupport;
+        if (adjustment !== 0) {
+          supportAdjustments.push({ statementId: BigInt(statementId), value: BigInt(adjustment) });
+        }
+      }
 
       writeContract({
         address: forumContractAddress,
@@ -208,8 +221,6 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
         functionName: "adjustSupport",
         args: [supportAdjustments],
       });
-
-      dispatch({ type: "CLEAR_SUPPORT_ADJUSTMENTS" });
     }
   }, [
     state,
