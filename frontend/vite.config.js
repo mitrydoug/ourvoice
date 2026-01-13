@@ -11,4 +11,7 @@ export default defineConfig({
       buffer: "buffer",
     },
   },
+  server: {
+    allowedHosts: [".my.preview.run"],
+  }
 });
