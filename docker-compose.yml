@@ -92,7 +92,7 @@ services:
       dockerfile: Dockerfile
     working_dir: /app
     environment:
-      - FORUM_CONTRACT_ADDRESS
+      - FORUM_CONTRACT_ADDRESS=${FORUM_CONTRACT_ADDRESS:-0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512}
     volumes:
       - ./backend:/app
     depends_on: [solr_setup, hardhat_mocked]
