@@ -40,7 +40,7 @@ const config: HardhatUserConfig = {
     },
     compose_hardhat: {
       type: "http",
-      url: "http://hardhat_node:8545",
+      url: "http://hardhat_mocked:8545",
     }
   },
 };
