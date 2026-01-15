@@ -58,6 +58,8 @@ services:
       && npx hardhat compile
       && npx hardhat run scripts/deploy.ts --network compose_hardhat"
   frontend:
+    profiles:
+      - dev
     image: node:22-alpine
     working_dir: /app
     volumes:
@@ -69,6 +71,14 @@ services:
       hardhat_mocked:
         condition: service_healthy
     command: sh -c "npm install && npm run dev -- --host"
+  frontend_preview:
+    profiles:
+      - preview
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.preview
+    ports:
+      - "4173:4173"
   zoo:
     image: zookeeper:3.9
     environment:

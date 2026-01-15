@@ -13,5 +13,9 @@ export default defineConfig({
   },
   server: {
     allowedHosts: [".my.preview.run"],
+    host: true,
   },
+  preview: {
+    host: true
+  }
 });

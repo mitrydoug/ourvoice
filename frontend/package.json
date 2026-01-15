@@ -26,6 +26,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "vite",
     "build": "vite build",
+    "preview": "vite preview",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
