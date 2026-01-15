@@ -1,0 +1,1 @@
+echo "COMPOSE_PROFILES=preview" > .env

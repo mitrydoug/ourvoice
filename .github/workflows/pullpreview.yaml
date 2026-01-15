@@ -21,7 +21,7 @@ jobs:
       with:
         admins: mitrydoug
         compose_files: docker-compose.yml
-        pre_script: echo "COMPOSE_PROFILES=preview" > .env
+        pre_script: ./preview_setup.sh
         default_port: 4173
         ports: 4173,8000,8545
         instance_size: "medium"
