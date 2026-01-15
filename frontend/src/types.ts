@@ -1,7 +1,7 @@
 export type Statement = {
   id: bigint;
   text: string;
-  voteCount: bigint;
+  createdTimestamp: bigint;
+  support: bigint;
   rank: bigint;
-  timestamp: bigint;
 };

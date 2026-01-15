@@ -4,30 +4,35 @@ pragma solidity ^0.8.28;
 import "./Constants.sol";
 import "./StringUtils.sol";
 
-
 struct Registration {
     bytes32 uniqueIdentifier; // Unique identifier (e.g., hash of government ID)
     string nationality; // User's nationality or "" if not disclosed
     address[] registeredAddresses; // Addresses associated with this unique identifier
+    uint registrationTimestamp; // Timestamp of initial registration
 }
 
 abstract contract AOurVoiceRegistry {
-
     // Map users to their registrations and verified unique identifiers
     mapping(address => bytes32) public userIdFromAddress;
     mapping(bytes32 => Registration) public userRegistrations;
 
-    function _registerHelper(bytes32 userId, string memory nationality) internal returns (bytes32) {
-
+    function _registerHelper(
+        bytes32 userId,
+        string memory nationality
+    ) internal returns (bytes32) {
         Registration storage registration = userRegistrations[userId];
         if (registration.uniqueIdentifier == NO_USER) {
             registration.uniqueIdentifier = userId;
+            registration.registrationTimestamp = block.timestamp;
         }
 
         if (StringUtils.isEmpty(registration.nationality)) {
             registration.nationality = nationality;
         } else if (!StringUtils.isEmpty(nationality)) {
-            require(StringUtils.equals(registration.nationality, nationality), "A registration may not switch nationalities");
+            require(
+                StringUtils.equals(registration.nationality, nationality),
+                "A registration may not switch nationalities"
+            );
         }
 
         if (userIdFromAddress[msg.sender] == NO_USER) {
@@ -39,15 +44,22 @@ abstract contract AOurVoiceRegistry {
     }
 
     function isRegistered(address _userAddress) public view returns (bool) {
-        return userRegistrations[userIdFromAddress[_userAddress]].uniqueIdentifier != NO_USER;
+        return
+            userRegistrations[userIdFromAddress[_userAddress]]
+                .uniqueIdentifier != NO_USER;
     }
 
-    function getUserIdentifier(address _userAddress) external view returns (bytes32) {
+    function getUserIdentifier(
+        address _userAddress
+    ) external view returns (bytes32) {
         require(isRegistered(_userAddress), "User is not registered");
-        return userRegistrations[userIdFromAddress[_userAddress]].uniqueIdentifier;
+        return
+            userRegistrations[userIdFromAddress[_userAddress]].uniqueIdentifier;
     }
 
-    function getUserRegistration(address _userAddress) external view returns (Registration memory) {
+    function getUserRegistration(
+        address _userAddress
+    ) external view returns (Registration memory) {
         require(isRegistered(_userAddress), "User is not registered");
         return userRegistrations[userIdFromAddress[_userAddress]];
     }

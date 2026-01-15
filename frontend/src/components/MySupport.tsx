@@ -17,7 +17,7 @@ const MySupport: FC = () => {
 
   const statementIds = useMemo(
     () =>
-      Array.from(userVoteState?.userVotes?.entries() || [])
+      Array.from(userVoteState?.userSupport?.entries() || [])
         .sort((e1, e2) => e2[1] - e1[1])
         .map((e) => BigInt(e[0])),
     [userVoteState],

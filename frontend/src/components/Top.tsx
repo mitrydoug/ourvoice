@@ -16,7 +16,7 @@ const Top: FC = () => {
       {
         address: forumContractAddress,
         abi: FORUM_ABI,
-        functionName: "statementCount",
+        functionName: "rankedCount",
         args: [],
       },
       {
@@ -28,14 +28,14 @@ const Top: FC = () => {
     ],
   });
 
-  const statementsCount =
+  const rankedCount =
     result.data && (result.data[0].result as bigint | undefined);
   const statementsPage =
     result.data && (result.data[1].result as Statement[] | undefined);
 
   const lastPage = Math.min(
     Math.max(10, 2 * page),
-    Math.floor((Number(statementsCount) - 1) / PAGE_SIZE) + 1,
+    Math.floor((Number(rankedCount) - 1) / PAGE_SIZE) + 1,
   );
   console.log("page is ", page);
   console.log("lastPage is ", lastPage);

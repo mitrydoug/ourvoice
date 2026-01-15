@@ -1,8 +1,8 @@
-This repository defines a distributed application (DApp) with a typescript+react frontend and a smart contract-based backend. There is no traditional backend server; instead, all business logic is handled by smart contracts deployed on the blockchain. Please follow these guidelines when contributing:
+This repository defines a distributed application (DApp) with a typescript+react frontend and a smart contract-based backend. There is no traditional backend server; instead, all business logic is handled by smart contracts deployed on the blockchain. Backend services exist to support text-search and indexing of blockchain data.
 
 ## Project Structure
 
-The project is organized into two main directories:
+The project is organized into three main directories:
 - `frontend/`: Contains the React application code
   - `src/`: Main source code for the frontend
   - `public/`: Static assets for the frontend
@@ -10,6 +10,8 @@ The project is organized into two main directories:
   - `contracts/`: Solidity smart contracts
   - `scripts/`: Hardhat scripts for deployment and testing
   - `ignition/`: Hardhat ignition modules
+- `backend/`:
+  - `src/`: Source code for backend services supporting blockchain data indexing and search
 
 Npm is used in both for managing dependencies and defining scripts. `frontend` involves typical React development, while `blockchain` focuses on smart contract development using Solidity.
 
