@@ -23,7 +23,7 @@ jobs:
         compose_files: docker-compose.yml
         compose_options: --build,--profile=preview
         default_port: 5173
-        ports: 5173,8000,8545
+        ports: 4173,8000,8545
         ttl: 12h
       env:
         AWS_ACCESS_KEY_ID: "${{ secrets.PR_AWS_ACCESS_KEY_ID }}"
