@@ -21,7 +21,7 @@ jobs:
       with:
         admins: mitrydoug
         compose_files: docker-compose.yml
-        default_port: 5173
+        default_port: 4173
         ports: 4173,8000,8545
         instance_size: "medium"
         ttl: 12h
