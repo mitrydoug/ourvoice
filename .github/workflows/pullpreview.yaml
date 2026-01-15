@@ -21,6 +21,7 @@ jobs:
       with:
         admins: mitrydoug
         compose_files: docker-compose.yml
+        pre_script: echo "COMPOSE_PROFILES=preview" > .env
         default_port: 4173
         ports: 4173,8000,8545
         instance_size: "medium"
@@ -29,4 +30,3 @@ jobs:
         AWS_ACCESS_KEY_ID: "${{ secrets.PR_AWS_ACCESS_KEY_ID }}"
         AWS_SECRET_ACCESS_KEY: "${{ secrets.PR_AWS_SECRET_ACCESS_KEY }}"
         AWS_REGION: "us-east-1"
-        COMPOSE_PROFILES: "preview"
