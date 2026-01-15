@@ -16,6 +16,6 @@ export default defineConfig({
     host: true,
   },
   preview: {
-    host: true
-  }
+    host: true,
+  },
 });
