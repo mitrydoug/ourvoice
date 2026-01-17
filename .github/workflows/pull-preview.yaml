@@ -6,7 +6,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ourvoice-site-preview
+  IMAGE_NAME: mitrydoug/ourvoice-site-preview
 
 jobs:
   build_and_publish_site_preview_image:
