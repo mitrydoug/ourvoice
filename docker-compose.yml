@@ -74,9 +74,7 @@ services:
   frontend_preview:
     profiles:
       - preview
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile.preview
+    image: ghcr.io/ourvoice/ourvoice-site-preview:lastest
     ports:
       - "4173:4173"
   zoo:
