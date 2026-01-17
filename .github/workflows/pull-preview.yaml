@@ -12,9 +12,6 @@ jobs:
   build_and_publish_site_preview_image:
     name: Build and Publish Site Preview Image
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
     permissions:
       packages: write
       contents: read
@@ -42,7 +39,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./Dockerfile.preview
+          file: ./frontend/Dockerfile.preview
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
