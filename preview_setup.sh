@@ -1,1 +1,1 @@
-echo "COMPOSE_PROFILES=preview" > .env
+export COMPOSE_PROFILES=preview
