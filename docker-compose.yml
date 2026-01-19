@@ -74,7 +74,7 @@ services:
   frontend_preview:
     profiles:
       - preview
-    image: ghcr.io/ourvoice/ourvoice-site-preview:lastest
+    image: ghcr.io/ourvoice/ourvoice-site-preview:${PR_TAG}
     ports:
       - "4173:4173"
   zoo:
