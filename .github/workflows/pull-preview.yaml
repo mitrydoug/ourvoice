@@ -94,7 +94,9 @@ jobs:
           push-to-registry: true
   deploy:
     name: deploy
-    needs: build_and_publish_site_preview_image
+    needs:
+      - build_and_publish_frontend_preview_image
+      - build_and_publish_backend_preview_image
     permissions:
       contents: read # to fetch code (actions/checkout)
       deployments: write # to delete deployments
