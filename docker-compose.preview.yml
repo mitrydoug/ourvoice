@@ -58,19 +58,12 @@ services:
       && npx hardhat compile
       && npx hardhat run scripts/deploy.ts --network compose_hardhat"
   frontend:
-    profiles:
-      - dev
-    image: node:22-alpine
-    working_dir: /app
-    volumes:
-      - ./frontend:/app
-      - ./frontend/src/contracts.ts:/app/src/contracts.ts
+    image: ghcr.io/mitrydoug/ourvoice-site-preview:${PR_TAG}
     ports:
-      - "5173:5173"
+      - "4173:4173"
     depends_on:
       hardhat_mocked:
         condition: service_healthy
-    command: sh -c "npm install && npm run dev -- --host"
   zoo:
     image: zookeeper:3.9
     environment:
@@ -110,33 +103,20 @@ services:
     volumes:
       - ./backend/ourvoice-solr-schema.json:/data/ourvoice-solr-schema.json:ro
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ghcr.io/mitrydoug/ourvoice-backend-preview:${PR_TAG}
     working_dir: /app
-    volumes:
-      - ./backend:/app
     depends_on:
       contract_deployer:
         condition: service_completed_successfully
-    command: sh -c "
-      python -m venv .venv || true
-      && source .venv/bin/activate
-      && python -m pip install uv
-      && python -m uv pip sync requirements.txt
-      && python src/ourvoice/main.py \
-          --forum-contract-address '${FORUM_CONTRACT_ADDRESS:-0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0}' \
-          --ethereum-node-url ws://hardhat_mocked:8545 \
-          --solr-url http://solr:8983/solr/ourvoice"
+    command: python src/ourvoice/main.py \
+      --forum-contract-address '${FORUM_CONTRACT_ADDRESS:-0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0}' \
+      --ethereum-node-url ws://hardhat_mocked:8545 \
+      --solr-url http://solr:8983/solr/ourvoice
   backend_service:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ghcr.io/mitrydoug/ourvoice-backend-preview:${PR_TAG}
     working_dir: /app
     environment:
       - SOLR_URL=http://solr:8983/solr/ourvoice
-    volumes:
-      - ./backend:/app
     ports:
       - "8000:8000"
     depends_on:
@@ -144,9 +124,4 @@ services:
         condition: service_completed_successfully
       contract_deployer:
         condition: service_completed_successfully
-    command: sh -c "
-      python -m venv .venv || true
-      && source .venv/bin/activate
-      && python -m pip install uv
-      && python -m uv pip sync requirements.txt
-      && fastapi run src/ourvoice/search_service/main.py"
+    command: fastapi run src/ourvoice/search_service/main.py

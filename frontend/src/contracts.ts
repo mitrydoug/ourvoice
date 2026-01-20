@@ -16,6 +16,11 @@ export const FORUM_ABI = [
         name: "_nationality",
         type: "string",
       },
+      {
+        internalType: "uint256",
+        name: "_maxRankedStatements",
+        type: "uint256",
+      },
     ],
     stateMutability: "nonpayable",
     type: "constructor",
@@ -96,14 +101,8 @@ export const FORUM_ABI = [
     type: "function",
   },
   {
-    inputs: [
-      {
-        internalType: "int256",
-        name: "_userSupport",
-        type: "int256",
-      },
-    ],
-    name: "_costOfUserSupport",
+    inputs: [],
+    name: "USER_STARTING_CREDITS",
     outputs: [
       {
         internalType: "uint256",
@@ -111,7 +110,7 @@ export const FORUM_ABI = [
         type: "uint256",
       },
     ],
-    stateMutability: "pure",
+    stateMutability: "view",
     type: "function",
   },
   {
@@ -297,6 +296,19 @@ export const FORUM_ABI = [
   },
   {
     inputs: [],
+    name: "getUserBalance",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
     name: "getUserStatementSupport",
     outputs: [
       {
@@ -328,6 +340,19 @@ export const FORUM_ABI = [
         internalType: "bool",
         name: "",
         type: "bool",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "maxRankedStatements",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
       },
     ],
     stateMutability: "view",
@@ -508,30 +533,6 @@ export const FORUM_ABI = [
     stateMutability: "view",
     type: "function",
   },
-  {
-    inputs: [
-      {
-        internalType: "bytes32",
-        name: "",
-        type: "bytes32",
-      },
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
-    name: "userSupportedStatements",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
 ] as const;
 
 export const registryContractConfig = {
@@ -582,6 +583,11 @@ export const registryContractConfig = {
               internalType: "address[]",
               name: "registeredAddresses",
               type: "address[]",
+            },
+            {
+              internalType: "uint256",
+              name: "registrationTimestamp",
+              type: "uint256",
             },
           ],
           internalType: "struct Registration",
@@ -668,6 +674,11 @@ export const registryContractConfig = {
           internalType: "string",
           name: "nationality",
           type: "string",
+        },
+        {
+          internalType: "uint256",
+          name: "registrationTimestamp",
+          type: "uint256",
         },
       ],
       stateMutability: "view",
