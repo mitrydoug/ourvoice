@@ -1,5 +1,41 @@
 import { createTheme } from "@mui/material";
 
+// Type augmentation for custom theme tokens
+declare module "@mui/material/styles" {
+  interface Theme {
+    custom: {
+      appBar: {
+        logoIcon: {
+          size: {
+            mobile: string;
+            desktop: string;
+          };
+        };
+        spacing: {
+          mobile: number;
+          desktop: number;
+        };
+      };
+    };
+  }
+  interface ThemeOptions {
+    custom?: {
+      appBar?: {
+        logoIcon?: {
+          size?: {
+            mobile?: string;
+            desktop?: string;
+          };
+        };
+        spacing?: {
+          mobile?: number;
+          desktop?: number;
+        };
+      };
+    };
+  }
+}
+
 export const theme = createTheme({
   colorSchemes: {
     light: {
@@ -29,6 +65,37 @@ export const theme = createTheme({
         variant: "contained",
         size: "small",
         sx: { textTransform: "none" },
+      },
+    },
+    MuiAvatar: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          width: 40,
+          height: 40,
+          [theme.breakpoints.down("md")]: {
+            width: 32,
+            height: 32,
+          },
+        }),
+      },
+    },
+    MuiStack: {
+      defaultProps: {
+        spacing: 2,
+      },
+    },
+  },
+  custom: {
+    appBar: {
+      logoIcon: {
+        size: {
+          mobile: "2rem",
+          desktop: "2.75rem",
+        },
+      },
+      spacing: {
+        mobile: 1,
+        desktop: 2,
       },
     },
   },

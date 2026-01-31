@@ -16,7 +16,6 @@ const VoteToggle: FC<VoteToggleProps> = ({
   uncommitedSupport,
   onUserVoteChange,
 }) => {
-
   return (
     <Stack direction="row" alignItems="center" spacing={1}>
       <Stack

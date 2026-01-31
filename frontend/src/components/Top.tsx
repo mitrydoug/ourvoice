@@ -1,15 +1,27 @@
-import React, { FC, useState } from "react";
+import React, { FC, useState, useEffect, useCallback } from "react";
 import { useReadContracts } from "wagmi";
 import { useForum, FORUM_ABI } from "../state/Forum";
 import { Statement } from "../types";
 import StatementList from "./StatementList";
-
-const PAGE_SIZE = 10;
+import useIsMobile from "@/hooks/useIsMobile";
 
 const Top: FC = () => {
   const { forumContractAddress } = useForum();
+  const isMobile = useIsMobile();
 
-  const [page, setPage] = useState(1);
+  const PAGE_SIZE = isMobile ? 10 : 20;
+
+  const [statements, setStatements] = useState<Statement[]>([]);
+  const [offset, setOffset] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+
+  // Reset state when forum changes
+  useEffect(() => {
+    setStatements([]);
+    setOffset(0);
+    setHasMore(true);
+  }, [forumContractAddress]);
 
   const result = useReadContracts({
     contracts: [
@@ -23,7 +35,7 @@ const Top: FC = () => {
         address: forumContractAddress,
         abi: FORUM_ABI,
         functionName: "getRankedStatementsPage",
-        args: [BigInt((page - 1) * PAGE_SIZE), BigInt(PAGE_SIZE)],
+        args: [BigInt(offset), BigInt(PAGE_SIZE)],
       },
     ],
   });
@@ -33,22 +45,42 @@ const Top: FC = () => {
   const statementsPage =
     result.data && (result.data[1].result as Statement[] | undefined);
 
-  const lastPage = Math.min(
-    Math.max(10, 2 * page),
-    Math.floor((Number(rankedCount) - 1) / PAGE_SIZE) + 1,
-  );
-  console.log("page is ", page);
-  console.log("lastPage is ", lastPage);
+  // Update loading state based on query status
+  useEffect(() => {
+    setIsLoading(result.isLoading || result.isFetching);
+  }, [result.isLoading, result.isFetching]);
 
-  return statementsPage ? (
+  // Append new statements when data arrives
+  useEffect(() => {
+    if (statementsPage && statementsPage.length > 0 && !result.isLoading) {
+      setStatements((prev) => {
+        // Avoid duplicates by checking if we already have these statements
+        if (prev.length >= offset + statementsPage.length) {
+          return prev;
+        }
+        return [...prev, ...statementsPage];
+      });
+
+      // Check if there are more statements to load
+      if (rankedCount !== undefined) {
+        setHasMore(offset + statementsPage.length < Number(rankedCount));
+      }
+    }
+  }, [statementsPage, offset, rankedCount, result.isLoading]);
+
+  const handleLoadMore = useCallback(() => {
+    if (!isLoading && hasMore) {
+      setOffset((prev) => prev + PAGE_SIZE);
+    }
+  }, [isLoading, hasMore, PAGE_SIZE]);
+
+  return (
     <StatementList
-      statements={statementsPage}
-      page={page}
-      pageCount={lastPage}
-      onPageChange={setPage}
+      statements={statements}
+      hasMore={hasMore}
+      isLoading={isLoading}
+      onLoadMore={handleLoadMore}
     />
-  ) : (
-    <></>
   );
 };
 

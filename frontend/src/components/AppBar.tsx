@@ -31,6 +31,8 @@ import { useForum } from "../state/Forum";
 import { metamaskIcon } from "../util";
 import { useWeb3AuthConnect } from "@web3auth/modal/react";
 import SearchModal from "./SearchModal";
+import useIsMobile from "@/hooks/useIsMobile";
+import { useTheme } from "@mui/material/styles";
 
 const MIC_ICON = (
   <svg
@@ -61,11 +63,237 @@ const MIC_ICON = (
   </svg>
 );
 
+// Sub-components
+interface ForumSelectorProps {
+  forumName: string;
+  onClick: () => void;
+}
+
+const ForumSelector: React.FC<ForumSelectorProps> = ({ forumName, onClick }) => (
+  <IconButton
+    size="medium"
+    aria-controls="menu-appbar"
+    aria-haspopup="true"
+    onClick={onClick}
+    color="inherit"
+  >
+    <Avatar
+      src={FORUMS[forumName].iconSrc}
+      variant="rounded"
+      style={{ height: "1.7rem", width: "1.7rem" }}
+    />
+  </IconButton>
+);
+
+interface LogoProps {
+  isMobile: boolean;
+}
+
+const Logo: React.FC<LogoProps> = ({ isMobile }) => {
+  const theme = useTheme();
+
+  return (
+    <Link to="/" style={{ textDecoration: "none" }}>
+      <Stack
+        direction="row"
+        alignItems="center"
+        spacing={{ xs: 0.5, md: 1 }}
+        sx={{ color: "primary.main", cursor: "pointer" }}
+      >
+        <Box
+          sx={{
+            height: {
+              xs: theme.custom.appBar.logoIcon.size.mobile,
+              md: theme.custom.appBar.logoIcon.size.desktop,
+            },
+            width: {
+              xs: theme.custom.appBar.logoIcon.size.mobile,
+              md: theme.custom.appBar.logoIcon.size.desktop,
+            },
+            flexShrink: 0,
+          }}
+        >
+          {MIC_ICON}
+        </Box>
+        <Typography
+          variant={isMobile ? "h5" : "h4"}
+          component="div"
+          sx={{
+            fontFamily: "Sriracha",
+            fontWeight: "bold",
+            color: "primary.main",
+            whiteSpace: "nowrap",
+          }}
+        >
+          Our Voice
+        </Typography>
+      </Stack>
+    </Link>
+  );
+};
+
+interface SearchFieldProps {
+  onClick: () => void;
+  fullWidth?: boolean;
+}
+
+const SearchField: React.FC<SearchFieldProps> = ({ onClick, fullWidth = false }) => (
+  <TextField
+    placeholder="Search..."
+    size="small"
+    onClick={onClick}
+    slotProps={{
+      input: {
+        readOnly: true,
+        startAdornment: (
+          <InputAdornment position="start">
+            <SearchIcon fontSize="small" />
+          </InputAdornment>
+        ),
+        sx: { cursor: "pointer", backgroundColor: "white" },
+      },
+    }}
+    sx={{
+      width: fullWidth ? "100%" : "auto",
+      flexGrow: 1,
+      "& .MuiOutlinedInput-root": {
+        cursor: "pointer",
+        backgroundColor: "white",
+      },
+    }}
+  />
+);
+
+interface UserActionsProps {
+  userVoteState: any;
+  commitSupport: () => void;
+  onWriteClick: () => void;
+}
+
+const UserActions: React.FC<UserActionsProps> = ({
+  userVoteState,
+  commitSupport,
+  onWriteClick,
+}) => (
+  <>
+    <Stack alignItems="center" spacing={0}>
+      <Typography variant="body2">Credits</Typography>
+      <Typography variant="body1">
+        {userVoteState.staged.credits}/{userVoteState.onChain?.credits}
+      </Typography>
+    </Stack>
+    <IconButton
+      onClick={commitSupport}
+      disabled={!userVoteState.hasStagedChanges}
+    >
+      <DoneAllIcon
+        sx={{
+          color: userVoteState.hasStagedChanges ? "primary.main" : "",
+        }}
+      />
+    </IconButton>
+    <Button startIcon={<CreateIcon />} onClick={onWriteClick}>
+      <Typography variant="body1" component="div">
+        Write
+      </Typography>
+    </Button>
+  </>
+);
+
+interface AccountMenuProps {
+  anchorEl: HTMLElement | null;
+  open: boolean;
+  onClose: () => void;
+  isUserVerified: boolean;
+  navigate: (path: string) => void;
+  disconnect: () => void;
+}
+
+const AccountMenu: React.FC<AccountMenuProps> = ({
+  anchorEl,
+  open,
+  onClose,
+  isUserVerified,
+  navigate,
+  disconnect,
+}) => (
+  <Menu
+    anchorEl={anchorEl}
+    id="account-menu"
+    open={open}
+    onClose={onClose}
+    onClick={onClose}
+    slotProps={{
+      paper: {
+        elevation: 0,
+        sx: {
+          overflow: "visible",
+          filter: "drop-shadow(0px 2px 8px rgba(0,0,0,0.32))",
+          mt: 1.5,
+          "& .MuiAvatar-root": {
+            width: 32,
+            height: 32,
+            ml: -0.5,
+            mr: 1,
+          },
+          "&::before": {
+            content: '""',
+            display: "block",
+            position: "absolute",
+            top: 0,
+            right: 14,
+            width: 10,
+            height: 10,
+            bgcolor: "background.paper",
+            transform: "translateY(-50%) rotate(45deg)",
+            zIndex: 0,
+          },
+        },
+      },
+    }}
+    transformOrigin={{ horizontal: "right", vertical: "top" }}
+    anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
+  >
+    {isUserVerified ? (
+      <>
+        <MenuItem onClick={() => navigate("/account")}>
+          <ListItemIcon>
+            <PersonOutlineOutlinedIcon />
+          </ListItemIcon>
+          Account
+        </MenuItem>
+
+        <MenuItem onClick={() => navigate("/my-support")}>
+          <ListItemIcon>
+            <FavoriteBorderIcon fontSize="small" />
+          </ListItemIcon>
+          My Support
+        </MenuItem>
+      </>
+    ) : (
+      <MenuItem onClick={() => navigate("/verify")}>
+        <ListItemIcon>
+          <HowToRegIcon fontSize="small" />
+        </ListItemIcon>
+        Get verified
+      </MenuItem>
+    )}
+    <Divider />
+    <MenuItem onClick={() => disconnect()}>
+      <ListItemIcon>
+        <Logout fontSize="small" />
+      </ListItemIcon>
+      Disconnect
+    </MenuItem>
+  </Menu>
+);
+
 export default function MenuAppBar() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const [avatar, setAvatar] = useState<string | null>(null);
   const { address } = useAccount();
+  const isMobile = useIsMobile();
   const [writeModalOpen, setWriteModalOpen] = useState(false);
   const [chooseForumModalOpen, setChooseForumModalOpen] = useState(false);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
@@ -120,193 +348,133 @@ export default function MenuAppBar() {
         elevation={0}
         sx={{ mt: 2 }}
       >
-        <Toolbar disableGutters>
-          <Stack direction="row" spacing={2} alignItems="center" flexGrow={1}>
-            <Link to="/" style={{ textDecoration: "none" }}>
-              <Stack
-                direction="row"
-                alignItems="center"
-                sx={{ color: "primary.main", cursor: "pointer" }}
-              >
-                <Box sx={{ height: "2.75rem", width: "2.75rem" }}>
-                  {MIC_ICON}
-                </Box>
-                <Typography
-                  variant="h4"
-                  component="div"
-                  sx={{
-                    fontFamily: "Sriracha",
-                    fontWeight: "bold",
-                    color: "primary.main",
-                  }}
-                >
-                  Our Voice
-                </Typography>
-              </Stack>
-            </Link>
-            <IconButton
-              size="medium"
-              aria-controls="menu-appbar"
-              aria-haspopup="true"
-              onClick={() => {
-                setChooseForumModalOpen(true);
-              }}
-              color="inherit"
-            >
-              <Avatar
-                src={FORUMS[forumName].iconSrc}
-                variant="rounded"
-                style={{ height: "1.7rem", width: "1.7rem" }}
-              />
-            </IconButton>
+        <Toolbar
+          disableGutters
+          sx={{ flexDirection: "column", alignItems: "stretch" }}
+        >
+          {/* First row: Three-section layout */}
+          {isMobile ? (
+            <Stack direction="row" alignItems="center" sx={{ width: "100%" }}>
+              {/* Left section: Forum icon */}
+              <Box sx={{ flex: 1, display: "flex", justifyContent: "flex-start" }}>
+                <ForumSelector
+                  forumName={forumName}
+                  onClick={() => setChooseForumModalOpen(true)}
+                />
+              </Box>
 
-            <span style={{ flexGrow: 1 }}></span>
-            <TextField
-              placeholder="Search..."
-              size="small"
-              onClick={() => setSearchModalOpen(true)}
-              slotProps={{
-                input: {
-                  readOnly: true,
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon fontSize="small" />
-                    </InputAdornment>
-                  ),
-                  sx: { cursor: "pointer" },
-                },
-              }}
-              sx={{
-                width: "150px",
-                "& .MuiOutlinedInput-root": {
-                  cursor: "pointer",
-                },
-              }}
-            />
-            {isUserVerified && (
-              <>
-                <Stack alignItems="center">
-                  <Typography variant="body2">Credits</Typography>
-                  <Typography>
-                    {userVoteState.staged.credits}/
-                    {userVoteState.onChain?.credits}
-                  </Typography>
-                </Stack>
-                <IconButton
-                  onClick={commitSupport}
-                  disabled={!userVoteState.hasStagedChanges}
-                >
-                  <DoneAllIcon
-                    sx={{
-                      color: userVoteState.hasStagedChanges
-                        ? "primary.main"
-                        : "",
-                    }}
+              {/* Center section: Logo */}
+              <Box sx={{ flex: 1, display: "flex", justifyContent: "center" }}>
+                <Logo isMobile={isMobile} />
+              </Box>
+
+              {/* Right section: Account */}
+              <Box sx={{ flex: 1, display: "flex", justifyContent: "flex-end" }}>
+                {address ? (
+                  <>
+                    <IconButton
+                      size="medium"
+                      aria-label="account of current user"
+                      aria-controls="menu-appbar"
+                      aria-haspopup="true"
+                      aria-describedby={id}
+                      onClick={handleMenu}
+                      color="inherit"
+                    >
+                      <Avatar src={avatar ?? undefined} />
+                    </IconButton>
+                    <AccountMenu
+                      anchorEl={anchorEl}
+                      open={open}
+                      onClose={handleClose}
+                      isUserVerified={isUserVerified}
+                      navigate={navigate}
+                      disconnect={disconnect}
+                    />
+                  </>
+                ) : (
+                  <Button
+                    onClick={() => setConnectRequested(true)}
+                    size="small"
+                  >
+                    <Typography variant="body1" component="div">
+                      Connect
+                    </Typography>
+                  </Button>
+                )}
+              </Box>
+            </Stack>
+          ) : (
+            <Stack
+              direction="row"
+              spacing={2}
+              alignItems="center"
+              flexGrow={1}
+            >
+              {/* Desktop layout */}
+              <Logo isMobile={isMobile} />
+
+              <ForumSelector
+                forumName={forumName}
+                onClick={() => setChooseForumModalOpen(true)}
+              />
+
+              <SearchField onClick={() => setSearchModalOpen(true)} />
+
+              {isUserVerified && (
+                <UserActions
+                  userVoteState={userVoteState}
+                  commitSupport={commitSupport}
+                  onWriteClick={() => setWriteModalOpen(true)}
+                />
+              )}
+
+              {address ? (
+                <>
+                  <IconButton
+                    size="medium"
+                    aria-label="account of current user"
+                    aria-controls="menu-appbar"
+                    aria-haspopup="true"
+                    aria-describedby={id}
+                    onClick={handleMenu}
+                    color="inherit"
+                  >
+                    <Avatar src={avatar ?? undefined} />
+                  </IconButton>
+                  <AccountMenu
+                    anchorEl={anchorEl}
+                    open={open}
+                    onClose={handleClose}
+                    isUserVerified={isUserVerified}
+                    navigate={navigate}
+                    disconnect={disconnect}
                   />
-                </IconButton>
+                </>
+              ) : (
                 <Button
-                  startIcon={<CreateIcon />}
-                  onClick={() => setWriteModalOpen(true)}
+                  onClick={() => setConnectRequested(true)}
+                  size="medium"
                 >
                   <Typography variant="body1" component="div">
-                    {" "}
-                    Write{" "}
+                    Connect
                   </Typography>
                 </Button>
-              </>
-            )}
-            {address ? (
-              <>
-                <IconButton
-                  size="medium"
-                  aria-label="account of current user"
-                  aria-controls="menu-appbar"
-                  aria-haspopup="true"
-                  aria-describedby={id}
-                  onClick={handleMenu}
-                  color="inherit"
-                >
-                  <Avatar src={avatar} />
-                </IconButton>
-                <Menu
-                  anchorEl={anchorEl}
-                  id="account-menu"
-                  open={open}
-                  onClose={handleClose}
-                  onClick={handleClose}
-                  slotProps={{
-                    paper: {
-                      elevation: 0,
-                      sx: {
-                        overflow: "visible",
-                        filter: "drop-shadow(0px 2px 8px rgba(0,0,0,0.32))",
-                        mt: 1.5,
-                        "& .MuiAvatar-root": {
-                          width: 32,
-                          height: 32,
-                          ml: -0.5,
-                          mr: 1,
-                        },
-                        "&::before": {
-                          content: '""',
-                          display: "block",
-                          position: "absolute",
-                          top: 0,
-                          right: 14,
-                          width: 10,
-                          height: 10,
-                          bgcolor: "background.paper",
-                          transform: "translateY(-50%) rotate(45deg)",
-                          zIndex: 0,
-                        },
-                      },
-                    },
-                  }}
-                  transformOrigin={{ horizontal: "right", vertical: "top" }}
-                  anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
-                >
-                  {isUserVerified ? (
-                    <>
-                      <MenuItem onClick={() => navigate("/account")}>
-                        <ListItemIcon>
-                          <PersonOutlineOutlinedIcon />
-                        </ListItemIcon>
-                        Account
-                      </MenuItem>
+              )}
+            </Stack>
+          )}
 
-                      <MenuItem onClick={() => navigate("/my-support")}>
-                        <ListItemIcon>
-                          <FavoriteBorderIcon fontSize="small" />
-                        </ListItemIcon>
-                        My Support
-                      </MenuItem>
-                    </>
-                  ) : (
-                    <MenuItem onClick={() => navigate("/verify")}>
-                      <ListItemIcon>
-                        <HowToRegIcon fontSize="small" />
-                      </ListItemIcon>
-                      Get verified
-                    </MenuItem>
-                  )}
-                  <Divider />
-                  <MenuItem onClick={() => disconnect()}>
-                    <ListItemIcon>
-                      <Logout fontSize="small" />
-                    </ListItemIcon>
-                    Disconnect
-                  </MenuItem>
-                </Menu>
-              </>
-            ) : (
-              <Button onClick={() => setConnectRequested(true)}>
-                <Typography variant="body1" component="div">
-                  {" "}
-                  Connect{" "}
-                </Typography>
-              </Button>
-            )}
-          </Stack>
+          {/* Second row on mobile: Search bar */}
+          {isMobile && (
+            <Stack
+              direction="row"
+              spacing={1}
+              alignItems="center"
+              sx={{ mt: 1, width: "100%" }}
+            >
+              <SearchField onClick={() => setSearchModalOpen(true)} fullWidth />
+            </Stack>
+          )}
         </Toolbar>
       </AppBar>
       <WriteModal

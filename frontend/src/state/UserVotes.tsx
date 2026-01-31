@@ -6,7 +6,13 @@ import React, {
   useEffect,
   useReducer,
 } from "react";
-import { useAccount, useBlockNumber, useReadContract, useReadContracts, useWriteContract } from "wagmi";
+import {
+  useAccount,
+  useBlockNumber,
+  useReadContract,
+  useReadContracts,
+  useWriteContract,
+} from "wagmi";
 import { FORUM_ABI, useForum } from "./Forum";
 
 interface StatementSupport {
@@ -33,7 +39,7 @@ interface UserSupportState {
 
 type SyncOnChainState = {
   type: "SYNC_ONCHAIN_STATE";
-  payload: { credits: bigint; statementSupport: StatementSupport[]};
+  payload: { credits: bigint; statementSupport: StatementSupport[] };
 };
 
 type StageUserSupport = {
@@ -45,7 +51,10 @@ type ClearStagedSupport = {
   type: "CLEAR_STAGED_SUPPORT";
 };
 
-type UserSupportAction = SyncOnChainState | StageUserSupport | ClearStagedSupport;
+type UserSupportAction =
+  | SyncOnChainState
+  | StageUserSupport
+  | ClearStagedSupport;
 
 // Actions:
 // - SYNC_COMMITTED_SUPPORT
@@ -75,27 +84,39 @@ const reducer = (
       if (newSupport === BigInt(0)) {
         newState.staged.statementSupport.delete(Number(statementId));
       } else {
-        newState.staged.statementSupport.set(Number(statementId), Number(newSupport));
+        newState.staged.statementSupport.set(
+          Number(statementId),
+          Number(newSupport),
+        );
       }
       break;
     }
     case "CLEAR_STAGED_SUPPORT": {
       newState.staged = {
         credits: newState.onChain ? newState.onChain.credits : 0,
-        statementSupport: new Map(state.onChain ? state.onChain.statementSupport : []),
-      }
+        statementSupport: new Map(
+          state.onChain ? state.onChain.statementSupport : [],
+        ),
+      };
       break;
     }
   }
 
   let adjustmentCost = 0;
-  const supportedStatementIds = new Set(newState.onChain?.statementSupport.keys()).union(new Set(newState.staged.statementSupport.keys()));
+  const supportedStatementIds = new Set(
+    newState.onChain?.statementSupport.keys(),
+  ).union(new Set(newState.staged.statementSupport.keys()));
 
   for (const statementId of supportedStatementIds) {
-    const onChainSupport = newState.onChain?.statementSupport.get(statementId) || 0;
-    const stagedSupport = newState.staged.statementSupport.get(statementId) || 0;
-    const [start, end] = onChainSupport < stagedSupport ? [onChainSupport + 1, stagedSupport] : [stagedSupport + 1, onChainSupport];
-    adjustmentCost += (start + end) * (end - start + 1) / 2;
+    const onChainSupport =
+      newState.onChain?.statementSupport.get(statementId) || 0;
+    const stagedSupport =
+      newState.staged.statementSupport.get(statementId) || 0;
+    const [start, end] =
+      onChainSupport < stagedSupport
+        ? [onChainSupport + 1, stagedSupport]
+        : [stagedSupport + 1, onChainSupport];
+    adjustmentCost += ((start + end) * (end - start + 1)) / 2;
   }
 
   const stagedCredits = (newState.onChain?.credits || 0) - adjustmentCost;
@@ -135,7 +156,12 @@ export const UserVoteContext = createContext<
 export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [state, dispatch] = useReducer(reducer, { onChain: undefined, staged: {credits: 0, statementSupport:  new Map()}, hasStagedChanges: false, hasEnoughCredits: true });
+  const [state, dispatch] = useReducer(reducer, {
+    onChain: undefined,
+    staged: { credits: 0, statementSupport: new Map() },
+    hasStagedChanges: false,
+    hasEnoughCredits: true,
+  });
   const { writeContract } = useWriteContract();
   const { address } = useAccount();
   const { forumContractAddress } = useForum();
@@ -163,7 +189,6 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
         abi: FORUM_ABI,
         functionName: "getUserStatementSupport",
         args: [],
-
       },
       {
         address: forumContractAddress,
@@ -179,14 +204,20 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
 
   const [onChainUserStatementSupport, onChainUserBalance] = data || [];
 
-  console.log("Fetched user support from contract: ", onChainUserStatementSupport);
+  console.log(
+    "Fetched user support from contract: ",
+    onChainUserStatementSupport,
+  );
 
   useEffect(() => {
     // Load state from blockchain
     if (onChainUserStatementSupport && onChainUserBalance) {
       dispatch({
         type: "SYNC_ONCHAIN_STATE",
-        payload: { credits: onChainUserBalance, statementSupport: onChainUserStatementSupport },
+        payload: {
+          credits: onChainUserBalance,
+          statementSupport: onChainUserStatementSupport,
+        },
       });
     }
   }, [onChainUserStatementSupport, onChainUserBalance]);
@@ -197,21 +228,31 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
 
   useEffect(() => {
     refetch();
-  }, [blockNumber]);
+  }, [blockNumber, refetch]);
 
   const commitSupport = useCallback(async () => {
     if (state.hasStagedChanges && state.hasEnoughCredits) {
-      console.log("Committing support changes: ", state.staged.statementSupport);
+      console.log(
+        "Committing support changes: ",
+        state.staged.statementSupport,
+      );
 
       const supportAdjustments: SupportAdjustment[] = [];
-      const supportedStatementIds = new Set(state.onChain?.statementSupport.keys()).union(new Set(state.staged.statementSupport.keys()));
+      const supportedStatementIds = new Set(
+        state.onChain?.statementSupport.keys(),
+      ).union(new Set(state.staged.statementSupport.keys()));
 
       for (const statementId of supportedStatementIds) {
-        const onChainSupport = state.onChain?.statementSupport.get(statementId) || 0;
-        const stagedSupport = state.staged.statementSupport.get(statementId) || 0;
+        const onChainSupport =
+          state.onChain?.statementSupport.get(statementId) || 0;
+        const stagedSupport =
+          state.staged.statementSupport.get(statementId) || 0;
         const adjustment = stagedSupport - onChainSupport;
         if (adjustment !== 0) {
-          supportAdjustments.push({ statementId: BigInt(statementId), value: BigInt(adjustment) });
+          supportAdjustments.push({
+            statementId: BigInt(statementId),
+            value: BigInt(adjustment),
+          });
         }
       }
 
@@ -222,11 +263,7 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
         args: [supportAdjustments],
       });
     }
-  }, [
-    state,
-    writeContract,
-    forumContractAddress,
-  ]);
+  }, [state, writeContract, forumContractAddress]);
 
   if (isUserVerified) {
     return (

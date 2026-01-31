@@ -4,7 +4,6 @@ import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ArrowUpwardSharpIcon from "@mui/icons-material/ArrowUpwardSharp";
 import RemoveIcon from "@mui/icons-material/Remove";
 
-
 import { useUserVotes } from "../state/UserVotes";
 import VoteToggle from "./VoteToggle";
 import { useBlockNumber, useReadContract } from "wagmi";
@@ -90,10 +89,17 @@ export const StatementCard: FC<StatementCardProps> = ({ statement }) => {
             {isUserVerified ? (
               <VoteToggle
                 userSupport={
-                  userVoteState.staged.statementSupport.get(Number(statement.id)) || 0
+                  userVoteState.staged.statementSupport.get(
+                    Number(statement.id),
+                  ) || 0
                 }
                 uncommitedSupport={
-                  (userVoteState.staged.statementSupport.get(Number(statement.id)) !== userVoteState.onChain?.statementSupport.get(Number(statement.id)))
+                  userVoteState.staged.statementSupport.get(
+                    Number(statement.id),
+                  ) !==
+                  userVoteState.onChain?.statementSupport.get(
+                    Number(statement.id),
+                  )
                 }
                 onUserVoteChange={(n) =>
                   dispatch({
