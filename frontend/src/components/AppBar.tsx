@@ -7,11 +7,7 @@ import IconButton from "@mui/material/IconButton";
 import {
   Avatar,
   Button,
-  Divider,
   InputAdornment,
-  ListItemIcon,
-  Menu,
-  MenuItem,
   Stack,
   TextField,
 } from "@mui/material";
@@ -22,10 +18,6 @@ import CreateIcon from "@mui/icons-material/Create";
 import WriteModal from "./WriteModal";
 import ChooseForumModal, { FORUMS } from "./ChooseForumModal";
 import DoneAllIcon from "@mui/icons-material/DoneAll";
-import Logout from "@mui/icons-material/Logout";
-import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
-import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
-import HowToRegIcon from "@mui/icons-material/HowToReg";
 import SearchIcon from "@mui/icons-material/Search";
 import { useForum } from "../state/Forum";
 import { metamaskIcon } from "../util";
@@ -33,6 +25,7 @@ import { useWeb3AuthConnect } from "@web3auth/modal/react";
 import SearchModal from "./SearchModal";
 import useIsMobile from "@/hooks/useIsMobile";
 import { useTheme } from "@mui/material/styles";
+import { AccountMenu, AccountDrawer } from "./AccountMenu";
 
 const MIC_ICON = (
   <svg
@@ -69,7 +62,10 @@ interface ForumSelectorProps {
   onClick: () => void;
 }
 
-const ForumSelector: React.FC<ForumSelectorProps> = ({ forumName, onClick }) => (
+const ForumSelector: React.FC<ForumSelectorProps> = ({
+  forumName,
+  onClick,
+}) => (
   <IconButton
     size="medium"
     aria-controls="menu-appbar"
@@ -137,7 +133,10 @@ interface SearchFieldProps {
   fullWidth?: boolean;
 }
 
-const SearchField: React.FC<SearchFieldProps> = ({ onClick, fullWidth = false }) => (
+const SearchField: React.FC<SearchFieldProps> = ({
+  onClick,
+  fullWidth = false,
+}) => (
   <TextField
     placeholder="Search..."
     size="small"
@@ -165,7 +164,11 @@ const SearchField: React.FC<SearchFieldProps> = ({ onClick, fullWidth = false })
 );
 
 interface UserActionsProps {
-  userVoteState: any;
+  userVoteState: {
+    staged: { credits: number };
+    onChain?: { credits: number };
+    hasStagedChanges: boolean;
+  };
   commitSupport: () => void;
   onWriteClick: () => void;
 }
@@ -200,96 +203,9 @@ const UserActions: React.FC<UserActionsProps> = ({
   </>
 );
 
-interface AccountMenuProps {
-  anchorEl: HTMLElement | null;
-  open: boolean;
-  onClose: () => void;
-  isUserVerified: boolean;
-  navigate: (path: string) => void;
-  disconnect: () => void;
-}
-
-const AccountMenu: React.FC<AccountMenuProps> = ({
-  anchorEl,
-  open,
-  onClose,
-  isUserVerified,
-  navigate,
-  disconnect,
-}) => (
-  <Menu
-    anchorEl={anchorEl}
-    id="account-menu"
-    open={open}
-    onClose={onClose}
-    onClick={onClose}
-    slotProps={{
-      paper: {
-        elevation: 0,
-        sx: {
-          overflow: "visible",
-          filter: "drop-shadow(0px 2px 8px rgba(0,0,0,0.32))",
-          mt: 1.5,
-          "& .MuiAvatar-root": {
-            width: 32,
-            height: 32,
-            ml: -0.5,
-            mr: 1,
-          },
-          "&::before": {
-            content: '""',
-            display: "block",
-            position: "absolute",
-            top: 0,
-            right: 14,
-            width: 10,
-            height: 10,
-            bgcolor: "background.paper",
-            transform: "translateY(-50%) rotate(45deg)",
-            zIndex: 0,
-          },
-        },
-      },
-    }}
-    transformOrigin={{ horizontal: "right", vertical: "top" }}
-    anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
-  >
-    {isUserVerified ? (
-      <>
-        <MenuItem onClick={() => navigate("/account")}>
-          <ListItemIcon>
-            <PersonOutlineOutlinedIcon />
-          </ListItemIcon>
-          Account
-        </MenuItem>
-
-        <MenuItem onClick={() => navigate("/my-support")}>
-          <ListItemIcon>
-            <FavoriteBorderIcon fontSize="small" />
-          </ListItemIcon>
-          My Support
-        </MenuItem>
-      </>
-    ) : (
-      <MenuItem onClick={() => navigate("/verify")}>
-        <ListItemIcon>
-          <HowToRegIcon fontSize="small" />
-        </ListItemIcon>
-        Get verified
-      </MenuItem>
-    )}
-    <Divider />
-    <MenuItem onClick={() => disconnect()}>
-      <ListItemIcon>
-        <Logout fontSize="small" />
-      </ListItemIcon>
-      Disconnect
-    </MenuItem>
-  </Menu>
-);
-
 export default function MenuAppBar() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const [avatar, setAvatar] = useState<string | null>(null);
   const { address } = useAccount();
@@ -356,7 +272,9 @@ export default function MenuAppBar() {
           {isMobile ? (
             <Stack direction="row" alignItems="center" sx={{ width: "100%" }}>
               {/* Left section: Forum icon */}
-              <Box sx={{ flex: 1, display: "flex", justifyContent: "flex-start" }}>
+              <Box
+                sx={{ flex: 1, display: "flex", justifyContent: "flex-start" }}
+              >
                 <ForumSelector
                   forumName={forumName}
                   onClick={() => setChooseForumModalOpen(true)}
@@ -369,7 +287,9 @@ export default function MenuAppBar() {
               </Box>
 
               {/* Right section: Account */}
-              <Box sx={{ flex: 1, display: "flex", justifyContent: "flex-end" }}>
+              <Box
+                sx={{ flex: 1, display: "flex", justifyContent: "flex-end" }}
+              >
                 {address ? (
                   <>
                     <IconButton
@@ -377,19 +297,20 @@ export default function MenuAppBar() {
                       aria-label="account of current user"
                       aria-controls="menu-appbar"
                       aria-haspopup="true"
-                      aria-describedby={id}
-                      onClick={handleMenu}
+                      onClick={() => setDrawerOpen(true)}
                       color="inherit"
                     >
                       <Avatar src={avatar ?? undefined} />
                     </IconButton>
-                    <AccountMenu
-                      anchorEl={anchorEl}
-                      open={open}
-                      onClose={handleClose}
+                    <AccountDrawer
+                      open={drawerOpen}
+                      onClose={() => setDrawerOpen(false)}
                       isUserVerified={isUserVerified}
                       navigate={navigate}
                       disconnect={disconnect}
+                      avatar={avatar}
+                      commitSupport={commitSupport ?? (() => { })}
+                      hasStagedChanges={userVoteState?.hasStagedChanges ?? false}
                     />
                   </>
                 ) : (
@@ -405,12 +326,7 @@ export default function MenuAppBar() {
               </Box>
             </Stack>
           ) : (
-            <Stack
-              direction="row"
-              spacing={2}
-              alignItems="center"
-              flexGrow={1}
-            >
+            <Stack direction="row" spacing={2} alignItems="center" flexGrow={1}>
               {/* Desktop layout */}
               <Logo isMobile={isMobile} />
 
@@ -452,10 +368,7 @@ export default function MenuAppBar() {
                   />
                 </>
               ) : (
-                <Button
-                  onClick={() => setConnectRequested(true)}
-                  size="medium"
-                >
+                <Button onClick={() => setConnectRequested(true)} size="medium">
                   <Typography variant="body1" component="div">
                     Connect
                   </Typography>
