@@ -167,7 +167,7 @@ const SearchField: React.FC<SearchFieldProps> = ({
 
 interface UserActionsProps {
   userVoteState: {
-    staged: { credits: number };
+    staged?: { credits: number };
     onChain?: { credits: number };
     hasStagedChanges: boolean;
   };
@@ -184,7 +184,8 @@ const UserActions: React.FC<UserActionsProps> = ({
     <Stack alignItems="center" spacing={0}>
       <Typography variant="body2">Credits</Typography>
       <Typography variant="body1">
-        {userVoteState.staged.credits}/{userVoteState.onChain?.credits}
+        {userVoteState.staged?.credits || 0}/
+        {userVoteState.onChain?.credits || 0}
       </Typography>
     </Stack>
     <IconButton
@@ -311,8 +312,10 @@ export default function MenuAppBar() {
                       navigate={navigate}
                       disconnect={disconnect}
                       avatar={avatar}
-                      commitSupport={commitSupport ?? (() => { })}
-                      hasStagedChanges={userVoteState?.hasStagedChanges ?? false}
+                      commitSupport={commitSupport ?? (() => {})}
+                      hasStagedChanges={
+                        userVoteState?.hasStagedChanges ?? false
+                      }
                     />
                   </>
                 ) : (

@@ -32,7 +32,7 @@ interface UserSupport {
 
 interface UserSupportState {
   onChain?: UserSupport;
-  staged: UserSupport;
+  staged?: UserSupport;
   hasStagedChanges: boolean;
   hasEnoughCredits: boolean;
 }
@@ -72,14 +72,23 @@ const reducer = (
       action.payload.statementSupport.forEach((s) => {
         _supportMap.set(Number(s.statementId), Number(s.support));
       });
-      newState.onChain = {
+      const onChainState = {
         credits: Number(action.payload.credits),
         statementSupport: _supportMap,
       };
+      newState.onChain = onChainState;
+      if (!newState.staged) {
+        newState.staged = onChainState;
+      }
       break;
     }
     case "STAGE_USER_SUPPORT": {
       const { statementId, newSupport } = action.payload;
+      if (!state.staged || !newState.staged) {
+        throw new Error(
+          "Cannot stage support adjustment before on-chain state is synced",
+        );
+      }
       newState.staged.statementSupport = new Map(state.staged.statementSupport);
       if (newSupport === BigInt(0)) {
         newState.staged.statementSupport.delete(Number(statementId));
@@ -158,7 +167,7 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
 }) => {
   const [state, dispatch] = useReducer(reducer, {
     onChain: undefined,
-    staged: { credits: 0, statementSupport: new Map() },
+    staged: undefined,
     hasStagedChanges: false,
     hasEnoughCredits: true,
   });
@@ -216,7 +225,7 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
         type: "SYNC_ONCHAIN_STATE",
         payload: {
           credits: onChainUserBalance,
-          statementSupport: onChainUserStatementSupport,
+          statementSupport: [...onChainUserStatementSupport],
         },
       });
     }
@@ -234,19 +243,19 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
     if (state.hasStagedChanges && state.hasEnoughCredits) {
       console.log(
         "Committing support changes: ",
-        state.staged.statementSupport,
+        state.staged?.statementSupport,
       );
 
       const supportAdjustments: SupportAdjustment[] = [];
       const supportedStatementIds = new Set(
         state.onChain?.statementSupport.keys(),
-      ).union(new Set(state.staged.statementSupport.keys()));
+      ).union(new Set(state.staged?.statementSupport.keys()));
 
       for (const statementId of supportedStatementIds) {
         const onChainSupport =
           state.onChain?.statementSupport.get(statementId) || 0;
         const stagedSupport =
-          state.staged.statementSupport.get(statementId) || 0;
+          state.staged?.statementSupport.get(statementId) || 0;
         const adjustment = stagedSupport - onChainSupport;
         if (adjustment !== 0) {
           supportAdjustments.push({

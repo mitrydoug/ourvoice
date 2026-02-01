@@ -89,12 +89,12 @@ export const StatementCard: FC<StatementCardProps> = ({ statement }) => {
             {isUserVerified ? (
               <VoteToggle
                 userSupport={
-                  userVoteState.staged.statementSupport.get(
+                  userVoteState.staged?.statementSupport.get(
                     Number(statement.id),
                   ) || 0
                 }
                 uncommitedSupport={
-                  userVoteState.staged.statementSupport.get(
+                  userVoteState.staged?.statementSupport.get(
                     Number(statement.id),
                   ) !==
                   userVoteState.onChain?.statementSupport.get(
