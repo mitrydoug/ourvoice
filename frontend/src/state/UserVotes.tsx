@@ -8,12 +8,12 @@ import React, {
 } from "react";
 import {
   useAccount,
-  useBlockNumber,
   useReadContract,
   useReadContracts,
   useWriteContract,
 } from "wagmi";
 import { FORUM_ABI, useForum } from "./Forum";
+import useBlockSync from "@/hooks/useBlockSync";
 
 interface StatementSupport {
   statementId: bigint;
@@ -243,13 +243,8 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
     }
   }, [onChainUserStatementSupport, onChainUserBalance]);
 
-  const { data: blockNumber } = useBlockNumber({
-    watch: true,
-  });
-
-  useEffect(() => {
-    refetch();
-  }, [blockNumber, refetch]);
+  // Sync with blockchain on every new block
+  useBlockSync(refetch);
 
   const commitSupport = useCallback(async () => {
     if (state.hasStagedChanges && state.hasEnoughCredits && state.staged) {
@@ -272,8 +267,11 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
         functionName: "adjustSupport",
         args: [supportAdjustments],
       });
+
+      // Clear staged support after submitting transaction
+      dispatch({ type: "CLEAR_STAGED_SUPPORT" });
     }
-  }, [state, writeContract, forumContractAddress]);
+  }, [state, writeContract, forumContractAddress, dispatch]);
 
   // Helper function to get effective support (on-chain + adjustment)
   const getEffectiveSupport = useCallback(

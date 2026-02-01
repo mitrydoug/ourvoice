@@ -6,6 +6,7 @@ import { Statement } from "../types";
 import StatementList from "./StatementList";
 import { Navigate } from "react-router-dom";
 import useIsMobile from "@/hooks/useIsMobile";
+import useBlockSync from "@/hooks/useBlockSync";
 
 const MySupport: FC = () => {
   const { isUserVerified, state: userVoteState } = useUserVotes();
@@ -50,6 +51,9 @@ const MySupport: FC = () => {
     functionName: "getStatementsById",
     args: [statementIds],
   });
+
+  // Sync with blockchain on every new block
+  useBlockSync(result.refetch);
 
   const handleLoadMore = useCallback(() => {
     setDisplayCount((prev) => prev + PAGE_SIZE);

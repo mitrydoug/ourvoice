@@ -1,4 +1,4 @@
-import { FC } from "react";
+import { FC, useEffect } from "react";
 import { Card, Stack, Typography } from "@mui/material";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ArrowUpwardSharpIcon from "@mui/icons-material/ArrowUpwardSharp";
@@ -33,9 +33,10 @@ export const StatementCard: FC<StatementCardProps> = ({ statement }) => {
   } = useUserVotes();
   const { forumContractAddress } = useForum();
 
-  const { data: blockNumber } = useBlockNumber();
+  // Watch for new blocks
+  const { data: blockNumber } = useBlockNumber({ watch: true });
 
-  const result = useReadContract({
+  const { data: historicalData, refetch: refetchHistorical } = useReadContract({
     address: forumContractAddress,
     abi: FORUM_ABI,
     functionName: "getStatementsById",
@@ -44,8 +45,15 @@ export const StatementCard: FC<StatementCardProps> = ({ statement }) => {
     query: { enabled: !!blockNumber },
   });
 
-  const statementOneWeekAgo = result.data
-    ? (result.data[0] as Statement)
+  // Sync historical data query on each new block
+  useEffect(() => {
+    if (blockNumber) {
+      refetchHistorical();
+    }
+  }, [blockNumber, refetchHistorical]);
+
+  const statementOneWeekAgo = historicalData
+    ? (historicalData[0] as Statement)
     : null;
 
   const rankDelta = statementOneWeekAgo
