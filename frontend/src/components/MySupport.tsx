@@ -16,13 +16,33 @@ const MySupport: FC = () => {
 
   const [displayCount, setDisplayCount] = useState(PAGE_SIZE);
 
-  const statementIds = useMemo(
-    () =>
-      Array.from(userVoteState?.staged?.statementSupport?.entries() || [])
-        .sort((e1, e2) => e2[1] - e1[1])
-        .map((e) => BigInt(e[0])),
-    [userVoteState],
-  );
+  // Combine on-chain support with pending adjustments to get all supported statement IDs
+  const statementIds = useMemo(() => {
+    const supportMap = new Map<number, number>();
+
+    // Add all on-chain support entries
+    for (const [
+      id,
+      support,
+    ] of userVoteState?.onChain?.statementSupport?.entries() || []) {
+      supportMap.set(id, support);
+    }
+
+    // Apply adjustments from staged state
+    for (const [
+      id,
+      adjustment,
+    ] of userVoteState?.staged?.supportAdjustments?.entries() || []) {
+      const currentSupport = supportMap.get(id) || 0;
+      supportMap.set(id, currentSupport + adjustment);
+    }
+
+    // Filter to only statements with positive effective support, sort by support descending
+    return Array.from(supportMap.entries())
+      .filter(([, support]) => support > 0)
+      .sort((e1, e2) => e2[1] - e1[1])
+      .map((e) => BigInt(e[0]));
+  }, [userVoteState]);
 
   const result = useReadContract({
     address: forumContractAddress,

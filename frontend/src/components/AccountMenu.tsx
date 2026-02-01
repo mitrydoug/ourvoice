@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React from "react";
 import {
   Avatar,
   Box,
@@ -16,118 +16,12 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { useUserVotes } from "../state/UserVotes";
 import Logout from "@mui/icons-material/Logout";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
 import HowToRegIcon from "@mui/icons-material/HowToReg";
 import SettingsIcon from "@mui/icons-material/Settings";
 import GitHubIcon from "@mui/icons-material/GitHub";
-
-// Helper function to calculate credit cost for a given support level
-const creditCost = (support: number): number => {
-  return (support * (support + 1)) / 2;
-};
-
-// Component to display the support allocation progress bar
-const SupportAllocationBar: React.FC = () => {
-  const userVotes = useUserVotes();
-
-  const { blueSegment, yellowSegment, greenSegment, total } = useMemo(() => {
-    if (!userVotes.isUserVerified || !userVotes.state.onChain || !userVotes.state.staged) {
-      return { blueSegment: 0, yellowSegment: 0, greenSegment: 0, total: 0 };
-    }
-
-    const { onChain, staged } = userVotes.state;
-
-    // Get all statement IDs that have either onChain or staged support
-    const allStatementIds = new Set([
-      ...onChain.statementSupport.keys(),
-      ...staged.statementSupport.keys(),
-    ]);
-
-    let totalOnChainCost = 0;
-    let totalDecreaseCost = 0;
-    let totalIncreaseCost = 0;
-
-    for (const statementId of allStatementIds) {
-      const onChainSupport = onChain.statementSupport.get(statementId) || 0;
-      const stagedSupport = staged.statementSupport.get(statementId) || 0;
-
-      const onChainCost = creditCost(onChainSupport);
-      const stagedCost = creditCost(stagedSupport);
-
-      totalOnChainCost += onChainCost;
-
-      if (stagedSupport < onChainSupport) {
-        // Decrease
-        totalDecreaseCost += onChainCost - stagedCost;
-      } else if (stagedSupport > onChainSupport) {
-        // Increase
-        totalIncreaseCost += stagedCost - onChainCost;
-      }
-    }
-
-    const blue = totalOnChainCost - totalDecreaseCost;
-    const yellow = totalDecreaseCost + totalIncreaseCost;
-    const green = onChain.credits - totalIncreaseCost;
-    const total = blue + yellow + green;
-
-    return {
-      blueSegment: blue,
-      yellowSegment: yellow,
-      greenSegment: green,
-      total,
-    };
-  }, [userVotes]);
-
-  if (total === 0) {
-    return null;
-  }
-
-  const bluePercent = (blueSegment / total) * 100;
-  const yellowPercent = (yellowSegment / total) * 100;
-  const greenPercent = (greenSegment / total) * 100;
-
-  return (
-    <Box sx={{ width: "100%", mb: 2 }}>
-      <Box
-        sx={{
-          display: "flex",
-          height: 8,
-          borderRadius: 1,
-          overflow: "hidden",
-          backgroundColor: "grey.200",
-        }}
-      >
-        {bluePercent > 0 && (
-          <Box
-            sx={{
-              width: `${bluePercent}%`,
-              backgroundColor: "primary.main",
-            }}
-          />
-        )}
-        {yellowPercent > 0 && (
-          <Box
-            sx={{
-              width: `${yellowPercent}%`,
-              backgroundColor: "warning.main",
-            }}
-          />
-        )}
-        {greenPercent > 0 && (
-          <Box
-            sx={{
-              width: `${greenPercent}%`,
-              backgroundColor: "success.main",
-            }}
-          />
-        )}
-      </Box>
-    </Box>
-  );
-};
 
 export interface AccountMenuProps {
   anchorEl: HTMLElement | null;
@@ -285,9 +179,6 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
             <SettingsIcon />
           </IconButton>
         </Stack>
-
-        {/* Support allocation progress bar */}
-        {isUserVerified && <SupportAllocationBar />}
 
         {/* Lock it In button */}
         {isUserVerified && (

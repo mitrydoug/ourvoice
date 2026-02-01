@@ -20,19 +20,19 @@ interface StatementSupport {
   support: bigint;
 }
 
-interface SupportAdjustment {
-  statementId: bigint;
-  value: bigint;
-}
-
 interface UserSupport {
   credits: number;
   statementSupport: Map<number, number>;
 }
 
+interface StagedSupport {
+  credits: number;
+  supportAdjustments: Map<number, number>;
+}
+
 interface UserSupportState {
   onChain?: UserSupport;
-  staged?: UserSupport;
+  staged?: StagedSupport;
   hasStagedChanges: boolean;
   hasEnoughCredits: boolean;
 }
@@ -44,7 +44,7 @@ type SyncOnChainState = {
 
 type StageUserSupport = {
   type: "STAGE_USER_SUPPORT";
-  payload: { statementId: bigint; newSupport: bigint };
+  payload: { statementId: bigint; adjustment: number };
 };
 
 type ClearStagedSupport = {
@@ -56,9 +56,15 @@ type UserSupportAction =
   | StageUserSupport
   | ClearStagedSupport;
 
-// Actions:
-// - SYNC_COMMITTED_SUPPORT
-// - UPDATE_SUPPORT_ADJUSTMENT
+// Helper to calculate the cost of an adjustment from one support level to another
+const adjustmentCost = (fromSupport: number, toSupport: number): number => {
+  const [start, end] =
+    fromSupport < toSupport
+      ? [fromSupport + 1, toSupport]
+      : [toSupport + 1, fromSupport];
+  if (start > end) return 0;
+  return ((start + end) * (end - start + 1)) / 2;
+};
 
 const reducer = (
   state: UserSupportState,
@@ -78,65 +84,65 @@ const reducer = (
       };
       newState.onChain = onChainState;
       if (!newState.staged) {
-        newState.staged = onChainState;
+        newState.staged = {
+          credits: onChainState.credits,
+          supportAdjustments: new Map(),
+        };
       }
       break;
     }
     case "STAGE_USER_SUPPORT": {
-      const { statementId, newSupport } = action.payload;
+      const { statementId, adjustment } = action.payload;
       if (!state.staged || !newState.staged) {
         throw new Error(
           "Cannot stage support adjustment before on-chain state is synced",
         );
       }
-      newState.staged.statementSupport = new Map(state.staged.statementSupport);
-      if (newSupport === BigInt(0)) {
-        newState.staged.statementSupport.delete(Number(statementId));
+      newState.staged = {
+        ...state.staged,
+        supportAdjustments: new Map(state.staged.supportAdjustments),
+      };
+      if (adjustment === 0) {
+        newState.staged.supportAdjustments.delete(Number(statementId));
       } else {
-        newState.staged.statementSupport.set(
-          Number(statementId),
-          Number(newSupport),
-        );
+        newState.staged.supportAdjustments.set(Number(statementId), adjustment);
       }
       break;
     }
     case "CLEAR_STAGED_SUPPORT": {
       newState.staged = {
         credits: newState.onChain ? newState.onChain.credits : 0,
-        statementSupport: new Map(
-          state.onChain ? state.onChain.statementSupport : [],
-        ),
+        supportAdjustments: new Map(),
       };
       break;
     }
   }
 
-  let adjustmentCost = 0;
-  const supportedStatementIds = new Set(
-    newState.onChain?.statementSupport.keys(),
-  ).union(new Set(newState.staged.statementSupport.keys()));
-
-  for (const statementId of supportedStatementIds) {
-    const onChainSupport =
-      newState.onChain?.statementSupport.get(statementId) || 0;
-    const stagedSupport =
-      newState.staged.statementSupport.get(statementId) || 0;
-    const [start, end] =
-      onChainSupport < stagedSupport
-        ? [onChainSupport + 1, stagedSupport]
-        : [stagedSupport + 1, onChainSupport];
-    adjustmentCost += ((start + end) * (end - start + 1)) / 2;
+  // Calculate total adjustment cost
+  let totalAdjustmentCost = 0;
+  if (newState.staged && newState.onChain) {
+    for (const [statementId, adjustment] of newState.staged
+      .supportAdjustments) {
+      const onChainSupport =
+        newState.onChain.statementSupport.get(statementId) || 0;
+      const newSupport = onChainSupport + adjustment;
+      totalAdjustmentCost += adjustmentCost(onChainSupport, newSupport);
+    }
   }
 
-  const stagedCredits = (newState.onChain?.credits || 0) - adjustmentCost;
+  const stagedCredits = (newState.onChain?.credits || 0) - totalAdjustmentCost;
 
   newState = {
     ...newState,
-    staged: {
-      ...newState.staged,
-      credits: stagedCredits,
-    },
-    hasStagedChanges: adjustmentCost > 0,
+    staged: newState.staged
+      ? {
+          ...newState.staged,
+          credits: stagedCredits,
+        }
+      : undefined,
+    hasStagedChanges: newState.staged?.supportAdjustments.size
+      ? newState.staged.supportAdjustments.size > 0
+      : false,
     hasEnoughCredits: stagedCredits >= 0,
   };
 
@@ -149,6 +155,9 @@ type UserNotVerifiedContextValue = {
   state: undefined;
   dispatch: undefined;
   commitSupport: undefined;
+  getEffectiveSupport: undefined;
+  getOnChainSupport: undefined;
+  hasAdjustment: undefined;
 };
 
 type UserSupportContextValue = {
@@ -156,6 +165,9 @@ type UserSupportContextValue = {
   state: UserSupportState;
   dispatch: React.Dispatch<UserSupportAction>;
   commitSupport: () => void;
+  getEffectiveSupport: (statementId: number) => number;
+  getOnChainSupport: (statementId: number) => number;
+  hasAdjustment: (statementId: number) => boolean;
 };
 
 export const UserVoteContext = createContext<
@@ -240,29 +252,18 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
   }, [blockNumber, refetch]);
 
   const commitSupport = useCallback(async () => {
-    if (state.hasStagedChanges && state.hasEnoughCredits) {
+    if (state.hasStagedChanges && state.hasEnoughCredits && state.staged) {
       console.log(
         "Committing support changes: ",
-        state.staged?.statementSupport,
+        state.staged.supportAdjustments,
       );
 
-      const supportAdjustments: SupportAdjustment[] = [];
-      const supportedStatementIds = new Set(
-        state.onChain?.statementSupport.keys(),
-      ).union(new Set(state.staged?.statementSupport.keys()));
-
-      for (const statementId of supportedStatementIds) {
-        const onChainSupport =
-          state.onChain?.statementSupport.get(statementId) || 0;
-        const stagedSupport =
-          state.staged?.statementSupport.get(statementId) || 0;
-        const adjustment = stagedSupport - onChainSupport;
-        if (adjustment !== 0) {
-          supportAdjustments.push({
-            statementId: BigInt(statementId),
-            value: BigInt(adjustment),
-          });
-        }
+      const supportAdjustments: { statementId: bigint; value: bigint }[] = [];
+      for (const [statementId, adjustment] of state.staged.supportAdjustments) {
+        supportAdjustments.push({
+          statementId: BigInt(statementId),
+          value: BigInt(adjustment),
+        });
       }
 
       writeContract({
@@ -274,6 +275,33 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
     }
   }, [state, writeContract, forumContractAddress]);
 
+  // Helper function to get effective support (on-chain + adjustment)
+  const getEffectiveSupport = useCallback(
+    (statementId: number): number => {
+      const onChainSupport =
+        state.onChain?.statementSupport.get(statementId) || 0;
+      const adjustment = state.staged?.supportAdjustments.get(statementId) || 0;
+      return onChainSupport + adjustment;
+    },
+    [state.onChain, state.staged],
+  );
+
+  // Helper function to get on-chain support (without adjustments)
+  const getOnChainSupport = useCallback(
+    (statementId: number): number => {
+      return state.onChain?.statementSupport.get(statementId) || 0;
+    },
+    [state.onChain],
+  );
+
+  // Helper function to check if a statement has a pending adjustment
+  const hasAdjustment = useCallback(
+    (statementId: number): boolean => {
+      return state.staged?.supportAdjustments.has(statementId) || false;
+    },
+    [state.staged],
+  );
+
   if (isUserVerified) {
     return (
       <UserVoteContext.Provider
@@ -282,6 +310,9 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
           state,
           dispatch,
           commitSupport,
+          getEffectiveSupport,
+          getOnChainSupport,
+          hasAdjustment,
         }}
       >
         {children}
@@ -295,6 +326,9 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
           state: undefined,
           dispatch: undefined,
           commitSupport: undefined,
+          getEffectiveSupport: undefined,
+          getOnChainSupport: undefined,
+          hasAdjustment: undefined,
         }}
       >
         {children}

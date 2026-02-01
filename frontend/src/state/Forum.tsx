@@ -23,7 +23,7 @@ const getStoredForum = (): ForumName | null => {
     if (stored && isValidForumName(stored)) {
       return stored;
     }
-  } catch (error) {
+  } catch {
     // localStorage might be unavailable (privacy mode, SSR, etc.)
     // Silently fail and return null
   }
@@ -51,7 +51,7 @@ export const ForumProvider: FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     try {
       localStorage.setItem(FORUM_STORAGE_KEY, forumName);
-    } catch (error) {
+    } catch {
       // localStorage might be unavailable or quota exceeded
       // Silently fail to avoid breaking the app
     }

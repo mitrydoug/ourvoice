@@ -25,6 +25,12 @@ declare module "@mui/material/styles" {
       statementList: {
         endIndicatorPadding: number;
       };
+      layout: {
+        contentGap: {
+          mobile: number;
+          desktop: number;
+        };
+      };
     };
   }
   interface ThemeOptions {
@@ -49,6 +55,12 @@ declare module "@mui/material/styles" {
       };
       statementList?: {
         endIndicatorPadding?: number;
+      };
+      layout?: {
+        contentGap?: {
+          mobile?: number;
+          desktop?: number;
+        };
       };
     };
   }
@@ -124,6 +136,12 @@ export const theme = createTheme({
     },
     statementList: {
       endIndicatorPadding: 1,
+    },
+    layout: {
+      contentGap: {
+        mobile: 2,
+        desktop: 4,
+      },
     },
   },
 });

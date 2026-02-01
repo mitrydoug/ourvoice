@@ -24,7 +24,13 @@ type StatementCardProps = {
 };
 
 export const StatementCard: FC<StatementCardProps> = ({ statement }) => {
-  const { isUserVerified, state: userVoteState, dispatch } = useUserVotes();
+  const {
+    isUserVerified,
+    dispatch,
+    getEffectiveSupport,
+    getOnChainSupport,
+    hasAdjustment,
+  } = useUserVotes();
   const { forumContractAddress } = useForum();
 
   const { data: blockNumber } = useBlockNumber();
@@ -45,6 +51,13 @@ export const StatementCard: FC<StatementCardProps> = ({ statement }) => {
   const rankDelta = statementOneWeekAgo
     ? Number(statementOneWeekAgo.rank) - Number(statement.rank)
     : null;
+
+  const userSupport = isUserVerified
+    ? getEffectiveSupport(Number(statement.id))
+    : 0;
+  const hasUncommittedSupport = isUserVerified
+    ? hasAdjustment(Number(statement.id))
+    : false;
 
   return (
     <Card sx={{ p: 0 }}>
@@ -88,28 +101,20 @@ export const StatementCard: FC<StatementCardProps> = ({ statement }) => {
             )*/}
             {isUserVerified ? (
               <VoteToggle
-                userSupport={
-                  userVoteState.staged?.statementSupport.get(
+                userSupport={userSupport}
+                uncommitedSupport={hasUncommittedSupport}
+                onUserVoteChange={(n) => {
+                  const onChainSupport = getOnChainSupport(
                     Number(statement.id),
-                  ) || 0
-                }
-                uncommitedSupport={
-                  userVoteState.staged?.statementSupport.get(
-                    Number(statement.id),
-                  ) !==
-                  userVoteState.onChain?.statementSupport.get(
-                    Number(statement.id),
-                  )
-                }
-                onUserVoteChange={(n) =>
+                  );
                   dispatch({
                     type: "STAGE_USER_SUPPORT",
                     payload: {
                       statementId: statement.id,
-                      newSupport: BigInt(n),
+                      adjustment: n - onChainSupport,
                     },
-                  })
-                }
+                  });
+                }}
               />
             ) : null}
           </Stack>

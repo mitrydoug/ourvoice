@@ -26,6 +26,7 @@ import SearchModal from "./SearchModal";
 import useIsMobile from "@/hooks/useIsMobile";
 import { useTheme } from "@mui/material/styles";
 import { AccountMenu, AccountDrawer } from "./AccountMenu";
+import { SupportAllocationBar } from "./SupportAllocationBar";
 
 const MIC_ICON = (
   <svg
@@ -381,6 +382,11 @@ export default function MenuAppBar() {
               )}
             </Stack>
           )}
+
+          {/* Support allocation bar */}
+          <Box sx={{ mt: 1, width: "100%" }}>
+            <SupportAllocationBar />
+          </Box>
 
           {/* Second row on mobile: Search bar */}
           {isMobile && (
