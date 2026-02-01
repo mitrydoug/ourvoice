@@ -1,4 +1,4 @@
-import React, { FC, useState, useEffect, useCallback } from "react";
+import { FC, useState, useEffect, useCallback } from "react";
 import { useReadContracts } from "wagmi";
 import { useForum, FORUM_ABI } from "../state/Forum";
 import { Statement } from "../types";

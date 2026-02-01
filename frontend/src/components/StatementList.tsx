@@ -1,4 +1,4 @@
-import React, { FC, useEffect, useRef } from "react";
+import { FC, useEffect, useRef } from "react";
 import { Statement } from "../types";
 import { Box, Stack, Typography, useTheme } from "@mui/material";
 import StatementCard from "./StatementCard";

@@ -1,4 +1,4 @@
-import React, { FC, useRef, useState } from "react";
+import { FC, useRef, useState } from "react";
 import Box from "@mui/material/Box";
 import { Outlet } from "react-router-dom";
 import { Container } from "@mui/material";

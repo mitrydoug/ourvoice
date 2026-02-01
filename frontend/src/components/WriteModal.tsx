@@ -6,7 +6,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import React, { FC, useCallback, useState } from "react";
+import { FC, useCallback, useState } from "react";
 import { useWriteContract } from "wagmi";
 import { FORUM_ABI, useForum } from "../state/Forum";
 

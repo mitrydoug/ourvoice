@@ -1,4 +1,4 @@
-import React, { FC } from "react";
+import { FC } from "react";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";

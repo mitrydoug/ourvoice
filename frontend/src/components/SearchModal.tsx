@@ -8,7 +8,7 @@ import {
   Modal,
   TextField,
 } from "@mui/material";
-import React, { FC, useEffect, useState } from "react";
+import { FC, useEffect, useState } from "react";
 import SearchIcon from "@mui/icons-material/Search";
 
 const style = {
