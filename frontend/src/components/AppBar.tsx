@@ -112,13 +112,15 @@ const Logo: React.FC<LogoProps> = ({ isMobile }) => {
           {MIC_ICON}
         </Box>
         <Typography
-          variant={isMobile ? "h5" : "h4"}
           component="div"
           sx={{
             fontFamily: "Sriracha",
             fontWeight: "bold",
             color: "primary.main",
             whiteSpace: "nowrap",
+            fontSize: isMobile
+              ? theme.custom.appBar.logoText.size.mobile
+              : theme.custom.appBar.logoText.size.desktop,
           }}
         >
           Our Voice

@@ -11,6 +11,12 @@ declare module "@mui/material/styles" {
             desktop: string;
           };
         };
+        logoText: {
+          size: {
+            mobile: string;
+            desktop: string;
+          };
+        };
         spacing: {
           mobile: number;
           desktop: number;
@@ -22,6 +28,12 @@ declare module "@mui/material/styles" {
     custom?: {
       appBar?: {
         logoIcon?: {
+          size?: {
+            mobile?: string;
+            desktop?: string;
+          };
+        };
+        logoText?: {
           size?: {
             mobile?: string;
             desktop?: string;
@@ -91,6 +103,12 @@ export const theme = createTheme({
         size: {
           mobile: "2rem",
           desktop: "2.75rem",
+        },
+      },
+      logoText: {
+        size: {
+          mobile: "1.8rem",
+          desktop: "2.125rem",
         },
       },
       spacing: {
