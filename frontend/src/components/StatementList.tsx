@@ -1,6 +1,6 @@
 import React, { FC, useEffect, useRef } from "react";
 import { Statement } from "../types";
-import { Box, Stack, Typography } from "@mui/material";
+import { Box, Stack, Typography, useTheme } from "@mui/material";
 import StatementCard from "./StatementCard";
 
 type StatementListProps = {
@@ -16,6 +16,7 @@ const StatementList: FC<StatementListProps> = ({
   isLoading,
   onLoadMore,
 }) => {
+  const theme = useTheme();
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -46,26 +47,27 @@ const StatementList: FC<StatementListProps> = ({
         ))}
       </Stack>
 
-      {/* Sentinel element for intersection observer */}
-      <Box ref={sentinelRef} sx={{ height: "20px" }} />
-
-      {/* Loading indicator */}
-      {isLoading && (
-        <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}>
+      {/* Sentinel element for intersection observer - also displays status text */}
+      <Box
+        ref={sentinelRef}
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          py: theme.custom.statementList.endIndicatorPadding,
+          minHeight: "20px",
+        }}
+      >
+        {isLoading && (
           <Typography variant="body2" color="text.secondary">
             Loading more statements...
           </Typography>
-        </Box>
-      )}
-
-      {/* End of list indicator */}
-      {!hasMore && statements.length > 0 && (
-        <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}>
+        )}
+        {!hasMore && statements.length > 0 && (
           <Typography variant="body2" color="text.secondary">
             No more statements
           </Typography>
-        </Box>
-      )}
+        )}
+      </Box>
     </>
   );
 };

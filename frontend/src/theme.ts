@@ -22,6 +22,9 @@ declare module "@mui/material/styles" {
           desktop: number;
         };
       };
+      statementList: {
+        endIndicatorPadding: number;
+      };
     };
   }
   interface ThemeOptions {
@@ -43,6 +46,9 @@ declare module "@mui/material/styles" {
           mobile?: number;
           desktop?: number;
         };
+      };
+      statementList?: {
+        endIndicatorPadding?: number;
       };
     };
   }
@@ -115,6 +121,9 @@ export const theme = createTheme({
         mobile: 1,
         desktop: 2,
       },
+    },
+    statementList: {
+      endIndicatorPadding: 1,
     },
   },
 });
