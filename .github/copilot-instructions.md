@@ -18,8 +18,10 @@ Npm is used in both for managing dependencies and defining scripts. `frontend` i
 ## Frontend Development
 
 Npm scripts to know:
+- run `npm format:check` to check code formatting
 - run `npm format` to format code using Prettier
 - run `npm lint` to check for linting errors using ESLint
+- run `npm typecheck` to run TypeScript type checking
 
 ### Coding Standards
 - Follow React and TypeScript best practices

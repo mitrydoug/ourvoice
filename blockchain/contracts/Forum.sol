@@ -14,7 +14,7 @@ contract Forum {
     uint public constant USER_STARTING_CREDITS = 1050;
     // We only track this many statements for ranking purposes
     uint public constant MAX_RANKED_STATEMENTS = 1000;
-    int public constant MIN_STATEMENT_SUPPORT_TO_RANK = 2;
+    int public constant MIN_STATEMENT_SUPPORT_TO_RANK = 0;
 
     // Configurable max ranked statements (defaults to MAX_RANKED_STATEMENTS)
     uint public immutable maxRankedStatements;
@@ -283,7 +283,7 @@ contract Forum {
             support: Support({value: 0, lastUpdated: block.timestamp}),
             rank: -1
         });
-
+        _updateStatementRanking(statementCount);
         emit StatementAdded(statementCount, _statementText);
         statementCount++;
     }

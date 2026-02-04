@@ -1,73 +1,91 @@
-import React, { FC } from "react";
+import { FC } from "react";
 import Typography from "@mui/material/Typography";
-import IconButton from "@mui/material/IconButton";
-import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
-import ArrowUpwardSharpIcon from "@mui/icons-material/ArrowUpwardSharp";
 import Stack from "@mui/material/Stack";
-import { Box } from "@mui/material";
+import ButtonBase from "@mui/material/ButtonBase";
 
 interface VoteToggleProps {
-  userVoteCount: number;
-  uncommitedVote: boolean;
+  userSupport: number;
+  uncommittedSupport: boolean;
   onUserVoteChange: (newVoteCount: number) => void;
 }
 
-const VoteToggle: FC<VoteToggleProps> = ({
-  userVoteCount,
-  uncommitedVote,
-  onUserVoteChange,
+interface SupportButtonProps {
+  label: string;
+  onClick: () => void;
+  variant: "increase" | "decrease";
+  hasUncommittedChange: boolean;
+}
+
+const SupportButton: FC<SupportButtonProps> = ({
+  label,
+  onClick,
+  variant,
+  hasUncommittedChange,
 }) => {
-  const cost = userVoteCount * userVoteCount;
+  const baseColor = variant === "increase" ? "#e8f5e9" : "#ffebee";
+  const hoverColor = variant === "increase" ? "#c8e6c9" : "#ffcdd2";
+  const textColor = variant === "increase" ? "#2e7d32" : "#c62828";
+  const borderColor = hasUncommittedChange
+    ? variant === "increase"
+      ? "#2e7d32"
+      : "#c62828"
+    : "transparent";
 
   return (
+    <ButtonBase
+      onClick={onClick}
+      sx={{
+        backgroundColor: baseColor,
+        color: textColor,
+        borderRadius: 1,
+        px: 2,
+        py: 0.5,
+        fontWeight: 600,
+        fontSize: "1rem",
+        border: `2px solid ${borderColor}`,
+        "&:hover": {
+          backgroundColor: hoverColor,
+        },
+      }}
+    >
+      {label}
+    </ButtonBase>
+  );
+};
+
+const VoteToggle: FC<VoteToggleProps> = ({
+  userSupport,
+  uncommittedSupport,
+  onUserVoteChange,
+}) => {
+  return (
     <Stack direction="row" alignItems="center" spacing={1}>
-      <Stack
-        spacing="0.1rem"
-        direction="row"
-        alignItems="center"
-        sx={{
-          border: "1px solid lightgray",
-          borderRadius: "50vh",
-          p: 0,
-          backgroundColor: uncommitedVote ? "lightyellow" : "transparent",
-        }}
+      {/* Decrease button */}
+      <SupportButton
+        label="-1"
+        onClick={() => onUserVoteChange(userSupport - 1)}
+        variant="decrease"
+        hasUncommittedChange={uncommittedSupport}
+      />
+
+      {/* Current support value */}
+      <Typography
+        variant="h4"
+        sx={{ fontWeight: 400, minWidth: 60, textAlign: "center" }}
       >
-        <IconButton
-          color="primary"
-          onClick={() => onUserVoteChange(userVoteCount - 1)}
-          sx={{ p: 0.2 }}
-        >
-          <ArrowDownwardIcon />
-        </IconButton>
-        <Typography color="text.secondary" sx={{ position: "relative" }}>
-          {userVoteCount}
-        </Typography>
-        <IconButton
-          color="primary"
-          onClick={() => onUserVoteChange(userVoteCount + 1)}
-          sx={{ p: 0.2 }}
-        >
-          <ArrowUpwardSharpIcon />
-        </IconButton>
-      </Stack>
-      <Stack direction="row" alignItems="center" spacing={0.2}>
-        <Typography color="text.secondary">{cost}</Typography>
-        <VoiceCreditIcon />
-      </Stack>
+        {userSupport}
+      </Typography>
+
+      {/* Increase button */}
+      <SupportButton
+        label="+1"
+        onClick={() => onUserVoteChange(userSupport + 1)}
+        variant="increase"
+        hasUncommittedChange={uncommittedSupport}
+      />
     </Stack>
   );
 };
 
-const VoiceCreditIcon: FC = () => {
-  return (
-    <Box sx={{ position: "relative", width: "1.2em", height: "1.2em" }}>
-      <img
-        src="credit-icon.svg"
-        alt="Voice Credits"
-        style={{ width: "100%", height: "100%" }}
-      />
-    </Box>
-  );
-};
-
 export default VoteToggle;
+export { SupportButton };

@@ -29,7 +29,8 @@
     "preview": "vite preview",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -46,11 +47,14 @@
     "buffer": "^6.0.3",
     "ethers": "^6.15.0",
     "qrcode.react": "^4.2.0",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
     "react-router-dom": "^7.8.1",
     "wagmi": "^2.16.9"
   },
   "devDependencies": {
     "@tanstack/eslint-plugin-query": "^5.90.1",
+    "@types/react": "^19.2.8",
     "@typescript-eslint/eslint-plugin": "^8.44.1",
     "@typescript-eslint/parser": "^8.44.1",
     "@vitejs/plugin-react": "^5.0.0",

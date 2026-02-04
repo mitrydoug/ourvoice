@@ -1,9 +1,6 @@
+import { FC, useEffect } from "react";
 import { Card, Stack, Typography } from "@mui/material";
-import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
-import ArrowUpwardSharpIcon from "@mui/icons-material/ArrowUpwardSharp";
-import RemoveIcon from "@mui/icons-material/Remove";
 
-import React, { FC } from "react";
 import { useUserVotes } from "../state/UserVotes";
 import VoteToggle from "./VoteToggle";
 import { useBlockNumber, useReadContract } from "wagmi";
@@ -24,12 +21,19 @@ type StatementCardProps = {
 };
 
 export const StatementCard: FC<StatementCardProps> = ({ statement }) => {
-  const { isUserVerified, state: userVoteState, dispatch } = useUserVotes();
+  const {
+    isUserVerified,
+    dispatch,
+    getEffectiveSupport,
+    getOnChainSupport,
+    hasAdjustment,
+  } = useUserVotes();
   const { forumContractAddress } = useForum();
 
-  const { data: blockNumber } = useBlockNumber();
+  // Watch for new blocks
+  const { data: blockNumber } = useBlockNumber({ watch: true });
 
-  const result = useReadContract({
+  const { data: historicalData, refetch: refetchHistorical } = useReadContract({
     address: forumContractAddress,
     abi: FORUM_ABI,
     functionName: "getStatementsById",
@@ -38,139 +42,108 @@ export const StatementCard: FC<StatementCardProps> = ({ statement }) => {
     query: { enabled: !!blockNumber },
   });
 
-  const statementOneWeekAgo = result.data
-    ? (result.data[0] as Statement)
+  // Sync historical data query on each new block
+  useEffect(() => {
+    if (blockNumber) {
+      refetchHistorical();
+    }
+  }, [blockNumber, refetchHistorical]);
+
+  const statementOneWeekAgo = historicalData
+    ? (historicalData[0] as Statement)
     : null;
 
-  const rankDelta = statementOneWeekAgo
-    ? Number(statementOneWeekAgo.rank) - Number(statement.rank)
+  const lastWeekRank = statementOneWeekAgo
+    ? Number(statementOneWeekAgo.rank) + 1
     : null;
+
+  const userSupport = isUserVerified
+    ? getEffectiveSupport(Number(statement.id))
+    : 0;
+  const hasUncommittedSupport = isUserVerified
+    ? hasAdjustment(Number(statement.id))
+    : false;
+
+  const handleSupportChange = (newSupport: number) => {
+    if (!isUserVerified) return;
+    const onChainSupport = getOnChainSupport(Number(statement.id));
+    dispatch({
+      type: "STAGE_USER_SUPPORT",
+      payload: {
+        statementId: statement.id,
+        adjustment: newSupport - onChainSupport,
+      },
+    });
+  };
+
+  // Placeholder values for peak and weeks
+  const peakRank = 1;
+  const weeksOnChart = 12;
 
   return (
-    <Card sx={{ p: 0 }}>
-      <Stack direction="row" spacing={2} alignItems="stretch">
-        <RankLabel rank={Number(statement.rank) + 1} />
-        <Stack spacing={1} sx={{ flexGrow: 1, p: 1 }}>
-          <Typography variant="h6">{statement.text}</Typography>
-          <Stack direction="row" alignItems="flex-end" spacing={2}>
-            <Typography color="text.secondary">
-              {statement.support.toString()} support
-            </Typography>
-            <Stack
-              direction="row"
-              sx={{
-                flexGrow: 1,
-                color:
-                  rankDelta === null
-                    ? "gray"
-                    : rankDelta > 0
-                      ? "green"
-                      : rankDelta < 0
-                        ? "red"
-                        : "gray",
-              }}
+    <Card sx={{ p: 2 }}>
+      <Stack spacing={2}>
+        {/* Statement text */}
+        <Typography variant="h6" sx={{ fontWeight: 500 }}>
+          {statement.text}
+        </Typography>
+
+        {/* Stats row */}
+        <Stack direction="row" alignItems="flex-start" spacing={2}>
+          {/* Rank */}
+          <Stack alignItems="center" spacing={0}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ fontSize: "0.7rem" }}
             >
-              {rankDelta === null ? (
-                <RemoveIcon sx={{ strokeWidth: 2 }} />
-              ) : rankDelta > 0 ? (
-                <ArrowUpwardSharpIcon sx={{ strokeWidth: 2 }} />
-              ) : rankDelta < 0 ? (
-                <ArrowDownwardIcon sx={{ strokeWidth: 2 }} />
-              ) : (
-                <RemoveIcon />
-              )}
-              <Typography sx={{ fontWeight: "bold" }}>{rankDelta}</Typography>
-            </Stack>
-            {/*statementOneWeekAgo && (
-              <Box display="flex" alignItems="center" sx={{ flexGrow: 1 }} color={statement.voteCount > statementOneWeekAgo.voteCount ? "green" : statement.voteCount < statementOneWeekAgo.voteCount ? "red" : "text.secondary"}>
-                {statement.voteCount > statementOneWeekAgo.voteCount ? <KeyboardArrowUpIcon /> : statement.voteCount < statementOneWeekAgo.voteCount ? <KeyboardArrowDownIcon /> : <RemoveIcon />}
-              </Box>
-            )*/}
-            {isUserVerified ? (
-              <VoteToggle
-                userVoteCount={
-                  userVoteState.userSupport?.get(Number(statement.id)) || 0
-                }
-                uncommitedVote={
-                  (userVoteState.userSupport?.get(Number(statement.id)) ||
-                    0) !==
-                  (userVoteState.committedSupport?.get(Number(statement.id)) ||
-                    0)
-                }
-                onUserVoteChange={(n) =>
-                  dispatch({
-                    type: "UPDATE_SUPPORT",
-                    payload: {
-                      statementId: statement.id,
-                      newSupportValue: BigInt(n),
-                    },
-                  })
-                }
-              />
-            ) : null}
+              RANK
+            </Typography>
+            <Typography variant="h4" sx={{ fontWeight: 400, lineHeight: 1 }}>
+              {Number(statement.rank) + 1}
+            </Typography>
           </Stack>
+
+          {/* Support controls with labels below */}
+          {isUserVerified && (
+            <Stack spacing={0.5}>
+              {/* Vote toggle */}
+              <VoteToggle
+                userSupport={userSupport}
+                uncommittedSupport={hasUncommittedSupport}
+                onUserVoteChange={handleSupportChange}
+              />
+
+              {/* Labels row - aligned under buttons */}
+              <Stack direction="row" alignItems="center" spacing={1}>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ fontSize: "0.7rem", minWidth: 56, textAlign: "center" }}
+                >
+                  LW {lastWeekRank ?? "-"}
+                </Typography>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ fontSize: "0.7rem", minWidth: 60, textAlign: "center" }}
+                >
+                  PEAK {peakRank}
+                </Typography>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ fontSize: "0.7rem", minWidth: 56, textAlign: "center" }}
+                >
+                  WEEKS {weeksOnChart}
+                </Typography>
+              </Stack>
+            </Stack>
+          )}
         </Stack>
       </Stack>
     </Card>
   );
 };
 
-const RankLabel: FC<{ rank: number }> = ({ rank }) => {
-  const color = rank == 1 ? "gold" : rank <= 10 ? "#a4c4e3ff" : "#d3d3d3ff";
-  const hLevel = rank == 1 ? "h3" : rank <= 9 ? "h4" : "body1";
-  const fullHeight = rank <= 10;
-
-  return (
-    <Stack
-      justifyContent="center"
-      sx={{
-        backgroundColor: color,
-        px: 1,
-        borderRadius: !fullHeight ? "0 0 5px 0" : "",
-      }}
-    >
-      <Typography variant={hLevel}>{rank}</Typography>
-    </Stack>
-  );
-};
-
 export default StatementCard;
-
-/*<CardContent>
-        <Stack direction="row" spacing={2} alignItems="center">
-          <Box>
-            <Typography variant={hLevel}>{Number(statement.rank) + 1}</Typography>
-          </Box>
-          <Box>
-            <Typography variant="h6" component="div">
-              {statement.text}
-            </Typography>
-          </Box>
-        </Stack>
-        
-      </CardContent>
-      <CardActions>
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          alignItems="center"
-          sx={{ width: "100%", px: 2 }}
-        >
-          <Typography color="text.secondary">
-            {statement.voteCount.toString()} votes
-          </Typography>
-          <VoteToggle
-            userVoteCount={userVotes?.get(Number(statement.id)) || 0}
-            uncommitedVote={
-              (userVotes?.get(Number(statement.id)) || 0) !==
-              (committedVotes?.get(Number(statement.id)) || 0)
-            }
-            onUserVoteChange={(n) =>
-              dispatch({
-                type: "UPDATE_VOTE",
-                payload: { statementId: statement.id, newVoteCount: BigInt(n) },
-              })
-            }
-          />
-        </Stack>
-      </CardActions>*/

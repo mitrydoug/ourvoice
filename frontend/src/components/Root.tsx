@@ -1,13 +1,17 @@
-import React, { FC, useRef, useState } from "react";
+import { FC, useRef, useState } from "react";
 import Box from "@mui/material/Box";
 import { Outlet } from "react-router-dom";
 import { Container } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 
 import WriteModal from "./WriteModal";
 import MenuAppBar from "./AppBar";
+import useIsMobile from "@/hooks/useIsMobile";
 
 const Root: FC = () => {
   const layoutRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
+  const theme = useTheme();
 
   const [writeModalOpen, setWriteModalOpen] = useState(false);
 
@@ -19,7 +23,9 @@ const Root: FC = () => {
           sx={{
             display: "flex",
             flexDirection: "column",
-            gap: 4,
+            gap: isMobile
+              ? theme.custom.layout.contentGap.mobile
+              : theme.custom.layout.contentGap.desktop,
             minHeight: "100vh",
             overflowY: "auto",
             overflowX: "visible",

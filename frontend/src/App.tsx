@@ -1,4 +1,4 @@
-import React, { FC } from "react";
+import { FC } from "react";
 
 import { createHashRouter, RouterProvider } from "react-router-dom";
 import Top from "./components/Top.tsx";

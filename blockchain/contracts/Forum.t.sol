@@ -7,6 +7,7 @@ import {console} from "forge-std/console.sol";
 import {Forum} from "./Forum.sol";
 import {MockOurVoiceRegistry} from "./MockOurVoiceRegistry.sol";
 import {AOurVoiceRegistry} from "./IOurVoiceRegistry.sol";
+import {DecayUtils} from "./DecayUtils.sol";
 
 // Test harness to expose internal methods for testing
 contract ForumHarness is Forum {
@@ -90,19 +91,19 @@ contract ForumTest is Test {
     function testUserBalanceAllowance() external registeredMember {
         uint initialBalance = forum.getUserBalance();
         // TODO: assumes step length
-        vm.warp(vm.getBlockTimestamp() + 4 hours);
+        vm.warp(vm.getBlockTimestamp() + DecayUtils.STEP_DURATION_SECONDS);
         uint newBalance = forum.getUserBalance();
         assertEq(
             newBalance,
             initialBalance + 25,
-            "User balance should increase by 25 credits after 4 hours"
+            "User balance should increase by 25 credits after one step"
         );
-        vm.warp(vm.getBlockTimestamp() + 20 hours);
+        vm.warp(vm.getBlockTimestamp() + 5 * DecayUtils.STEP_DURATION_SECONDS);
         newBalance = forum.getUserBalance();
         assertEq(
             newBalance,
             initialBalance + 150,
-            "User balance should increase by 150 credits after 1 day"
+            "User balance should increase by 150 credits after 6 steps (1 day if step is 4 hours)"
         );
     }
 
@@ -499,13 +500,13 @@ contract ForumTest is Test {
         assertEq(supportBefore, 10, "Initial support should be 100");
 
         // Advance by 4 steps
-        vm.warp(vm.getBlockTimestamp() + 4 * 4 hours);
+        vm.warp(vm.getBlockTimestamp() + 4 * DecayUtils.STEP_DURATION_SECONDS);
 
         int supportAfter4Steps = _getStatementById(0).support;
         assertEq(supportAfter4Steps, 9, "Support should decay over time");
 
         // Advance another 96 steps
-        vm.warp(vm.getBlockTimestamp() + 96 * 4 hours);
+        vm.warp(vm.getBlockTimestamp() + 96 * DecayUtils.STEP_DURATION_SECONDS);
 
         int supportAfter100Steps = _getStatementById(0).support;
         assertEq(supportAfter100Steps, 2, "Support should decay over time");
@@ -516,7 +517,7 @@ contract ForumTest is Test {
         _addStatementSupport(0, 10);
 
         // Advance time to cause decay
-        vm.warp(vm.getBlockTimestamp() + 10 * 4 hours);
+        vm.warp(vm.getBlockTimestamp() + 10 * DecayUtils.STEP_DURATION_SECONDS);
 
         // The statement's support has decayed, but adding more should work correctly
         int supportBeforeAdjustment = _getStatementById(0).support;
@@ -552,7 +553,7 @@ contract ForumTest is Test {
         // Wait 2x42 steps for significant decay
         // A = 20 -> 10
         // B = 10 -> 5
-        vm.warp(vm.getBlockTimestamp() + 42 * 4 hours);
+        vm.warp(vm.getBlockTimestamp() + 42 * DecayUtils.STEP_DURATION_SECONDS);
 
         // Trigger ranking update by adjusting support on B
         _addStatementSupport(1, 6);
@@ -587,7 +588,7 @@ contract ForumTest is Test {
         assertEq(userSupport[0].support, 10, "User support should be 10");
 
         // Advance time by 4 steps
-        vm.warp(vm.getBlockTimestamp() + 4 * 4 hours);
+        vm.warp(vm.getBlockTimestamp() + 4 * DecayUtils.STEP_DURATION_SECONDS);
 
         // Check user's support after decay
         userSupport = forum.getUserStatementSupport();
@@ -603,7 +604,7 @@ contract ForumTest is Test {
         );
 
         // Advance time by another 96 steps
-        vm.warp(vm.getBlockTimestamp() + 96 * 4 hours);
+        vm.warp(vm.getBlockTimestamp() + 96 * DecayUtils.STEP_DURATION_SECONDS);
 
         // Check user's support after decay
         userSupport = forum.getUserStatementSupport();
@@ -636,7 +637,7 @@ contract ForumTest is Test {
         );
 
         // Advance time to cause support decay
-        vm.warp(vm.getBlockTimestamp() + 42 * 4 hours);
+        vm.warp(vm.getBlockTimestamp() + 42 * DecayUtils.STEP_DURATION_SECONDS);
 
         // User's support has decayed to ~5, which costs 15 instead of 55
         // When they remove all support, they should get back only the cost of current support
@@ -674,7 +675,7 @@ contract ForumTest is Test {
 
         // Wait long enough for support to decay to 0 (168 steps = 4 half-lives)
         // 10 -> 5 -> 2 -> 1 -> 0
-        vm.warp(vm.getBlockTimestamp() + 168 * 4 hours);
+        vm.warp(vm.getBlockTimestamp() + 168 * DecayUtils.STEP_DURATION_SECONDS);
 
         // Check that the statement is no longer in user's support list
         userSupport = forum.getUserStatementSupport();

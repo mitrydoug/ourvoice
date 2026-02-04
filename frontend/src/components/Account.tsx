@@ -1,4 +1,4 @@
-import React, { FC, useMemo } from "react";
+import { FC, useMemo } from "react";
 import { metamaskIcon } from "../util";
 import { useAccount } from "wagmi";
 import { Navigate, useNavigate } from "react-router-dom";

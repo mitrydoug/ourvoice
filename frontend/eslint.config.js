@@ -14,6 +14,7 @@ export default defineConfig([
       eslint.configs.recommended,
       ...tseslint.configs.recommended,
       react.configs.flat.recommended,
+      react.configs.flat["jsx-runtime"],
       reactHooks.configs["recommended-latest"],
     ],
     languageOptions: {
@@ -28,6 +29,11 @@ export default defineConfig([
       },
       globals: {
         ...globals.browser,
+      },
+    },
+    settings: {
+      react: {
+        version: "detect",
       },
     },
   },
