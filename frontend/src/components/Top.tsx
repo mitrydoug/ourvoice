@@ -5,10 +5,13 @@ import { Statement } from "../types";
 import StatementList from "./StatementList";
 import useIsMobile from "@/hooks/useIsMobile";
 import useBlockSync from "@/hooks/useBlockSync";
+import useLocalStorageSet from "@/hooks/useLocalStorageSet";
 
 const Top: FC = () => {
   const { forumContractAddress } = useForum();
   const isMobile = useIsMobile();
+  const { has: isBookmarked, toggle: toggleBookmark } =
+    useLocalStorageSet("bookmarks");
 
   const PAGE_SIZE = isMobile ? 10 : 20;
 
@@ -92,6 +95,8 @@ const Top: FC = () => {
       hasMore={hasMore}
       isLoading={isLoading}
       onLoadMore={handleLoadMore}
+      isBookmarked={isBookmarked}
+      onToggleBookmark={toggleBookmark}
     />
   );
 };

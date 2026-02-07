@@ -17,12 +17,13 @@ import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import CreateIcon from "@mui/icons-material/Create";
 import WriteModal from "./WriteModal";
 import { useUserVotes } from "../state/UserVotes";
+import useLocalStorageSet from "@/hooks/useLocalStorageSet";
 
 const NAV_ITEMS = [
   { label: "Home", href: "/top", icon: <HomeIcon /> },
   { label: "Your Support", href: "/my-support", icon: <FavoriteBorderIcon /> },
-  { label: "My Statements", href: "#", icon: <ArticleIcon /> },
-  { label: "Saved", href: "#", icon: <BookmarkBorderIcon /> },
+  { label: "My Statements", href: "/my-statements", icon: <ArticleIcon /> },
+  { label: "Bookmarked", href: "/bookmarked", icon: <BookmarkBorderIcon /> },
   { label: "How it works", href: "#", icon: <HelpOutlineIcon /> },
 ];
 
@@ -31,6 +32,7 @@ const SideNav: FC = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const { isUserVerified } = useUserVotes();
+  const { add: addAuthoredStatement } = useLocalStorageSet("authoredStatements");
 
   const [writeModalOpen, setWriteModalOpen] = useState(false);
 
@@ -90,6 +92,7 @@ const SideNav: FC = () => {
       <WriteModal
         open={writeModalOpen}
         onClose={() => setWriteModalOpen(false)}
+        onStatementAdded={addAuthoredStatement}
       />
     </>
   );

@@ -7,11 +7,14 @@ import StatementList from "./StatementList";
 import { Navigate } from "react-router-dom";
 import useIsMobile from "@/hooks/useIsMobile";
 import useBlockSync from "@/hooks/useBlockSync";
+import useLocalStorageSet from "@/hooks/useLocalStorageSet";
 
 const MySupport: FC = () => {
   const { isUserVerified, state: userVoteState } = useUserVotes();
   const { forumContractAddress } = useForum();
   const isMobile = useIsMobile();
+  const { has: isBookmarked, toggle: toggleBookmark } =
+    useLocalStorageSet("bookmarks");
 
   const PAGE_SIZE = isMobile ? 10 : 20;
 
@@ -73,6 +76,8 @@ const MySupport: FC = () => {
       hasMore={hasMore}
       isLoading={result.isLoading}
       onLoadMore={handleLoadMore}
+      isBookmarked={isBookmarked}
+      onToggleBookmark={toggleBookmark}
     />
   );
 };

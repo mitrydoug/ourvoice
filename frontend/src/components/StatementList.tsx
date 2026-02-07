@@ -8,6 +8,8 @@ type StatementListProps = {
   hasMore: boolean;
   isLoading: boolean;
   onLoadMore: () => void;
+  isBookmarked?: (statementId: number) => boolean;
+  onToggleBookmark?: (statementId: number) => void;
 };
 
 const StatementList: FC<StatementListProps> = ({
@@ -15,6 +17,8 @@ const StatementList: FC<StatementListProps> = ({
   hasMore,
   isLoading,
   onLoadMore,
+  isBookmarked,
+  onToggleBookmark,
 }) => {
   const theme = useTheme();
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -43,7 +47,12 @@ const StatementList: FC<StatementListProps> = ({
     <>
       <Stack spacing={1}>
         {statements?.map((stmt) => (
-          <StatementCard key={`stmt-${Number(stmt.id)}`} statement={stmt} />
+          <StatementCard
+            key={`stmt-${Number(stmt.id)}`}
+            statement={stmt}
+            isBookmarked={isBookmarked?.(Number(stmt.id))}
+            onToggleBookmark={onToggleBookmark}
+          />
         ))}
       </Stack>
 

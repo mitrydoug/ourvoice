@@ -1,5 +1,7 @@
 import { FC, useEffect } from "react";
-import { Card, Stack, Typography } from "@mui/material";
+import { Card, IconButton, Stack, Typography } from "@mui/material";
+import BookmarkIcon from "@mui/icons-material/Bookmark";
+import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
 
 import { useUserVotes } from "../state/UserVotes";
 import VoteToggle from "./VoteToggle";
@@ -18,9 +20,15 @@ interface Statement {
 
 type StatementCardProps = {
   statement: Statement;
+  isBookmarked?: boolean;
+  onToggleBookmark?: (statementId: number) => void;
 };
 
-export const StatementCard: FC<StatementCardProps> = ({ statement }) => {
+export const StatementCard: FC<StatementCardProps> = ({
+  statement,
+  isBookmarked,
+  onToggleBookmark,
+}) => {
   const {
     isUserVerified,
     dispatch,
@@ -83,10 +91,26 @@ export const StatementCard: FC<StatementCardProps> = ({ statement }) => {
   return (
     <Card sx={{ p: 2 }}>
       <Stack spacing={2}>
-        {/* Statement text */}
-        <Typography variant="h6" sx={{ fontWeight: 500 }}>
-          {statement.text}
-        </Typography>
+        {/* Statement text + bookmark */}
+        <Stack direction="row" alignItems="flex-start" spacing={1}>
+          <Typography variant="h6" sx={{ fontWeight: 500, flexGrow: 1 }}>
+            {statement.text}
+          </Typography>
+          {onToggleBookmark && (
+            <IconButton
+              size="small"
+              onClick={() => onToggleBookmark(Number(statement.id))}
+              aria-label={isBookmarked ? "Remove bookmark" : "Bookmark"}
+              sx={{ flexShrink: 0, mt: -0.5 }}
+            >
+              {isBookmarked ? (
+                <BookmarkIcon color="primary" />
+              ) : (
+                <BookmarkBorderIcon />
+              )}
+            </IconButton>
+          )}
+        </Stack>
 
         {/* Stats row */}
         <Stack direction="row" alignItems="flex-start" spacing={2}>

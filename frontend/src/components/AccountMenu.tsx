@@ -234,7 +234,7 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
                   onClick={() => handleNavigate("/my-statements")}
                 >
                   <ListItemText
-                    primary="Your Statements"
+                    primary="My Statements"
                     primaryTypographyProps={{
                       variant: "body1",
                       fontWeight: 500,
@@ -243,9 +243,9 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
                 </ListItemButton>
               </ListItem>
               <ListItem disablePadding>
-                <ListItemButton onClick={() => handleNavigate("/saved")}>
+                <ListItemButton onClick={() => handleNavigate("/bookmarked")}>
                   <ListItemText
-                    primary="Saved"
+                    primary="Bookmarked"
                     primaryTypographyProps={{
                       variant: "body1",
                       fontWeight: 500,
