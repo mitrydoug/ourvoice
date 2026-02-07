@@ -31,6 +31,9 @@ declare module "@mui/material/styles" {
           desktop: number;
         };
       };
+      sideNav: {
+        width: number;
+      };
     };
   }
   interface ThemeOptions {
@@ -61,6 +64,9 @@ declare module "@mui/material/styles" {
           mobile?: number;
           desktop?: number;
         };
+      };
+      sideNav?: {
+        width?: number;
       };
     };
   }
@@ -142,6 +148,9 @@ export const theme = createTheme({
         mobile: 2,
         desktop: 4,
       },
+    },
+    sideNav: {
+      width: 220,
     },
   },
 });

@@ -14,8 +14,6 @@ import {
 import { useAccount, useDisconnect } from "wagmi";
 import { Link, useNavigate } from "react-router-dom";
 import { useUserVotes } from "../state/UserVotes";
-import CreateIcon from "@mui/icons-material/Create";
-import WriteModal from "./WriteModal";
 import ChooseForumModal, { FORUMS } from "./ChooseForumModal";
 import DoneAllIcon from "@mui/icons-material/DoneAll";
 import SearchIcon from "@mui/icons-material/Search";
@@ -173,13 +171,11 @@ interface UserActionsProps {
     hasStagedChanges: boolean;
   };
   commitSupport: () => void;
-  onWriteClick: () => void;
 }
 
 const UserActions: React.FC<UserActionsProps> = ({
   userVoteState,
   commitSupport,
-  onWriteClick,
 }) => (
   <>
     <Stack alignItems="center" spacing={0}>
@@ -199,11 +195,6 @@ const UserActions: React.FC<UserActionsProps> = ({
         }}
       />
     </IconButton>
-    <Button startIcon={<CreateIcon />} onClick={onWriteClick}>
-      <Typography variant="body1" component="div">
-        Write
-      </Typography>
-    </Button>
   </>
 );
 
@@ -214,7 +205,6 @@ export default function MenuAppBar() {
   const [avatar, setAvatar] = useState<string | null>(null);
   const { address } = useAccount();
   const isMobile = useIsMobile();
-  const [writeModalOpen, setWriteModalOpen] = useState(false);
   const [chooseForumModalOpen, setChooseForumModalOpen] = useState(false);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const { name: forumName, setForum } = useForum();
@@ -313,7 +303,7 @@ export default function MenuAppBar() {
                       navigate={navigate}
                       disconnect={disconnect}
                       avatar={avatar}
-                      commitSupport={commitSupport ?? (() => {})}
+                      commitSupport={commitSupport ?? (() => { })}
                       hasStagedChanges={
                         userVoteState?.hasStagedChanges ?? false
                       }
@@ -347,7 +337,6 @@ export default function MenuAppBar() {
                 <UserActions
                   userVoteState={userVoteState}
                   commitSupport={commitSupport}
-                  onWriteClick={() => setWriteModalOpen(true)}
                 />
               )}
 
@@ -401,10 +390,6 @@ export default function MenuAppBar() {
           )}
         </Toolbar>
       </AppBar>
-      <WriteModal
-        open={writeModalOpen}
-        onClose={() => setWriteModalOpen(false)}
-      />
       <ChooseForumModal
         open={chooseForumModalOpen}
         onClose={() => setChooseForumModalOpen(false)}
