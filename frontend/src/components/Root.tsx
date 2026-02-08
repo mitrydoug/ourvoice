@@ -17,6 +17,7 @@ const Root: FC = () => {
     <Box ref={layoutRef} sx={{ position: "relative" }}>
       <Container
         component="main"
+        maxWidth={false}
         sx={{
           display: "flex",
           flexDirection: "column",
@@ -24,6 +25,7 @@ const Root: FC = () => {
             ? theme.custom.layout.contentGap.mobile
             : theme.custom.layout.contentGap.desktop,
           minHeight: "100vh",
+          maxWidth: isMobile ? undefined : "800px",
           overflowY: "auto",
           overflowX: "visible",
           pb: 8,
