@@ -44,10 +44,7 @@ const formatSupport = (value: number): string => {
   return `${sign}${formatted}${suffix}`;
 };
 
-const rankEmoji = (rank: number): string => {
-  if (rank === 1) return "🥇";
-  if (rank === 2) return "🥈";
-  if (rank === 3) return "🥉";
+const rankEmoji = (_rank: number): string => {
   return "";
 };
 
