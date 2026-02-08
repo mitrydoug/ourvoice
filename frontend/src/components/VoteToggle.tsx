@@ -64,12 +64,19 @@ const VoteToggle: FC<VoteToggleProps> = ({
   direction = "horizontal",
 }) => {
   if (direction === "vertical") {
+    const numberColor =
+      userSupport > 0
+        ? "success.main"
+        : userSupport < 0
+          ? "error.main"
+          : "text.secondary";
+
     return (
       <Stack alignItems="center" spacing={0}>
         <ButtonBase
           onClick={() => onUserVoteChange(userSupport + 1)}
           sx={{
-            color: uncommittedSupport ? "success.main" : "text.secondary",
+            color: "text.secondary",
             "&:hover": { color: "success.main" },
           }}
         >
@@ -80,7 +87,7 @@ const VoteToggle: FC<VoteToggleProps> = ({
           sx={{
             fontWeight: 500,
             lineHeight: 1.2,
-            color: uncommittedSupport ? "text.primary" : "text.secondary",
+            color: numberColor,
           }}
         >
           {userSupport}
@@ -88,7 +95,7 @@ const VoteToggle: FC<VoteToggleProps> = ({
         <ButtonBase
           onClick={() => onUserVoteChange(userSupport - 1)}
           sx={{
-            color: uncommittedSupport ? "error.main" : "text.secondary",
+            color: "text.secondary",
             "&:hover": { color: "error.main" },
           }}
         >
