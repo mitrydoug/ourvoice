@@ -5,11 +5,13 @@ import React, {
   useContext,
   useEffect,
   useReducer,
+  useRef,
 } from "react";
 import {
   useAccount,
   useReadContract,
   useReadContracts,
+  useWaitForTransactionReceipt,
   useWriteContract,
 } from "wagmi";
 import { FORUM_ABI, useForum } from "./Forum";
@@ -30,11 +32,22 @@ interface StagedSupport {
   supportAdjustments: Map<number, number>;
 }
 
+export type CommitStatus =
+  | "idle"
+  | "awaiting-approval"
+  | "pending-confirmation"
+  | "confirmed"
+  | "cancelled"
+  | "error";
+
 interface UserSupportState {
   onChain?: UserSupport;
   staged?: StagedSupport;
   hasStagedChanges: boolean;
   hasEnoughCredits: boolean;
+  commitStatus: CommitStatus;
+  pendingTxHash?: `0x${string}`;
+  confirmedBlockNumber?: bigint;
 }
 
 type SyncOnChainState = {
@@ -51,10 +64,42 @@ type ClearStagedSupport = {
   type: "CLEAR_STAGED_SUPPORT";
 };
 
+type BeginCommit = {
+  type: "BEGIN_COMMIT";
+};
+
+type CommitSubmitted = {
+  type: "COMMIT_SUBMITTED";
+  payload: { txHash: `0x${string}` };
+};
+
+type CommitConfirmed = {
+  type: "COMMIT_CONFIRMED";
+  payload: { blockNumber: bigint };
+};
+
+type CommitCancelled = {
+  type: "COMMIT_CANCELLED";
+};
+
+type CommitError = {
+  type: "COMMIT_ERROR";
+};
+
+type ResetCommitStatus = {
+  type: "RESET_COMMIT_STATUS";
+};
+
 type UserSupportAction =
   | SyncOnChainState
   | StageUserSupport
-  | ClearStagedSupport;
+  | ClearStagedSupport
+  | BeginCommit
+  | CommitSubmitted
+  | CommitConfirmed
+  | CommitCancelled
+  | CommitError
+  | ResetCommitStatus;
 
 // Helper to calculate the cost of an adjustment from one support level to another
 const adjustmentCost = (fromSupport: number, toSupport: number): number => {
@@ -83,7 +128,23 @@ const reducer = (
         statementSupport: _supportMap,
       };
       newState.onChain = onChainState;
-      if (!newState.staged) {
+
+      // If we're waiting for a confirmed block to be synced, check if this
+      // sync covers the block that confirmed our transaction.
+      if (
+        newState.commitStatus === "pending-confirmation" &&
+        newState.confirmedBlockNumber !== undefined
+      ) {
+        // The on-chain state now reflects (at least) the confirmed block.
+        // Clear staged support since the chain state includes our changes.
+        newState.staged = {
+          credits: onChainState.credits,
+          supportAdjustments: new Map(),
+        };
+        newState.commitStatus = "confirmed";
+        newState.pendingTxHash = undefined;
+        newState.confirmedBlockNumber = undefined;
+      } else if (!newState.staged) {
         newState.staged = {
           credits: onChainState.credits,
           supportAdjustments: new Map(),
@@ -116,6 +177,44 @@ const reducer = (
       };
       break;
     }
+    case "BEGIN_COMMIT": {
+      newState.commitStatus = "awaiting-approval";
+      break;
+    }
+    case "COMMIT_SUBMITTED": {
+      newState.commitStatus = "pending-confirmation";
+      newState.pendingTxHash = action.payload.txHash;
+      break;
+    }
+    case "COMMIT_CONFIRMED": {
+      // Receipt arrived — store the block number. If SYNC_ONCHAIN_STATE
+      // already covered this block we transition immediately; otherwise we
+      // wait for the next sync to pick it up (handled in SYNC_ONCHAIN_STATE).
+      newState.confirmedBlockNumber = action.payload.blockNumber;
+      break;
+    }
+    case "COMMIT_CANCELLED": {
+      newState.commitStatus = "cancelled";
+      newState.pendingTxHash = undefined;
+      break;
+    }
+    case "COMMIT_ERROR": {
+      newState.commitStatus = "error";
+      newState.pendingTxHash = undefined;
+      newState.confirmedBlockNumber = undefined;
+      // Clear staged support so user re-syncs cleanly from chain
+      newState.staged = {
+        credits: newState.onChain ? newState.onChain.credits : 0,
+        supportAdjustments: new Map(),
+      };
+      break;
+    }
+    case "RESET_COMMIT_STATUS": {
+      newState.commitStatus = "idle";
+      newState.pendingTxHash = undefined;
+      newState.confirmedBlockNumber = undefined;
+      break;
+    }
   }
 
   // Calculate total adjustment cost
@@ -136,9 +235,9 @@ const reducer = (
     ...newState,
     staged: newState.staged
       ? {
-          ...newState.staged,
-          credits: stagedCredits,
-        }
+        ...newState.staged,
+        credits: stagedCredits,
+      }
       : undefined,
     hasStagedChanges: newState.staged?.supportAdjustments.size
       ? newState.staged.supportAdjustments.size > 0
@@ -155,6 +254,7 @@ type UserNotVerifiedContextValue = {
   state: undefined;
   dispatch: undefined;
   commitSupport: undefined;
+  resetCommitStatus: undefined;
   getEffectiveSupport: undefined;
   getOnChainSupport: undefined;
   hasAdjustment: undefined;
@@ -165,6 +265,7 @@ type UserSupportContextValue = {
   state: UserSupportState;
   dispatch: React.Dispatch<UserSupportAction>;
   commitSupport: () => void;
+  resetCommitStatus: () => void;
   getEffectiveSupport: (statementId: number) => number;
   getOnChainSupport: (statementId: number) => number;
   hasAdjustment: (statementId: number) => boolean;
@@ -182,8 +283,9 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
     staged: undefined,
     hasStagedChanges: false,
     hasEnoughCredits: true,
+    commitStatus: "idle",
   });
-  const { writeContract } = useWriteContract();
+  const { writeContractAsync } = useWriteContract();
   const { address } = useAccount();
   const { forumContractAddress } = useForum();
   console.log("UserVoteProvider for address: ", address);
@@ -246,6 +348,55 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
   // Sync with blockchain on every new block
   useBlockSync(refetch);
 
+  // Wait for transaction receipt once a tx hash is available
+  const { data: txReceipt } = useWaitForTransactionReceipt({
+    hash: state.pendingTxHash,
+    confirmations: 1,
+    query: {
+      enabled: !!state.pendingTxHash,
+    },
+  });
+
+  // When receipt arrives, dispatch COMMIT_CONFIRMED with the block number
+  useEffect(() => {
+    if (
+      txReceipt &&
+      state.commitStatus === "pending-confirmation" &&
+      state.confirmedBlockNumber === undefined
+    ) {
+      dispatch({
+        type: "COMMIT_CONFIRMED",
+        payload: { blockNumber: txReceipt.blockNumber },
+      });
+    }
+  }, [txReceipt, state.commitStatus, state.confirmedBlockNumber]);
+
+  // Timeout: if commit is in-flight for more than 30 seconds, treat as error
+  const commitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (
+      state.commitStatus !== "idle" &&
+      state.commitStatus !== "confirmed" &&
+      state.commitStatus !== "cancelled" &&
+      state.commitStatus !== "error"
+    ) {
+      commitTimeoutRef.current = setTimeout(() => {
+        dispatch({ type: "COMMIT_ERROR" });
+      }, 30_000);
+    } else {
+      if (commitTimeoutRef.current) {
+        clearTimeout(commitTimeoutRef.current);
+        commitTimeoutRef.current = null;
+      }
+    }
+    return () => {
+      if (commitTimeoutRef.current) {
+        clearTimeout(commitTimeoutRef.current);
+        commitTimeoutRef.current = null;
+      }
+    };
+  }, [state.commitStatus]);
+
   const commitSupport = useCallback(async () => {
     if (state.hasStagedChanges && state.hasEnoughCredits && state.staged) {
       console.log(
@@ -261,17 +412,27 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
         });
       }
 
-      writeContract({
-        address: forumContractAddress,
-        abi: FORUM_ABI,
-        functionName: "adjustSupport",
-        args: [supportAdjustments],
-      });
+      dispatch({ type: "BEGIN_COMMIT" });
 
-      // Clear staged support after submitting transaction
-      dispatch({ type: "CLEAR_STAGED_SUPPORT" });
+      try {
+        const txHash = await writeContractAsync({
+          address: forumContractAddress,
+          abi: FORUM_ABI,
+          functionName: "adjustSupport",
+          args: [supportAdjustments],
+        });
+
+        dispatch({ type: "COMMIT_SUBMITTED", payload: { txHash } });
+      } catch {
+        // User rejected the transaction in their wallet, or other error
+        dispatch({ type: "COMMIT_CANCELLED" });
+      }
     }
-  }, [state, writeContract, forumContractAddress, dispatch]);
+  }, [state, writeContractAsync, forumContractAddress, dispatch]);
+
+  const resetCommitStatus = useCallback(() => {
+    dispatch({ type: "RESET_COMMIT_STATUS" });
+  }, [dispatch]);
 
   // Helper function to get effective support (on-chain + adjustment)
   const getEffectiveSupport = useCallback(
@@ -308,6 +469,7 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
           state,
           dispatch,
           commitSupport,
+          resetCommitStatus,
           getEffectiveSupport,
           getOnChainSupport,
           hasAdjustment,
@@ -324,6 +486,7 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
           state: undefined,
           dispatch: undefined,
           commitSupport: undefined,
+          resetCommitStatus: undefined,
           getEffectiveSupport: undefined,
           getOnChainSupport: undefined,
           hasAdjustment: undefined,

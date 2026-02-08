@@ -121,6 +121,7 @@ export interface AccountDrawerProps {
   avatar?: string | null;
   commitSupport: () => void;
   hasStagedChanges: boolean;
+  commitBusy?: boolean;
 }
 
 export const AccountDrawer: React.FC<AccountDrawerProps> = ({
@@ -133,6 +134,7 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
   avatar,
   commitSupport,
   hasStagedChanges,
+  commitBusy = false,
 }) => {
   const handleNavigate = (path: string) => {
     navigate(path);
@@ -186,16 +188,20 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
             variant="outlined"
             fullWidth
             onClick={handleCommit}
-            disabled={!hasStagedChanges}
+            disabled={!hasStagedChanges || commitBusy}
             sx={{
               mb: 2,
-              borderColor: hasStagedChanges ? "warning.main" : "grey.300",
-              color: hasStagedChanges ? "warning.main" : "grey.500",
+              borderColor:
+                hasStagedChanges && !commitBusy ? "warning.main" : "grey.300",
+              color:
+                hasStagedChanges && !commitBusy ? "warning.main" : "grey.500",
               "&:hover": {
-                borderColor: hasStagedChanges ? "warning.dark" : "grey.400",
-                backgroundColor: hasStagedChanges
-                  ? "rgba(237, 108, 2, 0.04)"
-                  : undefined,
+                borderColor:
+                  hasStagedChanges && !commitBusy ? "warning.dark" : "grey.400",
+                backgroundColor:
+                  hasStagedChanges && !commitBusy
+                    ? "rgba(237, 108, 2, 0.04)"
+                    : undefined,
               },
             }}
           >

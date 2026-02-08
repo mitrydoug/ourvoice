@@ -25,6 +25,7 @@ import useIsMobile from "@/hooks/useIsMobile";
 import { useTheme } from "@mui/material/styles";
 import { AccountMenu, AccountDrawer } from "./AccountMenu";
 import { SupportAllocationBar } from "./SupportAllocationBar";
+import CommitSupportModal from "./CommitSupportModal";
 
 const MIC_ICON = (
   <svg
@@ -169,6 +170,7 @@ interface UserActionsProps {
     staged?: { credits: number };
     onChain?: { credits: number };
     hasStagedChanges: boolean;
+    commitStatus?: string;
   };
   commitSupport: () => void;
 }
@@ -176,27 +178,36 @@ interface UserActionsProps {
 const UserActions: React.FC<UserActionsProps> = ({
   userVoteState,
   commitSupport,
-}) => (
-  <>
-    <Stack alignItems="center" spacing={0}>
-      <Typography variant="body2">Credits</Typography>
-      <Typography variant="body1">
-        {userVoteState.staged?.credits || 0}/
-        {userVoteState.onChain?.credits || 0}
-      </Typography>
-    </Stack>
-    <IconButton
-      onClick={commitSupport}
-      disabled={!userVoteState.hasStagedChanges}
-    >
-      <DoneAllIcon
-        sx={{
-          color: userVoteState.hasStagedChanges ? "primary.main" : "",
-        }}
-      />
-    </IconButton>
-  </>
-);
+}) => {
+  const commitBusy =
+    userVoteState.commitStatus !== undefined &&
+    userVoteState.commitStatus !== "idle";
+
+  return (
+    <>
+      <Stack alignItems="center" spacing={0}>
+        <Typography variant="body2">Credits</Typography>
+        <Typography variant="body1">
+          {userVoteState.staged?.credits || 0}/
+          {userVoteState.onChain?.credits || 0}
+        </Typography>
+      </Stack>
+      <IconButton
+        onClick={commitSupport}
+        disabled={!userVoteState.hasStagedChanges || commitBusy}
+      >
+        <DoneAllIcon
+          sx={{
+            color:
+              userVoteState.hasStagedChanges && !commitBusy
+                ? "primary.main"
+                : "",
+          }}
+        />
+      </IconButton>
+    </>
+  );
+};
 
 export default function MenuAppBar() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -233,6 +244,7 @@ export default function MenuAppBar() {
   const {
     isUserVerified,
     commitSupport,
+    resetCommitStatus,
     state: userVoteState,
   } = useUserVotes();
 
@@ -303,9 +315,13 @@ export default function MenuAppBar() {
                       navigate={navigate}
                       disconnect={disconnect}
                       avatar={avatar}
-                      commitSupport={commitSupport ?? (() => { })}
+                      commitSupport={commitSupport ?? (() => {})}
                       hasStagedChanges={
                         userVoteState?.hasStagedChanges ?? false
+                      }
+                      commitBusy={
+                        userVoteState?.commitStatus !== undefined &&
+                        userVoteState?.commitStatus !== "idle"
                       }
                     />
                   </>
@@ -402,6 +418,12 @@ export default function MenuAppBar() {
         open={searchModalOpen}
         onClose={() => setSearchModalOpen(false)}
       />
+      {userVoteState && resetCommitStatus && (
+        <CommitSupportModal
+          commitStatus={userVoteState.commitStatus}
+          onReset={resetCommitStatus}
+        />
+      )}
     </>
   );
 }
