@@ -1,5 +1,9 @@
 This repository defines a distributed application (DApp) with a typescript+react frontend and a smart contract-based backend. There is no traditional backend server; instead, all business logic is handled by smart contracts deployed on the blockchain. Backend services exist to support text-search and indexing of blockchain data.
 
+## Spec Kit
+
+This project uses Github's Spec Kit to define a spec-driven development process for this DApp. The file `.specify/memory/constitution.md` defines the constitution for this project, which outlines the principles and guidelines for development. Read this file to understand the overall vision and goals of the project.
+
 ## Project Structure
 
 The project is organized into three main directories:
