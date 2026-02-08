@@ -159,7 +159,11 @@ export const StatementCard: FC<StatementCardProps> = ({
         </Stack>
 
         {/* Middle column: content */}
-        <Stack spacing={1.5} sx={{ flex: 1, minWidth: 0 }}>
+        <Stack
+          spacing={1.5}
+          sx={{ flex: 1, minWidth: 0 }}
+          justifyContent="space-between"
+        >
           {/* Statement text */}
           <Typography variant="h6" sx={{ fontWeight: 500 }}>
             {statement.text}
