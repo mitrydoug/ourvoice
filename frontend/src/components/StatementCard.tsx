@@ -99,8 +99,7 @@ export const StatementCard: FC<StatementCardProps> = ({
     : null;
 
   // Rank change: positive means improved (moved up), negative means dropped
-  const rankChange =
-    lastWeekRank !== null ? lastWeekRank - currentRank : null;
+  const rankChange = lastWeekRank !== null ? lastWeekRank - currentRank : null;
 
   const userSupport = isUserVerified
     ? getEffectiveSupport(Number(statement.id))
@@ -128,107 +127,122 @@ export const StatementCard: FC<StatementCardProps> = ({
 
   return (
     <Card sx={{ p: 2 }}>
-      <Stack spacing={1.5}>
-        {/* Statement text */}
-        <Typography variant="h6" sx={{ fontWeight: 500 }}>
-          {statement.text}
-        </Typography>
+      <Stack direction="row" spacing={2}>
+        {/* Left column: rank */}
+        <Stack
+          alignItems="center"
+          justifyContent="center"
+          sx={{ width: 64, minWidth: 64, flexShrink: 0 }}
+        >
+          <Typography
+            variant="h4"
+            sx={{
+              fontWeight: 600,
+              fontSize: "2rem",
+              lineHeight: 1.1,
+              color: "text.primary",
+            }}
+          >
+            {currentRank}
+          </Typography>
+          {rankEmoji(currentRank) && (
+            <Typography sx={{ fontSize: "1.4rem", lineHeight: 1.2, mt: 0.25 }}>
+              {rankEmoji(currentRank)}
+            </Typography>
+          )}
+        </Stack>
 
-        {/* Vote controls - centered */}
-        {isUserVerified && (
-          <Stack alignItems="center">
+        {/* Right column: content */}
+        <Stack spacing={1.5} sx={{ flex: 1, minWidth: 0 }}>
+          {/* Statement text */}
+          <Typography variant="h6" sx={{ fontWeight: 500 }}>
+            {statement.text}
+          </Typography>
+
+          {/* Vote controls */}
+          {isUserVerified && (
             <VoteToggle
               userSupport={userSupport}
               uncommittedSupport={hasUncommittedSupport}
               onUserVoteChange={handleSupportChange}
             />
-          </Stack>
-        )}
+          )}
 
-        {/* Bottom stats row */}
-        <Stack
-          direction="row"
-          alignItems="center"
-          spacing={2}
-          sx={{ mt: 0.5 }}
-        >
-          {/* Rank */}
-          <Typography
-            variant="body1"
-            sx={{ fontWeight: 500, fontSize: "1.1rem", color: "text.primary" }}
+          {/* Bottom stats row */}
+          <Stack
+            direction="row"
+            alignItems="center"
+            spacing={2}
+            sx={{ mt: 0.5 }}
           >
-            {rankEmoji(currentRank)} {currentRank}
-          </Typography>
+            {/* Global support (blue) */}
+            <Typography
+              variant="body2"
+              sx={{ fontWeight: 600, color: "primary.main" }}
+            >
+              {formatSupport(globalSupport)}
+            </Typography>
 
-          {/* Global support (blue) */}
-          <Typography
-            variant="body2"
-            sx={{ fontWeight: 600, color: "primary.main" }}
-          >
-            {formatSupport(globalSupport)}
-          </Typography>
+            {/* Rank change */}
+            <Stack direction="row" alignItems="center" spacing={0.25}>
+              {rankChange === null || rankChange === 0 ? (
+                <Typography variant="body2" color="text.secondary">
+                  — N/C
+                </Typography>
+              ) : rankChange > 0 ? (
+                <>
+                  <ArrowUpwardIcon
+                    sx={{ fontSize: 16, color: "success.main" }}
+                  />
+                  <Typography
+                    variant="body2"
+                    sx={{ fontWeight: 600, color: "success.main" }}
+                  >
+                    {rankChange}
+                  </Typography>
+                </>
+              ) : (
+                <>
+                  <ArrowDownwardIcon
+                    sx={{ fontSize: 16, color: "error.main" }}
+                  />
+                  <Typography
+                    variant="body2"
+                    sx={{ fontWeight: 600, color: "error.main" }}
+                  >
+                    {Math.abs(rankChange)}
+                  </Typography>
+                </>
+              )}
+            </Stack>
 
-          {/* Rank change */}
-          <Stack direction="row" alignItems="center" spacing={0.25}>
-            {rankChange === null || rankChange === 0 ? (
+            {/* Peak rank */}
+            <Stack direction="row" alignItems="center" spacing={0.5}>
+              <LandscapeIcon sx={{ fontSize: 18, color: "text.secondary" }} />
               <Typography variant="body2" color="text.secondary">
-                — N/C
+                {peakRank}
               </Typography>
-            ) : rankChange > 0 ? (
-              <>
-                <ArrowUpwardIcon
-                  sx={{ fontSize: 16, color: "success.main" }}
-                />
-                <Typography
-                  variant="body2"
-                  sx={{ fontWeight: 600, color: "success.main" }}
-                >
-                  {rankChange}
-                </Typography>
-              </>
-            ) : (
-              <>
-                <ArrowDownwardIcon
-                  sx={{ fontSize: 16, color: "error.main" }}
-                />
-                <Typography
-                  variant="body2"
-                  sx={{ fontWeight: 600, color: "error.main" }}
-                >
-                  {Math.abs(rankChange)}
-                </Typography>
-              </>
+            </Stack>
+
+            {/* Spacer pushes bookmark to the right */}
+            <Stack sx={{ flexGrow: 1 }} />
+
+            {/* Bookmark */}
+            {onToggleBookmark && (
+              <IconButton
+                size="small"
+                onClick={() => onToggleBookmark(Number(statement.id))}
+                aria-label={isBookmarked ? "Remove bookmark" : "Bookmark"}
+                sx={{ p: 0 }}
+              >
+                {isBookmarked ? (
+                  <BookmarkIcon sx={{ fontSize: 22 }} />
+                ) : (
+                  <BookmarkBorderIcon sx={{ fontSize: 22 }} />
+                )}
+              </IconButton>
             )}
           </Stack>
-
-          {/* Peak rank */}
-          <Stack direction="row" alignItems="center" spacing={0.5}>
-            <LandscapeIcon
-              sx={{ fontSize: 18, color: "text.secondary" }}
-            />
-            <Typography variant="body2" color="text.secondary">
-              {peakRank}
-            </Typography>
-          </Stack>
-
-          {/* Spacer pushes bookmark to the right */}
-          <Stack sx={{ flexGrow: 1 }} />
-
-          {/* Bookmark */}
-          {onToggleBookmark && (
-            <IconButton
-              size="small"
-              onClick={() => onToggleBookmark(Number(statement.id))}
-              aria-label={isBookmarked ? "Remove bookmark" : "Bookmark"}
-              sx={{ p: 0 }}
-            >
-              {isBookmarked ? (
-                <BookmarkIcon sx={{ fontSize: 22 }} />
-              ) : (
-                <BookmarkBorderIcon sx={{ fontSize: 22 }} />
-              )}
-            </IconButton>
-          )}
         </Stack>
       </Stack>
     </Card>

@@ -35,6 +35,7 @@ const SupportButton: FC<SupportButtonProps> = ({
     <ButtonBase
       onClick={onClick}
       sx={{
+        flex: 1,
         backgroundColor: baseColor,
         color: textColor,
         borderRadius: 1,
@@ -59,7 +60,12 @@ const VoteToggle: FC<VoteToggleProps> = ({
   onUserVoteChange,
 }) => {
   return (
-    <Stack direction="row" alignItems="center" spacing={1}>
+    <Stack
+      direction="row"
+      alignItems="center"
+      spacing={1}
+      sx={{ width: "100%" }}
+    >
       {/* Decrease button */}
       <SupportButton
         label="-1"
