@@ -2,11 +2,14 @@ import { FC } from "react";
 import Typography from "@mui/material/Typography";
 import Stack from "@mui/material/Stack";
 import ButtonBase from "@mui/material/ButtonBase";
+import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 
 interface VoteToggleProps {
   userSupport: number;
   uncommittedSupport: boolean;
   onUserVoteChange: (newVoteCount: number) => void;
+  direction?: "horizontal" | "vertical";
 }
 
 interface SupportButtonProps {
@@ -58,7 +61,43 @@ const VoteToggle: FC<VoteToggleProps> = ({
   userSupport,
   uncommittedSupport,
   onUserVoteChange,
+  direction = "horizontal",
 }) => {
+  if (direction === "vertical") {
+    return (
+      <Stack alignItems="center" spacing={0}>
+        <ButtonBase
+          onClick={() => onUserVoteChange(userSupport + 1)}
+          sx={{
+            color: uncommittedSupport ? "success.main" : "text.secondary",
+            "&:hover": { color: "success.main" },
+          }}
+        >
+          <KeyboardArrowUpIcon sx={{ fontSize: 28 }} />
+        </ButtonBase>
+        <Typography
+          variant="body1"
+          sx={{
+            fontWeight: 500,
+            lineHeight: 1.2,
+            color: uncommittedSupport ? "text.primary" : "text.secondary",
+          }}
+        >
+          {userSupport}
+        </Typography>
+        <ButtonBase
+          onClick={() => onUserVoteChange(userSupport - 1)}
+          sx={{
+            color: uncommittedSupport ? "error.main" : "text.secondary",
+            "&:hover": { color: "error.main" },
+          }}
+        >
+          <KeyboardArrowDownIcon sx={{ fontSize: 28 }} />
+        </ButtonBase>
+      </Stack>
+    );
+  }
+
   return (
     <Stack
       direction="row"

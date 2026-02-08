@@ -10,6 +10,7 @@ import { useUserVotes } from "../state/UserVotes";
 import VoteToggle from "./VoteToggle";
 import { useBlockNumber, useReadContract } from "wagmi";
 import { useForum, FORUM_ABI } from "../state/Forum";
+import useIsMobile from "@/hooks/useIsMobile";
 
 const LOOK_BACK_BLOCKS = BigInt(1);
 
@@ -69,6 +70,7 @@ export const StatementCard: FC<StatementCardProps> = ({
     hasAdjustment,
   } = useUserVotes();
   const { forumContractAddress } = useForum();
+  const isMobile = useIsMobile();
 
   // Watch for new blocks
   const { data: blockNumber } = useBlockNumber({ watch: true });
@@ -152,19 +154,20 @@ export const StatementCard: FC<StatementCardProps> = ({
           )}
         </Stack>
 
-        {/* Right column: content */}
+        {/* Middle column: content */}
         <Stack spacing={1.5} sx={{ flex: 1, minWidth: 0 }}>
           {/* Statement text */}
           <Typography variant="h6" sx={{ fontWeight: 500 }}>
             {statement.text}
           </Typography>
 
-          {/* Vote controls */}
-          {isUserVerified && (
+          {/* Vote controls — inline on mobile only */}
+          {isUserVerified && isMobile && (
             <VoteToggle
               userSupport={userSupport}
               uncommittedSupport={hasUncommittedSupport}
               onUserVoteChange={handleSupportChange}
+              direction="horizontal"
             />
           )}
 
@@ -244,6 +247,22 @@ export const StatementCard: FC<StatementCardProps> = ({
             )}
           </Stack>
         </Stack>
+
+        {/* Right column: vertical vote controls — desktop only */}
+        {isUserVerified && !isMobile && (
+          <Stack
+            alignItems="center"
+            justifyContent="center"
+            sx={{ flexShrink: 0, ml: "auto" }}
+          >
+            <VoteToggle
+              userSupport={userSupport}
+              uncommittedSupport={hasUncommittedSupport}
+              onUserVoteChange={handleSupportChange}
+              direction="vertical"
+            />
+          </Stack>
+        )}
       </Stack>
     </Card>
   );
