@@ -48,6 +48,13 @@ const rankEmoji = (_rank: number): string => {
   return "";
 };
 
+/** Scale font size down for 2- and 3-digit rank numbers. */
+const rankFontSize = (rank: number): string => {
+  if (rank >= 100) return "1.2rem";
+  if (rank >= 10) return "1.6rem";
+  return "2rem";
+};
+
 type StatementCardProps = {
   statement: Statement;
   isBookmarked?: boolean;
@@ -131,13 +138,13 @@ export const StatementCard: FC<StatementCardProps> = ({
         <Stack
           alignItems="center"
           justifyContent="center"
-          sx={{ width: 64, minWidth: 64, flexShrink: 0 }}
+          sx={{ width: 48, minWidth: 48, flexShrink: 0 }}
         >
           <Typography
             variant="h4"
             sx={{
               fontWeight: 600,
-              fontSize: "2rem",
+              fontSize: rankFontSize(currentRank),
               lineHeight: 1.1,
               color: "text.primary",
             }}
