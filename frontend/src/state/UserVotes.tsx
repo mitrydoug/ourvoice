@@ -101,14 +101,14 @@ type UserSupportAction =
   | CommitError
   | ResetCommitStatus;
 
-// Helper to calculate the cost of an adjustment from one support level to another
+// Triangle number: triangle(x) = x*(x+1)/2
+const triangle = (x: number): number => (x * (x + 1)) / 2;
+
+// Cost of changing support from `fromSupport` to `toSupport` is
+// triangle(|toSupport|) - triangle(|fromSupport|). A positive result means
+// credits are spent; a negative result means credits are refunded.
 const adjustmentCost = (fromSupport: number, toSupport: number): number => {
-  const [start, end] =
-    fromSupport < toSupport
-      ? [fromSupport + 1, toSupport]
-      : [toSupport + 1, fromSupport];
-  if (start > end) return 0;
-  return ((start + end) * (end - start + 1)) / 2;
+  return triangle(Math.abs(toSupport)) - triangle(Math.abs(fromSupport));
 };
 
 const reducer = (
@@ -235,9 +235,9 @@ const reducer = (
     ...newState,
     staged: newState.staged
       ? {
-        ...newState.staged,
-        credits: stagedCredits,
-      }
+          ...newState.staged,
+          credits: stagedCredits,
+        }
       : undefined,
     hasStagedChanges: newState.staged?.supportAdjustments.size
       ? newState.staged.supportAdjustments.size > 0
