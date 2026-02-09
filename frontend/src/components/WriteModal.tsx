@@ -63,7 +63,15 @@ const WriteModal: FC<WriteModalProps> = ({
       setText("");
       onClose();
     }
-  }, [text, writeContract, setText, onClose, forumContractAddress, statementCount, onStatementAdded]);
+  }, [
+    text,
+    writeContract,
+    setText,
+    onClose,
+    forumContractAddress,
+    statementCount,
+    onStatementAdded,
+  ]);
 
   const updateText = useCallback(
     (textVal: string) => {

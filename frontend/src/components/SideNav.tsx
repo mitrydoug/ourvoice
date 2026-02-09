@@ -32,7 +32,8 @@ const SideNav: FC = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const { isUserVerified } = useUserVotes();
-  const { add: addAuthoredStatement } = useLocalStorageSet("authoredStatements");
+  const { add: addAuthoredStatement } =
+    useLocalStorageSet("authoredStatements");
 
   const [writeModalOpen, setWriteModalOpen] = useState(false);
 
@@ -65,9 +66,7 @@ const SideNav: FC = () => {
                 disabled={item.href === "#"}
                 sx={{ borderRadius: 2, mb: 0.5 }}
               >
-                <ListItemIcon sx={{ minWidth: 40 }}>
-                  {item.icon}
-                </ListItemIcon>
+                <ListItemIcon sx={{ minWidth: 40 }}>{item.icon}</ListItemIcon>
                 <ListItemText
                   primary={item.label}
                   primaryTypographyProps={{ fontWeight: isActive ? 600 : 400 }}
