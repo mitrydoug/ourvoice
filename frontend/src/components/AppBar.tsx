@@ -349,13 +349,6 @@ export default function MenuAppBar() {
 
               <SearchField onClick={() => setSearchModalOpen(true)} />
 
-              {isUserVerified && (
-                <UserActions
-                  userVoteState={userVoteState}
-                  commitSupport={commitSupport}
-                />
-              )}
-
               {address ? (
                 <>
                   <IconButton

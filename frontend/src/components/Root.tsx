@@ -6,6 +6,7 @@ import { useTheme } from "@mui/material/styles";
 
 import MenuAppBar from "./AppBar";
 import SideNav from "./SideNav";
+import BottomNav from "./BottomNav";
 import useIsMobile from "@/hooks/useIsMobile";
 
 const Root: FC = () => {
@@ -28,7 +29,7 @@ const Root: FC = () => {
           maxWidth: isMobile ? undefined : "800px",
           overflowY: "auto",
           overflowX: "visible",
-          pb: 8,
+          pb: isMobile ? 14 : 8,
         }}
       >
         <MenuAppBar />
@@ -44,6 +45,8 @@ const Root: FC = () => {
           </Box>
         )}
       </Container>
+
+      {isMobile && <BottomNav />}
     </Box>
   );
 };
