@@ -23,7 +23,7 @@ import SearchModal from "./SearchModal";
 import useIsMobile from "@/hooks/useIsMobile";
 import { useTheme } from "@mui/material/styles";
 import { AccountMenu, AccountDrawer } from "./UserProfileMenu";
-import { SupportAllocationBar } from "./SupportAllocationBar";
+import Divider from "@mui/material/Divider";
 import CommitSupportModal from "./CommitSupportModal";
 import UserProfilePill from "./UserProfilePill";
 
@@ -326,10 +326,7 @@ export default function MenuAppBar() {
             </Stack>
           )}
 
-          {/* Support allocation bar */}
-          <Box sx={{ mt: 1, width: "100%" }}>
-            <SupportAllocationBar />
-          </Box>
+          <Divider sx={{ mt: 1, width: "100%" }} />
 
           {/* Second row on mobile: Search bar */}
           {isMobile && (
