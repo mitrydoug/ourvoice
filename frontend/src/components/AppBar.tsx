@@ -15,7 +15,6 @@ import { useAccount, useDisconnect } from "wagmi";
 import { Link, useNavigate } from "react-router-dom";
 import { useUserVotes } from "../state/UserVotes";
 import ChooseForumModal, { FORUMS } from "./ChooseForumModal";
-import DoneAllIcon from "@mui/icons-material/DoneAll";
 import SearchIcon from "@mui/icons-material/Search";
 import { useForum } from "../state/Forum";
 import { metamaskIcon } from "../util";
@@ -26,6 +25,7 @@ import { useTheme } from "@mui/material/styles";
 import { AccountMenu, AccountDrawer } from "./AccountMenu";
 import { SupportAllocationBar } from "./SupportAllocationBar";
 import CommitSupportModal from "./CommitSupportModal";
+import UserProfilePill from "./UserProfilePill";
 
 const MIC_ICON = (
   <svg
@@ -165,50 +165,6 @@ const SearchField: React.FC<SearchFieldProps> = ({
   />
 );
 
-interface UserActionsProps {
-  userVoteState: {
-    staged?: { credits: number };
-    onChain?: { credits: number };
-    hasStagedChanges: boolean;
-    commitStatus?: string;
-  };
-  commitSupport: () => void;
-}
-
-const UserActions: React.FC<UserActionsProps> = ({
-  userVoteState,
-  commitSupport,
-}) => {
-  const commitBusy =
-    userVoteState.commitStatus !== undefined &&
-    userVoteState.commitStatus !== "idle";
-
-  return (
-    <>
-      <Stack alignItems="center" spacing={0}>
-        <Typography variant="body2">Credits</Typography>
-        <Typography variant="body1">
-          {userVoteState.staged?.credits || 0}/
-          {userVoteState.onChain?.credits || 0}
-        </Typography>
-      </Stack>
-      <IconButton
-        onClick={commitSupport}
-        disabled={!userVoteState.hasStagedChanges || commitBusy}
-      >
-        <DoneAllIcon
-          sx={{
-            color:
-              userVoteState.hasStagedChanges && !commitBusy
-                ? "primary.main"
-                : "",
-          }}
-        />
-      </IconButton>
-    </>
-  );
-};
-
 export default function MenuAppBar() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -258,7 +214,6 @@ export default function MenuAppBar() {
   };
 
   const open = Boolean(anchorEl);
-  const id = open ? "simple-popover" : undefined;
 
   console.log("userVoteState", userVoteState);
 
@@ -315,7 +270,7 @@ export default function MenuAppBar() {
                       navigate={navigate}
                       disconnect={disconnect}
                       avatar={avatar}
-                      commitSupport={commitSupport ?? (() => {})}
+                      commitSupport={commitSupport ?? (() => { })}
                       hasStagedChanges={
                         userVoteState?.hasStagedChanges ?? false
                       }
@@ -351,17 +306,24 @@ export default function MenuAppBar() {
 
               {address ? (
                 <>
-                  <IconButton
-                    size="medium"
-                    aria-label="account of current user"
-                    aria-controls="menu-appbar"
-                    aria-haspopup="true"
-                    aria-describedby={id}
-                    onClick={handleMenu}
-                    color="inherit"
-                  >
-                    <Avatar src={avatar ?? undefined} />
-                  </IconButton>
+                  <UserProfilePill
+                    avatar={avatar}
+                    username="mitrydoug"
+                    credits={
+                      isUserVerified
+                        ? (userVoteState?.staged?.credits ?? 0)
+                        : null
+                    }
+                    hasStagedChanges={
+                      userVoteState?.hasStagedChanges ?? false
+                    }
+                    commitBusy={
+                      userVoteState?.commitStatus !== undefined &&
+                      userVoteState?.commitStatus !== "idle"
+                    }
+                    onCommit={commitSupport ?? (() => {})}
+                    onOpenMenu={handleMenu}
+                  />
                   <AccountMenu
                     anchorEl={anchorEl}
                     open={open}

@@ -1,18 +1,14 @@
-import { FC, useMemo, useState } from "react";
+import { FC, useState } from "react";
 import {
-  Avatar,
   Box,
   Button,
   List,
   ListItemButton,
   ListItemIcon,
   ListItemText,
-  Stack,
-  Typography,
 } from "@mui/material";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
-import { useAccount } from "wagmi";
 import HomeIcon from "@mui/icons-material/Home";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import ArticleIcon from "@mui/icons-material/Article";
@@ -22,7 +18,6 @@ import CreateIcon from "@mui/icons-material/Create";
 import WriteModal from "./WriteModal";
 import { useUserVotes } from "../state/UserVotes";
 import useLocalStorageSet from "@/hooks/useLocalStorageSet";
-import { metamaskIcon } from "../util";
 
 const NAV_ITEMS = [
   { label: "Home", href: "/top", icon: <HomeIcon /> },
@@ -36,22 +31,11 @@ const SideNav: FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const theme = useTheme();
-  const { address } = useAccount();
-  const userVotes = useUserVotes();
-  const { isUserVerified } = userVotes;
+  const { isUserVerified } = useUserVotes();
   const { add: addAuthoredStatement } =
     useLocalStorageSet("authoredStatements");
 
   const [writeModalOpen, setWriteModalOpen] = useState(false);
-
-  const avatar = useMemo(() => {
-    if (address) return metamaskIcon(address);
-    return null;
-  }, [address]);
-
-  const unallocatedCredits = isUserVerified
-    ? (userVotes.state?.staged?.credits ?? 0)
-    : null;
 
   return (
     <>
@@ -65,28 +49,6 @@ const SideNav: FC = () => {
           alignSelf: "flex-start",
         }}
       >
-        {/* User profile */}
-        {address && (
-          <Box sx={{ px: 1, pb: 2 }}>
-            <Stack direction="row" spacing={1.5} alignItems="center">
-              <Avatar
-                src={avatar ?? undefined}
-                sx={{ width: 36, height: 36 }}
-              />
-              <Stack spacing={0}>
-                <Typography variant="body1" fontWeight={600}>
-                  mitrydoug
-                </Typography>
-                {unallocatedCredits !== null && (
-                  <Typography variant="body2" color="text.secondary">
-                    Credits: {unallocatedCredits}
-                  </Typography>
-                )}
-              </Stack>
-            </Stack>
-          </Box>
-        )}
-
         <List disablePadding>
           {NAV_ITEMS.map((item) => {
             const isActive =

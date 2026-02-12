@@ -83,14 +83,7 @@ export const AccountMenu: React.FC<AccountMenuProps> = ({
           <ListItemIcon>
             <PersonOutlineOutlinedIcon />
           </ListItemIcon>
-          Account
-        </MenuItem>
-
-        <MenuItem onClick={() => navigate("/my-support")}>
-          <ListItemIcon>
-            <FavoriteBorderIcon fontSize="small" />
-          </ListItemIcon>
-          My Support
+          Profile
         </MenuItem>
       </>
     ) : (
