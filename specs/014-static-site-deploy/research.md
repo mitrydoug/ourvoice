@@ -59,9 +59,9 @@ The `200` status code makes this a rewrite (not a redirect), which is the correc
 ### Key Findings
 
 **SDK packages**:
-| Package | Purpose |
-|---------|---------|
-| `pinata` | General Pinata Files API (V3) — no folder upload |
+| Package       | Purpose                                                |
+| ------------- | ------------------------------------------------------ |
+| `pinata`      | General Pinata Files API (V3) — no folder upload       |
 | `pinata-web3` | IPFS-specific features including public folder uploads |
 
 **Directory pinning** (using `pinata-web3`):
@@ -221,10 +221,10 @@ concurrency:
 
 ## Summary of Risks
 
-| # | Risk | Severity | Mitigation |
-|---|------|----------|------------|
-| 1 | Irys SDK/docs currently broken (404, active refactoring) | HIGH | Verify at implementation time; fall back to ArDrive Turbo or `arkb` |
-| 2 | `content-hash` npm package unmaintained (~5 years) | LOW | Package is stable and widely used; ENSIP-7 format hasn't changed |
-| 3 | Pinata has two confusing SDK packages | LOW | Use `pinata-web3` specifically; document clearly |
-| 4 | ENS gas costs variable | LOW | Use gas estimation; document minimum wallet funding |
-| 5 | Vite base path change may break existing GitHub Pages deploy | MEDIUM | Implement as atomic swap: remove old workflow in same PR as new one |
+| #   | Risk                                                         | Severity | Mitigation                                                          |
+| --- | ------------------------------------------------------------ | -------- | ------------------------------------------------------------------- |
+| 1   | Irys SDK/docs currently broken (404, active refactoring)     | HIGH     | Verify at implementation time; fall back to ArDrive Turbo or `arkb` |
+| 2   | `content-hash` npm package unmaintained (~5 years)           | LOW      | Package is stable and widely used; ENSIP-7 format hasn't changed    |
+| 3   | Pinata has two confusing SDK packages                        | LOW      | Use `pinata-web3` specifically; document clearly                    |
+| 4   | ENS gas costs variable                                       | LOW      | Use gas estimation; document minimum wallet funding                 |
+| 5   | Vite base path change may break existing GitHub Pages deploy | MEDIUM   | Implement as atomic swap: remove old workflow in same PR as new one |

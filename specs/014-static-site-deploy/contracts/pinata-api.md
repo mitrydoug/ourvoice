@@ -38,12 +38,12 @@ const result = await pinata.upload.public.fileArray(files);
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `cid` | string | CIDv1 (base32) content identifier |
-| `name` | string | Assignment name from upload |
-| `number_of_files` | number | Count of files in the directory |
-| `size` | number | Total size in bytes |
+| Field             | Type   | Description                       |
+| ----------------- | ------ | --------------------------------- |
+| `cid`             | string | CIDv1 (base32) content identifier |
+| `name`            | string | Assignment name from upload       |
+| `number_of_files` | number | Count of files in the directory   |
+| `size`            | number | Total size in bytes               |
 
 ### Output to GitHub Actions
 
@@ -53,11 +53,11 @@ echo "cid=${CID}" >> "$GITHUB_OUTPUT"
 
 ### Error Cases
 
-| Error | Cause | Resolution |
-|-------|-------|------------|
-| 401 Unauthorized | Invalid or expired JWT | Regenerate in Pinata dashboard → API Keys |
+| Error                 | Cause                     | Resolution                                |
+| --------------------- | ------------------------- | ----------------------------------------- |
+| 401 Unauthorized      | Invalid or expired JWT    | Regenerate in Pinata dashboard → API Keys |
 | 413 Payload Too Large | Upload exceeds tier limit | Check free tier (500 MB); compress assets |
-| 429 Rate Limited | Too many requests | Add retry logic with exponential backoff |
+| 429 Rate Limited      | Too many requests         | Add retry logic with exponential backoff  |
 
 ---
 

@@ -11,27 +11,27 @@
 
 ### Inputs
 
-| Parameter | Required | Value |
-|-----------|----------|-------|
-| `apiToken` | Yes | `${{ secrets.CLOUDFLARE_API_TOKEN }}` |
-| `accountId` | Yes | `${{ secrets.CLOUDFLARE_ACCOUNT_ID }}` |
-| `command` | Yes | `pages deploy dist --project-name=ourvoice` |
+| Parameter   | Required | Value                                       |
+| ----------- | -------- | ------------------------------------------- |
+| `apiToken`  | Yes      | `${{ secrets.CLOUDFLARE_API_TOKEN }}`       |
+| `accountId` | Yes      | `${{ secrets.CLOUDFLARE_ACCOUNT_ID }}`      |
+| `command`   | Yes      | `pages deploy dist --project-name=ourvoice` |
 
 ### Outputs
 
-| Output | Type | Description |
-|--------|------|-------------|
+| Output           | Type   | Description                                                              |
+| ---------------- | ------ | ------------------------------------------------------------------------ |
 | `deployment-url` | string | The URL of the deployed site (e.g., `https://<hash>.ourvoice.pages.dev`) |
-| `command-output` | string | stdout from Wrangler |
-| `command-stderr` | string | stderr from Wrangler |
+| `command-output` | string | stdout from Wrangler                                                     |
+| `command-stderr` | string | stderr from Wrangler                                                     |
 
 ### Error Cases
 
-| Error | Cause | Resolution |
-|-------|-------|------------|
-| 401 Unauthorized | Invalid or expired `CLOUDFLARE_API_TOKEN` | Regenerate token in Cloudflare dashboard |
+| Error             | Cause                                           | Resolution                                   |
+| ----------------- | ----------------------------------------------- | -------------------------------------------- |
+| 401 Unauthorized  | Invalid or expired `CLOUDFLARE_API_TOKEN`       | Regenerate token in Cloudflare dashboard     |
 | Project not found | `--project-name` doesn't match existing project | Run `wrangler pages project create ourvoice` |
-| Rate limit | >500 builds/month on free tier | Upgrade plan or reduce deploy frequency |
+| Rate limit        | >500 builds/month on free tier                  | Upgrade plan or reduce deploy frequency      |
 
 ---
 

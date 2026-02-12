@@ -25,10 +25,10 @@
 function setContenthash(bytes32 node, bytes calldata hash) external;
 ```
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `node` | bytes32 | `namehash("ourvoice.eth")` — EIP-137 name hash |
-| `hash` | bytes | ENSIP-7 encoded contenthash (IPFS CID encoded as multicodec bytes) |
+| Parameter | Type    | Description                                                        |
+| --------- | ------- | ------------------------------------------------------------------ |
+| `node`    | bytes32 | `namehash("ourvoice.eth")` — EIP-137 name hash                     |
+| `hash`    | bytes   | ENSIP-7 encoded contenthash (IPFS CID encoded as multicodec bytes) |
 
 ### Contenthash Encoding (ENSIP-7 / EIP-1577)
 
@@ -76,19 +76,19 @@ echo "ens-name=ourvoice.eth" >> "$GITHUB_OUTPUT"
 
 ### Error Cases
 
-| Error | Cause | Resolution |
-|-------|-------|------------|
-| Insufficient funds | Deployer wallet low on ETH | Fund wallet with more ETH |
-| Not authorized | Deployer wallet is not the name owner/manager | Transfer management to deployer address via ENS app |
-| Invalid contenthash | Malformed CID encoding | Verify CID is valid CIDv1 base32 before encoding |
-| Transaction reverted | Resolver doesn't support contenthash | Verify resolver is the public resolver (supports EIP-165 interface `0xbc1c58d1`) |
-| Nonce too low | Concurrent transactions from same wallet | Use nonce management or sequential execution |
+| Error                | Cause                                         | Resolution                                                                       |
+| -------------------- | --------------------------------------------- | -------------------------------------------------------------------------------- |
+| Insufficient funds   | Deployer wallet low on ETH                    | Fund wallet with more ETH                                                        |
+| Not authorized       | Deployer wallet is not the name owner/manager | Transfer management to deployer address via ENS app                              |
+| Invalid contenthash  | Malformed CID encoding                        | Verify CID is valid CIDv1 base32 before encoding                                 |
+| Transaction reverted | Resolver doesn't support contenthash          | Verify resolver is the public resolver (supports EIP-165 interface `0xbc1c58d1`) |
+| Nonce too low        | Concurrent transactions from same wallet      | Use nonce management or sequential execution                                     |
 
 ### Gas Costs
 
-| Operation | Typical Gas | Cost at 30 gwei |
-|-----------|-------------|------------------|
-| `setContenthash` | ~50,000–80,000 gas | ~$1–5 |
+| Operation        | Typical Gas        | Cost at 30 gwei |
+| ---------------- | ------------------ | --------------- |
+| `setContenthash` | ~50,000–80,000 gas | ~$1–5           |
 
 ---
 

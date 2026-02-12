@@ -48,12 +48,12 @@ const receipt = await irys.uploadFolder("./dist", {
 
 ### Response Shape
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | string | Arweave transaction ID (the manifest ID for directory uploads) |
-| `timestamp` | number | Upload timestamp |
-| `version` | string | Receipt version |
-| `deadlineHeight` | number | Arweave block deadline |
+| Field            | Type   | Description                                                    |
+| ---------------- | ------ | -------------------------------------------------------------- |
+| `id`             | string | Arweave transaction ID (the manifest ID for directory uploads) |
+| `timestamp`      | number | Upload timestamp                                               |
+| `version`        | string | Receipt version                                                |
+| `deadlineHeight` | number | Arweave block deadline                                         |
 
 ### Output to GitHub Actions
 
@@ -63,11 +63,11 @@ echo "tx-id=${MANIFEST_ID}" >> "$GITHUB_OUTPUT"
 
 ### Error Cases
 
-| Error | Cause | Resolution |
-|-------|-------|------------|
-| Insufficient balance | Irys account not funded | Run `irys.fund()` or fund via CLI |
-| Network timeout | Arweave/Irys mainnet unreachable | Retry with backoff |
-| SDK not found | Package has been renamed | Check npm for `@irys/sdk` alternatives |
+| Error                | Cause                            | Resolution                             |
+| -------------------- | -------------------------------- | -------------------------------------- |
+| Insufficient balance | Irys account not funded          | Run `irys.fund()` or fund via CLI      |
+| Network timeout      | Arweave/Irys mainnet unreachable | Retry with backoff                     |
+| SDK not found        | Package has been renamed         | Check npm for `@irys/sdk` alternatives |
 
 ---
 

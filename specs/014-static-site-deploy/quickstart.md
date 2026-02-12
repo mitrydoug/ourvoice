@@ -113,13 +113,13 @@ Go to your GitHub repository → Settings → Secrets and variables → Actions 
 
 Add these secrets:
 
-| Secret Name | Value |
-|-------------|-------|
-| `CLOUDFLARE_API_TOKEN` | The Cloudflare API token from Step 3 |
-| `CLOUDFLARE_ACCOUNT_ID` | The Cloudflare Account ID from Step 3 |
-| `PINATA_JWT` | The Pinata JWT token from Step 4 |
-| `DEPLOYER_PRIVATE_KEY` | The deployer wallet private key from Step 1 |
-| `ETH_RPC_URL` | The Ethereum RPC URL from Step 6 |
+| Secret Name             | Value                                       |
+| ----------------------- | ------------------------------------------- |
+| `CLOUDFLARE_API_TOKEN`  | The Cloudflare API token from Step 3        |
+| `CLOUDFLARE_ACCOUNT_ID` | The Cloudflare Account ID from Step 3       |
+| `PINATA_JWT`            | The Pinata JWT token from Step 4            |
+| `DEPLOYER_PRIVATE_KEY`  | The deployer wallet private key from Step 1 |
+| `ETH_RPC_URL`           | The Ethereum RPC URL from Step 6            |
 
 ---
 
@@ -142,26 +142,26 @@ Add these secrets:
 
 ## Troubleshooting
 
-| Problem | Likely Cause | Fix |
-|---------|-------------|-----|
-| "Unauthorized" in Cloudflare step | Bad API token | Regenerate token in Cloudflare dashboard |
-| "Project not found" in Cloudflare step | Pages project not created | Run `npx wrangler pages project create ourvoice` |
-| "Unauthorized" in IPFS step | Bad Pinata JWT | Regenerate API key in Pinata dashboard |
-| "Insufficient balance" in Arweave step | Irys account not funded | Fund via `irys fund` command |
-| "Not authorized" in ENS step | Deployer not set as manager | Add deployer address as manager in ENS app |
-| "Insufficient funds" in ENS step | Deployer wallet empty | Send more ETH to deployer address |
-| SPA routing broken (404 on refresh) | Missing `_redirects` file | Verify `frontend/public/_redirects` exists with `/* /index.html 200` |
-| Assets loading from wrong path | Vite `base` still set to `/ourvoice/` | Change `base` to `"/"` in `vite.config.js` |
+| Problem                                | Likely Cause                          | Fix                                                                  |
+| -------------------------------------- | ------------------------------------- | -------------------------------------------------------------------- |
+| "Unauthorized" in Cloudflare step      | Bad API token                         | Regenerate token in Cloudflare dashboard                             |
+| "Project not found" in Cloudflare step | Pages project not created             | Run `npx wrangler pages project create ourvoice`                     |
+| "Unauthorized" in IPFS step            | Bad Pinata JWT                        | Regenerate API key in Pinata dashboard                               |
+| "Insufficient balance" in Arweave step | Irys account not funded               | Fund via `irys fund` command                                         |
+| "Not authorized" in ENS step           | Deployer not set as manager           | Add deployer address as manager in ENS app                           |
+| "Insufficient funds" in ENS step       | Deployer wallet empty                 | Send more ETH to deployer address                                    |
+| SPA routing broken (404 on refresh)    | Missing `_redirects` file             | Verify `frontend/public/_redirects` exists with `/* /index.html 200` |
+| Assets loading from wrong path         | Vite `base` still set to `/ourvoice/` | Change `base` to `"/"` in `vite.config.js`                           |
 
 ---
 
 ## Cost Summary
 
-| Item | Cost | Frequency |
-|------|------|-----------|
-| ENS name | ~$5/year | Annual renewal |
-| Deployer wallet funding | ~$10–20 ETH | As needed (covers many deployments) |
-| Cloudflare Pages | Free | Unlimited |
-| Pinata | Free (500 MB) | Per-deployment pinning within free tier |
-| Per-deployment gas (ENS) | ~$1–10 | Each merge to release |
-| Per-deployment Arweave | ~$0.01–$0.10 | Each merge to release |
+| Item                     | Cost          | Frequency                               |
+| ------------------------ | ------------- | --------------------------------------- |
+| ENS name                 | ~$5/year      | Annual renewal                          |
+| Deployer wallet funding  | ~$10–20 ETH   | As needed (covers many deployments)     |
+| Cloudflare Pages         | Free          | Unlimited                               |
+| Pinata                   | Free (500 MB) | Per-deployment pinning within free tier |
+| Per-deployment gas (ENS) | ~$1–10        | Each merge to release                   |
+| Per-deployment Arweave   | ~$0.01–$0.10  | Each merge to release                   |
