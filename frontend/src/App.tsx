@@ -5,13 +5,15 @@ import Top from "./components/Top.tsx";
 
 import Root from "./components/Root.tsx";
 import MySupport from "./components/MySupport.tsx";
+import MyStatements from "./components/MyStatements.tsx";
+import Bookmarked from "./components/Bookmarked.tsx";
 import { UserVoteProvider } from "./state/UserVotes.tsx";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import GetVerified from "./components/GetVerified.tsx";
 
 import { theme } from "./theme.ts";
 import { ForumProvider } from "./state/Forum.tsx";
-import Account from "./components/Account.tsx";
+import Account from "./components/UserProfile.tsx";
 
 export const App: FC = () => {
   const router = createHashRouter([
@@ -33,6 +35,14 @@ export const App: FC = () => {
         {
           path: "/my-support",
           Component: MySupport,
+        },
+        {
+          path: "/my-statements",
+          Component: MyStatements,
+        },
+        {
+          path: "/bookmarked",
+          Component: Bookmarked,
         },
         {
           path: "/account",

@@ -17,7 +17,6 @@ import {
   Typography,
 } from "@mui/material";
 import Logout from "@mui/icons-material/Logout";
-import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
 import HowToRegIcon from "@mui/icons-material/HowToReg";
 import SettingsIcon from "@mui/icons-material/Settings";
@@ -83,14 +82,7 @@ export const AccountMenu: React.FC<AccountMenuProps> = ({
           <ListItemIcon>
             <PersonOutlineOutlinedIcon />
           </ListItemIcon>
-          Account
-        </MenuItem>
-
-        <MenuItem onClick={() => navigate("/my-support")}>
-          <ListItemIcon>
-            <FavoriteBorderIcon fontSize="small" />
-          </ListItemIcon>
-          My Support
+          Profile
         </MenuItem>
       </>
     ) : (
@@ -121,6 +113,7 @@ export interface AccountDrawerProps {
   avatar?: string | null;
   commitSupport: () => void;
   hasStagedChanges: boolean;
+  commitBusy?: boolean;
 }
 
 export const AccountDrawer: React.FC<AccountDrawerProps> = ({
@@ -133,6 +126,7 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
   avatar,
   commitSupport,
   hasStagedChanges,
+  commitBusy = false,
 }) => {
   const handleNavigate = (path: string) => {
     navigate(path);
@@ -186,16 +180,20 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
             variant="outlined"
             fullWidth
             onClick={handleCommit}
-            disabled={!hasStagedChanges}
+            disabled={!hasStagedChanges || commitBusy}
             sx={{
               mb: 2,
-              borderColor: hasStagedChanges ? "warning.main" : "grey.300",
-              color: hasStagedChanges ? "warning.main" : "grey.500",
+              borderColor:
+                hasStagedChanges && !commitBusy ? "warning.main" : "grey.300",
+              color:
+                hasStagedChanges && !commitBusy ? "warning.main" : "grey.500",
               "&:hover": {
-                borderColor: hasStagedChanges ? "warning.dark" : "grey.400",
-                backgroundColor: hasStagedChanges
-                  ? "rgba(237, 108, 2, 0.04)"
-                  : undefined,
+                borderColor:
+                  hasStagedChanges && !commitBusy ? "warning.dark" : "grey.400",
+                backgroundColor:
+                  hasStagedChanges && !commitBusy
+                    ? "rgba(237, 108, 2, 0.04)"
+                    : undefined,
               },
             }}
           >
@@ -234,7 +232,7 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
                   onClick={() => handleNavigate("/my-statements")}
                 >
                   <ListItemText
-                    primary="Your Statements"
+                    primary="My Statements"
                     primaryTypographyProps={{
                       variant: "body1",
                       fontWeight: 500,
@@ -243,9 +241,9 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
                 </ListItemButton>
               </ListItem>
               <ListItem disablePadding>
-                <ListItemButton onClick={() => handleNavigate("/saved")}>
+                <ListItemButton onClick={() => handleNavigate("/bookmarked")}>
                   <ListItemText
-                    primary="Saved"
+                    primary="Bookmarked"
                     primaryTypographyProps={{
                       variant: "body1",
                       fontWeight: 500,

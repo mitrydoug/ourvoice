@@ -7,7 +7,7 @@ import {
   Typography,
 } from "@mui/material";
 import { FC, useCallback, useState } from "react";
-import { useWriteContract } from "wagmi";
+import { useReadContract, useWriteContract } from "wagmi";
 import { FORUM_ABI, useForum } from "../state/Forum";
 
 const MAX_STATEMENT_LENGTH = 280;
@@ -28,25 +28,50 @@ const style = {
 type WriteModalProps = {
   open: boolean;
   onClose: () => void;
+  onStatementAdded?: (statementId: number) => void;
 };
 
-const WriteModal: FC<WriteModalProps> = ({ open, onClose }) => {
+const WriteModal: FC<WriteModalProps> = ({
+  open,
+  onClose,
+  onStatementAdded,
+}) => {
   const { writeContract } = useWriteContract();
   const [text, setText] = useState("");
   const { forumContractAddress } = useForum();
 
+  // Read the current statement count so we know the ID of the next statement
+  const { data: statementCount } = useReadContract({
+    address: forumContractAddress,
+    abi: FORUM_ABI,
+    functionName: "statementCount",
+  });
+
   const submitStatement = useCallback(() => {
     if (text.length > 0) {
+      const nextId =
+        statementCount !== undefined ? Number(statementCount) : undefined;
       writeContract({
         address: forumContractAddress,
         abi: FORUM_ABI,
         functionName: "addStatement",
         args: [text],
       });
+      if (nextId !== undefined && onStatementAdded) {
+        onStatementAdded(nextId);
+      }
       setText("");
       onClose();
     }
-  }, [text, writeContract, setText, onClose, forumContractAddress]);
+  }, [
+    text,
+    writeContract,
+    setText,
+    onClose,
+    forumContractAddress,
+    statementCount,
+    onStatementAdded,
+  ]);
 
   const updateText = useCallback(
     (textVal: string) => {

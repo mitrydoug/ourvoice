@@ -14,10 +14,7 @@ import {
 import { useAccount, useDisconnect } from "wagmi";
 import { Link, useNavigate } from "react-router-dom";
 import { useUserVotes } from "../state/UserVotes";
-import CreateIcon from "@mui/icons-material/Create";
-import WriteModal from "./WriteModal";
 import ChooseForumModal, { FORUMS } from "./ChooseForumModal";
-import DoneAllIcon from "@mui/icons-material/DoneAll";
 import SearchIcon from "@mui/icons-material/Search";
 import { useForum } from "../state/Forum";
 import { metamaskIcon } from "../util";
@@ -25,8 +22,10 @@ import { useWeb3AuthConnect } from "@web3auth/modal/react";
 import SearchModal from "./SearchModal";
 import useIsMobile from "@/hooks/useIsMobile";
 import { useTheme } from "@mui/material/styles";
-import { AccountMenu, AccountDrawer } from "./AccountMenu";
-import { SupportAllocationBar } from "./SupportAllocationBar";
+import { AccountMenu, AccountDrawer } from "./UserProfileMenu";
+import Divider from "@mui/material/Divider";
+import CommitSupportModal from "./CommitSupportModal";
+import UserProfilePill from "./UserProfilePill";
 
 const MIC_ICON = (
   <svg
@@ -166,47 +165,6 @@ const SearchField: React.FC<SearchFieldProps> = ({
   />
 );
 
-interface UserActionsProps {
-  userVoteState: {
-    staged?: { credits: number };
-    onChain?: { credits: number };
-    hasStagedChanges: boolean;
-  };
-  commitSupport: () => void;
-  onWriteClick: () => void;
-}
-
-const UserActions: React.FC<UserActionsProps> = ({
-  userVoteState,
-  commitSupport,
-  onWriteClick,
-}) => (
-  <>
-    <Stack alignItems="center" spacing={0}>
-      <Typography variant="body2">Credits</Typography>
-      <Typography variant="body1">
-        {userVoteState.staged?.credits || 0}/
-        {userVoteState.onChain?.credits || 0}
-      </Typography>
-    </Stack>
-    <IconButton
-      onClick={commitSupport}
-      disabled={!userVoteState.hasStagedChanges}
-    >
-      <DoneAllIcon
-        sx={{
-          color: userVoteState.hasStagedChanges ? "primary.main" : "",
-        }}
-      />
-    </IconButton>
-    <Button startIcon={<CreateIcon />} onClick={onWriteClick}>
-      <Typography variant="body1" component="div">
-        Write
-      </Typography>
-    </Button>
-  </>
-);
-
 export default function MenuAppBar() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -214,7 +172,6 @@ export default function MenuAppBar() {
   const [avatar, setAvatar] = useState<string | null>(null);
   const { address } = useAccount();
   const isMobile = useIsMobile();
-  const [writeModalOpen, setWriteModalOpen] = useState(false);
   const [chooseForumModalOpen, setChooseForumModalOpen] = useState(false);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const { name: forumName, setForum } = useForum();
@@ -243,6 +200,7 @@ export default function MenuAppBar() {
   const {
     isUserVerified,
     commitSupport,
+    resetCommitStatus,
     state: userVoteState,
   } = useUserVotes();
 
@@ -256,7 +214,6 @@ export default function MenuAppBar() {
   };
 
   const open = Boolean(anchorEl);
-  const id = open ? "simple-popover" : undefined;
 
   console.log("userVoteState", userVoteState);
 
@@ -317,6 +274,10 @@ export default function MenuAppBar() {
                       hasStagedChanges={
                         userVoteState?.hasStagedChanges ?? false
                       }
+                      commitBusy={
+                        userVoteState?.commitStatus !== undefined &&
+                        userVoteState?.commitStatus !== "idle"
+                      }
                     />
                   </>
                 ) : (
@@ -343,27 +304,9 @@ export default function MenuAppBar() {
 
               <SearchField onClick={() => setSearchModalOpen(true)} />
 
-              {isUserVerified && (
-                <UserActions
-                  userVoteState={userVoteState}
-                  commitSupport={commitSupport}
-                  onWriteClick={() => setWriteModalOpen(true)}
-                />
-              )}
-
               {address ? (
                 <>
-                  <IconButton
-                    size="medium"
-                    aria-label="account of current user"
-                    aria-controls="menu-appbar"
-                    aria-haspopup="true"
-                    aria-describedby={id}
-                    onClick={handleMenu}
-                    color="inherit"
-                  >
-                    <Avatar src={avatar ?? undefined} />
-                  </IconButton>
+                  <UserProfilePill onOpenMenu={handleMenu} />
                   <AccountMenu
                     anchorEl={anchorEl}
                     open={open}
@@ -383,10 +326,7 @@ export default function MenuAppBar() {
             </Stack>
           )}
 
-          {/* Support allocation bar */}
-          <Box sx={{ mt: 1, width: "100%" }}>
-            <SupportAllocationBar />
-          </Box>
+          <Divider sx={{ mt: 1, width: "100%" }} />
 
           {/* Second row on mobile: Search bar */}
           {isMobile && (
@@ -401,10 +341,6 @@ export default function MenuAppBar() {
           )}
         </Toolbar>
       </AppBar>
-      <WriteModal
-        open={writeModalOpen}
-        onClose={() => setWriteModalOpen(false)}
-      />
       <ChooseForumModal
         open={chooseForumModalOpen}
         onClose={() => setChooseForumModalOpen(false)}
@@ -417,6 +353,12 @@ export default function MenuAppBar() {
         open={searchModalOpen}
         onClose={() => setSearchModalOpen(false)}
       />
+      {userVoteState && resetCommitStatus && (
+        <CommitSupportModal
+          commitStatus={userVoteState.commitStatus}
+          onReset={resetCommitStatus}
+        />
+      )}
     </>
   );
 }
