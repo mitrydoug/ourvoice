@@ -17,7 +17,6 @@ import {
   Typography,
 } from "@mui/material";
 import Logout from "@mui/icons-material/Logout";
-import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
 import HowToRegIcon from "@mui/icons-material/HowToReg";
 import SettingsIcon from "@mui/icons-material/Settings";

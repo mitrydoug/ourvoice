@@ -22,7 +22,7 @@ import { useWeb3AuthConnect } from "@web3auth/modal/react";
 import SearchModal from "./SearchModal";
 import useIsMobile from "@/hooks/useIsMobile";
 import { useTheme } from "@mui/material/styles";
-import { AccountMenu, AccountDrawer } from "./AccountMenu";
+import { AccountMenu, AccountDrawer } from "./UserProfileMenu";
 import { SupportAllocationBar } from "./SupportAllocationBar";
 import CommitSupportModal from "./CommitSupportModal";
 import UserProfilePill from "./UserProfilePill";

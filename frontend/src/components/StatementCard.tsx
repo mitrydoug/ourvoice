@@ -44,10 +44,6 @@ const formatSupport = (value: number): string => {
   return `${sign}${formatted}${suffix}`;
 };
 
-const rankEmoji = (_rank: number): string => {
-  return "";
-};
-
 /** Scale font size down for 2- and 3-digit rank numbers. */
 const rankFontSize = (rank: number): string => {
   if (rank >= 100) return "1.2rem";
@@ -151,11 +147,6 @@ export const StatementCard: FC<StatementCardProps> = ({
           >
             {currentRank}
           </Typography>
-          {rankEmoji(currentRank) && (
-            <Typography sx={{ fontSize: "1.4rem", lineHeight: 1.2, mt: 0.25 }}>
-              {rankEmoji(currentRank)}
-            </Typography>
-          )}
         </Stack>
 
         {/* Middle column: content */}
