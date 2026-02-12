@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import {
   Avatar,
   Box,
@@ -8,6 +8,10 @@ import {
   keyframes,
 } from "@mui/material";
 import DoneAllIcon from "@mui/icons-material/DoneAll";
+import { useAccount } from "wagmi";
+import useNickname from "@/hooks/useNickname";
+import { useUserVotes } from "../state/UserVotes";
+import { metamaskIcon } from "../util";
 
 const shimmer = keyframes`
   0% { opacity: 0.6; }
@@ -16,25 +20,33 @@ const shimmer = keyframes`
 `;
 
 export interface UserProfilePillProps {
-  avatar: string | null;
-  username: string;
-  credits?: number | null;
-  hasStagedChanges: boolean;
-  commitBusy: boolean;
-  onCommit: () => void;
   onOpenMenu: (event: React.MouseEvent<HTMLElement>) => void;
 }
 
-const UserProfilePill: React.FC<UserProfilePillProps> = ({
-  avatar,
-  username,
-  credits,
-  hasStagedChanges,
-  commitBusy,
-  onCommit,
-  onOpenMenu,
-}) => {
-  const showCommit = credits !== null && credits !== undefined;
+const UserProfilePill: React.FC<UserProfilePillProps> = ({ onOpenMenu }) => {
+  const { address } = useAccount();
+  const [nickname] = useNickname();
+  const userVotes = useUserVotes();
+  const { isUserVerified } = userVotes;
+
+  const avatar = useMemo(() => {
+    if (address) return metamaskIcon(address);
+    return null;
+  }, [address]);
+
+  const credits = isUserVerified
+    ? (userVotes.state?.staged?.credits ?? 0)
+    : null;
+  const hasStagedChanges = isUserVerified
+    ? (userVotes.state?.hasStagedChanges ?? false)
+    : false;
+  const commitBusy = isUserVerified
+    ? userVotes.state?.commitStatus !== undefined &&
+      userVotes.state?.commitStatus !== "idle"
+    : false;
+  const commitSupport = isUserVerified ? userVotes.commitSupport : () => {};
+
+  const showCommit = credits !== null;
 
   return (
     <Box
@@ -62,17 +74,17 @@ const UserProfilePill: React.FC<UserProfilePillProps> = ({
           size="small"
           onClick={(e) => {
             e.stopPropagation();
-            onCommit();
+            commitSupport();
           }}
           disabled={!hasStagedChanges || commitBusy}
           sx={{
             ...(hasStagedChanges && !commitBusy
               ? {
-                animation: `${shimmer} 1.5s ease-in-out infinite`,
-                bgcolor: "primary.main",
-                color: "white",
-                "&:hover": { bgcolor: "primary.dark" },
-              }
+                  animation: `${shimmer} 1.5s ease-in-out infinite`,
+                  bgcolor: "primary.main",
+                  color: "white",
+                  "&:hover": { bgcolor: "primary.dark" },
+                }
               : {}),
           }}
         >
@@ -82,7 +94,7 @@ const UserProfilePill: React.FC<UserProfilePillProps> = ({
 
       <Stack spacing={0} alignItems="flex-end" sx={{ minWidth: 0 }}>
         <Typography variant="body2" fontWeight={600} noWrap>
-          {username}
+          {nickname}
         </Typography>
         {showCommit && (
           <Typography

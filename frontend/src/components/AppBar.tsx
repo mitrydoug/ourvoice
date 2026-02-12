@@ -270,7 +270,7 @@ export default function MenuAppBar() {
                       navigate={navigate}
                       disconnect={disconnect}
                       avatar={avatar}
-                      commitSupport={commitSupport ?? (() => { })}
+                      commitSupport={commitSupport ?? (() => {})}
                       hasStagedChanges={
                         userVoteState?.hasStagedChanges ?? false
                       }
@@ -306,24 +306,7 @@ export default function MenuAppBar() {
 
               {address ? (
                 <>
-                  <UserProfilePill
-                    avatar={avatar}
-                    username="mitrydoug"
-                    credits={
-                      isUserVerified
-                        ? (userVoteState?.staged?.credits ?? 0)
-                        : null
-                    }
-                    hasStagedChanges={
-                      userVoteState?.hasStagedChanges ?? false
-                    }
-                    commitBusy={
-                      userVoteState?.commitStatus !== undefined &&
-                      userVoteState?.commitStatus !== "idle"
-                    }
-                    onCommit={commitSupport ?? (() => {})}
-                    onOpenMenu={handleMenu}
-                  />
+                  <UserProfilePill onOpenMenu={handleMenu} />
                   <AccountMenu
                     anchorEl={anchorEl}
                     open={open}
