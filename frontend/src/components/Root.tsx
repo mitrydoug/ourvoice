@@ -26,7 +26,7 @@ const Root: FC = () => {
             ? theme.custom.layout.contentGap.mobile
             : theme.custom.layout.contentGap.desktop,
           minHeight: "100vh",
-          maxWidth: isMobile ? undefined : "800px",
+          maxWidth: isMobile ? undefined : "1000px",
           overflowY: "auto",
           overflowX: "visible",
           pb: isMobile ? 14 : 8,
