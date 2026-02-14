@@ -9,6 +9,12 @@ import "./StringUtils.sol";
 import "hardhat/console.sol";
 
 contract OurVoiceRegistry is AOurVoiceRegistry {
+    error DevProofsNotAllowed();
+    error ProofInvalid();
+    error AddressAlreadyRegistered(address user, bytes32 existingId);
+    error InvalidScope(string expectedDomain, string expectedScope);
+    error UserTooYoung(uint requiredAge);
+
     IZKPassportVerifier public zkPassportVerifier;
     string public scope;
     string public domain;
@@ -30,10 +36,8 @@ contract OurVoiceRegistry is AOurVoiceRegistry {
     function register(
         ProofVerificationParams calldata _params
     ) external returns (bytes32) {
-        require(
-            devMode || !_params.serviceConfig.devMode,
-            "dev proofs only allowed in dev mode"
-        );
+        if (!devMode && _params.serviceConfig.devMode)
+            revert DevProofsNotAllowed();
         // Verify the proof
         console.log("Verifying proof for user:", msg.sender);
         (
@@ -42,35 +46,35 @@ contract OurVoiceRegistry is AOurVoiceRegistry {
             IZKPassportHelper helper
         ) = zkPassportVerifier.verify(_params);
         console.log("Proof verified:", verified);
-        require(verified, "Proof is invalid");
+        if (!verified) revert ProofInvalid();
         console.log("Unique Identifier:");
         console.log("Scope:", scope);
         console.log("Domain:", domain);
 
         if (userIdFromAddress[msg.sender] != NO_USER) {
-            require(
-                userIdFromAddress[msg.sender] == uniqueIdentifier,
-                "Address already registered with different identifier"
-            );
+            if (userIdFromAddress[msg.sender] != uniqueIdentifier)
+                revert AddressAlreadyRegistered(
+                    msg.sender,
+                    userIdFromAddress[msg.sender]
+                );
         }
 
         // Check the proof was generated using your domain name (scope) and the subscope
         // you specified
-        require(
-            helper.verifyScopes(
+        if (
+            !helper.verifyScopes(
                 _params.proofVerificationData.publicInputs,
                 domain,
                 scope
-            ),
-            "Invalid scope"
-        );
+            )
+        ) revert InvalidScope(domain, scope);
 
         bool isAgeAboveOrEqual = helper.isAgeAboveOrEqual(
             18,
             _params.committedInputs
         );
 
-        require(isAgeAboveOrEqual, "User must be at least 18 years old");
+        if (!isAgeAboveOrEqual) revert UserTooYoung(18);
 
         // Get the disclosed data to retrieve the nationality
         DisclosedData memory disclosedData = helper.getDisclosedData(
