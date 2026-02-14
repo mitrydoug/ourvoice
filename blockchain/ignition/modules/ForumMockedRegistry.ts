@@ -1,6 +1,5 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
-
-const FORUMS = ["global", "us"];
+import { deployForums } from "./helpers/deployForums.js";
 
 type MockStatement = {
   addrIndex: number;
@@ -62,47 +61,44 @@ const MOCK_STATEMENTS: MockStatement[] = [
   { addrIndex: 2, forum: "global", content: "Stand with Ukraine." },
 ];
 
-export default buildModule("ForumMockedRegistryModule", (m) => {
-  const address1 = m.getAccount(0);
-  const address2 = m.getAccount(1);
-  const address3 = m.getAccount(2);
+/**
+ * Creates a mocked Ignition module that deploys a MockOurVoiceRegistry
+ * (allowing unverified user registration), a set of Forum contracts, and
+ * seeds fixture data (mock user registrations and statements).
+ *
+ * Intended for local development on a fresh Hardhat network.
+ */
+export function createForumMockedModule(forumNames: string[]) {
+  return buildModule("ForumMockedRegistryModule", (m) => {
+    const address1 = m.getAccount(0);
+    const address2 = m.getAccount(1);
+    const address3 = m.getAccount(2);
 
-  const mockedZKRegistry = m.contract("MockOurVoiceRegistry");
-  const decayUtilsLib = m.contract("DecayUtils");
+    const mockedZKRegistry = m.contract("MockOurVoiceRegistry");
 
-  m.call(mockedZKRegistry, "register", ["us"], {
-    from: address1,
-    id: "register1",
-  });
-  m.call(mockedZKRegistry, "register", [""], {
-    from: address2,
-    id: "register2",
-  });
-  m.call(mockedZKRegistry, "register", ["us"], {
-    from: address3,
-    id: "register3",
-  });
-
-  const forums = Object.fromEntries(
-    FORUMS.map((forum) => {
-      return [
-        forum,
-        m.contract(
-          "Forum",
-          [mockedZKRegistry, forum == "global" ? "" : forum, 0],
-          { id: `Forum_${forum}`, libraries: { DecayUtils: decayUtilsLib } },
-        ),
-      ];
-    }),
-  );
-
-  MOCK_STATEMENTS.forEach((stmt, idx) => {
-    const fromAddress = m.getAccount(stmt.addrIndex);
-    m.call(forums[stmt.forum], "addStatement", [stmt.content], {
-      id: `addMockStatement${idx}`,
-      from: fromAddress,
+    m.call(mockedZKRegistry, "register", ["us"], {
+      from: address1,
+      id: "register1",
     });
-  });
+    m.call(mockedZKRegistry, "register", [""], {
+      from: address2,
+      id: "register2",
+    });
+    m.call(mockedZKRegistry, "register", ["us"], {
+      from: address3,
+      id: "register3",
+    });
 
-  return { registry: mockedZKRegistry, ...forums };
-});
+    const { forums } = deployForums(m, mockedZKRegistry, forumNames);
+
+    MOCK_STATEMENTS.forEach((stmt, idx) => {
+      const fromAddress = m.getAccount(stmt.addrIndex);
+      m.call(forums[stmt.forum], "addStatement", [stmt.content], {
+        id: `addMockStatement${idx}`,
+        from: fromAddress,
+      });
+    });
+
+    return { registry: mockedZKRegistry, ...forums };
+  });
+}
