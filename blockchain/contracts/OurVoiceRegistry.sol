@@ -13,7 +13,6 @@ contract OurVoiceRegistry is AOurVoiceRegistry {
     error ProofInvalid();
     error AddressAlreadyRegistered(address user, bytes32 existingId);
     error InvalidScope(string expectedDomain, string expectedScope);
-    error UserTooYoung(uint requiredAge);
 
     IZKPassportVerifier public zkPassportVerifier;
     string public scope;
@@ -68,13 +67,6 @@ contract OurVoiceRegistry is AOurVoiceRegistry {
                 scope
             )
         ) revert InvalidScope(domain, scope);
-
-        bool isAgeAboveOrEqual = helper.isAgeAboveOrEqual(
-            18,
-            _params.committedInputs
-        );
-
-        if (!isAgeAboveOrEqual) revert UserTooYoung(18);
 
         // Get the disclosed data to retrieve the nationality
         DisclosedData memory disclosedData = helper.getDisclosedData(
