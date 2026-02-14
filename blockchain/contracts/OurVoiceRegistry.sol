@@ -6,8 +6,6 @@ import "./IOurVoiceRegistry.sol";
 import "./Constants.sol";
 import "./StringUtils.sol";
 
-import "hardhat/console.sol";
-
 contract OurVoiceRegistry is AOurVoiceRegistry {
     error DevProofsNotAllowed();
     error ProofInvalid();
@@ -38,17 +36,12 @@ contract OurVoiceRegistry is AOurVoiceRegistry {
         if (!devMode && _params.serviceConfig.devMode)
             revert DevProofsNotAllowed();
         // Verify the proof
-        console.log("Verifying proof for user:", msg.sender);
         (
             bool verified,
             bytes32 uniqueIdentifier,
             IZKPassportHelper helper
         ) = zkPassportVerifier.verify(_params);
-        console.log("Proof verified:", verified);
         if (!verified) revert ProofInvalid();
-        console.log("Unique Identifier:");
-        console.log("Scope:", scope);
-        console.log("Domain:", domain);
 
         if (userIdFromAddress[msg.sender] != NO_USER) {
             if (userIdFromAddress[msg.sender] != uniqueIdentifier)
