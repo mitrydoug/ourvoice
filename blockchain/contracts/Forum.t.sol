@@ -350,7 +350,7 @@ contract ForumTest is Test {
 
         currentBalance = forum.getUserBalance();
         // Try to add more support than balance allows
-        vm.expectRevert("Insufficient credits for support adjustments");
+        vm.expectRevert(abi.encodeWithSelector(Forum.InsufficientCredits.selector, currentBalance, 495));
         _addStatementSupport(0, 10); // Would cost 1485 - 990 = 495, but only ~60 credits left
     }
 
