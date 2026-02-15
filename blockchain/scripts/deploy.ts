@@ -63,4 +63,7 @@ async function main() {
   writeFileSync("../frontend/src/contracts.ts", configModuleText);
 }
 
-main().catch(console.error);
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
