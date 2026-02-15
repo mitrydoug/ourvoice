@@ -26,97 +26,6 @@ export const FORUM_ABI = [
     "type": "constructor"
   },
   {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "available",
-        "type": "uint256"
-      },
-      {
-        "internalType": "int256",
-        "name": "required",
-        "type": "int256"
-      }
-    ],
-    "name": "InsufficientCredits",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "statementId",
-        "type": "uint256"
-      }
-    ],
-    "name": "InvalidStatementId",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "NotMember",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "rank",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "rankedCount",
-        "type": "uint256"
-      }
-    ],
-    "name": "RankOutOfBounds",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "start",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "statementCount",
-        "type": "uint256"
-      }
-    ],
-    "name": "StartOutOfBounds",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "length",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "maxLength",
-        "type": "uint256"
-      }
-    ],
-    "name": "StatementTooLong",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "user",
-        "type": "address"
-      }
-    ],
-    "name": "UserNotRegistered",
-    "type": "error"
-  },
-  {
     "anonymous": false,
     "inputs": [
       {
@@ -629,33 +538,6 @@ export const FORUM_ABI = [
 export const registryContractConfig = {
   address: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
   abi: [
-  {
-    "inputs": [
-      {
-        "internalType": "string",
-        "name": "existing",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "provided",
-        "type": "string"
-      }
-    ],
-    "name": "NationalityMismatch",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "user",
-        "type": "address"
-      }
-    ],
-    "name": "UserNotRegistered",
-    "type": "error"
-  },
   {
     "inputs": [
       {
