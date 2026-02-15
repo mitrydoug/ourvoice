@@ -1,0 +1,65 @@
+name: Deploy smart contracts to Sepolia
+
+on:
+  push:
+    branches: ["release"]
+
+  # Allow manual re-runs (e.g. after funding the deployer wallet)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Prevent parallel deploys — let any in-progress deployment finish
+concurrency:
+  group: "sepolia-contract-deploy"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: blockchain
+    env:
+      SEPOLIA_RPC_URL: ${{ secrets.SEPOLIA_RPC_URL }}
+      SEPOLIA_DEPLOYER_PRIVATE_KEY: ${{ secrets.SEPOLIA_DEPLOYER_PRIVATE_KEY }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: release
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "npm"
+          cache-dependency-path: blockchain/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Compile contracts
+        run: npx hardhat compile --profile production
+
+      - name: Check deployer balance
+        run: npx tsx scripts/check-balance.ts
+
+      - name: Deploy contracts to Sepolia
+        run: npx hardhat run scripts/deploy.ts --network sepolia
+
+      - name: Commit deployment state
+        run: |
+          git config user.name "smart-contract-deployer"
+          git config user.email "smart-contract-deployer@ourvoice.eth"
+
+          git add ignition/deployments/
+
+          if git diff --cached --quiet; then
+            echo "No deployment state changes — contracts are up to date."
+          else
+            git commit -m "chore: update Sepolia deployment state"
+            git push
+          fi
