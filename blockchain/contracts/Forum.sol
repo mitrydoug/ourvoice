@@ -6,6 +6,15 @@ import "./StringUtils.sol";
 import "./DecayUtils.sol";
 
 contract Forum {
+    // Custom errors
+    error NotMember();
+    error RankOutOfBounds(uint rank, uint rankedCount);
+    error StartOutOfBounds(uint start, uint statementCount);
+    error InvalidStatementId(uint statementId);
+    error StatementTooLong(uint length, uint maxLength);
+    error UserNotRegistered(address user);
+    error InsufficientCredits(uint available, int required);
+
     // Maximum length (in chars) of a statement
     uint public constant MAX_STATEMENT_LENGTH = 120;
     // Amount of credits a user is credited each "step"
@@ -14,6 +23,7 @@ contract Forum {
     uint public constant USER_STARTING_CREDITS = 1050;
     // We only track this many statements for ranking purposes
     uint public constant MAX_RANKED_STATEMENTS = 1000;
+    // Minimum support required for a statement to be ranked
     int public constant MIN_STATEMENT_SUPPORT_TO_RANK = 0;
 
     // Configurable max ranked statements (defaults to MAX_RANKED_STATEMENTS)
@@ -114,7 +124,7 @@ contract Forum {
     function getRankedStatement(
         uint _rank
     ) external view returns (Statement memory) {
-        require(_rank < rankedCount, "Rank is larger than statement count");
+        if (_rank >= rankedCount) revert RankOutOfBounds(_rank, rankedCount);
         return _resolveStatement(statementRankings[_rank]);
     }
 
@@ -122,10 +132,7 @@ contract Forum {
         uint _start,
         uint _limit
     ) external view returns (Statement[] memory) {
-        require(
-            _start <= statementCount,
-            "Start is larger than statement count"
-        );
+        if (_start > statementCount) revert StartOutOfBounds(_start, statementCount);
 
         uint _length = _start + _limit <= rankedCount
             ? _limit
@@ -146,7 +153,7 @@ contract Forum {
         Statement[] memory stmts = new Statement[](_statementIds.length);
         for (uint i = 0; i < _statementIds.length; i++) {
             uint stmtId = _statementIds[i];
-            require(stmtId < statementCount, "Invalid statement ID");
+            if (stmtId >= statementCount) revert InvalidStatementId(stmtId);
             stmts[i] = _resolveStatement(stmtId);
         }
         return stmts;
@@ -166,7 +173,7 @@ contract Forum {
     }
 
     modifier onlyMembers() {
-        require(isMember(), "Only members can perform this action");
+        if (!isMember()) revert NotMember();
         _;
     }
 
@@ -268,10 +275,8 @@ contract Forum {
     }
 
     function addStatement(string calldata _statementText) external onlyMembers {
-        require(
-            bytes(_statementText).length <= MAX_STATEMENT_LENGTH,
-            "Statement exceeds maximum length"
-        );
+        if (bytes(_statementText).length > MAX_STATEMENT_LENGTH)
+            revert StatementTooLong(bytes(_statementText).length, MAX_STATEMENT_LENGTH);
 
         // Ensure the statement is not empty
         // check for duplicate statements if necessary
@@ -428,10 +433,7 @@ contract Forum {
     function adjustSupport(
         SupportAdjustment[] calldata _supportAdjustments
     ) external onlyMembers {
-        require(
-            ourVoiceRegistry.isRegistered(msg.sender),
-            "User is not registered"
-        );
+        if (!ourVoiceRegistry.isRegistered(msg.sender)) revert UserNotRegistered(msg.sender);
         bytes32 _userId = ourVoiceRegistry.getUserIdentifier(msg.sender);
 
         UserBalance storage _userBalance = userCredits[_userId];
@@ -441,10 +443,8 @@ contract Forum {
 
         for (uint i = 0; i < _supportAdjustments.length; i++) {
             SupportAdjustment memory _adjustment = _supportAdjustments[i];
-            require(
-                _adjustment.statementId < statementCount,
-                "Invalid statement ID"
-            );
+            if (_adjustment.statementId >= statementCount)
+                revert InvalidStatementId(_adjustment.statementId);
 
             Support storage _currentStatementSupport = statements[
                 _adjustment.statementId
@@ -469,10 +469,8 @@ contract Forum {
             _updateStatementRanking(_adjustment.statementId);
         }
 
-        require(
-            int(_userBalance.credits) >= _totalCostChange,
-            "Insufficient credits for support adjustments"
-        );
+        if (int(_userBalance.credits) < _totalCostChange)
+            revert InsufficientCredits(_userBalance.credits, _totalCostChange);
         _userBalance.credits = uint(
             int(_userBalance.credits) - _totalCostChange
         );

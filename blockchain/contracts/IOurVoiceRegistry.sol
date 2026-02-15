@@ -12,6 +12,9 @@ struct Registration {
 }
 
 abstract contract AOurVoiceRegistry {
+    error UserNotRegistered(address user);
+    error NationalityMismatch(string existing, string provided);
+
     // Map users to their registrations and verified unique identifiers
     mapping(address => bytes32) public userIdFromAddress;
     mapping(bytes32 => Registration) public userRegistrations;
@@ -29,10 +32,11 @@ abstract contract AOurVoiceRegistry {
         if (StringUtils.isEmpty(registration.nationality)) {
             registration.nationality = nationality;
         } else if (!StringUtils.isEmpty(nationality)) {
-            require(
-                StringUtils.equals(registration.nationality, nationality),
-                "A registration may not switch nationalities"
-            );
+            if (!StringUtils.equals(registration.nationality, nationality))
+                revert NationalityMismatch(
+                    registration.nationality,
+                    nationality
+                );
         }
 
         if (userIdFromAddress[msg.sender] == NO_USER) {
@@ -52,7 +56,7 @@ abstract contract AOurVoiceRegistry {
     function getUserIdentifier(
         address _userAddress
     ) external view returns (bytes32) {
-        require(isRegistered(_userAddress), "User is not registered");
+        if (!isRegistered(_userAddress)) revert UserNotRegistered(_userAddress);
         return
             userRegistrations[userIdFromAddress[_userAddress]].uniqueIdentifier;
     }
@@ -60,7 +64,7 @@ abstract contract AOurVoiceRegistry {
     function getUserRegistration(
         address _userAddress
     ) external view returns (Registration memory) {
-        require(isRegistered(_userAddress), "User is not registered");
+        if (!isRegistered(_userAddress)) revert UserNotRegistered(_userAddress);
         return userRegistrations[userIdFromAddress[_userAddress]];
     }
 }

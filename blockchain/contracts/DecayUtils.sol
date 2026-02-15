@@ -2,6 +2,8 @@
 pragma solidity ^0.8.28;
 
 library DecayUtils {
+    error TimestampOrderInvalid(uint fromTimestamp, uint toTimestamp);
+
     uint public constant UINT_BITS = 256;
     uint public constant HALF_LIFE_STEPS = 42;
     uint public constant STEP_DURATION_SECONDS = 10 seconds;
@@ -134,10 +136,8 @@ library DecayUtils {
         uint fromTimestamp,
         uint toTimestamp
     ) public pure returns (uint) {
-        require(
-            fromTimestamp <= toTimestamp,
-            "fromTimestamp must be <= toTimestamp"
-        );
+        if (fromTimestamp > toTimestamp)
+            revert TimestampOrderInvalid(fromTimestamp, toTimestamp);
         return
             (toTimestamp / STEP_DURATION_SECONDS) -
             (fromTimestamp / STEP_DURATION_SECONDS);
