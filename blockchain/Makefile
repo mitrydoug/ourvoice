@@ -4,21 +4,25 @@ clean:
 	rm -rf ignition/deployments/chain-31337
 	npx hardhat clean
 
-.PHONY: deploy-only
-deploy-only:
-	npx hardhat run scripts/deploy.ts --network localhost
-
 .PHONY: compile
 compile:
 	npx hardhat compile
 
+# --- Local development deployments ---
+
 .PHONY: deploy
-deploy: clean compile deploy-only
+deploy: clean compile
+	npx hardhat run scripts/deploy.ts
 
-.PHONY: deploy-fork
-deploy-forked: export DEPLOY_MODE = "fork"
-deploy-forked: clean compile deploy-only
+.PHONY: deploy-mocked
+deploy-mocked: deploy
 
-.PHONY: deploy-mock
-deploy-mocked: export DEPLOY_MODE = "mock"
-deploy-mocked: clean compile deploy-only
+.PHONY: deploy-local-fork
+deploy-local-fork: compile
+	npx hardhat run scripts/deploy.ts --network local_sepolia_fork
+
+# --- Testnet deployments ---
+
+.PHONY: deploy-sepolia
+deploy-sepolia: compile
+	npx hardhat run scripts/deploy.ts --network sepolia

@@ -23,3 +23,9 @@
 
 # cache for edr-simulated network
 /edr-fork-cache
+
+# Ephemeral local deployment state (Hardhat default network, chain 31337)
+/ignition/deployments/chain-31337
+
+# Production deployment state (Sepolia, chain 11155111) — DO commit this
+# !ignition/deployments/chain-11155111/
