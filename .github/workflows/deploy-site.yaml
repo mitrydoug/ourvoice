@@ -1,0 +1,132 @@
+name: Deploy static site to IPFS
+
+on:
+  workflow_run:
+    workflows: ["Deploy smart contracts to Sepolia"]
+    types: [completed]
+    branches: [release]
+
+  # Allow manual re-runs (e.g. after fixing a Pinata issue)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Prevent parallel deploys
+concurrency:
+  group: "site-deploy"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    # Only deploy the site if the contract deploy succeeded,
+    # or if this workflow was triggered manually.
+    if: >-
+      github.event.workflow_run.conclusion == 'success' ||
+      github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: release
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+
+  pin-ipfs:
+    needs: build
+    runs-on: ubuntu-latest
+    outputs:
+      cid: ${{ steps.pin.outputs.cid }}
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: release
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+
+      - name: Pin to IPFS
+        id: pin
+        env:
+          PINATA_JWT: ${{ secrets.PINATA_JWT }}
+          PINATA_GATEWAY: ${{ secrets.PINATA_GATEWAY }}
+        run: npx tsx scripts/pin-to-ipfs.ts dist
+
+  publish-release:
+    needs: pin-ipfs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: release
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CID: ${{ needs.pin-ipfs.outputs.cid }}
+          PINATA_GATEWAY: ${{ secrets.PINATA_GATEWAY }}
+        run: |
+          TAG="site-$(date -u +%Y%m%d-%H%M%S)"
+          GATEWAY="https://${PINATA_GATEWAY}/ipfs/${CID}"
+          PUBLIC="https://ipfs.io/ipfs/${CID}"
+
+          gh release create "$TAG" \
+            --title "Site Deployment — ${TAG}" \
+            --notes "## Frontend deployed to IPFS
+
+          **CID:** \`${CID}\`
+
+          **Access the site:**
+          - [Pinata Gateway](${GATEWAY})
+          - [Public Gateway](${PUBLIC})
+          - Local IPFS node: \`ipfs cat ${CID}\`"
