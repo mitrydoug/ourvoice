@@ -256,9 +256,6 @@ const Verify: FC<VerifyProps> = ({ methodIndex, onBack }) => {
     constructRequest();
   }, [zkPassport, revealContry, navigate, writeContract]);
 
-  const { address } = zkPassport.getSolidityVerifierDetails("ethereum_sepolia");
-  console.log("Verifier contract address:", address);
-
   return (
     <Container maxWidth="md" sx={{ textAlign: "center" }}>
       <Stack justifyContent="space-between" spacing={4} sx={{ mt: 5 }}>
