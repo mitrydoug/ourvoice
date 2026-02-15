@@ -1,86 +1,67 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { ethers } from 'ethers';
-import Box from '@mui/material/Box';
-import RestoreIcon from '@mui/icons-material/Restore';
-import FavoriteIcon from '@mui/icons-material/Favorite';
-import LocationOnIcon from '@mui/icons-material/LocationOn';
-import Paper from '@mui/material/Paper';
-import CssBaseline from '@mui/material/CssBaseline';
-import { createHashRouter, RouterProvider } from 'react-router-dom';
-import DashboardLayout from './components/DashboardLayout';
-import EmployeeList from './components/EmployeeList';
-import Ranking from './components/Ranking';
-import {
-  dataGridCustomizations,
-  datePickersCustomizations,
-  sidebarCustomizations,
-  formInputCustomizations,
-} from './theme/customizations';
-import NotificationsProvider from './hooks/useNotifications/NotificationsProvider';
-import DialogsProvider from './hooks/useDialogs/DialogsProvider';
-import AppTheme from './shared-theme/AppTheme';
+import { FC } from "react";
 
-import AppContext from './context/AppContext';
-import { useWallet } from "./hooks/useWallet";
-import contractAddress from "./contracts/contract-address.json";
-import PolyVoice from "./contracts/PolyVoice.json";
+import { createHashRouter, RouterProvider } from "react-router-dom";
+import Top from "./components/Top.tsx";
 
-const router = createHashRouter([
-  {
-    Component: DashboardLayout,
-    children: [
-      {
-        Component: Ranking,
-        index: true,
-      }
-    ],
-  },
-]);
+import Root from "./components/Root.tsx";
+import MySupport from "./components/MySupport.tsx";
+import MyStatements from "./components/MyStatements.tsx";
+import Bookmarked from "./components/Bookmarked.tsx";
+import { UserVoteProvider } from "./state/UserVotes.tsx";
+import { CssBaseline, ThemeProvider } from "@mui/material";
+import GetVerified from "./components/GetVerified.tsx";
 
-const themeComponents = {
-  ...dataGridCustomizations,
-  ...datePickersCustomizations,
-  ...sidebarCustomizations,
-  ...formInputCustomizations,
-};
+import { theme } from "./theme.ts";
+import { ForumProvider } from "./state/Forum.tsx";
+import Account from "./components/UserProfile.tsx";
 
-export default function App() {
-  
-  const wallet = useWallet();
-  const { provider, walletState, network } = wallet;
-  const [polyVoice, setPolyVoice] = useState(null);
-  const [connectionRequested, setConnectionRequested] = useState(false);
-
-  useEffect(() => {
-      if (provider && walletState === "connected") {
-          console.log(contractAddress);
-          console.log(network);
-          provider.getSigner().then(signer => {
-              setPolyVoice(
-                  new ethers.Contract(
-                      contractAddress.PolyVoice[network],
-                      PolyVoice.abi,
-                      signer,
-                  )
-              );
-          });
-      }
-  }, [walletState, network]);
-
-  const requestConnection = useCallback(() => {
-      setConnectionRequested(true);
-  }, []);
+export const App: FC = () => {
+  const router = createHashRouter([
+    {
+      path: "/verify",
+      Component: GetVerified,
+    },
+    {
+      Component: Root,
+      children: [
+        {
+          Component: Top,
+          index: true,
+        },
+        {
+          path: "/top",
+          Component: Top,
+        },
+        {
+          path: "/my-support",
+          Component: MySupport,
+        },
+        {
+          path: "/my-statements",
+          Component: MyStatements,
+        },
+        {
+          path: "/bookmarked",
+          Component: Bookmarked,
+        },
+        {
+          path: "/account",
+          Component: Account,
+        },
+      ],
+    },
+  ]);
 
   return (
-      <AppTheme themeComponents={themeComponents}>
-          <CssBaseline enableColorScheme />
-          <NotificationsProvider>
-              <AppContext.Provider value={{ polyVoice, wallet, connectionRequested, requestConnection }}>
-                <DialogsProvider>
-                    <RouterProvider router={router} />
-                </DialogsProvider>
-              </AppContext.Provider>
-          </NotificationsProvider>
-      </AppTheme>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <ForumProvider>
+        <UserVoteProvider>
+          <RouterProvider router={router} />
+        </UserVoteProvider>
+      </ForumProvider>
+    </ThemeProvider>
   );
-}
+};
+
+export default App;

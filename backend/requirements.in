@@ -1,0 +1,3 @@
+pysolr
+web3
+fastapi[standard]

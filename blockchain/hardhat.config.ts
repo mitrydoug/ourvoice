@@ -1,10 +1,13 @@
 import type { HardhatUserConfig } from "hardhat/config";
 
 import hardhatToolboxViemPlugin from "@nomicfoundation/hardhat-toolbox-viem";
+import hardhatKeystore from "@nomicfoundation/hardhat-keystore";
+import hardhatNetworkHelpers from "@nomicfoundation/hardhat-network-helpers";
+
 import { configVariable } from "hardhat/config";
 
 const config: HardhatUserConfig = {
-  plugins: [hardhatToolboxViemPlugin],
+  plugins: [hardhatToolboxViemPlugin, hardhatNetworkHelpers, hardhatKeystore],
   solidity: {
     profiles: {
       default: {
@@ -22,27 +25,29 @@ const config: HardhatUserConfig = {
     },
   },
   networks: {
-    hardhatMainnet: {
+    default: {
       type: "edr-simulated",
-      chainType: "l1",
+      mining: {
+        auto: true,
+        interval: 12000,
+      }
     },
-    hardhatOp: {
+    local_sepolia_fork: {
       type: "edr-simulated",
-      chainType: "op",
+      forking: {
+        url: configVariable("SEPOLIA_RPC_URL"),
+        blockNumber: 9979546,
+      },
     },
     sepolia: {
       type: "http",
       chainType: "l1",
       url: configVariable("SEPOLIA_RPC_URL"),
-      accounts: [configVariable("SEPOLIA_PRIVATE_KEY")],
+      accounts: [configVariable("SEPOLIA_DEPLOYER_PRIVATE_KEY")],
     },
-    celo_sepolia: {
+    compose_hardhat: {
       type: "http",
-      url: "https://forno.celo-sepolia.celo-testnet.org",
-      chainId: 11142220,
-      accounts: [
-        configVariable("CELO_TESTER_PRIVATE_KEY")  
-      ]
+      url: "http://hardhat_mocked:8545",
     }
   },
 };

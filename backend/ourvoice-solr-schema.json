@@ -1,0 +1,14 @@
+{
+  "add-field": [
+    {
+      "name": "statementId",
+      "type": "pint",
+      "multiValued": false
+    },
+    {
+      "name": "statementText",
+      "type": "text_general",
+      "multiValued": false
+    }
+  ]
+}
