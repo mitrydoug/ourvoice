@@ -12,7 +12,7 @@ import { createPublicClient, http, formatEther } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { sepolia } from "viem/chains";
 
-const MIN_BALANCE_WEI = BigInt("10000000000000000"); // 0.01 ETH
+const MIN_BALANCE_WEI = BigInt("100000000000000000"); // 0.1 Sepolia ETH
 
 async function main() {
   const rpcUrl = process.env.SEPOLIA_RPC_URL;

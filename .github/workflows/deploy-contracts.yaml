@@ -42,7 +42,7 @@ jobs:
         run: npm ci
 
       - name: Compile contracts
-        run: npx hardhat compile --profile production
+        run: npx hardhat compile --build-profile production
 
       - name: Check deployer balance
         run: npx tsx scripts/check-balance.ts
