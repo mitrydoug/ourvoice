@@ -12,7 +12,7 @@ import web3AuthContextConfig from "./web3authContext";
 
 const queryClient = new QueryClient();
 
-ReactDOM.createRoot(document.getElementById("root")).render(
+ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <Web3AuthProvider config={web3AuthContextConfig}>
       <QueryClientProvider client={queryClient}>
