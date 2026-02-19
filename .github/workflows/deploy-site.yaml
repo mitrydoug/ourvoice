@@ -54,6 +54,8 @@ jobs:
         run: npm run format:check
 
       - name: Build
+        env:
+          VITE_SEPOLIA_RPC_URL: ${{ secrets.SEPOLIA_RPC_URL }}
         run: npm run build
 
       - name: Upload build artifact

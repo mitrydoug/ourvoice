@@ -13,6 +13,9 @@ interface ImportMetaEnv {
    * Defaults to `"localhost"` for local development.
    */
   readonly VITE_NETWORK: string;
+
+  /** Sepolia RPC endpoint URL. Falls back to https://rpc.sepolia.org if unset. */
+  readonly VITE_SEPOLIA_RPC_URL?: string;
 }
 
 interface ImportMeta {
