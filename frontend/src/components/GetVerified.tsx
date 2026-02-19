@@ -15,13 +15,15 @@ import {
   Typography,
 } from "@mui/material";
 import { useWriteContract } from "wagmi";
-import { registryContractConfig } from "../contracts";
+import {
+  registryContractConfig,
+  mockRegistryContractConfig,
+  isDevMode,
+} from "../contracts";
 import VerifiedIcon from "@mui/icons-material/Verified";
 
 const MY_ICON_URL = "https://i.imgur.com/I86xH4n.png";
 const MY_SCOPE = "our-voice-verify";
-
-const DEV_MODE = true;
 
 type VERIFY_PHASE =
   | "PRE_SCAN"
@@ -125,7 +127,7 @@ const Verify: FC<VerifyProps> = ({ methodIndex, onBack }) => {
   const devModeRegister = useCallback(() => {
     writeContract(
       {
-        ...registryContractConfig,
+        ...mockRegistryContractConfig,
         functionName: "register",
         args: [""],
       },
@@ -153,8 +155,7 @@ const Verify: FC<VerifyProps> = ({ methodIndex, onBack }) => {
         scope: MY_SCOPE,
         // To verify proofs on EVM chains, you need to set the mode to "compressed-evm"
         mode: "compressed-evm",
-        // TODO: remove when productionizing
-        devMode: DEV_MODE,
+        devMode: isDevMode,
       });
 
       // Build your query with the required attributes or conditions you want to verify
@@ -207,7 +208,7 @@ const Verify: FC<VerifyProps> = ({ methodIndex, onBack }) => {
           proof: proof,
           // Use the same scope as the one you specified with the request function
           scope: MY_SCOPE,
-          devMode: DEV_MODE,
+          devMode: isDevMode,
         });
 
         console.log("Submitting on-chain verification transaction...");
@@ -217,7 +218,11 @@ const Verify: FC<VerifyProps> = ({ methodIndex, onBack }) => {
           {
             ...registryContractConfig,
             functionName: "register",
-            args: [verifierParams],
+            // The zkpassport SDK types `version` as `string` rather than
+            // `0x${string}`, causing a mismatch with the on-chain ABI.
+            // The runtime value is always a valid hex string.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            args: [verifierParams as any],
           },
           {
             onError: (error) => {
@@ -256,9 +261,6 @@ const Verify: FC<VerifyProps> = ({ methodIndex, onBack }) => {
     constructRequest();
   }, [zkPassport, revealContry, navigate, writeContract]);
 
-  const { address } = zkPassport.getSolidityVerifierDetails("ethereum_sepolia");
-  console.log("Verifier contract address:", address);
-
   return (
     <Container maxWidth="md" sx={{ textAlign: "center" }}>
       <Stack justifyContent="space-between" spacing={4} sx={{ mt: 5 }}>
@@ -274,7 +276,7 @@ const Verify: FC<VerifyProps> = ({ methodIndex, onBack }) => {
                 {verifyPhase === "PRE_SCAN" ? (
                   <>
                     <QRCodeSVG value={verifyUrl} size={256} level="L" />
-                    {DEV_MODE && (
+                    {isDevMode && (
                       <Button onClick={() => devModeRegister()}>
                         [DEV_MODE] Register
                       </Button>
