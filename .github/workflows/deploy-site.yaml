@@ -8,6 +8,11 @@ on:
 
   # Allow manual re-runs (e.g. after fixing a Pinata issue)
   workflow_dispatch:
+    inputs:
+      branch:
+        description: "Branch to build and deploy"
+        required: false
+        default: "release"
 
 permissions:
   contents: write
@@ -32,7 +37,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: release
+          ref: ${{ inputs.branch || 'release' }}
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -76,7 +81,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: release
+          ref: ${{ inputs.branch || 'release' }}
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -110,7 +115,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: release
+          ref: ${{ inputs.branch || 'release' }}
 
       - name: Create GitHub Release
         env:
