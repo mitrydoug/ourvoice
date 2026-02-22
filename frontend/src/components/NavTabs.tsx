@@ -17,7 +17,7 @@ const LinkTab: FC<LinkTabProps> = ({ label, href, selected }) => {
     <Tab
       component="a"
       onClick={() => {
-        navigate(href || "/");
+        void navigate(href || "/");
       }}
       aria-current={selected && "page"}
       label={label}

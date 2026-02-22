@@ -8,7 +8,7 @@ import {
   keyframes,
 } from "@mui/material";
 import DoneAllIcon from "@mui/icons-material/DoneAll";
-import { useAccount } from "wagmi";
+import { useConnection } from "wagmi";
 import useNickname from "@/hooks/useNickname";
 import { useUserVotes } from "../state/UserVotes";
 import { metamaskIcon } from "../util";
@@ -24,7 +24,7 @@ export interface UserProfilePillProps {
 }
 
 const UserProfilePill: React.FC<UserProfilePillProps> = ({ onOpenMenu }) => {
-  const { address } = useAccount();
+  const { address } = useConnection();
   const [nickname] = useNickname();
   const userVotes = useUserVotes();
   const { isUserVerified } = userVotes;
@@ -74,7 +74,7 @@ const UserProfilePill: React.FC<UserProfilePillProps> = ({ onOpenMenu }) => {
           size="small"
           onClick={(e) => {
             e.stopPropagation();
-            commitSupport();
+            void commitSupport();
           }}
           disabled={!hasStagedChanges || commitBusy}
           sx={{

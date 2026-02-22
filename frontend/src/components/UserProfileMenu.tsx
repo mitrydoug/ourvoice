@@ -111,7 +111,7 @@ export interface AccountDrawerProps {
   disconnect: () => void;
   username?: string;
   avatar?: string | null;
-  commitSupport: () => void;
+  commitSupport: () => void | Promise<void>;
   hasStagedChanges: boolean;
   commitBusy?: boolean;
 }
@@ -134,7 +134,7 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
   };
 
   const handleCommit = () => {
-    commitSupport();
+    void commitSupport();
     onClose();
   };
 
@@ -148,10 +148,12 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
       anchor="left"
       open={open}
       onClose={onClose}
-      PaperProps={{
-        sx: {
-          width: "80%",
-          maxWidth: 320,
+      slotProps={{
+        paper: {
+          sx: {
+            width: "80%",
+            maxWidth: 320,
+          },
         },
       }}
     >
@@ -209,9 +211,8 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
                 <ListItemButton onClick={() => handleNavigate("/account")}>
                   <ListItemText
                     primary="Profile"
-                    primaryTypographyProps={{
-                      variant: "body1",
-                      fontWeight: 500,
+                    slotProps={{
+                      primary: { variant: "body1", fontWeight: 500 },
                     }}
                   />
                 </ListItemButton>
@@ -220,9 +221,8 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
                 <ListItemButton onClick={() => handleNavigate("/my-support")}>
                   <ListItemText
                     primary="Your Support"
-                    primaryTypographyProps={{
-                      variant: "body1",
-                      fontWeight: 500,
+                    slotProps={{
+                      primary: { variant: "body1", fontWeight: 500 },
                     }}
                   />
                 </ListItemButton>
@@ -233,9 +233,8 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
                 >
                   <ListItemText
                     primary="My Statements"
-                    primaryTypographyProps={{
-                      variant: "body1",
-                      fontWeight: 500,
+                    slotProps={{
+                      primary: { variant: "body1", fontWeight: 500 },
                     }}
                   />
                 </ListItemButton>
@@ -244,9 +243,8 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
                 <ListItemButton onClick={() => handleNavigate("/bookmarked")}>
                   <ListItemText
                     primary="Bookmarked"
-                    primaryTypographyProps={{
-                      variant: "body1",
-                      fontWeight: 500,
+                    slotProps={{
+                      primary: { variant: "body1", fontWeight: 500 },
                     }}
                   />
                 </ListItemButton>
@@ -260,7 +258,7 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
                 </ListItemIcon>
                 <ListItemText
                   primary="Get verified"
-                  primaryTypographyProps={{ variant: "body1", fontWeight: 500 }}
+                  slotProps={{ primary: { variant: "body1", fontWeight: 500 } }}
                 />
               </ListItemButton>
             </ListItem>
@@ -276,7 +274,7 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
             <ListItemButton onClick={() => handleNavigate("/how-it-works")}>
               <ListItemText
                 primary="How it works"
-                primaryTypographyProps={{ variant: "body1", fontWeight: 500 }}
+                slotProps={{ primary: { variant: "body1", fontWeight: 500 } }}
               />
             </ListItemButton>
           </ListItem>

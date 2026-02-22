@@ -11,7 +11,7 @@ import {
   Stack,
   TextField,
 } from "@mui/material";
-import { useAccount, useDisconnect } from "wagmi";
+import { useConnection, useDisconnect } from "wagmi";
 import { Link, useNavigate } from "react-router-dom";
 import { useUserVotes } from "../state/UserVotes";
 import ChooseForumModal, { FORUMS } from "./ChooseForumModal";
@@ -170,24 +170,24 @@ export default function MenuAppBar() {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const [avatar, setAvatar] = useState<string | null>(null);
-  const { address } = useAccount();
+  const { address } = useConnection();
   const isMobile = useIsMobile();
   const [chooseForumModalOpen, setChooseForumModalOpen] = useState(false);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const { name: forumName, setForum } = useForum();
   const navigate = useNavigate();
-  const { disconnect } = useDisconnect();
+  const { mutate: doDisconnect } = useDisconnect();
 
   const [connectRequested, setConnectRequested] = useState(false);
-  const { connect, isConnected } = useWeb3AuthConnect();
+  const web3Auth = useWeb3AuthConnect();
 
   useEffect(() => {
-    if (!isConnected && connectRequested) {
-      connect();
+    if (!web3Auth.isConnected && connectRequested) {
+      void web3Auth.connect();
       console.log("Connecting to wallet...");
       setConnectRequested(false);
     }
-  }, [isConnected, connectRequested, connect]);
+  }, [web3Auth.isConnected, connectRequested, web3Auth]);
 
   useEffect(() => {
     if (address) {
@@ -267,8 +267,8 @@ export default function MenuAppBar() {
                       open={drawerOpen}
                       onClose={() => setDrawerOpen(false)}
                       isUserVerified={isUserVerified}
-                      navigate={navigate}
-                      disconnect={disconnect}
+                      navigate={(path: string) => void navigate(path)}
+                      disconnect={doDisconnect}
                       avatar={avatar}
                       commitSupport={commitSupport ?? (() => {})}
                       hasStagedChanges={
@@ -312,8 +312,8 @@ export default function MenuAppBar() {
                     open={open}
                     onClose={handleClose}
                     isUserVerified={isUserVerified}
-                    navigate={navigate}
-                    disconnect={disconnect}
+                    navigate={(path: string) => void navigate(path)}
+                    disconnect={doDisconnect}
                   />
                 </>
               ) : (

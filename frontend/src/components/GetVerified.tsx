@@ -122,10 +122,10 @@ const Verify: FC<VerifyProps> = ({ methodIndex, onBack }) => {
 
   const zkPassport = useMemo(() => new ZKPassport(), []);
 
-  const { writeContract } = useWriteContract();
+  const { mutate } = useWriteContract();
 
   const devModeRegister = useCallback(() => {
-    writeContract(
+    mutate(
       {
         ...mockRegistryContractConfig,
         functionName: "register",
@@ -139,9 +139,9 @@ const Verify: FC<VerifyProps> = ({ methodIndex, onBack }) => {
     );
 
     setTimeout(() => {
-      navigate("/");
+      void navigate("/");
     }, 5000);
-  }, [writeContract, navigate]);
+  }, [mutate, navigate]);
 
   useEffect(() => {
     const constructRequest = async () => {
@@ -193,7 +193,7 @@ const Verify: FC<VerifyProps> = ({ methodIndex, onBack }) => {
         setVerifyPhase("PROOF_GENERATED");
       });
 
-      onResult(async ({ uniqueIdentifier, verified, result }) => {
+      onResult(({ uniqueIdentifier, verified, result }) => {
         console.log("Result received:", uniqueIdentifier, verified, result);
         setVerifyPhase(verified ? "VERIFIED" : "REJECTED");
 
@@ -214,7 +214,7 @@ const Verify: FC<VerifyProps> = ({ methodIndex, onBack }) => {
         console.log("Submitting on-chain verification transaction...");
         console.log("Verifier parameters:", verifierParams);
 
-        writeContract(
+        mutate(
           {
             ...registryContractConfig,
             functionName: "register",
@@ -232,7 +232,7 @@ const Verify: FC<VerifyProps> = ({ methodIndex, onBack }) => {
         );
 
         setTimeout(() => {
-          navigate("/");
+          void navigate("/");
         }, 5000);
       });
 
@@ -258,8 +258,8 @@ const Verify: FC<VerifyProps> = ({ methodIndex, onBack }) => {
       setVerifyUrl(url);
     };
 
-    constructRequest();
-  }, [zkPassport, revealContry, navigate, writeContract]);
+    void constructRequest();
+  }, [zkPassport, revealContry, navigate, mutate]);
 
   return (
     <Container maxWidth="md" sx={{ textAlign: "center" }}>
@@ -345,7 +345,10 @@ export const GetVerified: FC = () => {
 
   if (methodIndex === null) {
     return (
-      <ChooseMethod onContinue={setMethodIndex} onBack={() => navigate("/")} />
+      <ChooseMethod
+        onContinue={setMethodIndex}
+        onBack={() => void navigate("/")}
+      />
     );
   } else {
     return (

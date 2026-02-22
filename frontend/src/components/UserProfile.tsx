@@ -1,6 +1,6 @@
 import { FC, useMemo, useState } from "react";
 import { metamaskIcon } from "../util";
-import { useAccount } from "wagmi";
+import { useConnection } from "wagmi";
 import { Navigate, useNavigate } from "react-router-dom";
 import {
   Avatar,
@@ -149,7 +149,7 @@ const DonutLegend: FC<{ segments: DonutSegment[] }> = ({ segments }) => (
 // ── Main Profile Component ───────────────────────────────────────────────────
 
 const UserProfile: FC = () => {
-  const { address } = useAccount();
+  const { address } = useConnection();
   const navigate = useNavigate();
   const theme = useTheme();
   const { isUserVerified } = useUserVotes();
@@ -276,7 +276,9 @@ const UserProfile: FC = () => {
                 Verify your humanity with ZKPassport to participate in voting
                 and statement submission.
               </Typography>
-              <Button onClick={() => navigate("/verify")}>Get Verified</Button>
+              <Button onClick={() => void navigate("/verify")}>
+                Get Verified
+              </Button>
             </Box>
           )}
 

@@ -36,7 +36,7 @@ const BottomNav: FC = () => {
         showLabels
         value={currentIndex === -1 ? false : currentIndex}
         onChange={(_, newValue: number) => {
-          navigate(NAV_ITEMS[newValue].href);
+          void navigate(NAV_ITEMS[newValue].href);
         }}
       >
         {NAV_ITEMS.map((item) => (

@@ -8,7 +8,7 @@ import React, {
   useRef,
 } from "react";
 import {
-  useAccount,
+  useConnection,
   useReadContract,
   useReadContracts,
   useWaitForTransactionReceipt,
@@ -264,7 +264,7 @@ type UserSupportContextValue = {
   isUserVerified: true;
   state: UserSupportState;
   dispatch: React.Dispatch<UserSupportAction>;
-  commitSupport: () => void;
+  commitSupport: () => void | Promise<void>;
   resetCommitStatus: () => void;
   getEffectiveSupport: (statementId: number) => number;
   getOnChainSupport: (statementId: number) => number;
@@ -285,8 +285,8 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
     hasEnoughCredits: true,
     commitStatus: "idle",
   });
-  const { writeContractAsync } = useWriteContract();
-  const { address } = useAccount();
+  const { mutateAsync } = useWriteContract();
+  const { address } = useConnection();
   const { forumContractAddress } = useForum();
   console.log("UserVoteProvider for address: ", address);
   console.log("Forum contract address: ", forumContractAddress);
@@ -423,7 +423,7 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
       dispatch({ type: "BEGIN_COMMIT" });
 
       try {
-        const txHash = await writeContractAsync({
+        const txHash = await mutateAsync({
           address: forumContractAddress,
           abi: FORUM_ABI,
           functionName: "adjustSupport",
@@ -436,7 +436,7 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
         dispatch({ type: "COMMIT_CANCELLED" });
       }
     }
-  }, [state, writeContractAsync, forumContractAddress, dispatch]);
+  }, [state, mutateAsync, forumContractAddress, dispatch]);
 
   const resetCommitStatus = useCallback(() => {
     dispatch({ type: "RESET_COMMIT_STATUS" });
