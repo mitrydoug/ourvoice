@@ -289,6 +289,7 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
   const { address } = useAccount();
   const { forumContractAddress } = useForum();
   console.log("UserVoteProvider for address: ", address);
+  console.log("Forum contract address: ", forumContractAddress);
 
   const { data: isUserVerified } = useReadContract({
     address: forumContractAddress,
@@ -327,14 +328,20 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
 
   const [onChainUserStatementSupport, onChainUserBalance] = data || [];
 
+  console.log("Raw useReadContracts data: ", data);
   console.log(
     "Fetched user support from contract: ",
     onChainUserStatementSupport,
   );
+  console.log("Fetched user balance from contract: ", onChainUserBalance);
 
   useEffect(() => {
     // Load state from blockchain
-    if (onChainUserStatementSupport && onChainUserBalance) {
+    if (
+      onChainUserStatementSupport !== undefined &&
+      onChainUserBalance !== undefined
+    ) {
+      console.log("Dispatching SYNC_ONCHAIN_STATE");
       dispatch({
         type: "SYNC_ONCHAIN_STATE",
         payload: {
