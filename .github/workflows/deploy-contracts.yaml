@@ -56,10 +56,11 @@ jobs:
           git config user.email "smart-contract-deployer@ourvoice.eth"
 
           git add ignition/deployments/
+          git add ../frontend/src/contracts/networks/sepolia.ts
 
           if git diff --cached --quiet; then
             echo "No deployment state changes — contracts are up to date."
           else
-            git commit -m "chore: update Sepolia deployment state"
+            git commit -m "chore: update Sepolia deployment state and contract bindings"
             git push
           fi
