@@ -6,6 +6,13 @@ on:
 
   # Allow manual re-runs (e.g. after funding the deployer wallet)
   workflow_dispatch:
+    inputs:
+      reset:
+        description: >-
+          Wipe existing deployment state before deploying.
+          Use when contract code or constructor parameters have changed.
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -46,6 +53,10 @@ jobs:
 
       - name: Check deployer balance
         run: npx tsx scripts/check-balance.ts
+
+      - name: Reset deployment state
+        if: inputs.reset == true
+        run: rm -rf ignition/deployments/chain-11155111
 
       - name: Deploy contracts to Sepolia
         run: npx hardhat run scripts/deploy.ts --network sepolia
