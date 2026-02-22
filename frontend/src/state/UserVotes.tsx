@@ -304,7 +304,7 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
 
   console.log("User verified status: ", isUserVerified);
 
-  const { data, refetch } = useReadContracts({
+  const { data, refetch, error } = useReadContracts({
     allowFailure: false,
     account: address,
     contracts: [
@@ -329,6 +329,7 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
   const [onChainUserStatementSupport, onChainUserBalance] = data || [];
 
   console.log("Raw useReadContracts data: ", data);
+  console.log("useReadContracts error: ", error);
   console.log(
     "Fetched user support from contract: ",
     onChainUserStatementSupport,
