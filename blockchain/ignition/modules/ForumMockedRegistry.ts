@@ -10,45 +10,45 @@ type MockStatement = {
 const MOCK_STATEMENTS: MockStatement[] = [
   {
     addrIndex: 0,
-    forum: "us",
+    forum: "USA",
     content: "Access to high-quality medical care is a human right.",
   },
   {
     addrIndex: 2,
-    forum: "us",
+    forum: "USA",
     content: "We need to consider and prevent the potential downsides of AI.",
   },
   {
     addrIndex: 0,
-    forum: "us",
+    forum: "USA",
     content: "Loneliness is an epidemic. Touch grass, find a friend.",
   },
-  { addrIndex: 2, forum: "us", content: "We're better together." },
-  { addrIndex: 0, forum: "us", content: "I want something to believe in." },
+  { addrIndex: 2, forum: "USA", content: "We're better together." },
+  { addrIndex: 0, forum: "USA", content: "I want something to believe in." },
   {
     addrIndex: 0,
-    forum: "us",
+    forum: "USA",
     content: "Nothing heals like a good chocolate chip cookie!",
   },
   {
     addrIndex: 2,
-    forum: "us",
+    forum: "USA",
     content: "We're in the longest government shutdown in our history.",
   },
   {
     addrIndex: 0,
-    forum: "us",
+    forum: "USA",
     content: "All work and now play makes Hannah and sad girl",
   },
   {
     addrIndex: 2,
-    forum: "us",
+    forum: "USA",
     content:
       "We should continue providing SNAP benefits despite the government shutdown",
   },
   {
     addrIndex: 0,
-    forum: "us",
+    forum: "USA",
     content:
       "There should be a minimum of 4 weeks PTO for primary care givers.",
   },
@@ -76,7 +76,7 @@ export function createForumMockedModule(forumNames: string[]) {
 
     const mockedZKRegistry = m.contract("MockOurVoiceRegistry");
 
-    m.call(mockedZKRegistry, "register", ["us"], {
+    m.call(mockedZKRegistry, "register", ["USA"], {
       from: address1,
       id: "register1",
     });
@@ -84,7 +84,7 @@ export function createForumMockedModule(forumNames: string[]) {
       from: address2,
       id: "register2",
     });
-    m.call(mockedZKRegistry, "register", ["us"], {
+    m.call(mockedZKRegistry, "register", ["USA"], {
       from: address3,
       id: "register3",
     });
