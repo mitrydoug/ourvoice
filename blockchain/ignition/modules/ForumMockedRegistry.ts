@@ -68,7 +68,10 @@ const MOCK_STATEMENTS: MockStatement[] = [
  *
  * Intended for local development on a fresh Hardhat network.
  */
-export function createForumMockedModule(forumNames: string[]) {
+export function createForumMockedModule(
+  forumNames: string[],
+  stepDurationSeconds: number,
+) {
   return buildModule("ForumMockedRegistryModule", (m) => {
     const address1 = m.getAccount(0);
     const address2 = m.getAccount(1);
@@ -89,7 +92,7 @@ export function createForumMockedModule(forumNames: string[]) {
       id: "register3",
     });
 
-    const { forums } = deployForums(m, mockedZKRegistry, forumNames);
+    const { forums } = deployForums(m, mockedZKRegistry, forumNames, stepDurationSeconds);
 
     MOCK_STATEMENTS.forEach((stmt, idx) => {
       const fromAddress = m.getAccount(stmt.addrIndex);

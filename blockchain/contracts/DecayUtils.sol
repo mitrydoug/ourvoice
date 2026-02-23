@@ -2,11 +2,8 @@
 pragma solidity ^0.8.28;
 
 library DecayUtils {
-    error TimestampOrderInvalid(uint fromTimestamp, uint toTimestamp);
-
     uint public constant UINT_BITS = 256;
     uint public constant HALF_LIFE_STEPS = 42;
-    uint public constant STEP_DURATION_SECONDS = 10 seconds;
     uint public constant DECAY_MULTIPLIER_BITS = 64;
     uint public constant DECAY_MULTIPLIER_1_STEP = 0xFBCF4D652629F24A;
     uint public constant DECAY_MULTIPLIER_2_STEPS = 0xF7B029A299CFF9E0;
@@ -132,31 +129,4 @@ library DecayUtils {
         return sign ? int(value) : -int(value);
     }
 
-    function ellapsedStepsBetweenTimestamps(
-        uint fromTimestamp,
-        uint toTimestamp
-    ) public pure returns (uint) {
-        if (fromTimestamp > toTimestamp)
-            revert TimestampOrderInvalid(fromTimestamp, toTimestamp);
-        return
-            (toTimestamp / STEP_DURATION_SECONDS) -
-            (fromTimestamp / STEP_DURATION_SECONDS);
-    }
-
-    function decayValue(
-        int startValue,
-        uint fromTimestamp,
-        uint toTimestamp
-    ) external pure returns (int) {
-        uint elapsedSteps = ellapsedStepsBetweenTimestamps(
-            fromTimestamp,
-            toTimestamp
-        );
-
-        if (startValue == 0 || elapsedSteps == 0) {
-            return startValue;
-        }
-
-        return approxDecayHalvingEvery42Steps(startValue, elapsedSteps);
-    }
 }

@@ -19,7 +19,10 @@ import { deployForums } from "./helpers/deployForums.js";
  *   - ForumProductionModule.domain           (string)  — expected domain for proofs
  *   - ForumProductionModule.devMode          (boolean) — allow dev proofs (true for testing)
  */
-export function createForumProductionModule(forumNames: string[]) {
+export function createForumProductionModule(
+  forumNames: string[],
+  stepDurationSeconds: number,
+) {
   return buildModule("ForumProductionModule", (m) => {
     const verifierAddress = m.getParameter<string>("verifierAddress");
     const scope = m.getParameter<string>("scope");
@@ -38,7 +41,7 @@ export function createForumProductionModule(forumNames: string[]) {
       devMode,
     ]);
 
-    const { forums } = deployForums(m, registry, forumNames);
+    const { forums } = deployForums(m, registry, forumNames, stepDurationSeconds);
 
     return { registry, ...forums };
   });

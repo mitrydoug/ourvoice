@@ -14,6 +14,7 @@ contract Forum {
     error StatementTooLong(uint length, uint maxLength);
     error UserNotRegistered(address user);
     error InsufficientCredits(uint available, int required);
+    error TimestampOrderInvalid(uint fromTimestamp, uint toTimestamp);
 
     // Maximum length (in chars) of a statement
     uint public constant MAX_STATEMENT_LENGTH = 120;
@@ -28,6 +29,9 @@ contract Forum {
 
     // Configurable max ranked statements (defaults to MAX_RANKED_STATEMENTS)
     uint public immutable maxRankedStatements;
+
+    // Duration of a single decay/credit step in seconds
+    uint public immutable stepDurationSeconds;
 
     AOurVoiceRegistry public ourVoiceRegistry;
 
@@ -90,13 +94,15 @@ contract Forum {
     constructor(
         AOurVoiceRegistry _ourVoiceRegistry,
         string memory _nationality,
-        uint _maxRankedStatements
+        uint _maxRankedStatements,
+        uint _stepDurationSeconds
     ) {
         ourVoiceRegistry = _ourVoiceRegistry;
         nationality = _nationality;
         maxRankedStatements = _maxRankedStatements == 0
             ? MAX_RANKED_STATEMENTS
             : _maxRankedStatements;
+        stepDurationSeconds = _stepDurationSeconds;
     }
 
     function _resolveStatement(
@@ -333,6 +339,38 @@ contract Forum {
         return supportedStatements;
     }
 
+    // ======================================================================
+    // Step calculation and decay
+    // ======================================================================
+
+    function _elapsedStepsBetweenTimestamps(
+        uint fromTimestamp,
+        uint toTimestamp
+    ) internal view returns (uint) {
+        if (fromTimestamp > toTimestamp)
+            revert TimestampOrderInvalid(fromTimestamp, toTimestamp);
+        return
+            (toTimestamp / stepDurationSeconds) -
+            (fromTimestamp / stepDurationSeconds);
+    }
+
+    function _decayValue(
+        int startValue,
+        uint fromTimestamp,
+        uint toTimestamp
+    ) internal view returns (int) {
+        uint elapsedSteps = _elapsedStepsBetweenTimestamps(
+            fromTimestamp,
+            toTimestamp
+        );
+
+        if (startValue == 0 || elapsedSteps == 0) {
+            return startValue;
+        }
+
+        return DecayUtils.approxDecayHalvingEvery42Steps(startValue, elapsedSteps);
+    }
+
     function _getCurrentUserBalance(
         UserBalance memory _balance
     ) internal view returns (uint) {
@@ -343,7 +381,7 @@ contract Forum {
                 .registrationTimestamp;
         }
 
-        uint _elapsedSteps = DecayUtils.ellapsedStepsBetweenTimestamps(
+        uint _elapsedSteps = _elapsedStepsBetweenTimestamps(
             _balance.lastUpdated,
             block.timestamp
         );
@@ -362,7 +400,7 @@ contract Forum {
         Support memory _support
     ) internal view returns (int) {
         return
-            DecayUtils.decayValue(
+            _decayValue(
                 _support.value,
                 _support.lastUpdated,
                 block.timestamp
@@ -370,7 +408,7 @@ contract Forum {
     }
 
     function _updateSupportToBeCurrent(Support storage _support) internal {
-        _support.value = DecayUtils.decayValue(
+        _support.value = _decayValue(
             _support.value,
             _support.lastUpdated,
             block.timestamp

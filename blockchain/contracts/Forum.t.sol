@@ -7,15 +7,22 @@ import {console} from "forge-std/console.sol";
 import {Forum} from "./Forum.sol";
 import {MockOurVoiceRegistry} from "./MockOurVoiceRegistry.sol";
 import {AOurVoiceRegistry} from "./IOurVoiceRegistry.sol";
-import {DecayUtils} from "./DecayUtils.sol";
 
 // Test harness to expose internal methods for testing
 contract ForumHarness is Forum {
     constructor(
         AOurVoiceRegistry _ourVoiceRegistry,
         string memory _nationality,
-        uint _maxRankedStatements
-    ) Forum(_ourVoiceRegistry, _nationality, _maxRankedStatements) {}
+        uint _maxRankedStatements,
+        uint _stepDurationSeconds
+    )
+        Forum(
+            _ourVoiceRegistry,
+            _nationality,
+            _maxRankedStatements,
+            _stepDurationSeconds
+        )
+    {}
 
     function exposed_costOfUserSupport(
         int _userSupport
@@ -28,6 +35,13 @@ contract ForumHarness is Forum {
     ) external view returns (uint[] memory) {
         return _userSupportedStatements[userId];
     }
+
+    function exposed_elapsedStepsBetweenTimestamps(
+        uint fromTimestamp,
+        uint toTimestamp
+    ) external view returns (uint) {
+        return _elapsedStepsBetweenTimestamps(fromTimestamp, toTimestamp);
+    }
 }
 
 contract ForumTest is Test {
@@ -39,7 +53,7 @@ contract ForumTest is Test {
     function setUp() public {
         vm.warp(MOCK_TEST_TIMESTAMP);
         mockRegistry = new MockOurVoiceRegistry();
-        forum = new ForumHarness(mockRegistry, "", 0);
+        forum = new ForumHarness(mockRegistry, "", 0, 10);
     }
 
     modifier registeredMember() {
@@ -82,6 +96,49 @@ contract ForumTest is Test {
         );
     }
 
+    function testElapsedStepsBetweenTimestamps(
+        uint64 _arbitraryTimestamp
+    ) external view {
+        uint stepDuration = forum.stepDurationSeconds();
+
+        assertEq(
+            forum.exposed_elapsedStepsBetweenTimestamps(
+                _arbitraryTimestamp,
+                _arbitraryTimestamp
+            ),
+            0,
+            "elapsed steps between arbitrary timestamp and itself should be 0"
+        );
+        assertEq(
+            forum.exposed_elapsedStepsBetweenTimestamps(
+                _arbitraryTimestamp,
+                _arbitraryTimestamp + stepDuration
+            ),
+            1,
+            "elapsed steps between arbitrary timestamps differing by step duration should be 1"
+        );
+
+        uint256 _stepStart = (_arbitraryTimestamp -
+            (_arbitraryTimestamp % stepDuration));
+
+        assertEq(
+            forum.exposed_elapsedStepsBetweenTimestamps(
+                _stepStart,
+                _arbitraryTimestamp
+            ),
+            0,
+            "elapsed steps between arbitrary timestamp and its step start should be 0"
+        );
+        assertEq(
+            forum.exposed_elapsedStepsBetweenTimestamps(
+                _arbitraryTimestamp,
+                _stepStart + stepDuration
+            ),
+            1,
+            "elapsed steps between arbitrary timestamp and the next step start should be 1"
+        );
+    }
+
     function testInitialUserBalance() external registeredMember {
         uint balance = forum.getUserBalance();
         // TODO: fix my constants management
@@ -90,15 +147,14 @@ contract ForumTest is Test {
 
     function testUserBalanceAllowance() external registeredMember {
         uint initialBalance = forum.getUserBalance();
-        // TODO: assumes step length
-        vm.warp(vm.getBlockTimestamp() + DecayUtils.STEP_DURATION_SECONDS);
+        vm.warp(vm.getBlockTimestamp() + forum.stepDurationSeconds());
         uint newBalance = forum.getUserBalance();
         assertEq(
             newBalance,
             initialBalance + 25,
             "User balance should increase by 25 credits after one step"
         );
-        vm.warp(vm.getBlockTimestamp() + 5 * DecayUtils.STEP_DURATION_SECONDS);
+        vm.warp(vm.getBlockTimestamp() + 5 * forum.stepDurationSeconds());
         newBalance = forum.getUserBalance();
         assertEq(
             newBalance,
@@ -350,7 +406,13 @@ contract ForumTest is Test {
 
         currentBalance = forum.getUserBalance();
         // Try to add more support than balance allows
-        vm.expectRevert(abi.encodeWithSelector(Forum.InsufficientCredits.selector, currentBalance, 495));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Forum.InsufficientCredits.selector,
+                currentBalance,
+                495
+            )
+        );
         _addStatementSupport(0, 10); // Would cost 1485 - 990 = 495, but only ~60 credits left
     }
 
@@ -500,13 +562,13 @@ contract ForumTest is Test {
         assertEq(supportBefore, 10, "Initial support should be 100");
 
         // Advance by 4 steps
-        vm.warp(vm.getBlockTimestamp() + 4 * DecayUtils.STEP_DURATION_SECONDS);
+        vm.warp(vm.getBlockTimestamp() + 4 * forum.stepDurationSeconds());
 
         int supportAfter4Steps = _getStatementById(0).support;
         assertEq(supportAfter4Steps, 9, "Support should decay over time");
 
         // Advance another 96 steps
-        vm.warp(vm.getBlockTimestamp() + 96 * DecayUtils.STEP_DURATION_SECONDS);
+        vm.warp(vm.getBlockTimestamp() + 96 * forum.stepDurationSeconds());
 
         int supportAfter100Steps = _getStatementById(0).support;
         assertEq(supportAfter100Steps, 2, "Support should decay over time");
@@ -517,7 +579,7 @@ contract ForumTest is Test {
         _addStatementSupport(0, 10);
 
         // Advance time to cause decay
-        vm.warp(vm.getBlockTimestamp() + 10 * DecayUtils.STEP_DURATION_SECONDS);
+        vm.warp(vm.getBlockTimestamp() + 10 * forum.stepDurationSeconds());
 
         // The statement's support has decayed, but adding more should work correctly
         int supportBeforeAdjustment = _getStatementById(0).support;
@@ -553,7 +615,7 @@ contract ForumTest is Test {
         // Wait 2x42 steps for significant decay
         // A = 20 -> 10
         // B = 10 -> 5
-        vm.warp(vm.getBlockTimestamp() + 42 * DecayUtils.STEP_DURATION_SECONDS);
+        vm.warp(vm.getBlockTimestamp() + 42 * forum.stepDurationSeconds());
 
         // Trigger ranking update by adjusting support on B
         _addStatementSupport(1, 6);
@@ -588,7 +650,7 @@ contract ForumTest is Test {
         assertEq(userSupport[0].support, 10, "User support should be 10");
 
         // Advance time by 4 steps
-        vm.warp(vm.getBlockTimestamp() + 4 * DecayUtils.STEP_DURATION_SECONDS);
+        vm.warp(vm.getBlockTimestamp() + 4 * forum.stepDurationSeconds());
 
         // Check user's support after decay
         userSupport = forum.getUserStatementSupport();
@@ -604,7 +666,7 @@ contract ForumTest is Test {
         );
 
         // Advance time by another 96 steps
-        vm.warp(vm.getBlockTimestamp() + 96 * DecayUtils.STEP_DURATION_SECONDS);
+        vm.warp(vm.getBlockTimestamp() + 96 * forum.stepDurationSeconds());
 
         // Check user's support after decay
         userSupport = forum.getUserStatementSupport();
@@ -637,7 +699,7 @@ contract ForumTest is Test {
         );
 
         // Advance time to cause support decay
-        vm.warp(vm.getBlockTimestamp() + 42 * DecayUtils.STEP_DURATION_SECONDS);
+        vm.warp(vm.getBlockTimestamp() + 42 * forum.stepDurationSeconds());
 
         // User's support has decayed to ~5, which costs 15 instead of 55
         // When they remove all support, they should get back only the cost of current support
@@ -675,7 +737,7 @@ contract ForumTest is Test {
 
         // Wait long enough for support to decay to 0 (168 steps = 4 half-lives)
         // 10 -> 5 -> 2 -> 1 -> 0
-        vm.warp(vm.getBlockTimestamp() + 168 * DecayUtils.STEP_DURATION_SECONDS);
+        vm.warp(vm.getBlockTimestamp() + 168 * forum.stepDurationSeconds());
 
         // Check that the statement is no longer in user's support list
         userSupport = forum.getUserStatementSupport();
@@ -690,7 +752,7 @@ contract ForumTest is Test {
         external
     {
         // Create a forum with a low max ranked statements limit for testing
-        ForumHarness testForum = new ForumHarness(mockRegistry, "", 3);
+        ForumHarness testForum = new ForumHarness(mockRegistry, "", 3, 10);
 
         // Register and create statements
         mockRegistry.register("");
