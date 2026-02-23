@@ -10,7 +10,6 @@ import React, {
 import {
   useAccount,
   useReadContract,
-  useReadContracts,
   useWaitForTransactionReceipt,
   useWriteContract,
 } from "wagmi";
@@ -264,7 +263,7 @@ type UserSupportContextValue = {
   isUserVerified: true;
   state: UserSupportState;
   dispatch: React.Dispatch<UserSupportAction>;
-  commitSupport: () => void;
+  commitSupport: () => void | Promise<void>;
   resetCommitStatus: () => void;
   getEffectiveSupport: (statementId: number) => number;
   getOnChainSupport: (statementId: number) => number;
@@ -289,6 +288,7 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
   const { address } = useAccount();
   const { forumContractAddress } = useForum();
   console.log("UserVoteProvider for address: ", address);
+  console.log("Forum contract address: ", forumContractAddress);
 
   const { data: isUserVerified } = useReadContract({
     address: forumContractAddress,
@@ -303,38 +303,56 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
 
   console.log("User verified status: ", isUserVerified);
 
-  const { data, refetch } = useReadContracts({
-    allowFailure: false,
+  const {
+    data: onChainUserStatementSupport,
+    refetch: refetchSupport,
+    error: supportError,
+  } = useReadContract({
+    address: forumContractAddress,
+    abi: FORUM_ABI,
     account: address,
-    contracts: [
-      {
-        address: forumContractAddress,
-        abi: FORUM_ABI,
-        functionName: "getUserStatementSupport",
-        args: [],
-      },
-      {
-        address: forumContractAddress,
-        abi: FORUM_ABI,
-        functionName: "getUserBalance",
-        args: [],
-      },
-    ],
+    functionName: "getUserStatementSupport",
+    args: [],
     query: {
       enabled: Boolean(address && isUserVerified),
     },
   });
 
-  const [onChainUserStatementSupport, onChainUserBalance] = data || [];
+  const {
+    data: onChainUserBalance,
+    refetch: refetchBalance,
+    error: balanceError,
+  } = useReadContract({
+    address: forumContractAddress,
+    abi: FORUM_ABI,
+    account: address,
+    functionName: "getUserBalance",
+    args: [],
+    query: {
+      enabled: Boolean(address && isUserVerified),
+    },
+  });
 
+  const refetch = useCallback(() => {
+    void refetchSupport();
+    void refetchBalance();
+  }, [refetchSupport, refetchBalance]);
+
+  console.log("Support error: ", supportError);
+  console.log("Balance error: ", balanceError);
   console.log(
     "Fetched user support from contract: ",
     onChainUserStatementSupport,
   );
+  console.log("Fetched user balance from contract: ", onChainUserBalance);
 
   useEffect(() => {
     // Load state from blockchain
-    if (onChainUserStatementSupport && onChainUserBalance) {
+    if (
+      onChainUserStatementSupport !== undefined &&
+      onChainUserBalance !== undefined
+    ) {
+      console.log("Dispatching SYNC_ONCHAIN_STATE");
       dispatch({
         type: "SYNC_ONCHAIN_STATE",
         payload: {

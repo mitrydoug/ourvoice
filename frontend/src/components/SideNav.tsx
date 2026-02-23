@@ -61,7 +61,7 @@ const SideNav: FC = () => {
                 key={item.label}
                 selected={isActive}
                 onClick={() => {
-                  if (item.href !== "#") navigate(item.href);
+                  if (item.href !== "#") void navigate(item.href);
                 }}
                 disabled={item.href === "#"}
                 sx={{ borderRadius: 2, mb: 0.5 }}
@@ -69,7 +69,7 @@ const SideNav: FC = () => {
                 <ListItemIcon sx={{ minWidth: 40 }}>{item.icon}</ListItemIcon>
                 <ListItemText
                   primary={item.label}
-                  primaryTypographyProps={{ fontWeight: isActive ? 600 : 400 }}
+                  slotProps={{ primary: { fontWeight: isActive ? 600 : 400 } }}
                 />
               </ListItemButton>
             );

@@ -16,6 +16,9 @@ interface ImportMetaEnv {
 
   /** Sepolia RPC endpoint URL. Falls back to https://rpc.sepolia.org if unset. */
   readonly VITE_SEPOLIA_RPC_URL?: string;
+
+  /** WalletConnect projectId. Get a free one at https://cloud.walletconnect.com */
+  readonly VITE_WALLETCONNECT_PROJECT_ID?: string;
 }
 
 interface ImportMeta {

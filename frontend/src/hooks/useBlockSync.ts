@@ -7,14 +7,14 @@ import { useBlockNumber } from "wagmi";
  *
  * @param refetch - Function to call when a new block is detected
  */
-export const useBlockSync = (refetch: () => void) => {
+export const useBlockSync = (refetch: () => void | Promise<unknown>) => {
   const { data: blockNumber } = useBlockNumber({
     watch: true,
   });
 
   useEffect(() => {
     if (blockNumber) {
-      refetch();
+      void refetch();
     }
   }, [blockNumber, refetch]);
 

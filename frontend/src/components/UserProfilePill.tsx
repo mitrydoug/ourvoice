@@ -74,7 +74,7 @@ const UserProfilePill: React.FC<UserProfilePillProps> = ({ onOpenMenu }) => {
           size="small"
           onClick={(e) => {
             e.stopPropagation();
-            commitSupport();
+            void commitSupport();
           }}
           disabled={!hasStagedChanges || commitBusy}
           sx={{

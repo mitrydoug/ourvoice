@@ -276,7 +276,9 @@ const UserProfile: FC = () => {
                 Verify your humanity with ZKPassport to participate in voting
                 and statement submission.
               </Typography>
-              <Button onClick={() => navigate("/verify")}>Get Verified</Button>
+              <Button onClick={() => void navigate("/verify")}>
+                Get Verified
+              </Button>
             </Box>
           )}
 

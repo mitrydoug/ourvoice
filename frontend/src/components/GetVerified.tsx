@@ -139,7 +139,7 @@ const Verify: FC<VerifyProps> = ({ methodIndex, onBack }) => {
     );
 
     setTimeout(() => {
-      navigate("/");
+      void navigate("/");
     }, 5000);
   }, [writeContract, navigate]);
 
@@ -193,7 +193,7 @@ const Verify: FC<VerifyProps> = ({ methodIndex, onBack }) => {
         setVerifyPhase("PROOF_GENERATED");
       });
 
-      onResult(async ({ uniqueIdentifier, verified, result }) => {
+      onResult(({ uniqueIdentifier, verified, result }) => {
         console.log("Result received:", uniqueIdentifier, verified, result);
         setVerifyPhase(verified ? "VERIFIED" : "REJECTED");
 
@@ -232,7 +232,7 @@ const Verify: FC<VerifyProps> = ({ methodIndex, onBack }) => {
         );
 
         setTimeout(() => {
-          navigate("/");
+          void navigate("/");
         }, 5000);
       });
 
@@ -258,7 +258,7 @@ const Verify: FC<VerifyProps> = ({ methodIndex, onBack }) => {
       setVerifyUrl(url);
     };
 
-    constructRequest();
+    void constructRequest();
   }, [zkPassport, revealContry, navigate, writeContract]);
 
   return (
@@ -345,7 +345,10 @@ export const GetVerified: FC = () => {
 
   if (methodIndex === null) {
     return (
-      <ChooseMethod onContinue={setMethodIndex} onBack={() => navigate("/")} />
+      <ChooseMethod
+        onContinue={setMethodIndex}
+        onBack={() => void navigate("/")}
+      />
     );
   } else {
     return (

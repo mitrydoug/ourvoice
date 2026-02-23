@@ -87,7 +87,7 @@ export const StatementCard: FC<StatementCardProps> = ({
   // Sync historical data query on each new block
   useEffect(() => {
     if (blockNumber) {
-      refetchHistorical();
+      void refetchHistorical();
     }
   }, [blockNumber, refetchHistorical]);
 

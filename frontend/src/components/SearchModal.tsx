@@ -35,12 +35,12 @@ type SearchModalProps = {
   onClose: () => void;
 };
 
-const fetchSolrDocs = async (searchText: string) => {
+const fetchSolrDocs = async (searchText: string): Promise<SearchResult[]> => {
   console.log("Fetching Solr docs for:", searchText);
   const response = await fetch(
     `http://localhost:8000/search?statement_text=${encodeURIComponent(searchText)}`,
   );
-  const data = await response.json();
+  const data = (await response.json()) as SearchResult[];
   console.log("Solr Response:", data);
   return data;
 };
@@ -51,21 +51,21 @@ const SearchModal: FC<SearchModalProps> = ({ open, onClose }) => {
 
   console.log("Solr Docs:", solrDocs);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.SyntheticEvent) => {
     e.preventDefault();
     console.log("Search submitted:", searchText);
-    setSolrDocs(await fetchSolrDocs(searchText));
-    onClose();
+    void fetchSolrDocs(searchText).then((docs) => {
+      setSolrDocs(docs);
+      onClose();
+    });
   };
 
   useEffect(() => {
-    (async () => {
-      if (searchText.trim() !== "") {
-        setSolrDocs(await fetchSolrDocs(searchText));
-      } else {
-        setSolrDocs([]);
-      }
-    })();
+    if (searchText.trim() !== "") {
+      void fetchSolrDocs(searchText).then(setSolrDocs);
+    } else {
+      setSolrDocs([]);
+    }
   }, [searchText]);
 
   return (

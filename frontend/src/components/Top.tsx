@@ -50,8 +50,7 @@ const Top: FC = () => {
   // Sync with blockchain on every new block
   useBlockSync(result.refetch);
 
-  const rankedCount =
-    result.data && (result.data[0].result as bigint | undefined);
+  const rankedCount = result.data && result.data[0].result;
   const statementsPage =
     result.data && (result.data[1].result as Statement[] | undefined);
 
