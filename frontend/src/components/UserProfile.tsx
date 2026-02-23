@@ -1,6 +1,6 @@
 import { FC, useMemo, useState } from "react";
 import { metamaskIcon } from "../util";
-import { useConnection } from "wagmi";
+import { useAccount } from "wagmi";
 import { Navigate, useNavigate } from "react-router-dom";
 import {
   Avatar,
@@ -149,7 +149,7 @@ const DonutLegend: FC<{ segments: DonutSegment[] }> = ({ segments }) => (
 // ── Main Profile Component ───────────────────────────────────────────────────
 
 const UserProfile: FC = () => {
-  const { address } = useConnection();
+  const { address } = useAccount();
   const navigate = useNavigate();
   const theme = useTheme();
   const { isUserVerified } = useUserVotes();

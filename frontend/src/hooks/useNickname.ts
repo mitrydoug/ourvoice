@@ -1,4 +1,4 @@
-import { useConnection } from "wagmi";
+import { useAccount } from "wagmi";
 import useLocalStorageValue from "./useLocalStorageValue";
 
 /**
@@ -6,7 +6,7 @@ import useLocalStorageValue from "./useLocalStorageValue";
  * Returns [nickname, setNickname]. The nickname is an empty string when unset.
  */
 const useNickname = (): [string, (value: string) => void] => {
-  const { address } = useConnection();
+  const { address } = useAccount();
   return useLocalStorageValue(`ourvoice:nickname:${address ?? "unknown"}`, "");
 };
 

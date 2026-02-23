@@ -8,7 +8,7 @@ import React, {
   useRef,
 } from "react";
 import {
-  useConnection,
+  useAccount,
   useReadContract,
   useReadContracts,
   useWaitForTransactionReceipt,
@@ -285,8 +285,8 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
     hasEnoughCredits: true,
     commitStatus: "idle",
   });
-  const { mutateAsync } = useWriteContract();
-  const { address } = useConnection();
+  const { writeContractAsync } = useWriteContract();
+  const { address } = useAccount();
   const { forumContractAddress } = useForum();
   console.log("UserVoteProvider for address: ", address);
   console.log("Forum contract address: ", forumContractAddress);
@@ -423,7 +423,7 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
       dispatch({ type: "BEGIN_COMMIT" });
 
       try {
-        const txHash = await mutateAsync({
+        const txHash = await writeContractAsync({
           address: forumContractAddress,
           abi: FORUM_ABI,
           functionName: "adjustSupport",
@@ -436,7 +436,7 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
         dispatch({ type: "COMMIT_CANCELLED" });
       }
     }
-  }, [state, mutateAsync, forumContractAddress, dispatch]);
+  }, [state, writeContractAsync, forumContractAddress, dispatch]);
 
   const resetCommitStatus = useCallback(() => {
     dispatch({ type: "RESET_COMMIT_STATUS" });

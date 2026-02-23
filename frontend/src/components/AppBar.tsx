@@ -11,14 +11,14 @@ import {
   Stack,
   TextField,
 } from "@mui/material";
-import { useConnection, useDisconnect } from "wagmi";
+import { useAccount, useDisconnect } from "wagmi";
 import { Link, useNavigate } from "react-router-dom";
 import { useUserVotes } from "../state/UserVotes";
 import ChooseForumModal, { FORUMS } from "./ChooseForumModal";
 import SearchIcon from "@mui/icons-material/Search";
 import { useForum } from "../state/Forum";
 import { metamaskIcon } from "../util";
-import { useWeb3AuthConnect } from "@web3auth/modal/react";
+import { useConnectModal } from "@rainbow-me/rainbowkit";
 import SearchModal from "./SearchModal";
 import useIsMobile from "@/hooks/useIsMobile";
 import { useTheme } from "@mui/material/styles";
@@ -170,24 +170,14 @@ export default function MenuAppBar() {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const [avatar, setAvatar] = useState<string | null>(null);
-  const { address } = useConnection();
+  const { address } = useAccount();
   const isMobile = useIsMobile();
   const [chooseForumModalOpen, setChooseForumModalOpen] = useState(false);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const { name: forumName, setForum } = useForum();
   const navigate = useNavigate();
-  const { mutate: doDisconnect } = useDisconnect();
-
-  const [connectRequested, setConnectRequested] = useState(false);
-  const web3Auth = useWeb3AuthConnect();
-
-  useEffect(() => {
-    if (!web3Auth.isConnected && connectRequested) {
-      void web3Auth.connect();
-      console.log("Connecting to wallet...");
-      setConnectRequested(false);
-    }
-  }, [web3Auth.isConnected, connectRequested, web3Auth]);
+  const { disconnect: doDisconnect } = useDisconnect();
+  const { openConnectModal } = useConnectModal();
 
   useEffect(() => {
     if (address) {
@@ -281,10 +271,7 @@ export default function MenuAppBar() {
                     />
                   </>
                 ) : (
-                  <Button
-                    onClick={() => setConnectRequested(true)}
-                    size="small"
-                  >
+                  <Button onClick={() => openConnectModal?.()} size="small">
                     <Typography variant="body1" component="div">
                       Connect
                     </Typography>
@@ -317,7 +304,7 @@ export default function MenuAppBar() {
                   />
                 </>
               ) : (
-                <Button onClick={() => setConnectRequested(true)} size="medium">
+                <Button onClick={() => openConnectModal?.()} size="medium">
                   <Typography variant="body1" component="div">
                     Connect
                   </Typography>

@@ -36,7 +36,7 @@ const WriteModal: FC<WriteModalProps> = ({
   onClose,
   onStatementAdded,
 }) => {
-  const { mutate } = useWriteContract();
+  const { writeContract } = useWriteContract();
   const [text, setText] = useState("");
   const { forumContractAddress } = useForum();
 
@@ -51,7 +51,7 @@ const WriteModal: FC<WriteModalProps> = ({
     if (text.length > 0) {
       const nextId =
         statementCount !== undefined ? Number(statementCount) : undefined;
-      mutate({
+      writeContract({
         address: forumContractAddress,
         abi: FORUM_ABI,
         functionName: "addStatement",
@@ -65,7 +65,7 @@ const WriteModal: FC<WriteModalProps> = ({
     }
   }, [
     text,
-    mutate,
+    writeContract,
     setText,
     onClose,
     forumContractAddress,

@@ -122,10 +122,10 @@ const Verify: FC<VerifyProps> = ({ methodIndex, onBack }) => {
 
   const zkPassport = useMemo(() => new ZKPassport(), []);
 
-  const { mutate } = useWriteContract();
+  const { writeContract } = useWriteContract();
 
   const devModeRegister = useCallback(() => {
-    mutate(
+    writeContract(
       {
         ...mockRegistryContractConfig,
         functionName: "register",
@@ -141,7 +141,7 @@ const Verify: FC<VerifyProps> = ({ methodIndex, onBack }) => {
     setTimeout(() => {
       void navigate("/");
     }, 5000);
-  }, [mutate, navigate]);
+  }, [writeContract, navigate]);
 
   useEffect(() => {
     const constructRequest = async () => {
@@ -214,7 +214,7 @@ const Verify: FC<VerifyProps> = ({ methodIndex, onBack }) => {
         console.log("Submitting on-chain verification transaction...");
         console.log("Verifier parameters:", verifierParams);
 
-        mutate(
+        writeContract(
           {
             ...registryContractConfig,
             functionName: "register",
@@ -259,7 +259,7 @@ const Verify: FC<VerifyProps> = ({ methodIndex, onBack }) => {
     };
 
     void constructRequest();
-  }, [zkPassport, revealContry, navigate, mutate]);
+  }, [zkPassport, revealContry, navigate, writeContract]);
 
   return (
     <Container maxWidth="md" sx={{ textAlign: "center" }}>
