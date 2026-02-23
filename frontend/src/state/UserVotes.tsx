@@ -10,7 +10,6 @@ import React, {
 import {
   useAccount,
   useReadContract,
-  useReadContracts,
   useWaitForTransactionReceipt,
   useWriteContract,
 } from "wagmi";
@@ -304,32 +303,43 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
 
   console.log("User verified status: ", isUserVerified);
 
-  const { data, refetch, error } = useReadContracts({
-    allowFailure: false,
+  const {
+    data: onChainUserStatementSupport,
+    refetch: refetchSupport,
+    error: supportError,
+  } = useReadContract({
+    address: forumContractAddress,
+    abi: FORUM_ABI,
     account: address,
-    contracts: [
-      {
-        address: forumContractAddress,
-        abi: FORUM_ABI,
-        functionName: "getUserStatementSupport",
-        args: [],
-      },
-      {
-        address: forumContractAddress,
-        abi: FORUM_ABI,
-        functionName: "getUserBalance",
-        args: [],
-      },
-    ],
+    functionName: "getUserStatementSupport",
+    args: [],
     query: {
       enabled: Boolean(address && isUserVerified),
     },
   });
 
-  const [onChainUserStatementSupport, onChainUserBalance] = data || [];
+  const {
+    data: onChainUserBalance,
+    refetch: refetchBalance,
+    error: balanceError,
+  } = useReadContract({
+    address: forumContractAddress,
+    abi: FORUM_ABI,
+    account: address,
+    functionName: "getUserBalance",
+    args: [],
+    query: {
+      enabled: Boolean(address && isUserVerified),
+    },
+  });
 
-  console.log("Raw useReadContracts data: ", data);
-  console.log("useReadContracts error: ", error);
+  const refetch = useCallback(() => {
+    void refetchSupport();
+    void refetchBalance();
+  }, [refetchSupport, refetchBalance]);
+
+  console.log("Support error: ", supportError);
+  console.log("Balance error: ", balanceError);
   console.log(
     "Fetched user support from contract: ",
     onChainUserStatementSupport,
