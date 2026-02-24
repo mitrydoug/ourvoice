@@ -54,21 +54,39 @@ const UserProfilePill: React.FC<UserProfilePillProps> = ({ onOpenMenu }) => {
       sx={{
         display: "flex",
         alignItems: "center",
-        gap: 1,
+        gap: 1.5,
         cursor: "pointer",
         borderRadius: 100,
-        border: "1px solid",
-        borderColor: "divider",
-        pl: "8px",
-        pr: "8px",
-        py: 0.5,
-        transition: "background-color 0.15s",
+        bgcolor: "action.hover",
+        px: 1.5,
+        py: 1,
+        transition: "background-color 0.2s, box-shadow 0.2s",
         "&:hover": {
-          bgcolor: "action.hover",
+          bgcolor: "action.selected",
+          boxShadow: "0 1px 4px rgba(0,0,0,0.10)",
         },
       }}
     >
-      {/* Commit button */}
+      {/* Avatar on the left */}
+      <Avatar src={avatar ?? undefined} sx={{ width: 36, height: 36 }} />
+
+      <Stack spacing={0} alignItems="flex-start" sx={{ minWidth: 0, flex: 1 }}>
+        <Typography variant="body2" fontWeight={600} noWrap>
+          {nickname}
+        </Typography>
+        {showCommit && (
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            noWrap
+            sx={{ fontVariantNumeric: "tabular-nums" }}
+          >
+            Credits: {credits}
+          </Typography>
+        )}
+      </Stack>
+
+      {/* Commit button on the right */}
       {showCommit && (
         <IconButton
           size="small"
@@ -91,23 +109,6 @@ const UserProfilePill: React.FC<UserProfilePillProps> = ({ onOpenMenu }) => {
           <DoneAllIcon fontSize="small" />
         </IconButton>
       )}
-
-      <Stack spacing={0} alignItems="flex-end" sx={{ minWidth: 0 }}>
-        <Typography variant="body2" fontWeight={600} noWrap>
-          {nickname}
-        </Typography>
-        {showCommit && (
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            noWrap
-            sx={{ fontVariantNumeric: "tabular-nums" }}
-          >
-            Credits: {credits}
-          </Typography>
-        )}
-      </Stack>
-      <Avatar src={avatar ?? undefined} sx={{ width: 32, height: 32 }} />
     </Box>
   );
 };

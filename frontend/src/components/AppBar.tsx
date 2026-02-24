@@ -22,10 +22,9 @@ import { useConnectModal } from "@rainbow-me/rainbowkit";
 import SearchModal from "./SearchModal";
 import useIsMobile from "@/hooks/useIsMobile";
 import { useTheme } from "@mui/material/styles";
-import { AccountMenu, AccountDrawer } from "./UserProfileMenu";
+import { AccountDrawer } from "./UserProfileMenu";
 import Divider from "@mui/material/Divider";
 import CommitSupportModal from "./CommitSupportModal";
-import UserProfilePill from "./UserProfilePill";
 
 const MIC_ICON = (
   <svg
@@ -166,7 +165,6 @@ const SearchField: React.FC<SearchFieldProps> = ({
 );
 
 export default function MenuAppBar() {
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const [avatar, setAvatar] = useState<string | null>(null);
@@ -193,17 +191,6 @@ export default function MenuAppBar() {
     resetCommitStatus,
     state: userVoteState,
   } = useUserVotes();
-
-  const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
-    console.log("here! ");
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
-
-  const open = Boolean(anchorEl);
 
   console.log("userVoteState", userVoteState);
 
@@ -291,19 +278,7 @@ export default function MenuAppBar() {
 
               <SearchField onClick={() => setSearchModalOpen(true)} />
 
-              {address ? (
-                <>
-                  <UserProfilePill onOpenMenu={handleMenu} />
-                  <AccountMenu
-                    anchorEl={anchorEl}
-                    open={open}
-                    onClose={handleClose}
-                    isUserVerified={isUserVerified}
-                    navigate={(path: string) => void navigate(path)}
-                    disconnect={doDisconnect}
-                  />
-                </>
-              ) : (
+              {!address && (
                 <Button onClick={() => openConnectModal?.()} size="medium">
                   <Typography variant="body1" component="div">
                     Connect
