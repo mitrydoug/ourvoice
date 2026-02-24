@@ -188,8 +188,8 @@ export const StatementCard: FC<StatementCardProps> = ({
             {/* Rank change */}
             <Stack direction="row" alignItems="center" spacing={0.25}>
               {rankChange === null || rankChange === 0 ? (
-                <Typography variant="body2" color="text.secondary">
-                  N/C
+                <Typography variant="body2" color="text.disabled">
+                  —
                 </Typography>
               ) : rankChange > 0 ? (
                 <>
