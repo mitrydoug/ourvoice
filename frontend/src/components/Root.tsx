@@ -23,7 +23,12 @@ const Root: FC = () => {
   const [writeModalOpen, setWriteModalOpen] = useState(false);
 
   return (
-    <Box ref={layoutRef} sx={{ position: "relative" }}>
+    <Box
+      ref={layoutRef}
+      sx={{ display: "flex", flexDirection: "column", height: "100vh", overflow: "hidden" }}
+    >
+      <MenuAppBar />
+
       <Container
         component="main"
         maxWidth={false}
@@ -33,15 +38,17 @@ const Root: FC = () => {
           gap: isMobile
             ? theme.custom.layout.contentGap.mobile
             : theme.custom.layout.contentGap.desktop,
-          minHeight: "100vh",
+          flex: 1,
           maxWidth: isMobile ? undefined : "1000px",
           overflowY: "auto",
           overflowX: "visible",
+          pt: isMobile ? 2 : 3,
           pb: isMobile ? 14 : 8,
+          /* Hide scrollbar but keep scrolling */
+          scrollbarWidth: "none",
+          "&::-webkit-scrollbar": { display: "none" },
         }}
       >
-        <MenuAppBar />
-
         {isMobile ? (
           <Outlet />
         ) : (

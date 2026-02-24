@@ -23,7 +23,6 @@ import SearchModal from "./SearchModal";
 import useIsMobile from "@/hooks/useIsMobile";
 import { useTheme } from "@mui/material/styles";
 import { AccountDrawer } from "./UserProfileMenu";
-import Divider from "@mui/material/Divider";
 import CommitSupportModal from "./CommitSupportModal";
 
 const MIC_ICON = (
@@ -150,7 +149,12 @@ const SearchField: React.FC<SearchFieldProps> = ({
             <SearchIcon fontSize="small" />
           </InputAdornment>
         ),
-        sx: { cursor: "pointer", backgroundColor: "white" },
+        sx: {
+          cursor: "pointer",
+          backgroundColor: "white",
+          height: 36,
+          fontSize: "0.875rem",
+        },
       },
     }}
     sx={{
@@ -197,14 +201,27 @@ export default function MenuAppBar() {
   return (
     <>
       <AppBar
-        position="static"
+        position="sticky"
         color="transparent"
         elevation={0}
-        sx={{ mt: 2 }}
+        sx={{
+          boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+          top: 0,
+          zIndex: (theme) => theme.zIndex.appBar,
+          bgcolor: "background.default",
+        }}
       >
         <Toolbar
           disableGutters
-          sx={{ flexDirection: "column", alignItems: "stretch" }}
+          sx={{
+            flexDirection: "column",
+            alignItems: "stretch",
+            maxWidth: "1000px",
+            width: "100%",
+            mx: "auto",
+            px: 3,
+            py: 1,
+          }}
         >
           {/* First row: Three-section layout */}
           {isMobile ? (
@@ -287,8 +304,6 @@ export default function MenuAppBar() {
               )}
             </Stack>
           )}
-
-          <Divider sx={{ mt: 1, width: "100%" }} />
 
           {/* Second row on mobile: Search bar */}
           {isMobile && (
