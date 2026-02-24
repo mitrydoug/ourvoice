@@ -10,7 +10,7 @@ import type {
  *
  * @param m                    - The Ignition module builder.
  * @param registry             - A Future resolving to the OurVoiceRegistry (or mock) contract.
- * @param forumNames           - The list of forum identifiers to deploy (e.g. ["global", "us"]).
+ * @param forumNames           - The list of forum identifiers to deploy (e.g. ["global", "USA"]).
  *                               "global" is special-cased to pass an empty nationality string.
  * @param stepDurationSeconds  - The duration (in seconds) of a single decay/credit step.
  * @returns The DecayUtils library Future and a record mapping each forum name

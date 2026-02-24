@@ -332,7 +332,7 @@ export default function MenuAppBar() {
         open={chooseForumModalOpen}
         onClose={() => setChooseForumModalOpen(false)}
         chooseForum={(forum: string) => {
-          setForum(forum as "global" | "us");
+          setForum(forum);
           setChooseForumModalOpen(false);
         }}
       />

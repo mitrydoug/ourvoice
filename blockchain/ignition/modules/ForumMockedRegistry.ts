@@ -59,6 +59,21 @@ const MOCK_STATEMENTS: MockStatement[] = [
     content: "Cooperation and peace > arms races and mistrust",
   },
   { addrIndex: 2, forum: "global", content: "Stand with Ukraine." },
+  {
+    addrIndex: 1,
+    forum: "CAN",
+    content: "Universal healthcare is something to be proud of.",
+  },
+  {
+    addrIndex: 1,
+    forum: "CAN",
+    content: "We need more affordable housing in our cities.",
+  },
+  {
+    addrIndex: 1,
+    forum: "CAN",
+    content: "Reconciliation with Indigenous peoples must be a priority.",
+  },
 ];
 
 /**
@@ -90,6 +105,10 @@ export function createForumMockedModule(
     m.call(mockedZKRegistry, "register", ["USA"], {
       from: address3,
       id: "register3",
+    });
+    m.call(mockedZKRegistry, "register", ["CAN"], {
+      from: address2,
+      id: "register4",
     });
 
     const { forums } = deployForums(m, mockedZKRegistry, forumNames, stepDurationSeconds);
