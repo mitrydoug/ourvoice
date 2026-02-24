@@ -5,6 +5,7 @@ import { useAccount } from "wagmi";
 import useNickname from "@/hooks/useNickname";
 import { useUserVotes } from "../state/UserVotes";
 import { metamaskIcon } from "../util";
+import AnimatedCounter from "./AnimatedCounter";
 
 const shimmer = keyframes`
   0% { opacity: 0.6; }
@@ -137,16 +138,17 @@ const UserProfilePill: React.FC<UserProfilePillProps> = ({ onOpenMenu }) => {
           }}
         >
           <CoinIcon size={18} />
-          <Typography
-            variant="body2"
-            fontWeight={700}
-            sx={{
-              fontVariantNumeric: "tabular-nums",
-              color: "text.primary",
+          <AnimatedCounter
+            value={credits!}
+            typographyProps={{
+              variant: "body2",
+              fontWeight: 700,
+              sx: {
+                fontVariantNumeric: "tabular-nums",
+                color: "inherit",
+              },
             }}
-          >
-            {formattedCredits}
-          </Typography>
+          />
           <Typography variant="caption" color="text.secondary">
             credits
           </Typography>
