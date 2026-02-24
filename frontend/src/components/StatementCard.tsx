@@ -51,6 +51,14 @@ const rankFontSize = (rank: number): string => {
   return "2rem";
 };
 
+/** Color for top-3 rank badges (gold, silver, bronze). */
+const rankColor = (rank: number): string | undefined => {
+  if (rank === 1) return "#D4A017";
+  if (rank === 2) return "#8E8E93";
+  if (rank === 3) return "#A0522D";
+  return undefined;
+};
+
 type StatementCardProps = {
   statement: Statement;
   isBookmarked?: boolean;
@@ -139,10 +147,10 @@ export const StatementCard: FC<StatementCardProps> = ({
           <Typography
             variant="h4"
             sx={{
-              fontWeight: 600,
+              fontWeight: 700,
               fontSize: rankFontSize(currentRank),
               lineHeight: 1.1,
-              color: "text.primary",
+              color: rankColor(currentRank) ?? "text.primary",
             }}
           >
             {currentRank}
