@@ -1,18 +1,26 @@
-import { FC, useRef } from "react";
+import { FC, useRef, useState } from "react";
 import Box from "@mui/material/Box";
 import { Outlet } from "react-router-dom";
-import { Container } from "@mui/material";
+import { Container, Fab } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import CreateIcon from "@mui/icons-material/Create";
 
 import MenuAppBar from "./AppBar";
 import SideNav from "./SideNav";
 import BottomNav from "./BottomNav";
+import WriteModal from "./WriteModal";
 import useIsMobile from "@/hooks/useIsMobile";
+import { useUserVotes } from "../state/UserVotes";
+import useLocalStorageSet from "@/hooks/useLocalStorageSet";
 
 const Root: FC = () => {
   const layoutRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
   const theme = useTheme();
+  const { isUserVerified } = useUserVotes();
+  const { add: addAuthoredStatement } =
+    useLocalStorageSet("authoredStatements");
+  const [writeModalOpen, setWriteModalOpen] = useState(false);
 
   return (
     <Box ref={layoutRef} sx={{ position: "relative" }}>
@@ -47,6 +55,31 @@ const Root: FC = () => {
       </Container>
 
       {isMobile && <BottomNav />}
+
+      {/* Mobile FAB for Write */}
+      {isMobile && (
+        <>
+          <Fab
+            color="primary"
+            aria-label="write"
+            onClick={() => setWriteModalOpen(true)}
+            disabled={!isUserVerified}
+            sx={{
+              position: "fixed",
+              bottom: 80,
+              right: 24,
+              zIndex: 1201,
+            }}
+          >
+            <CreateIcon />
+          </Fab>
+          <WriteModal
+            open={writeModalOpen}
+            onClose={() => setWriteModalOpen(false)}
+            onStatementAdded={addAuthoredStatement}
+          />
+        </>
+      )}
     </Box>
   );
 };

@@ -104,9 +104,11 @@ const SideNav: FC = () => {
         <Box sx={{ px: 1, mt: 2 }}>
           <Button
             fullWidth
+            size="medium"
             startIcon={<CreateIcon />}
             onClick={() => setWriteModalOpen(true)}
             disabled={!isUserVerified}
+            sx={{ borderRadius: 100, py: 1 }}
           >
             Write
           </Button>

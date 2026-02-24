@@ -100,7 +100,11 @@ export const theme = createTheme({
       defaultProps: {
         variant: "contained",
         size: "small",
-        sx: { textTransform: "none" },
+      },
+      styleOverrides: {
+        root: {
+          textTransform: "none",
+        },
       },
     },
     MuiAvatar: {
