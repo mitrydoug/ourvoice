@@ -102,12 +102,12 @@ export function createForumMockedModule(
       from: address2,
       id: "register2",
     });
-    m.call(mockedZKRegistry, "register", ["USA"], {
-      from: address3,
-      id: "register3",
-    });
     m.call(mockedZKRegistry, "register", ["CAN"], {
       from: address2,
+      id: "register3",
+    });
+    m.call(mockedZKRegistry, "register", [""], {
+      from: address3,
       id: "register4",
     });
 
