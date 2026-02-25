@@ -277,6 +277,11 @@ export default [
             name: "rank",
             type: "int256",
           },
+          {
+            internalType: "int256",
+            name: "peakRank",
+            type: "int256",
+          },
         ],
         internalType: "struct Forum.Statement",
         name: "",
@@ -328,6 +333,11 @@ export default [
             name: "rank",
             type: "int256",
           },
+          {
+            internalType: "int256",
+            name: "peakRank",
+            type: "int256",
+          },
         ],
         internalType: "struct Forum.Statement[]",
         name: "",
@@ -372,6 +382,11 @@ export default [
           {
             internalType: "int256",
             name: "rank",
+            type: "int256",
+          },
+          {
+            internalType: "int256",
+            name: "peakRank",
             type: "int256",
           },
         ],

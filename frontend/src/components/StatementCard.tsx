@@ -20,6 +20,7 @@ interface Statement {
   createdTimestamp: bigint;
   support: bigint;
   rank: bigint;
+  peakRank: bigint;
 }
 
 /**
@@ -130,8 +131,8 @@ export const StatementCard: FC<StatementCardProps> = ({
     });
   };
 
-  // Placeholder value for peak rank (not yet implemented)
-  const peakRank = 1;
+  const peakRank =
+    statement.peakRank >= 0n ? Number(statement.peakRank) + 1 : null;
 
   const globalSupport = Number(statement.support);
 
@@ -227,12 +228,14 @@ export const StatementCard: FC<StatementCardProps> = ({
             </Stack>
 
             {/* Peak rank */}
-            <Stack direction="row" alignItems="center" spacing={0.5}>
-              <LandscapeIcon sx={{ fontSize: 18, color: "text.secondary" }} />
-              <Typography variant="body2" color="text.secondary">
-                {peakRank}
-              </Typography>
-            </Stack>
+            {peakRank !== null && (
+              <Stack direction="row" alignItems="center" spacing={0.5}>
+                <LandscapeIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+                <Typography variant="body2" color="text.secondary">
+                  {peakRank}
+                </Typography>
+              </Stack>
+            )}
 
             {/* Spacer pushes bookmark to the right */}
             <Stack sx={{ flexGrow: 1 }} />

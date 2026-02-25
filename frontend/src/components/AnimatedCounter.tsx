@@ -75,9 +75,7 @@ const AnimatedCounter: React.FC<AnimatedCounterProps> = ({
         display: "inline-flex",
         alignItems: "center",
         color: flashColor ?? "text.primary",
-        transition: flash
-          ? "color 0.15s ease-in"
-          : "color 0.6s ease-out",
+        transition: flash ? "color 0.15s ease-in" : "color 0.6s ease-out",
       }}
     >
       {/* Hidden measuring element */}
@@ -98,11 +96,7 @@ const AnimatedCounter: React.FC<AnimatedCounterProps> = ({
       {chars.map((char, i) => {
         if (!/\d/.test(char)) {
           return (
-            <Typography
-              key={`sep-${i}`}
-              component="span"
-              {...typographyProps}
-            >
+            <Typography key={`sep-${i}`} component="span" {...typographyProps}>
               {char}
             </Typography>
           );
@@ -155,7 +149,9 @@ const RollingDigit: React.FC<{
   const [targetIndex, setTargetIndex] = useState(19 - digit);
   const [animate, setAnimate] = useState(true);
   const prevDigit = useRef(digit);
-  const snapTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const snapTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
 
   useEffect(() => {
     const prev = prevDigit.current;

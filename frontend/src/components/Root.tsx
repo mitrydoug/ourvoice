@@ -25,7 +25,12 @@ const Root: FC = () => {
   return (
     <Box
       ref={layoutRef}
-      sx={{ display: "flex", flexDirection: "column", height: "100vh", overflow: "hidden" }}
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100vh",
+        overflow: "hidden",
+      }}
     >
       <MenuAppBar />
 

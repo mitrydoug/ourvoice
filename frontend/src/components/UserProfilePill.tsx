@@ -61,9 +61,9 @@ const UserProfilePill: React.FC<UserProfilePillProps> = ({ onOpenMenu }) => {
     : false;
   const commitBusy = isUserVerified
     ? userVotes.state?.commitStatus !== undefined &&
-    userVotes.state?.commitStatus !== "idle"
+      userVotes.state?.commitStatus !== "idle"
     : false;
-  const commitSupport = isUserVerified ? userVotes.commitSupport : () => { };
+  const commitSupport = isUserVerified ? userVotes.commitSupport : () => {};
 
   const showCommit = credits !== null;
 
@@ -113,11 +113,11 @@ const UserProfilePill: React.FC<UserProfilePillProps> = ({ onOpenMenu }) => {
             sx={{
               ...(hasStagedChanges && !commitBusy
                 ? {
-                  animation: `${shimmer} 1.5s ease-in-out infinite`,
-                  bgcolor: "primary.main",
-                  color: "white",
-                  "&:hover": { bgcolor: "primary.dark" },
-                }
+                    animation: `${shimmer} 1.5s ease-in-out infinite`,
+                    bgcolor: "primary.main",
+                    color: "white",
+                    "&:hover": { bgcolor: "primary.dark" },
+                  }
                 : {}),
             }}
           >
