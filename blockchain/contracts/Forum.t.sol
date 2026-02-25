@@ -53,7 +53,7 @@ contract ForumTest is Test {
     function setUp() public {
         vm.warp(MOCK_TEST_TIMESTAMP);
         mockRegistry = new MockOurVoiceRegistry();
-        forum = new ForumHarness(mockRegistry, "", 0, 10);
+        forum = new ForumHarness(mockRegistry, "", 3, 10);
     }
 
     modifier registeredMember() {
@@ -750,90 +750,70 @@ contract ForumTest is Test {
 
     function testLowestRankStatementIsEvictedWhenMaxRankedStatementsExceeded()
         external
+        registeredMember
     {
-        // Create a forum with a low max ranked statements limit for testing
-        ForumHarness testForum = new ForumHarness(mockRegistry, "", 3, 10);
+        forum.addStatement("Statement A");
+        forum.addStatement("Statement B");
+        forum.addStatement("Statement C");
+        forum.addStatement("Statement D");
 
-        // Register and create statements
-        mockRegistry.register("");
-
-        testForum.addStatement("Statement A");
-        testForum.addStatement("Statement B");
-        testForum.addStatement("Statement C");
-        testForum.addStatement("Statement D");
-
-        // Add support to fill up the ranking
+        // Add support to fill up the ranking (maxRankedStatements = 3)
         Forum.SupportAdjustment[]
             memory adjustments = new Forum.SupportAdjustment[](3);
         adjustments[0] = Forum.SupportAdjustment({statementId: 0, value: 5});
         adjustments[1] = Forum.SupportAdjustment({statementId: 1, value: 4});
         adjustments[2] = Forum.SupportAdjustment({statementId: 2, value: 3});
-        testForum.adjustSupport(adjustments);
+        forum.adjustSupport(adjustments);
 
         // Verify we have 3 ranked statements
-        assertEq(testForum.rankedCount(), 3, "Should have 3 ranked statements");
+        assertEq(forum.rankedCount(), 3, "Should have 3 ranked statements");
         assertEq(
-            testForum.getRankedStatement(0).id,
+            forum.getRankedStatement(0).id,
             0,
             "Statement A should be rank 0"
         );
         assertEq(
-            testForum.getRankedStatement(1).id,
+            forum.getRankedStatement(1).id,
             1,
             "Statement B should be rank 1"
         );
         assertEq(
-            testForum.getRankedStatement(2).id,
+            forum.getRankedStatement(2).id,
             2,
             "Statement C should be rank 2"
         );
 
         // Now add high support to Statement D, which should evict Statement C (lowest rank)
-        Forum.SupportAdjustment[]
-            memory adjustment = new Forum.SupportAdjustment[](1);
-        adjustment[0] = Forum.SupportAdjustment({statementId: 3, value: 6});
-        testForum.adjustSupport(adjustment);
+        _addStatementSupport(3, 6);
 
         // Verify we still have 3 ranked statements
         assertEq(
-            testForum.rankedCount(),
+            forum.rankedCount(),
             3,
             "Should still have 3 ranked statements"
         );
 
         // Verify Statement D is now ranked
         assertEq(
-            testForum.getRankedStatement(0).id,
+            forum.getRankedStatement(0).id,
             3,
             "Statement D should be rank 0"
         );
         assertEq(
-            testForum.getRankedStatement(1).id,
+            forum.getRankedStatement(1).id,
             0,
             "Statement A should be rank 1"
         );
         assertEq(
-            testForum.getRankedStatement(2).id,
+            forum.getRankedStatement(2).id,
             1,
             "Statement B should be rank 2"
         );
 
         // Verify Statement C was evicted (rank should be -1)
-        uint[] memory statementIds = new uint[](1);
-        statementIds[0] = 2;
-        Forum.Statement[] memory statements = testForum.getStatementsById(
-            statementIds
-        );
-        assertEq(
-            statements[0].rank,
-            -1,
-            "Statement C should no longer be ranked"
-        );
-        assertEq(
-            statements[0].support,
-            3,
-            "Statement C should still have 3 support"
-        );
+        Forum.Statement memory evicted = _getStatementById(2);
+        assertEq(evicted.rank, -1, "Statement C should no longer be ranked");
+        assertEq(evicted.support, 3, "Statement C should still have 3 support");
     }
 
     // ======================================================================
@@ -989,5 +969,132 @@ contract ForumTest is Test {
             "Index 2 should be E (moved from index 4 to second empty slot)"
         );
         assertEq(userSupport[3].statementId, 3, "Index 3 should be D");
+    }
+
+    // ======================================================================
+    // Section: peakRank tracking
+    // ======================================================================
+
+    function testPeakRankIsNegativeOneForNewStatement()
+        external
+        registeredMember
+    {
+        forum.addStatement("Fresh statement");
+        Forum.Statement memory s = _getStatementById(0);
+        assertEq(s.rank, -1, "New statement should not be ranked");
+        assertEq(
+            s.peakRank,
+            -1,
+            "peakRank should be -1 for never-ranked statement"
+        );
+    }
+
+    function testPeakRankTracksFirstRanking() external registeredMember {
+        forum.addStatement("Test statement");
+        _addStatementSupport(0, 3); // Gets ranked at position 0
+
+        Forum.Statement memory s = _getStatementById(0);
+        assertEq(s.rank, 0, "Statement should be ranked at 0");
+        assertEq(s.peakRank, 0, "peakRank should be 0 after first ranking");
+    }
+
+    function testPeakRankImprovesWhenRankImproves() external registeredMember {
+        forum.addStatement("Statement A");
+        forum.addStatement("Statement B");
+        _addStatementSupport(0, 5); // Rank 0
+        _addStatementSupport(1, 3); // Rank 1
+
+        assertEq(
+            _getStatementById(1).peakRank,
+            1,
+            "B peakRank should be 1 initially"
+        );
+
+        // Give B more support so it overtakes A
+        _addStatementSupport(1, 4); // B now has 7, overtakes A (5)
+
+        assertEq(_getStatementById(1).rank, 0, "B should now be rank 0");
+        assertEq(
+            _getStatementById(1).peakRank,
+            0,
+            "B peakRank should improve to 0"
+        );
+    }
+
+    function testPeakRankDoesNotWorsenWhenRankDrops() external registeredMember {
+        forum.addStatement("Statement A");
+        forum.addStatement("Statement B");
+        _addStatementSupport(0, 5); // Rank 0
+        _addStatementSupport(1, 3); // Rank 1
+
+        assertEq(_getStatementById(0).peakRank, 0, "A peakRank should be 0");
+
+        // Give B more support so it overtakes A → A drops to rank 1
+        _addStatementSupport(1, 4); // B=7, A=5
+
+        assertEq(_getStatementById(0).rank, 1, "A should now be rank 1");
+        assertEq(
+            _getStatementById(0).peakRank,
+            0,
+            "A peakRank should remain 0 even though current rank is 1"
+        );
+    }
+
+    function testPeakRankPreservedAfterEviction() external registeredMember {
+        // maxRankedStatements = 3 from setUp, so fill 3 slots then evict the lowest
+        forum.addStatement("Statement A");
+        forum.addStatement("Statement B");
+        forum.addStatement("Statement C");
+        forum.addStatement("Statement D");
+
+        // Rank A, B, C to fill all 3 slots
+        _addStatementSupport(0, 6); // Rank 0
+        _addStatementSupport(1, 4); // Rank 1
+        _addStatementSupport(2, 3); // Rank 2
+
+        // C is at rank 2 — its peakRank should be 2
+        assertEq(_getStatementById(2).peakRank, 2, "C peakRank should be 2");
+
+        // Now give D enough support to evict C
+        _addStatementSupport(3, 5); // D gets rank 1, C evicted
+
+        // C should be evicted (rank -1), but peakRank preserved at 2
+        Forum.Statement memory sC = _getStatementById(2);
+        assertEq(sC.rank, -1, "C should be evicted");
+        assertEq(sC.peakRank, 2, "C peakRank should still be 2 after eviction");
+    }
+
+    function testPeakRankTracksDisplacedStatements() external registeredMember {
+        // When statement X rises in rank, statements it displaces get
+        // their rank set via _setStatementRank, which should also track peakRank.
+        forum.addStatement("Statement A");
+        forum.addStatement("Statement B");
+        forum.addStatement("Statement C");
+        _addStatementSupport(0, 6); // Rank 0
+        _addStatementSupport(1, 4); // Rank 1
+        _addStatementSupport(2, 2); // Rank 2
+
+        // B has peakRank 1, C has peakRank 2
+        assertEq(_getStatementById(1).peakRank, 1, "B peakRank should be 1");
+        assertEq(_getStatementById(2).peakRank, 2, "C peakRank should be 2");
+
+        // Remove support from A so it drops below both B and C
+        _addStatementSupport(0, -5); // A now has 1 support → unranked or rank 2
+
+        // B and C should have moved up. B→0, C→1
+        assertEq(_getStatementById(1).rank, 0, "B should be rank 0");
+        assertEq(_getStatementById(2).rank, 1, "C should be rank 1");
+
+        // peakRank should have improved for both
+        assertEq(
+            _getStatementById(1).peakRank,
+            0,
+            "B peakRank should improve to 0"
+        );
+        assertEq(
+            _getStatementById(2).peakRank,
+            1,
+            "C peakRank should improve to 1"
+        );
     }
 }

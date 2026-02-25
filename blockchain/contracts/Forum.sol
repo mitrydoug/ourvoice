@@ -25,7 +25,7 @@ contract Forum {
     // We only track this many statements for ranking purposes
     uint public constant MAX_RANKED_STATEMENTS = 1000;
     // Minimum support required for a statement to be ranked
-    int public constant MIN_STATEMENT_SUPPORT_TO_RANK = 0;
+    int public constant MIN_STATEMENT_SUPPORT_TO_RANK = 2;
 
     // Configurable max ranked statements (defaults to MAX_RANKED_STATEMENTS)
     uint public immutable maxRankedStatements;
@@ -56,6 +56,7 @@ contract Forum {
         uint createdTimestamp;
         Support support;
         int rank;
+        int peakRank; // best (lowest) rank ever achieved; -1 if never ranked
     }
 
     struct Statement {
@@ -64,6 +65,7 @@ contract Forum {
         uint createdTimestamp;
         int support;
         int rank;
+        int peakRank;
     }
 
     // number of statements in the forum
@@ -117,7 +119,8 @@ contract Forum {
                 text: _statement.text,
                 createdTimestamp: _statement.createdTimestamp,
                 support: currentSupport,
-                rank: currentRank
+                rank: currentRank,
+                peakRank: _statement.peakRank
             });
     }
 
@@ -138,7 +141,8 @@ contract Forum {
         uint _start,
         uint _limit
     ) external view returns (Statement[] memory) {
-        if (_start > statementCount) revert StartOutOfBounds(_start, statementCount);
+        if (_start > statementCount)
+            revert StartOutOfBounds(_start, statementCount);
 
         uint _length = _start + _limit <= rankedCount
             ? _limit
@@ -222,6 +226,18 @@ contract Forum {
             ) + 1;
     }
 
+    /// @dev Sets a statement's rank and updates peakRank if this is the best rank achieved.
+    function _setStatementRank(uint _statementId, int _rank) internal {
+        statements[_statementId].rank = _rank;
+        if (
+            _rank >= 0 &&
+            (_rank < statements[_statementId].peakRank ||
+                statements[_statementId].peakRank == -1)
+        ) {
+            statements[_statementId].peakRank = _rank;
+        }
+    }
+
     function _updateStatementRanking(uint _statementId) internal {
         _rankingMaintenance();
         StatementImpl memory statement = statements[_statementId];
@@ -244,7 +260,7 @@ contract Forum {
             } else {
                 _rank = rankedCount - 1;
                 // Mark the evicted statement as unranked
-                statements[statementRankings[_rank]].rank = -1;
+                _setStatementRank(statementRankings[_rank], -1);
             }
 
             if (statementRankings.length == _rank) {
@@ -255,34 +271,37 @@ contract Forum {
         while (
             _rank >= 1 &&
             _getCurrentSupportValue(statement.support) >
-                _getCurrentSupportValue(
-                    statements[statementRankings[_rank - 1]].support
-                )
+            _getCurrentSupportValue(
+                statements[statementRankings[_rank - 1]].support
+            )
         ) {
             statementRankings[_rank] = statementRankings[_rank - 1];
-            statements[statementRankings[_rank]].rank = int(_rank);
+            _setStatementRank(statementRankings[_rank], int(_rank));
             _rank -= 1;
         }
 
         while (
             _rank + 1 < rankedCount &&
             _getCurrentSupportValue(statement.support) <
-                _getCurrentSupportValue(
-                    statements[statementRankings[_rank + 1]].support
-                )
+            _getCurrentSupportValue(
+                statements[statementRankings[_rank + 1]].support
+            )
         ) {
             statementRankings[_rank] = statementRankings[_rank + 1];
-            statements[statementRankings[_rank]].rank = int(_rank);
+            _setStatementRank(statementRankings[_rank], int(_rank));
             _rank += 1;
         }
 
         statementRankings[_rank] = _statementId;
-        statements[_statementId].rank = int(_rank);
+        _setStatementRank(_statementId, int(_rank));
     }
 
     function addStatement(string calldata _statementText) external onlyMembers {
         if (bytes(_statementText).length > MAX_STATEMENT_LENGTH)
-            revert StatementTooLong(bytes(_statementText).length, MAX_STATEMENT_LENGTH);
+            revert StatementTooLong(
+                bytes(_statementText).length,
+                MAX_STATEMENT_LENGTH
+            );
 
         // Ensure the statement is not empty
         // check for duplicate statements if necessary
@@ -292,7 +311,8 @@ contract Forum {
             text: _statementText,
             createdTimestamp: block.timestamp,
             support: Support({value: 0, lastUpdated: block.timestamp}),
-            rank: -1
+            rank: -1,
+            peakRank: -1
         });
         _updateStatementRanking(statementCount);
         emit StatementAdded(statementCount, _statementText);
@@ -368,7 +388,8 @@ contract Forum {
             return startValue;
         }
 
-        return DecayUtils.approxDecayHalvingEvery42Steps(startValue, elapsedSteps);
+        return
+            DecayUtils.approxDecayHalvingEvery42Steps(startValue, elapsedSteps);
     }
 
     function _getCurrentUserBalance(
@@ -400,11 +421,7 @@ contract Forum {
         Support memory _support
     ) internal view returns (int) {
         return
-            _decayValue(
-                _support.value,
-                _support.lastUpdated,
-                block.timestamp
-            );
+            _decayValue(_support.value, _support.lastUpdated, block.timestamp);
     }
 
     function _updateSupportToBeCurrent(Support storage _support) internal {
@@ -471,7 +488,8 @@ contract Forum {
     function adjustSupport(
         SupportAdjustment[] calldata _supportAdjustments
     ) external onlyMembers {
-        if (!ourVoiceRegistry.isRegistered(msg.sender)) revert UserNotRegistered(msg.sender);
+        if (!ourVoiceRegistry.isRegistered(msg.sender))
+            revert UserNotRegistered(msg.sender);
         bytes32 _userId = ourVoiceRegistry.getUserIdentifier(msg.sender);
 
         UserBalance storage _userBalance = userCredits[_userId];
