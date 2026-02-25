@@ -141,7 +141,15 @@ export const StatementCard: FC<StatementCardProps> = ({
   const globalSupport = Number(statement.support);
 
   return (
-    <Card sx={{ p: 2 }}>
+    <Card
+      sx={{
+        p: 2,
+        transition: "box-shadow 0.2s ease",
+        "&:hover": {
+          boxShadow: 3,
+        },
+      }}
+    >
       <Stack direction="row" spacing={2}>
         {/* Left column: rank */}
         <Stack
