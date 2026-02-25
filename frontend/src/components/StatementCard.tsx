@@ -104,13 +104,17 @@ export const StatementCard: FC<StatementCardProps> = ({
     ? (historicalData[0] as Statement)
     : null;
 
-  const currentRank = Number(statement.rank) + 1;
-  const lastWeekRank = statementOneWeekAgo
-    ? Number(statementOneWeekAgo.rank) + 1
-    : null;
+  const currentRank = statement.rank >= 0n ? Number(statement.rank) + 1 : null;
+  const lastWeekRank =
+    statementOneWeekAgo && statementOneWeekAgo.rank >= 0n
+      ? Number(statementOneWeekAgo.rank) + 1
+      : null;
 
   // Rank change: positive means improved (moved up), negative means dropped
-  const rankChange = lastWeekRank !== null ? lastWeekRank - currentRank : null;
+  const rankChange =
+    lastWeekRank !== null && currentRank !== null
+      ? lastWeekRank - currentRank
+      : null;
 
   const userSupport = isUserVerified
     ? getEffectiveSupport(Number(statement.id))
@@ -145,17 +149,36 @@ export const StatementCard: FC<StatementCardProps> = ({
           justifyContent="center"
           sx={{ width: 48, minWidth: 48, flexShrink: 0 }}
         >
-          <Typography
-            variant="h4"
-            sx={{
-              fontWeight: 700,
-              fontSize: rankFontSize(currentRank),
-              lineHeight: 1.1,
-              color: rankColor(currentRank) ?? "text.primary",
-            }}
-          >
-            {currentRank}
-          </Typography>
+          {currentRank !== null ? (
+            <Typography
+              variant="h4"
+              sx={{
+                fontWeight: 700,
+                fontSize: rankFontSize(currentRank),
+                lineHeight: 1.1,
+                color: rankColor(currentRank) ?? "text.primary",
+              }}
+            >
+              {currentRank}
+            </Typography>
+          ) : (
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 600,
+                fontSize: "0.6rem",
+                lineHeight: 1.2,
+                color: "text.disabled",
+                textAlign: "center",
+                textTransform: "uppercase",
+                letterSpacing: "0.04em",
+              }}
+            >
+              Not
+              <br />
+              Ranked
+            </Typography>
+          )}
         </Stack>
 
         {/* Middle column: content */}
