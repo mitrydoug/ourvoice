@@ -24,7 +24,7 @@ import { AccountMenu } from "./UserProfileMenu";
 
 const NAV_ITEMS = [
   { label: "Home", href: "/top", icon: <HomeIcon /> },
-  { label: "Your Support", href: "/my-support", icon: <FavoriteBorderIcon /> },
+  { label: "My Support", href: "/my-support", icon: <FavoriteBorderIcon /> },
   { label: "My Statements", href: "/my-statements", icon: <ArticleIcon /> },
   { label: "Bookmarked", href: "/bookmarked", icon: <BookmarkBorderIcon /> },
   { label: "How it works", href: "#", icon: <HelpOutlineIcon /> },
