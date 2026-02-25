@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <title>Symvoli</title>
+
+  <!-- Left tessera — Mediterranean Blue (simplified, no speech tail) -->
+  <path d="
+    M 15.6,3
+    L 9,3
+    Q 3,3 3,9
+    L 3,23
+    Q 3,29 9,29
+    L 15.6,29
+    L 10.6,22
+    L 20.6,16
+    L 10.6,10
+    Z
+  " fill="#1A3C6E"/>
+
+  <!-- Right tessera — Terracotta -->
+  <path d="
+    M 16.4,3
+    L 23,3
+    Q 29,3 29,9
+    L 29,23
+    Q 29,29 23,29
+    L 16.4,29
+    L 11.4,22
+    L 21.4,16
+    L 11.4,10
+    Z
+  " fill="#C4713B"/>
+</svg>
