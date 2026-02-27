@@ -145,7 +145,7 @@ export const theme = createTheme({
       },
     },
     statementList: {
-      endIndicatorPadding: 1,
+      endIndicatorPadding: 4,
     },
     layout: {
       contentGap: {

@@ -1,4 +1,4 @@
-import { FC, useState, useEffect, useCallback } from "react";
+import { FC, useState, useEffect, useCallback, useRef } from "react";
 import { useReadContracts } from "wagmi";
 import { useForum, FORUM_ABI } from "../state/Forum";
 import { Statement } from "../types";
@@ -6,6 +6,9 @@ import StatementList from "./StatementList";
 import useIsMobile from "@/hooks/useIsMobile";
 import useBlockSync from "@/hooks/useBlockSync";
 import useLocalStorageSet from "@/hooks/useLocalStorageSet";
+
+/** Minimum time (ms) the loading spinner is shown when paginating */
+const PAGINATION_MIN_LOADING_MS = 2000;
 
 const Top: FC = () => {
   const { forumContractAddress } = useForum();
@@ -17,14 +20,26 @@ const Top: FC = () => {
 
   const [statements, setStatements] = useState<Statement[]>([]);
   const [offset, setOffset] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(false);
+  const [pageIndex, setPageIndex] = useState(0);
+  const [isPaginationLoading, setIsPaginationLoading] = useState(false);
+  const paginationTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  // Clean up pagination timer on unmount
+  useEffect(() => {
+    return () => {
+      if (paginationTimerRef.current) clearTimeout(paginationTimerRef.current);
+    };
+  }, []);
 
   // Reset state when forum changes
   useEffect(() => {
     setStatements([]);
     setOffset(0);
     setHasMore(false);
+    setPageIndex(0);
+    setIsPaginationLoading(false);
+    if (paginationTimerRef.current) clearTimeout(paginationTimerRef.current);
   }, [forumContractAddress]);
 
   const result = useReadContracts({
@@ -44,9 +59,6 @@ const Top: FC = () => {
     ],
   });
 
-  console.log("Current offset: ", offset);
-  console.log("Top statements fetch result: ", result);
-
   // Sync with blockchain on every new block
   useBlockSync(result.refetch);
 
@@ -54,28 +66,21 @@ const Top: FC = () => {
   const statementsPage =
     result.data && (result.data[1].result as Statement[] | undefined);
 
-  // Update loading state based on query status
-  useEffect(() => {
-    setIsLoading(result.isLoading || result.isFetching);
-  }, [result.isLoading, result.isFetching]);
+  // Loading state: initial query or pagination in progress.
+  // Block-sync refetches (isFetching) are intentionally excluded to avoid flicker.
+  const isLoading = result.isLoading || isPaginationLoading;
 
   // Update statements when data arrives (handles both initial load and block updates)
   useEffect(() => {
     if (statementsPage && statementsPage.length > 0 && !result.isLoading) {
       setStatements((prev) => {
-        // Create a copy with updated statements at the current offset
         const newStatements = [...prev];
-
-        // Update or append statements at the current page offset
         for (let i = 0; i < statementsPage.length; i++) {
-          const index = offset + i;
-          newStatements[index] = statementsPage[i];
+          newStatements[offset + i] = statementsPage[i];
         }
-
         return newStatements;
       });
 
-      // Check if there are more statements to load
       if (rankedCount !== undefined) {
         setHasMore(offset + statementsPage.length < Number(rankedCount));
       }
@@ -85,6 +90,14 @@ const Top: FC = () => {
   const handleLoadMore = useCallback(() => {
     if (!isLoading && hasMore) {
       setOffset((prev) => prev + PAGE_SIZE);
+      setPageIndex((prev) => prev + 1);
+      setIsPaginationLoading(true);
+
+      // Keep the loading spinner visible for a minimum duration
+      if (paginationTimerRef.current) clearTimeout(paginationTimerRef.current);
+      paginationTimerRef.current = setTimeout(() => {
+        setIsPaginationLoading(false);
+      }, PAGINATION_MIN_LOADING_MS);
     }
   }, [isLoading, hasMore, PAGE_SIZE]);
 
@@ -94,6 +107,7 @@ const Top: FC = () => {
       hasMore={hasMore}
       isLoading={isLoading}
       onLoadMore={handleLoadMore}
+      pageIndex={pageIndex}
       isBookmarked={isBookmarked}
       onToggleBookmark={toggleBookmark}
     />

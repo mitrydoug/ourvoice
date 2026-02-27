@@ -19,6 +19,7 @@ const MyStatements: FC = () => {
 
   const PAGE_SIZE = isMobile ? 10 : 20;
   const [displayCount, setDisplayCount] = useState(PAGE_SIZE);
+  const [pageIndex, setPageIndex] = useState(0);
 
   const statementIdArgs = useMemo(
     () => authoredIds.map((id) => BigInt(id)),
@@ -37,6 +38,7 @@ const MyStatements: FC = () => {
 
   const handleLoadMore = useCallback(() => {
     setDisplayCount((prev) => prev + PAGE_SIZE);
+    setPageIndex((prev) => prev + 1);
   }, [PAGE_SIZE]);
 
   if (!isUserVerified) {
@@ -53,6 +55,7 @@ const MyStatements: FC = () => {
       hasMore={hasMore}
       isLoading={result.isLoading}
       onLoadMore={handleLoadMore}
+      pageIndex={pageIndex}
       isBookmarked={isBookmarked}
       onToggleBookmark={toggleBookmark}
     />

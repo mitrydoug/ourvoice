@@ -1,6 +1,12 @@
 import { FC, useEffect, useRef } from "react";
 import { Statement } from "../types";
-import { Box, Stack, Typography, useTheme } from "@mui/material";
+import {
+  Box,
+  CircularProgress,
+  Stack,
+  Typography,
+  useTheme,
+} from "@mui/material";
 import StatementCard from "./StatementCard";
 
 type StatementListProps = {
@@ -8,6 +14,8 @@ type StatementListProps = {
   hasMore: boolean;
   isLoading: boolean;
   onLoadMore: () => void;
+  /** How many pages the user has loaded beyond the first (0 = first page only). */
+  pageIndex?: number;
   isBookmarked?: (statementId: number) => boolean;
   onToggleBookmark?: (statementId: number) => void;
 };
@@ -17,6 +25,7 @@ const StatementList: FC<StatementListProps> = ({
   hasMore,
   isLoading,
   onLoadMore,
+  pageIndex = 0,
   isBookmarked,
   onToggleBookmark,
 }) => {
@@ -27,13 +36,27 @@ const StatementList: FC<StatementListProps> = ({
     const sentinel = sentinelRef.current;
     if (!sentinel) return;
 
+    // Find the nearest scrollable ancestor to use as the observer root.
+    // The app layout scrolls inside a Container (overflow-y: auto), not
+    // the viewport, so a default (viewport) root would miss scroll events.
+    let root: Element | null = null;
+    let el: Element | null = sentinel.parentElement;
+    while (el) {
+      const { overflowY } = getComputedStyle(el);
+      if (overflowY === "auto" || overflowY === "scroll") {
+        root = el;
+        break;
+      }
+      el = el.parentElement;
+    }
+
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasMore && !isLoading) {
           onLoadMore();
         }
       },
-      { threshold: 0.1 },
+      { threshold: 0.1, root },
     );
 
     observer.observe(sentinel);
@@ -62,16 +85,20 @@ const StatementList: FC<StatementListProps> = ({
         sx={{
           display: "flex",
           justifyContent: "center",
+          alignItems: "center",
           py: theme.custom.statementList.endIndicatorPadding,
           minHeight: "20px",
         }}
       >
         {isLoading && (
-          <Typography variant="body2" color="text.secondary">
-            Loading more statements...
-          </Typography>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <CircularProgress size={16} />
+            <Typography variant="body2" color="text.secondary">
+              Loading more statements…
+            </Typography>
+          </Box>
         )}
-        {!hasMore && statements.length > 0 && (
+        {!hasMore && !isLoading && statements.length > 0 && pageIndex > 0 && (
           <Typography variant="body2" color="text.secondary">
             No more statements
           </Typography>
