@@ -22,10 +22,8 @@ import { useConnectModal } from "@rainbow-me/rainbowkit";
 import SearchModal from "./SearchModal";
 import useIsMobile from "@/hooks/useIsMobile";
 import { useTheme } from "@mui/material/styles";
-import { AccountMenu, AccountDrawer } from "./UserProfileMenu";
-import Divider from "@mui/material/Divider";
+import { AccountDrawer } from "./UserProfileMenu";
 import CommitSupportModal from "./CommitSupportModal";
-import UserProfilePill from "./UserProfilePill";
 
 const MIC_ICON = (
   <svg
@@ -151,7 +149,12 @@ const SearchField: React.FC<SearchFieldProps> = ({
             <SearchIcon fontSize="small" />
           </InputAdornment>
         ),
-        sx: { cursor: "pointer", backgroundColor: "white" },
+        sx: {
+          cursor: "pointer",
+          backgroundColor: "white",
+          height: 36,
+          fontSize: "0.875rem",
+        },
       },
     }}
     sx={{
@@ -166,7 +169,6 @@ const SearchField: React.FC<SearchFieldProps> = ({
 );
 
 export default function MenuAppBar() {
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const [avatar, setAvatar] = useState<string | null>(null);
@@ -194,30 +196,32 @@ export default function MenuAppBar() {
     state: userVoteState,
   } = useUserVotes();
 
-  const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
-    console.log("here! ");
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
-
-  const open = Boolean(anchorEl);
-
   console.log("userVoteState", userVoteState);
 
   return (
     <>
       <AppBar
-        position="static"
+        position="sticky"
         color="transparent"
         elevation={0}
-        sx={{ mt: 2 }}
+        sx={{
+          boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+          top: 0,
+          zIndex: (theme) => theme.zIndex.appBar,
+          bgcolor: "background.default",
+        }}
       >
         <Toolbar
           disableGutters
-          sx={{ flexDirection: "column", alignItems: "stretch" }}
+          sx={{
+            flexDirection: "column",
+            alignItems: "stretch",
+            maxWidth: "1000px",
+            width: "100%",
+            mx: "auto",
+            px: 3,
+            py: 1,
+          }}
         >
           {/* First row: Three-section layout */}
           {isMobile ? (
@@ -291,19 +295,7 @@ export default function MenuAppBar() {
 
               <SearchField onClick={() => setSearchModalOpen(true)} />
 
-              {address ? (
-                <>
-                  <UserProfilePill onOpenMenu={handleMenu} />
-                  <AccountMenu
-                    anchorEl={anchorEl}
-                    open={open}
-                    onClose={handleClose}
-                    isUserVerified={isUserVerified}
-                    navigate={(path: string) => void navigate(path)}
-                    disconnect={doDisconnect}
-                  />
-                </>
-              ) : (
+              {!address && (
                 <Button onClick={() => openConnectModal?.()} size="medium">
                   <Typography variant="body1" component="div">
                     Connect
@@ -312,8 +304,6 @@ export default function MenuAppBar() {
               )}
             </Stack>
           )}
-
-          <Divider sx={{ mt: 1, width: "100%" }} />
 
           {/* Second row on mobile: Search bar */}
           {isMobile && (
@@ -332,7 +322,7 @@ export default function MenuAppBar() {
         open={chooseForumModalOpen}
         onClose={() => setChooseForumModalOpen(false)}
         chooseForum={(forum: string) => {
-          setForum(forum as "global" | "us");
+          setForum(forum);
           setChooseForumModalOpen(false);
         }}
       />

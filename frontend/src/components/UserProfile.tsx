@@ -19,6 +19,7 @@ import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
 import GppBadIcon from "@mui/icons-material/GppBad";
 import { useUserVotes } from "../state/UserVotes";
 import { useCreditAllocation } from "@/hooks/useCreditAllocation";
+import { useUserRegistration } from "@/hooks/useUserRegistration";
 import useNickname from "@/hooks/useNickname";
 
 // ── SVG Donut Chart ──────────────────────────────────────────────────────────
@@ -153,6 +154,7 @@ const UserProfile: FC = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const { isUserVerified } = useUserVotes();
+  const { nationality } = useUserRegistration();
   const allocation = useCreditAllocation();
 
   const [nickname, setNickname] = useNickname();
@@ -251,13 +253,14 @@ const UserProfile: FC = () => {
               <>
                 <VerifiedUserIcon color="success" />
                 <Typography variant="body1">Verified</Typography>
-                {/* Country flag — currently hardcoded to US */}
-                <Box
-                  component="img"
-                  src="us.svg"
-                  alt="US flag"
-                  sx={{ width: 24, height: 16, ml: 0.5 }}
-                />
+                {nationality && (
+                  <Box
+                    component="img"
+                    src={`${nationality}.svg`}
+                    alt={`${nationality} flag`}
+                    sx={{ width: 24, height: 16, ml: 0.5 }}
+                  />
+                )}
               </>
             ) : (
               <>

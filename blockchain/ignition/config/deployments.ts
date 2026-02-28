@@ -9,11 +9,13 @@
 type MockedDeploymentConfig = {
   mode: "mocked";
   forums: string[];
+  stepDurationSeconds: number;
 };
 
 type ProductionDeploymentConfig = {
   mode: "production";
   forums: string[];
+  stepDurationSeconds: number;
   parametersFile: string;
 };
 
@@ -23,26 +25,30 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
   /** Local development on a fresh Hardhat node with mock data. */
   default: {
     mode: "mocked",
-    forums: ["global", "USA"],
+    forums: ["global", "USA", "CAN"],
+    stepDurationSeconds: 10,
   },
 
   /** Docker Compose Hardhat node with mock data. */
   compose_hardhat: {
     mode: "mocked",
-    forums: ["global", "USA"],
+    forums: ["global", "USA", "CAN"],
+    stepDurationSeconds: 10,
   },
 
   /** Local Sepolia fork with real OurVoiceRegistry (dev mode). */
   local_sepolia_fork: {
     mode: "production",
-    forums: ["global", "USA"],
+    forums: ["global", "USA", "CAN"],
+    stepDurationSeconds: 10,
     parametersFile: "local-fork.json",
   },
 
   /** Real Sepolia testnet deployment. */
   sepolia: {
     mode: "production",
-    forums: ["global", "USA"],
+    forums: ["global", "USA", "CAN"],
+    stepDurationSeconds: 14400,
     parametersFile: "sepolia.json",
   },
 };

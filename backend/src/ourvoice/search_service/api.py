@@ -1,6 +1,10 @@
+"""Search API routes for the OurVoice search service."""
+
 from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
+
+from ourvoice.indexer import STATEMENTS_INDEX
 
 
 class SearchResult(BaseModel):
@@ -9,6 +13,7 @@ class SearchResult(BaseModel):
 
 
 def create_api(app: FastAPI) -> None:
+    """Register search routes on *app*."""
 
     @app.get("/")
     async def root():
@@ -20,11 +25,12 @@ def create_api(app: FastAPI) -> None:
 
     @app.get("/search")
     async def search(statement_text: str) -> list[SearchResult]:
-        results = app.solr_client.search(f'statementText:{statement_text}')
+        """Full-text search over indexed statements."""
+        results = app.state.meili_client.index(STATEMENTS_INDEX).search(statement_text)
         return [
             SearchResult(
-                statement_id=result["statementId"],
-                statement_text=result["statementText"],
+                statement_id=hit["statementId"],
+                statement_text=hit["statementText"],
             )
-            for result in results
+            for hit in results["hits"]
         ]

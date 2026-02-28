@@ -100,7 +100,11 @@ export const theme = createTheme({
       defaultProps: {
         variant: "contained",
         size: "small",
-        sx: { textTransform: "none" },
+      },
+      styleOverrides: {
+        root: {
+          textTransform: "none",
+        },
       },
     },
     MuiAvatar: {
@@ -125,14 +129,14 @@ export const theme = createTheme({
     appBar: {
       logoIcon: {
         size: {
-          mobile: "2rem",
-          desktop: "2.75rem",
+          mobile: "1.75rem",
+          desktop: "2rem",
         },
       },
       logoText: {
         size: {
-          mobile: "1.8rem",
-          desktop: "2.125rem",
+          mobile: "1.5rem",
+          desktop: "1.625rem",
         },
       },
       spacing: {
@@ -141,7 +145,7 @@ export const theme = createTheme({
       },
     },
     statementList: {
-      endIndicatorPadding: 1,
+      endIndicatorPadding: 4,
     },
     layout: {
       contentGap: {

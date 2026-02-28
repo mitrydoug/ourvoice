@@ -63,7 +63,7 @@ export const AccountMenu: React.FC<AccountMenuProps> = ({
             display: "block",
             position: "absolute",
             top: 0,
-            right: 14,
+            left: 14,
             width: 10,
             height: 10,
             bgcolor: "background.paper",
@@ -73,8 +73,8 @@ export const AccountMenu: React.FC<AccountMenuProps> = ({
         },
       },
     }}
-    transformOrigin={{ horizontal: "right", vertical: "top" }}
-    anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
+    transformOrigin={{ horizontal: "left", vertical: "top" }}
+    anchorOrigin={{ horizontal: "left", vertical: "bottom" }}
   >
     {isUserVerified ? (
       <>

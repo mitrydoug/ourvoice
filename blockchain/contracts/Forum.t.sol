@@ -7,15 +7,22 @@ import {console} from "forge-std/console.sol";
 import {Forum} from "./Forum.sol";
 import {MockOurVoiceRegistry} from "./MockOurVoiceRegistry.sol";
 import {AOurVoiceRegistry} from "./IOurVoiceRegistry.sol";
-import {DecayUtils} from "./DecayUtils.sol";
 
 // Test harness to expose internal methods for testing
 contract ForumHarness is Forum {
     constructor(
         AOurVoiceRegistry _ourVoiceRegistry,
         string memory _nationality,
-        uint _maxRankedStatements
-    ) Forum(_ourVoiceRegistry, _nationality, _maxRankedStatements) {}
+        uint _maxRankedStatements,
+        uint _stepDurationSeconds
+    )
+        Forum(
+            _ourVoiceRegistry,
+            _nationality,
+            _maxRankedStatements,
+            _stepDurationSeconds
+        )
+    {}
 
     function exposed_costOfUserSupport(
         int _userSupport
@@ -28,6 +35,13 @@ contract ForumHarness is Forum {
     ) external view returns (uint[] memory) {
         return _userSupportedStatements[userId];
     }
+
+    function exposed_elapsedStepsBetweenTimestamps(
+        uint fromTimestamp,
+        uint toTimestamp
+    ) external view returns (uint) {
+        return _elapsedStepsBetweenTimestamps(fromTimestamp, toTimestamp);
+    }
 }
 
 contract ForumTest is Test {
@@ -39,7 +53,7 @@ contract ForumTest is Test {
     function setUp() public {
         vm.warp(MOCK_TEST_TIMESTAMP);
         mockRegistry = new MockOurVoiceRegistry();
-        forum = new ForumHarness(mockRegistry, "", 0);
+        forum = new ForumHarness(mockRegistry, "", 3, 10);
     }
 
     modifier registeredMember() {
@@ -82,6 +96,49 @@ contract ForumTest is Test {
         );
     }
 
+    function testElapsedStepsBetweenTimestamps(
+        uint64 _arbitraryTimestamp
+    ) external view {
+        uint stepDuration = forum.stepDurationSeconds();
+
+        assertEq(
+            forum.exposed_elapsedStepsBetweenTimestamps(
+                _arbitraryTimestamp,
+                _arbitraryTimestamp
+            ),
+            0,
+            "elapsed steps between arbitrary timestamp and itself should be 0"
+        );
+        assertEq(
+            forum.exposed_elapsedStepsBetweenTimestamps(
+                _arbitraryTimestamp,
+                _arbitraryTimestamp + stepDuration
+            ),
+            1,
+            "elapsed steps between arbitrary timestamps differing by step duration should be 1"
+        );
+
+        uint256 _stepStart = (_arbitraryTimestamp -
+            (_arbitraryTimestamp % stepDuration));
+
+        assertEq(
+            forum.exposed_elapsedStepsBetweenTimestamps(
+                _stepStart,
+                _arbitraryTimestamp
+            ),
+            0,
+            "elapsed steps between arbitrary timestamp and its step start should be 0"
+        );
+        assertEq(
+            forum.exposed_elapsedStepsBetweenTimestamps(
+                _arbitraryTimestamp,
+                _stepStart + stepDuration
+            ),
+            1,
+            "elapsed steps between arbitrary timestamp and the next step start should be 1"
+        );
+    }
+
     function testInitialUserBalance() external registeredMember {
         uint balance = forum.getUserBalance();
         // TODO: fix my constants management
@@ -90,15 +147,14 @@ contract ForumTest is Test {
 
     function testUserBalanceAllowance() external registeredMember {
         uint initialBalance = forum.getUserBalance();
-        // TODO: assumes step length
-        vm.warp(vm.getBlockTimestamp() + DecayUtils.STEP_DURATION_SECONDS);
+        vm.warp(vm.getBlockTimestamp() + forum.stepDurationSeconds());
         uint newBalance = forum.getUserBalance();
         assertEq(
             newBalance,
             initialBalance + 25,
             "User balance should increase by 25 credits after one step"
         );
-        vm.warp(vm.getBlockTimestamp() + 5 * DecayUtils.STEP_DURATION_SECONDS);
+        vm.warp(vm.getBlockTimestamp() + 5 * forum.stepDurationSeconds());
         newBalance = forum.getUserBalance();
         assertEq(
             newBalance,
@@ -350,7 +406,13 @@ contract ForumTest is Test {
 
         currentBalance = forum.getUserBalance();
         // Try to add more support than balance allows
-        vm.expectRevert(abi.encodeWithSelector(Forum.InsufficientCredits.selector, currentBalance, 495));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Forum.InsufficientCredits.selector,
+                currentBalance,
+                495
+            )
+        );
         _addStatementSupport(0, 10); // Would cost 1485 - 990 = 495, but only ~60 credits left
     }
 
@@ -500,13 +562,13 @@ contract ForumTest is Test {
         assertEq(supportBefore, 10, "Initial support should be 100");
 
         // Advance by 4 steps
-        vm.warp(vm.getBlockTimestamp() + 4 * DecayUtils.STEP_DURATION_SECONDS);
+        vm.warp(vm.getBlockTimestamp() + 4 * forum.stepDurationSeconds());
 
         int supportAfter4Steps = _getStatementById(0).support;
         assertEq(supportAfter4Steps, 9, "Support should decay over time");
 
         // Advance another 96 steps
-        vm.warp(vm.getBlockTimestamp() + 96 * DecayUtils.STEP_DURATION_SECONDS);
+        vm.warp(vm.getBlockTimestamp() + 96 * forum.stepDurationSeconds());
 
         int supportAfter100Steps = _getStatementById(0).support;
         assertEq(supportAfter100Steps, 2, "Support should decay over time");
@@ -517,7 +579,7 @@ contract ForumTest is Test {
         _addStatementSupport(0, 10);
 
         // Advance time to cause decay
-        vm.warp(vm.getBlockTimestamp() + 10 * DecayUtils.STEP_DURATION_SECONDS);
+        vm.warp(vm.getBlockTimestamp() + 10 * forum.stepDurationSeconds());
 
         // The statement's support has decayed, but adding more should work correctly
         int supportBeforeAdjustment = _getStatementById(0).support;
@@ -553,7 +615,7 @@ contract ForumTest is Test {
         // Wait 2x42 steps for significant decay
         // A = 20 -> 10
         // B = 10 -> 5
-        vm.warp(vm.getBlockTimestamp() + 42 * DecayUtils.STEP_DURATION_SECONDS);
+        vm.warp(vm.getBlockTimestamp() + 42 * forum.stepDurationSeconds());
 
         // Trigger ranking update by adjusting support on B
         _addStatementSupport(1, 6);
@@ -588,7 +650,7 @@ contract ForumTest is Test {
         assertEq(userSupport[0].support, 10, "User support should be 10");
 
         // Advance time by 4 steps
-        vm.warp(vm.getBlockTimestamp() + 4 * DecayUtils.STEP_DURATION_SECONDS);
+        vm.warp(vm.getBlockTimestamp() + 4 * forum.stepDurationSeconds());
 
         // Check user's support after decay
         userSupport = forum.getUserStatementSupport();
@@ -604,7 +666,7 @@ contract ForumTest is Test {
         );
 
         // Advance time by another 96 steps
-        vm.warp(vm.getBlockTimestamp() + 96 * DecayUtils.STEP_DURATION_SECONDS);
+        vm.warp(vm.getBlockTimestamp() + 96 * forum.stepDurationSeconds());
 
         // Check user's support after decay
         userSupport = forum.getUserStatementSupport();
@@ -637,7 +699,7 @@ contract ForumTest is Test {
         );
 
         // Advance time to cause support decay
-        vm.warp(vm.getBlockTimestamp() + 42 * DecayUtils.STEP_DURATION_SECONDS);
+        vm.warp(vm.getBlockTimestamp() + 42 * forum.stepDurationSeconds());
 
         // User's support has decayed to ~5, which costs 15 instead of 55
         // When they remove all support, they should get back only the cost of current support
@@ -675,7 +737,7 @@ contract ForumTest is Test {
 
         // Wait long enough for support to decay to 0 (168 steps = 4 half-lives)
         // 10 -> 5 -> 2 -> 1 -> 0
-        vm.warp(vm.getBlockTimestamp() + 168 * DecayUtils.STEP_DURATION_SECONDS);
+        vm.warp(vm.getBlockTimestamp() + 168 * forum.stepDurationSeconds());
 
         // Check that the statement is no longer in user's support list
         userSupport = forum.getUserStatementSupport();
@@ -688,90 +750,70 @@ contract ForumTest is Test {
 
     function testLowestRankStatementIsEvictedWhenMaxRankedStatementsExceeded()
         external
+        registeredMember
     {
-        // Create a forum with a low max ranked statements limit for testing
-        ForumHarness testForum = new ForumHarness(mockRegistry, "", 3);
+        forum.addStatement("Statement A");
+        forum.addStatement("Statement B");
+        forum.addStatement("Statement C");
+        forum.addStatement("Statement D");
 
-        // Register and create statements
-        mockRegistry.register("");
-
-        testForum.addStatement("Statement A");
-        testForum.addStatement("Statement B");
-        testForum.addStatement("Statement C");
-        testForum.addStatement("Statement D");
-
-        // Add support to fill up the ranking
+        // Add support to fill up the ranking (maxRankedStatements = 3)
         Forum.SupportAdjustment[]
             memory adjustments = new Forum.SupportAdjustment[](3);
         adjustments[0] = Forum.SupportAdjustment({statementId: 0, value: 5});
         adjustments[1] = Forum.SupportAdjustment({statementId: 1, value: 4});
         adjustments[2] = Forum.SupportAdjustment({statementId: 2, value: 3});
-        testForum.adjustSupport(adjustments);
+        forum.adjustSupport(adjustments);
 
         // Verify we have 3 ranked statements
-        assertEq(testForum.rankedCount(), 3, "Should have 3 ranked statements");
+        assertEq(forum.rankedCount(), 3, "Should have 3 ranked statements");
         assertEq(
-            testForum.getRankedStatement(0).id,
+            forum.getRankedStatement(0).id,
             0,
             "Statement A should be rank 0"
         );
         assertEq(
-            testForum.getRankedStatement(1).id,
+            forum.getRankedStatement(1).id,
             1,
             "Statement B should be rank 1"
         );
         assertEq(
-            testForum.getRankedStatement(2).id,
+            forum.getRankedStatement(2).id,
             2,
             "Statement C should be rank 2"
         );
 
         // Now add high support to Statement D, which should evict Statement C (lowest rank)
-        Forum.SupportAdjustment[]
-            memory adjustment = new Forum.SupportAdjustment[](1);
-        adjustment[0] = Forum.SupportAdjustment({statementId: 3, value: 6});
-        testForum.adjustSupport(adjustment);
+        _addStatementSupport(3, 6);
 
         // Verify we still have 3 ranked statements
         assertEq(
-            testForum.rankedCount(),
+            forum.rankedCount(),
             3,
             "Should still have 3 ranked statements"
         );
 
         // Verify Statement D is now ranked
         assertEq(
-            testForum.getRankedStatement(0).id,
+            forum.getRankedStatement(0).id,
             3,
             "Statement D should be rank 0"
         );
         assertEq(
-            testForum.getRankedStatement(1).id,
+            forum.getRankedStatement(1).id,
             0,
             "Statement A should be rank 1"
         );
         assertEq(
-            testForum.getRankedStatement(2).id,
+            forum.getRankedStatement(2).id,
             1,
             "Statement B should be rank 2"
         );
 
         // Verify Statement C was evicted (rank should be -1)
-        uint[] memory statementIds = new uint[](1);
-        statementIds[0] = 2;
-        Forum.Statement[] memory statements = testForum.getStatementsById(
-            statementIds
-        );
-        assertEq(
-            statements[0].rank,
-            -1,
-            "Statement C should no longer be ranked"
-        );
-        assertEq(
-            statements[0].support,
-            3,
-            "Statement C should still have 3 support"
-        );
+        Forum.Statement memory evicted = _getStatementById(2);
+        assertEq(evicted.rank, -1, "Statement C should no longer be ranked");
+        assertEq(evicted.support, 3, "Statement C should still have 3 support");
     }
 
     // ======================================================================
@@ -927,5 +969,132 @@ contract ForumTest is Test {
             "Index 2 should be E (moved from index 4 to second empty slot)"
         );
         assertEq(userSupport[3].statementId, 3, "Index 3 should be D");
+    }
+
+    // ======================================================================
+    // Section: peakRank tracking
+    // ======================================================================
+
+    function testPeakRankIsNegativeOneForNewStatement()
+        external
+        registeredMember
+    {
+        forum.addStatement("Fresh statement");
+        Forum.Statement memory s = _getStatementById(0);
+        assertEq(s.rank, -1, "New statement should not be ranked");
+        assertEq(
+            s.peakRank,
+            -1,
+            "peakRank should be -1 for never-ranked statement"
+        );
+    }
+
+    function testPeakRankTracksFirstRanking() external registeredMember {
+        forum.addStatement("Test statement");
+        _addStatementSupport(0, 3); // Gets ranked at position 0
+
+        Forum.Statement memory s = _getStatementById(0);
+        assertEq(s.rank, 0, "Statement should be ranked at 0");
+        assertEq(s.peakRank, 0, "peakRank should be 0 after first ranking");
+    }
+
+    function testPeakRankImprovesWhenRankImproves() external registeredMember {
+        forum.addStatement("Statement A");
+        forum.addStatement("Statement B");
+        _addStatementSupport(0, 5); // Rank 0
+        _addStatementSupport(1, 3); // Rank 1
+
+        assertEq(
+            _getStatementById(1).peakRank,
+            1,
+            "B peakRank should be 1 initially"
+        );
+
+        // Give B more support so it overtakes A
+        _addStatementSupport(1, 4); // B now has 7, overtakes A (5)
+
+        assertEq(_getStatementById(1).rank, 0, "B should now be rank 0");
+        assertEq(
+            _getStatementById(1).peakRank,
+            0,
+            "B peakRank should improve to 0"
+        );
+    }
+
+    function testPeakRankDoesNotWorsenWhenRankDrops() external registeredMember {
+        forum.addStatement("Statement A");
+        forum.addStatement("Statement B");
+        _addStatementSupport(0, 5); // Rank 0
+        _addStatementSupport(1, 3); // Rank 1
+
+        assertEq(_getStatementById(0).peakRank, 0, "A peakRank should be 0");
+
+        // Give B more support so it overtakes A → A drops to rank 1
+        _addStatementSupport(1, 4); // B=7, A=5
+
+        assertEq(_getStatementById(0).rank, 1, "A should now be rank 1");
+        assertEq(
+            _getStatementById(0).peakRank,
+            0,
+            "A peakRank should remain 0 even though current rank is 1"
+        );
+    }
+
+    function testPeakRankPreservedAfterEviction() external registeredMember {
+        // maxRankedStatements = 3 from setUp, so fill 3 slots then evict the lowest
+        forum.addStatement("Statement A");
+        forum.addStatement("Statement B");
+        forum.addStatement("Statement C");
+        forum.addStatement("Statement D");
+
+        // Rank A, B, C to fill all 3 slots
+        _addStatementSupport(0, 6); // Rank 0
+        _addStatementSupport(1, 4); // Rank 1
+        _addStatementSupport(2, 3); // Rank 2
+
+        // C is at rank 2 — its peakRank should be 2
+        assertEq(_getStatementById(2).peakRank, 2, "C peakRank should be 2");
+
+        // Now give D enough support to evict C
+        _addStatementSupport(3, 5); // D gets rank 1, C evicted
+
+        // C should be evicted (rank -1), but peakRank preserved at 2
+        Forum.Statement memory sC = _getStatementById(2);
+        assertEq(sC.rank, -1, "C should be evicted");
+        assertEq(sC.peakRank, 2, "C peakRank should still be 2 after eviction");
+    }
+
+    function testPeakRankTracksDisplacedStatements() external registeredMember {
+        // When statement X rises in rank, statements it displaces get
+        // their rank set via _setStatementRank, which should also track peakRank.
+        forum.addStatement("Statement A");
+        forum.addStatement("Statement B");
+        forum.addStatement("Statement C");
+        _addStatementSupport(0, 6); // Rank 0
+        _addStatementSupport(1, 4); // Rank 1
+        _addStatementSupport(2, 2); // Rank 2
+
+        // B has peakRank 1, C has peakRank 2
+        assertEq(_getStatementById(1).peakRank, 1, "B peakRank should be 1");
+        assertEq(_getStatementById(2).peakRank, 2, "C peakRank should be 2");
+
+        // Remove support from A so it drops below both B and C
+        _addStatementSupport(0, -5); // A now has 1 support → unranked or rank 2
+
+        // B and C should have moved up. B→0, C→1
+        assertEq(_getStatementById(1).rank, 0, "B should be rank 0");
+        assertEq(_getStatementById(2).rank, 1, "C should be rank 1");
+
+        // peakRank should have improved for both
+        assertEq(
+            _getStatementById(1).peakRank,
+            0,
+            "B peakRank should improve to 0"
+        );
+        assertEq(
+            _getStatementById(2).peakRank,
+            1,
+            "C peakRank should improve to 1"
+        );
     }
 }

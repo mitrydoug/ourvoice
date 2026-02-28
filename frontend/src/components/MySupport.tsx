@@ -19,6 +19,7 @@ const MySupport: FC = () => {
   const PAGE_SIZE = isMobile ? 10 : 20;
 
   const [displayCount, setDisplayCount] = useState(PAGE_SIZE);
+  const [pageIndex, setPageIndex] = useState(0);
 
   // Combine on-chain support with pending adjustments to get all supported statement IDs
   const statementIds = useMemo(() => {
@@ -60,6 +61,7 @@ const MySupport: FC = () => {
 
   const handleLoadMore = useCallback(() => {
     setDisplayCount((prev) => prev + PAGE_SIZE);
+    setPageIndex((prev) => prev + 1);
   }, [PAGE_SIZE]);
 
   if (!isUserVerified) {
@@ -76,6 +78,7 @@ const MySupport: FC = () => {
       hasMore={hasMore}
       isLoading={result.isLoading}
       onLoadMore={handleLoadMore}
+      pageIndex={pageIndex}
       isBookmarked={isBookmarked}
       onToggleBookmark={toggleBookmark}
     />

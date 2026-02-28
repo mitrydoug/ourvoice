@@ -20,6 +20,7 @@ interface Statement {
   createdTimestamp: bigint;
   support: bigint;
   rank: bigint;
+  peakRank: bigint;
 }
 
 /**
@@ -49,6 +50,14 @@ const rankFontSize = (rank: number): string => {
   if (rank >= 100) return "1.2rem";
   if (rank >= 10) return "1.6rem";
   return "2rem";
+};
+
+/** Color for top-3 rank badges (gold, silver, bronze). */
+const rankColor = (rank: number): string | undefined => {
+  if (rank === 1) return "#D4A017";
+  if (rank === 2) return "#8E8E93";
+  if (rank === 3) return "#A0522D";
+  return undefined;
 };
 
 type StatementCardProps = {
@@ -95,13 +104,17 @@ export const StatementCard: FC<StatementCardProps> = ({
     ? (historicalData[0] as Statement)
     : null;
 
-  const currentRank = Number(statement.rank) + 1;
-  const lastWeekRank = statementOneWeekAgo
-    ? Number(statementOneWeekAgo.rank) + 1
-    : null;
+  const currentRank = statement.rank >= 0n ? Number(statement.rank) + 1 : null;
+  const lastWeekRank =
+    statementOneWeekAgo && statementOneWeekAgo.rank >= 0n
+      ? Number(statementOneWeekAgo.rank) + 1
+      : null;
 
   // Rank change: positive means improved (moved up), negative means dropped
-  const rankChange = lastWeekRank !== null ? lastWeekRank - currentRank : null;
+  const rankChange =
+    lastWeekRank !== null && currentRank !== null
+      ? lastWeekRank - currentRank
+      : null;
 
   const userSupport = isUserVerified
     ? getEffectiveSupport(Number(statement.id))
@@ -122,13 +135,21 @@ export const StatementCard: FC<StatementCardProps> = ({
     });
   };
 
-  // Placeholder value for peak rank (not yet implemented)
-  const peakRank = 1;
+  const peakRank =
+    statement.peakRank >= 0n ? Number(statement.peakRank) + 1 : null;
 
   const globalSupport = Number(statement.support);
 
   return (
-    <Card sx={{ p: 2 }}>
+    <Card
+      sx={{
+        p: 2,
+        transition: "box-shadow 0.2s ease",
+        "&:hover": {
+          boxShadow: 3,
+        },
+      }}
+    >
       <Stack direction="row" spacing={2}>
         {/* Left column: rank */}
         <Stack
@@ -136,17 +157,36 @@ export const StatementCard: FC<StatementCardProps> = ({
           justifyContent="center"
           sx={{ width: 48, minWidth: 48, flexShrink: 0 }}
         >
-          <Typography
-            variant="h4"
-            sx={{
-              fontWeight: 600,
-              fontSize: rankFontSize(currentRank),
-              lineHeight: 1.1,
-              color: "text.primary",
-            }}
-          >
-            {currentRank}
-          </Typography>
+          {currentRank !== null ? (
+            <Typography
+              variant="h4"
+              sx={{
+                fontWeight: 700,
+                fontSize: rankFontSize(currentRank),
+                lineHeight: 1.1,
+                color: rankColor(currentRank) ?? "text.primary",
+              }}
+            >
+              {currentRank}
+            </Typography>
+          ) : (
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 600,
+                fontSize: "0.6rem",
+                lineHeight: 1.2,
+                color: "text.disabled",
+                textAlign: "center",
+                textTransform: "uppercase",
+                letterSpacing: "0.04em",
+              }}
+            >
+              Not
+              <br />
+              Ranked
+            </Typography>
+          )}
         </Stack>
 
         {/* Middle column: content */}
@@ -188,8 +228,8 @@ export const StatementCard: FC<StatementCardProps> = ({
             {/* Rank change */}
             <Stack direction="row" alignItems="center" spacing={0.25}>
               {rankChange === null || rankChange === 0 ? (
-                <Typography variant="body2" color="text.secondary">
-                  N/C
+                <Typography variant="body2" color="text.disabled">
+                  —
                 </Typography>
               ) : rankChange > 0 ? (
                 <>
@@ -219,12 +259,14 @@ export const StatementCard: FC<StatementCardProps> = ({
             </Stack>
 
             {/* Peak rank */}
-            <Stack direction="row" alignItems="center" spacing={0.5}>
-              <LandscapeIcon sx={{ fontSize: 18, color: "text.secondary" }} />
-              <Typography variant="body2" color="text.secondary">
-                {peakRank}
-              </Typography>
-            </Stack>
+            {peakRank !== null && (
+              <Stack direction="row" alignItems="center" spacing={0.5}>
+                <LandscapeIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+                <Typography variant="body2" color="text.secondary">
+                  {peakRank}
+                </Typography>
+              </Stack>
+            )}
 
             {/* Spacer pushes bookmark to the right */}
             <Stack sx={{ flexGrow: 1 }} />

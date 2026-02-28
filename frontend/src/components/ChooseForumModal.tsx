@@ -13,7 +13,8 @@ export const FORUMS: {
   [key: string]: { label: string; value: string; iconSrc: string };
 } = {
   global: { label: "Global", value: "global", iconSrc: "earth.png" },
-  us: { label: "United States", value: "us", iconSrc: "us.svg" },
+  USA: { label: "United States", value: "USA", iconSrc: "USA.svg" },
+  CAN: { label: "Canada", value: "CAN", iconSrc: "CAN.svg" },
 };
 
 const style = {

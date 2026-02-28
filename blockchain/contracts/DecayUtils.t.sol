@@ -7,47 +7,6 @@ import {console} from "forge-std/console.sol";
 import {DecayUtils} from "./DecayUtils.sol";
 
 contract DecayUtilsTest is Test {
-    function testEllapsedStepsBetweenTimestamps(
-        uint64 _arbitraryTimestamp
-    ) external pure {
-        assertEq(
-            DecayUtils.ellapsedStepsBetweenTimestamps(
-                _arbitraryTimestamp,
-                _arbitraryTimestamp
-            ),
-            0,
-            "ellapsed steps between arbitrary timestamp and itself should be 0"
-        );
-        assertEq(
-            DecayUtils.ellapsedStepsBetweenTimestamps(
-                _arbitraryTimestamp,
-                _arbitraryTimestamp + DecayUtils.STEP_DURATION_SECONDS
-            ),
-            1,
-            "ellapsed steps between arbitrary timestamps differing by step duration should be 1"
-        );
-
-        uint256 _stepStart = (_arbitraryTimestamp -
-            (_arbitraryTimestamp % DecayUtils.STEP_DURATION_SECONDS));
-
-        assertEq(
-            DecayUtils.ellapsedStepsBetweenTimestamps(
-                _stepStart,
-                _arbitraryTimestamp
-            ),
-            0,
-            "ellapsed steps between arbitrary timestamp and its step start should be 0"
-        );
-        assertEq(
-            DecayUtils.ellapsedStepsBetweenTimestamps(
-                _arbitraryTimestamp,
-                _stepStart + DecayUtils.STEP_DURATION_SECONDS
-            ),
-            1,
-            "ellapsed steps between arbitrary timestamp and the next step start should be 1"
-        );
-    }
-
     function test_approxDecayHalvingEvery42Steps() external pure {
         int _initialValue = 1000000000000; // 1 trillion
 

@@ -1,92 +1,58 @@
+"""OurVoice CLI entry-point for the standalone indexer.
+
+Run with:
+    python -m ourvoice.main \
+        --forum-contract-address 0x... \
+        --ethereum-node-url ws://... \
+        --meili-url http://... \
+        --meili-api-key ...
+"""
+
 import argparse
 import asyncio
-import json
-from os.path import join
-from pprint import pprint
 
-import pysolr
-from web3 import AsyncWeb3, WebSocketProvider
+import meilisearch
 
-
-async def subscribe_to_transfer_events(
-    forum_contract_address: str, ethereum_node_url: str, solr_url: str
-) -> None:
-
-    with open("./src/ourvoice/ForumABI.json", "r") as f:
-        forum_abi = json.load(f)["abi"]
-
-    solr_client = pysolr.Solr(solr_url, always_commit=True)
-
-    async with AsyncWeb3(WebSocketProvider(ethereum_node_url)) as w3:
-
-        weth_contract = w3.eth.contract(address=forum_contract_address, abi=forum_abi)
-        # subscribe to new block headers:
-        subscription_id = await w3.eth.subscribe("newHeads")
-        pprint(subscription_id)
-
-        # listen for events as they occur:
-        async for response in w3.socket.process_subscriptions():
-            # handle each event:
-            result = response["result"]
-            pprint(result)
-
-            pprint(f"Block #{result['number']} mined")
-
-            logs = await weth_contract.events.StatementAdded().get_logs(
-                from_block=result["number"]
-            )
-
-            for log in logs:
-                pprint(
-                    f'New statement added with ID {log.args.id}: "{log.args.statement}"'
-                )
-                doc = {
-                    "id": str(log.args.id),
-                    "statementId": log.args.id,
-                    "statementText": log.args.statement,
-                }
-                solr_client.add([doc])
-                pprint(f"Indexed statement ID {log.args.id} into Solr")
+from ourvoice.indexer import run_indexer
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="OurVoice Backend Service")
+    parser = argparse.ArgumentParser(description="OurVoice Indexer")
     parser.add_argument(
         "--forum-contract-address",
         type=str,
         required=True,
-        help="Address of the forum contract",
+        help="Address of the Forum contract",
     )
     parser.add_argument(
-        "--ethereum-node-url", type=str, required=True, help="URL of the Ethereum node"
+        "--ethereum-node-url",
+        type=str,
+        required=True,
+        help="WebSocket URL of the Ethereum node",
     )
     parser.add_argument(
-        "--solr-url", type=str, required=True, help="URL of the Solr instance"
+        "--meili-url",
+        type=str,
+        required=True,
+        help="URL of the Meilisearch instance",
+    )
+    parser.add_argument(
+        "--meili-api-key",
+        type=str,
+        default="",
+        help="Meilisearch API key (optional for local dev)",
     )
     return parser.parse_args()
 
 
-async def heartbeat() -> None:
-    while True:
-        pprint("Heartbeat: OurVoice backend is running...")
-        await asyncio.sleep(5)
-
-
 async def main() -> None:
     args = parse_args()
-    pprint(
-        f"Starting OurVoice backend with forum contract at {args.forum_contract_address} and Ethereum node {args.ethereum_node_url}"
+    meili_client = meilisearch.Client(args.meili_url, args.meili_api_key)
+    await run_indexer(
+        meili_client=meili_client,
+        forum_contract_address=args.forum_contract_address,
+        ethereum_node_url=args.ethereum_node_url,
     )
-
-    s = asyncio.create_task(
-        subscribe_to_transfer_events(
-            args.forum_contract_address,
-            args.ethereum_node_url,
-            args.solr_url
-        )
-    )
-    m = asyncio.create_task(heartbeat())
-    await asyncio.gather(s, m)
 
 
 if __name__ == "__main__":

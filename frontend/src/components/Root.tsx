@@ -1,21 +1,39 @@
-import { FC, useRef } from "react";
+import { FC, useRef, useState } from "react";
 import Box from "@mui/material/Box";
 import { Outlet } from "react-router-dom";
-import { Container } from "@mui/material";
+import { Container, Fab } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import CreateIcon from "@mui/icons-material/Create";
 
 import MenuAppBar from "./AppBar";
 import SideNav from "./SideNav";
 import BottomNav from "./BottomNav";
+import WriteModal from "./WriteModal";
 import useIsMobile from "@/hooks/useIsMobile";
+import { useUserVotes } from "../state/UserVotes";
+import useLocalStorageSet from "@/hooks/useLocalStorageSet";
 
 const Root: FC = () => {
   const layoutRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
   const theme = useTheme();
+  const { isUserVerified } = useUserVotes();
+  const { add: addAuthoredStatement } =
+    useLocalStorageSet("authoredStatements");
+  const [writeModalOpen, setWriteModalOpen] = useState(false);
 
   return (
-    <Box ref={layoutRef} sx={{ position: "relative" }}>
+    <Box
+      ref={layoutRef}
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100vh",
+        overflow: "hidden",
+      }}
+    >
+      <MenuAppBar />
+
       <Container
         component="main"
         maxWidth={false}
@@ -25,15 +43,17 @@ const Root: FC = () => {
           gap: isMobile
             ? theme.custom.layout.contentGap.mobile
             : theme.custom.layout.contentGap.desktop,
-          minHeight: "100vh",
+          flex: 1,
           maxWidth: isMobile ? undefined : "1000px",
           overflowY: "auto",
           overflowX: "visible",
+          pt: isMobile ? 2 : 3,
           pb: isMobile ? 14 : 8,
+          /* Hide scrollbar but keep scrolling */
+          scrollbarWidth: "none",
+          "&::-webkit-scrollbar": { display: "none" },
         }}
       >
-        <MenuAppBar />
-
         {isMobile ? (
           <Outlet />
         ) : (
@@ -47,6 +67,31 @@ const Root: FC = () => {
       </Container>
 
       {isMobile && <BottomNav />}
+
+      {/* Mobile FAB for Write */}
+      {isMobile && (
+        <>
+          <Fab
+            color="primary"
+            aria-label="write"
+            onClick={() => setWriteModalOpen(true)}
+            disabled={!isUserVerified}
+            sx={{
+              position: "fixed",
+              bottom: 80,
+              right: 24,
+              zIndex: 1201,
+            }}
+          >
+            <CreateIcon />
+          </Fab>
+          <WriteModal
+            open={writeModalOpen}
+            onClose={() => setWriteModalOpen(false)}
+            onStatementAdded={addAuthoredStatement}
+          />
+        </>
+      )}
     </Box>
   );
 };
