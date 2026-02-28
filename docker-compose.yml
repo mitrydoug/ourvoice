@@ -92,6 +92,7 @@ services:
       - MEILI_API_KEY=dev-master-key
       - FORUM_CONTRACT_ADDRESS=${FORUM_CONTRACT_ADDRESS:-0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0}
       - ETHEREUM_NODE_URL=ws://hardhat_mocked:8545
+      - CORS_ORIGINS=*
     ports:
       - "8000:8000"
     depends_on:

@@ -33,6 +33,7 @@ logger = logging.getLogger(__name__)
 
 MEILI_URL = os.getenv("MEILI_URL", "http://localhost:7700")
 MEILI_API_KEY = os.getenv("MEILI_API_KEY", "")
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "")
 FORUM_CONTRACT_ADDRESS = os.environ.get("FORUM_CONTRACT_ADDRESS", "")
 ETHEREUM_NODE_URL = os.environ.get("ETHEREUM_NODE_URL", "")
 
@@ -66,18 +67,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(title="OurVoice Search (combined)", lifespan=lifespan)
+
+if CORS_ORIGINS:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=CORS_ORIGINS.split(","),
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
 app.state.meili_client = meilisearch.Client(MEILI_URL, MEILI_API_KEY)
 create_api(app)
-
-origins = [
-    "http://localhost:5173",
-    "http://localhost:4173",
-]
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
