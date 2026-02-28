@@ -35,36 +35,34 @@ type SearchModalProps = {
   onClose: () => void;
 };
 
-const fetchSolrDocs = async (searchText: string): Promise<SearchResult[]> => {
-  console.log("Fetching Solr docs for:", searchText);
+const SEARCH_URL = import.meta.env.VITE_SEARCH_URL ?? "http://localhost:8000";
+
+const fetchSearchResults = async (
+  searchText: string,
+): Promise<SearchResult[]> => {
   const response = await fetch(
-    `http://localhost:8000/search?statement_text=${encodeURIComponent(searchText)}`,
+    `${SEARCH_URL}/search?statement_text=${encodeURIComponent(searchText)}`,
   );
-  const data = (await response.json()) as SearchResult[];
-  console.log("Solr Response:", data);
-  return data;
+  return (await response.json()) as SearchResult[];
 };
 
 const SearchModal: FC<SearchModalProps> = ({ open, onClose }) => {
   const [searchText, setSearchText] = useState("");
-  const [solrDocs, setSolrDocs] = useState<SearchResult[]>([]);
-
-  console.log("Solr Docs:", solrDocs);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
 
   const handleSubmit = (e: React.SyntheticEvent) => {
     e.preventDefault();
-    console.log("Search submitted:", searchText);
-    void fetchSolrDocs(searchText).then((docs) => {
-      setSolrDocs(docs);
+    void fetchSearchResults(searchText).then((docs) => {
+      setSearchResults(docs);
       onClose();
     });
   };
 
   useEffect(() => {
     if (searchText.trim() !== "") {
-      void fetchSolrDocs(searchText).then(setSolrDocs);
+      void fetchSearchResults(searchText).then(setSearchResults);
     } else {
-      setSolrDocs([]);
+      setSearchResults([]);
     }
   }, [searchText]);
 
@@ -92,9 +90,9 @@ const SearchModal: FC<SearchModalProps> = ({ open, onClose }) => {
           />
         </form>
         <List>
-          {solrDocs.map((doc, idx) => (
-            <ListItem key={`solr-doc-${idx}`}>
-              <ListItemText primary={doc.statement_text} />
+          {searchResults.map((result, idx) => (
+            <ListItem key={`search-result-${idx}`}>
+              <ListItemText primary={result.statement_text} />
             </ListItem>
           ))}
         </List>

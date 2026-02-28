@@ -19,6 +19,9 @@ interface ImportMetaEnv {
 
   /** WalletConnect projectId. Get a free one at https://cloud.walletconnect.com */
   readonly VITE_WALLETCONNECT_PROJECT_ID?: string;
+
+  /** Base URL for the search API. Defaults to http://localhost:8000 for local dev. */
+  readonly VITE_SEARCH_URL?: string;
 }
 
 interface ImportMeta {
