@@ -99,4 +99,4 @@ services:
         condition: service_healthy
       contract_deployer:
         condition: service_completed_successfully
-    command: sh -c " python -m venv .venv || true && source .venv/bin/activate && python -m pip install uv && python -m uv pip sync requirements.txt && uvicorn ourvoice.combined:app --host 0.0.0.0 --port 8000 --app-dir src"
+    command: sh -c " python -m venv .venv || true && . .venv/bin/activate && python -m pip install uv && python -m uv pip sync requirements.txt && uvicorn ourvoice.combined:app --host 0.0.0.0 --port 8000 --app-dir src"

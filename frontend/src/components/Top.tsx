@@ -24,6 +24,7 @@ const Top: FC = () => {
   const [pageIndex, setPageIndex] = useState(0);
   const [isPaginationLoading, setIsPaginationLoading] = useState(false);
   const paginationTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  console.log("Rendering Top with statements:", statements);
 
   // Clean up pagination timer on unmount
   useEffect(() => {
