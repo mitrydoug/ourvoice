@@ -1,6 +1,0 @@
-FROM python:3.12-alpine
-WORKDIR /app
-COPY requirements.txt .
-RUN python -m pip install uv && python -m uv pip sync requirements.txt
-COPY . .
-EXPOSE 8000
