@@ -7,11 +7,12 @@ import type {
 /**
  * Shared helper that deploys a set of Forum contracts pointing at the given registry.
  *
- * @param m                    - The Ignition module builder.
- * @param registry             - A Future resolving to the OurVoiceRegistry (or mock) contract.
- * @param forumNames           - The list of forum identifiers to deploy (e.g. ["global", "USA"]).
- *                               "global" is special-cased to pass an empty nationality string.
- * @param stepDurationSeconds  - The duration (in seconds) of a single decay/credit step.
+ * @param m                       - The Ignition module builder.
+ * @param registry                - A Future resolving to the OurVoiceRegistry (or mock) contract.
+ * @param forumNames              - The list of forum identifiers to deploy (e.g. ["global", "USA"]).
+ *                                  "global" is special-cased to pass an empty nationality string.
+ * @param stepDurationSeconds     - The duration (in seconds) of a single decay/credit step.
+ * @param engagementWindowSeconds - Minimum seconds between StatementEngaged events per statement.
  * @returns A record mapping each forum name to its deployed Forum contract Future.
  */
 export function deployForums(
@@ -19,6 +20,7 @@ export function deployForums(
   registry: ContractFuture<string>,
   forumNames: string[],
   stepDurationSeconds: number,
+  engagementWindowSeconds: number,
 ): {
   forums: Record<string, NamedArtifactContractDeploymentFuture<"Forum">>;
 } {
@@ -27,7 +29,7 @@ export function deployForums(
       forum,
       m.contract(
         "Forum",
-        [registry, forum === "global" ? "" : forum, 0, stepDurationSeconds],
+        [registry, forum === "global" ? "" : forum, 0, stepDurationSeconds, engagementWindowSeconds],
         { id: `Forum_${forum}` },
       ),
     ]),

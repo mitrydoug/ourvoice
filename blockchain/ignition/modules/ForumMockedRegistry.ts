@@ -133,6 +133,7 @@ const MOCK_SUPPORT: MockSupport[] = [
 export function createForumMockedModule(
   forumNames: string[],
   stepDurationSeconds: number,
+  engagementWindowSeconds: number,
 ) {
   return buildModule("ForumMockedRegistryModule", (m) => {
     const address1 = m.getAccount(0);
@@ -158,7 +159,7 @@ export function createForumMockedModule(
       id: "register4",
     });
 
-    const { forums } = deployForums(m, mockedZKRegistry, forumNames, stepDurationSeconds);
+    const { forums } = deployForums(m, mockedZKRegistry, forumNames, stepDurationSeconds, engagementWindowSeconds);
 
     // Track statement futures per forum so support calls can depend on them
     const statementFutures: Record<string, ReturnType<typeof m.call>[]> = {};

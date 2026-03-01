@@ -27,11 +27,11 @@ async function main() {
     const { networkHelpers } = connection;
     await networkHelpers.time.increaseTo(Math.floor(Date.now() / 1000) + 1);
 
-    const module = createForumMockedModule(config.forums, config.stepDurationSeconds);
+    const module = createForumMockedModule(config.forums, config.stepDurationSeconds, config.engagementWindowSeconds);
     const deployResult = await ignition.deploy(module);
     ({ registry, ...forums } = deployResult);
   } else {
-    const module = createForumProductionModule(config.forums, config.stepDurationSeconds);
+    const module = createForumProductionModule(config.forums, config.stepDurationSeconds, config.engagementWindowSeconds);
     const parametersPath = path.resolve(
       import.meta.dirname,
       "../ignition/parameters",
