@@ -42,6 +42,16 @@ def parse_args() -> argparse.Namespace:
         default="",
         help="Meilisearch API key (optional for local dev)",
     )
+    parser.add_argument(
+        "--backfill-from",
+        type=str,
+        default="",
+        help=(
+            "Backfill historical events before switching to live mode. "
+            "Accepts: ISO datetime (2025-01-01), relative delta (30d, 24h), "
+            "explicit block number (block:12345), or 'all' for full history."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -52,6 +62,7 @@ async def main() -> None:
         meili_client=meili_client,
         forum_contract_address=args.forum_contract_address,
         ethereum_node_url=args.ethereum_node_url,
+        backfill_from=args.backfill_from,
     )
 
 

@@ -10,6 +10,12 @@ Required env vars:
     MEILI_API_KEY        — Meilisearch API key (default: empty)
     FORUM_CONTRACT_ADDRESS — Forum contract address (required)
     ETHEREUM_NODE_URL    — WebSocket RPC URL (required)
+
+Optional env vars:
+    BACKFILL_FROM        — Backfill historical events on startup.
+                           Accepts: ISO datetime (2025-01-01), relative
+                           delta (30d, 24h), block number (block:123),
+                           or 'all'.  Empty = no backfill.
 """
 
 import asyncio
@@ -36,6 +42,7 @@ MEILI_API_KEY = os.getenv("MEILI_API_KEY", "")
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "")
 FORUM_CONTRACT_ADDRESS = os.environ.get("FORUM_CONTRACT_ADDRESS", "")
 ETHEREUM_NODE_URL = os.environ.get("ETHEREUM_NODE_URL", "")
+BACKFILL_FROM = os.environ.get("BACKFILL_FROM", "")
 
 
 @asynccontextmanager
@@ -54,6 +61,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             meili_client=app.state.meili_client,
             forum_contract_address=FORUM_CONTRACT_ADDRESS,
             ethereum_node_url=ETHEREUM_NODE_URL,
+            backfill_from=BACKFILL_FROM,
         )
     )
     logger.info("Indexer background task started")
