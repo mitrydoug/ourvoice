@@ -1108,7 +1108,10 @@ contract ForumTest is Test {
     // Section: StatementRankChanged event
     // ======================================================================
 
-    function testRankChangedEmittedOnAddStatementSupport() external registeredMember {
+    function testRankChangedEmittedOnAddStatementSupport()
+        external
+        registeredMember
+    {
         forum.addStatement("Statement A");
         vm.expectEmit(true, false, false, true);
         emit Forum.StatementRankChanged(0, -1, 0);
@@ -1223,7 +1226,10 @@ contract ForumTest is Test {
                 found = true;
             }
         }
-        assertTrue(found, "StatementEngaged should be emitted on first interaction");
+        assertTrue(
+            found,
+            "StatementEngaged should be emitted on first interaction"
+        );
     }
 
     function testEngagedNotEmittedWithinWindow() external registeredMember {
@@ -1287,7 +1293,10 @@ contract ForumTest is Test {
                 found = true;
             }
         }
-        assertTrue(found, "StatementEngaged should emit for B independently of A's cooldown");
+        assertTrue(
+            found,
+            "StatementEngaged should emit for B independently of A's cooldown"
+        );
     }
 
     function testEngagedTimestampResetsOnEmission() external registeredMember {

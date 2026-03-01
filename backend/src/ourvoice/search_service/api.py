@@ -10,6 +10,7 @@ from ourvoice.indexer import STATEMENTS_INDEX
 class SearchResult(BaseModel):
     statement_id: int
     statement_text: str
+    last_engagement: int | None = None
 
 
 def create_api(app: FastAPI) -> None:
@@ -31,6 +32,7 @@ def create_api(app: FastAPI) -> None:
             SearchResult(
                 statement_id=hit["statementId"],
                 statement_text=hit["statementText"],
+                last_engagement=hit.get("lastEngagement"),
             )
             for hit in results["hits"]
         ]

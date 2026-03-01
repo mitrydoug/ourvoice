@@ -1,5 +1,5 @@
 """Blockchain event indexer — subscribes to new blocks via WebSocket and indexes
-``StatementAdded`` events into Meilisearch.
+``StatementAdded`` and ``StatementEngaged`` events into Meilisearch.
 
 Supports historical backfill via the ``backfill_from`` parameter, which
 accepts:
@@ -8,14 +8,19 @@ accepts:
 - Explicit block numbers (``block:12345``)
 - The keyword ``all`` to replay from genesis
 
+Stale documents (those whose ``lastEngagement`` is older than a configurable
+TTL) are periodically evicted from the index.
+
 Can be run standalone (``python -m ourvoice.main``) or embedded in the combined
 process via the ``run_indexer`` coroutine.
 """
 
 import asyncio
+import contextlib
 import json
 import logging
 import re
+import time
 from datetime import datetime, timedelta, timezone
 from importlib.resources import files
 from typing import Any
@@ -31,6 +36,14 @@ STATEMENTS_INDEX = "statements"
 
 # Maximum number of blocks to request per ``get_logs`` call during backfill.
 _BACKFILL_BATCH_SIZE = 1000
+
+# Default maximum age (in seconds) for documents without recent engagement.
+# Documents whose ``lastEngagement`` is older than this are periodically
+# evicted from the search index.  7 days = 604_800 seconds.
+DEFAULT_EVICTION_MAX_AGE_SECONDS = 7 * 24 * 60 * 60
+
+# How often (in seconds) the eviction sweep runs.
+_EVICTION_INTERVAL_SECONDS = 60 * 60  # 1 hour
 
 
 def _load_forum_abi() -> list[dict[str, Any]]:
@@ -49,7 +62,10 @@ def _ensure_index(client: meilisearch.Client) -> None:
 
     # Ensure searchable/filterable attributes are configured.
     client.index(STATEMENTS_INDEX).update_searchable_attributes(["statementText"])
-    client.index(STATEMENTS_INDEX).update_filterable_attributes(["statementId"])
+    client.index(STATEMENTS_INDEX).update_filterable_attributes(
+        ["statementId", "lastEngagement"]
+    )
+    client.index(STATEMENTS_INDEX).update_sortable_attributes(["lastEngagement"])
 
 
 # ---------------------------------------------------------------------------
@@ -200,7 +216,8 @@ async def _backfill(
     index: Any,
     from_block: int,
 ) -> None:
-    """Fetch historical ``StatementAdded`` events and index them."""
+    """Fetch historical ``StatementAdded`` and ``StatementEngaged`` events and
+    index them."""
     latest_block: int = (await w3.eth.get_block("latest"))["number"]
     if from_block > latest_block:
         logger.info(
@@ -211,33 +228,99 @@ async def _backfill(
         return
 
     logger.info(
-        "Backfill: scanning blocks %d → %d for StatementAdded events…",
+        "Backfill: scanning blocks %d → %d for StatementAdded/StatementEngaged events…",
         from_block,
         latest_block,
     )
 
-    total_indexed = 0
+    total_added = 0
+    total_engaged = 0
     cursor = from_block
     while cursor <= latest_block:
         end = min(cursor + _BACKFILL_BATCH_SIZE - 1, latest_block)
-        logs = await contract.events.StatementAdded().get_logs(
+
+        # --- StatementAdded events ---
+        added_logs = await contract.events.StatementAdded().get_logs(
             from_block=cursor,
             to_block=end,
         )
-        if logs:
+        if added_logs:
             docs = [
                 {
                     "id": str(log.args.id),
                     "statementId": log.args.id,
                     "statementText": log.args.statement,
                 }
-                for log in logs
+                for log in added_logs
             ]
             index.add_documents(docs)
-            total_indexed += len(docs)
+            total_added += len(docs)
+
+        # --- StatementEngaged events ---
+        engaged_logs = await contract.events.StatementEngaged().get_logs(
+            from_block=cursor,
+            to_block=end,
+        )
+        if engaged_logs:
+            # Resolve block timestamps for each engagement event.
+            engagement_updates = await _engagement_docs(w3, engaged_logs)
+            index.add_documents(engagement_updates)
+            total_engaged += len(engagement_updates)
+
         cursor = end + 1
 
-    logger.info("Backfill complete: indexed %d statement(s)", total_indexed)
+    logger.info(
+        "Backfill complete: indexed %d statement(s), %d engagement(s)",
+        total_added,
+        total_engaged,
+    )
+
+
+async def _engagement_docs(w3: AsyncWeb3, logs: list[Any]) -> list[dict[str, Any]]:
+    """Build Meilisearch partial-update documents for engagement events.
+
+    Each document sets ``lastEngagement`` to the block timestamp (unix seconds).
+    If multiple engagement events arrive in the same batch for the same
+    statement, only the latest timestamp is kept.
+    """
+    # Collect unique block numbers to batch-fetch timestamps.
+    block_numbers: set[int] = {log.blockNumber for log in logs}
+    block_timestamps: dict[int, int] = {}
+    for bn in block_numbers:
+        block = await w3.eth.get_block(bn)
+        block_timestamps[bn] = block["timestamp"]
+
+    # Deduplicate: keep the latest engagement per statement.
+    latest: dict[int, int] = {}  # statementId -> timestamp
+    for log in logs:
+        sid = log.args.statementId
+        ts = block_timestamps[log.blockNumber]
+        if sid not in latest or ts > latest[sid]:
+            latest[sid] = ts
+
+    return [{"id": str(sid), "lastEngagement": ts} for sid, ts in latest.items()]
+
+
+async def _eviction_loop(
+    index: Any,
+    eviction_max_age_seconds: int,
+) -> None:
+    """Periodically delete documents whose ``lastEngagement`` is stale.
+
+    Runs forever; safe to cancel.
+    """
+    while True:
+        await asyncio.sleep(_EVICTION_INTERVAL_SECONDS)
+        try:
+            cutoff = int(time.time()) - eviction_max_age_seconds
+            result = index.delete_documents_by_filter(f"lastEngagement < {cutoff}")
+            logger.info(
+                "Eviction sweep: submitted task %s (cutoff ts=%d)",
+                result.task_uid,
+                cutoff,
+            )
+        except Exception:
+            logger.exception("Eviction sweep failed")
 
 
 async def run_indexer(
@@ -245,11 +328,16 @@ async def run_indexer(
     forum_contract_address: str,
     ethereum_node_url: str,
     backfill_from: str = "",
+    eviction_max_age_seconds: int = DEFAULT_EVICTION_MAX_AGE_SECONDS,
 ) -> None:
-    """Subscribe to new blocks and index ``StatementAdded`` events.
+    """Subscribe to new blocks and index ``StatementAdded`` /
+    ``StatementEngaged`` events.
 
     If *backfill_from* is set, historical events are indexed first before
     switching to live monitoring.  See module docstring for accepted formats.
+
+    Documents whose ``lastEngagement`` is older than
+    *eviction_max_age_seconds* are periodically removed from the index.
 
     This coroutine runs indefinitely.  It is safe to cancel via
     ``task.cancel()``.
@@ -259,58 +347,90 @@ async def run_indexer(
     index = meili_client.index(STATEMENTS_INDEX)
 
     logger.info(
-        "Starting indexer for contract %s via %s",
+        "Starting indexer for contract %s via %s (eviction TTL=%ds)",
         forum_contract_address,
         ethereum_node_url,
+        eviction_max_age_seconds,
     )
+
+    # Start the eviction background loop.
+    eviction_task = asyncio.create_task(_eviction_loop(index, eviction_max_age_seconds))
 
     backfill_done = False
 
-    while True:
-        try:
-            async with AsyncWeb3(WebSocketProvider(ethereum_node_url)) as w3:
-                contract = w3.eth.contract(
-                    address=forum_contract_address, abi=forum_abi
-                )
-
-                # ── One-time backfill ──────────────────────────────────
-                if not backfill_done and backfill_from:
-                    start_block = await _resolve_start_block(w3, backfill_from)
-                    if start_block is not None:
-                        await _backfill(w3, contract, index, start_block)
-                    backfill_done = True
-
-                # ── Live subscription ──────────────────────────────────
-                await w3.eth.subscribe("newHeads")
-                logger.info("Subscribed to new block headers")
-
-                async for response in w3.socket.process_subscriptions():
-                    block = response["result"]
-                    block_number = block["number"]
-                    logger.debug("Block #%s mined", block_number)
-
-                    logs = await contract.events.StatementAdded().get_logs(
-                        from_block=block_number
+    try:
+        while True:
+            try:
+                async with AsyncWeb3(WebSocketProvider(ethereum_node_url)) as w3:
+                    contract = w3.eth.contract(
+                        address=forum_contract_address, abi=forum_abi
                     )
 
-                    if logs:
-                        docs = [
-                            {
-                                "id": str(log.args.id),
-                                "statementId": log.args.id,
-                                "statementText": log.args.statement,
-                            }
-                            for log in logs
-                        ]
-                        index.add_documents(docs)
-                        logger.info(
-                            "Indexed %d statement(s) from block #%s",
-                            len(docs),
-                            block_number,
+                    # ── One-time backfill ──────────────────────────────
+                    if not backfill_done and backfill_from:
+                        start_block = await _resolve_start_block(w3, backfill_from)
+                        if start_block is not None:
+                            await _backfill(w3, contract, index, start_block)
+                        backfill_done = True
+
+                    # ── Live subscription ─────────────────────────────
+                    await w3.eth.subscribe("newHeads")
+                    logger.info("Subscribed to new block headers")
+
+                    async for response in w3.socket.process_subscriptions():
+                        block = response["result"]
+                        block_number = block["number"]
+                        block_timestamp: int = int(block.get("timestamp", 0))
+                        logger.debug("Block #%s mined", block_number)
+
+                        # --- StatementAdded ---
+                        added_logs = await contract.events.StatementAdded().get_logs(
+                            from_block=block_number
                         )
-        except asyncio.CancelledError:
-            logger.info("Indexer cancelled, shutting down")
-            raise
-        except Exception:
-            logger.exception("Indexer connection error, reconnecting in 5 seconds…")
-            await asyncio.sleep(5)
+                        if added_logs:
+                            docs = [
+                                {
+                                    "id": str(log.args.id),
+                                    "statementId": log.args.id,
+                                    "statementText": log.args.statement,
+                                }
+                                for log in added_logs
+                            ]
+                            index.add_documents(docs)
+                            logger.info(
+                                "Indexed %d statement(s) from block #%s",
+                                len(docs),
+                                block_number,
+                            )
+
+                        # --- StatementEngaged ---
+                        engaged_logs = (
+                            await contract.events.StatementEngaged().get_logs(
+                                from_block=block_number
+                            )
+                        )
+                        if engaged_logs:
+                            engagement_docs = [
+                                {
+                                    "id": str(log.args.statementId),
+                                    "lastEngagement": block_timestamp,
+                                }
+                                for log in engaged_logs
+                            ]
+                            index.add_documents(engagement_docs)
+                            logger.info(
+                                "Updated engagement for %d statement(s) in block #%s",
+                                len(engagement_docs),
+                                block_number,
+                            )
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                logger.exception("Indexer connection error, reconnecting in 5 seconds…")
+                await asyncio.sleep(5)
+    except asyncio.CancelledError:
+        logger.info("Indexer cancelled, shutting down")
+        eviction_task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await eviction_task
+        raise
