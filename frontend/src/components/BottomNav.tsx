@@ -7,7 +7,7 @@ import ArticleIcon from "@mui/icons-material/Article";
 import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
 
 const NAV_ITEMS = [
-  { label: "Home", href: "/top", icon: <HomeIcon /> },
+  { label: "Home", href: "/", icon: <HomeIcon /> },
   { label: "My Support", href: "/my-support", icon: <FavoriteBorderIcon /> },
   {
     label: "My Statements",
@@ -22,9 +22,7 @@ const BottomNav: FC = () => {
   const navigate = useNavigate();
 
   const currentIndex = NAV_ITEMS.findIndex(
-    (item) =>
-      location.pathname === item.href ||
-      (item.href === "/top" && location.pathname === "/"),
+    (item) => location.pathname === item.href,
   );
 
   return (

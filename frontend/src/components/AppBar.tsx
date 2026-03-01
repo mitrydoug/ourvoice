@@ -12,14 +12,14 @@ import {
   TextField,
 } from "@mui/material";
 import { useAccount, useDisconnect } from "wagmi";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useUserVotes } from "../state/UserVotes";
 import ChooseForumModal, { FORUMS } from "./ChooseForumModal";
 import SearchIcon from "@mui/icons-material/Search";
+import ClearIcon from "@mui/icons-material/Clear";
 import { useForum } from "../state/Forum";
 import { metamaskIcon } from "../util";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
-import SearchModal from "./SearchModal";
 import useIsMobile from "@/hooks/useIsMobile";
 import { useTheme } from "@mui/material/styles";
 import { AccountDrawer } from "./UserProfileMenu";
@@ -129,28 +129,38 @@ const Logo: React.FC<LogoProps> = ({ isMobile }) => {
 };
 
 interface SearchFieldProps {
-  onClick: () => void;
+  value: string;
+  onChange: (value: string) => void;
+  onClear: () => void;
   fullWidth?: boolean;
 }
 
 const SearchField: React.FC<SearchFieldProps> = ({
-  onClick,
+  value,
+  onChange,
+  onClear,
   fullWidth = false,
 }) => (
   <TextField
     placeholder="Search..."
     size="small"
-    onClick={onClick}
+    value={value}
+    onChange={(e) => onChange(e.target.value)}
     slotProps={{
       input: {
-        readOnly: true,
         startAdornment: (
           <InputAdornment position="start">
             <SearchIcon fontSize="small" />
           </InputAdornment>
         ),
+        endAdornment: value ? (
+          <InputAdornment position="end">
+            <IconButton size="small" onClick={onClear} edge="end">
+              <ClearIcon fontSize="small" />
+            </IconButton>
+          </InputAdornment>
+        ) : undefined,
         sx: {
-          cursor: "pointer",
           backgroundColor: "white",
           height: 36,
           fontSize: "0.875rem",
@@ -161,7 +171,6 @@ const SearchField: React.FC<SearchFieldProps> = ({
       width: fullWidth ? "100%" : "auto",
       flexGrow: 1,
       "& .MuiOutlinedInput-root": {
-        cursor: "pointer",
         backgroundColor: "white",
       },
     }}
@@ -175,11 +184,24 @@ export default function MenuAppBar() {
   const { address } = useAccount();
   const isMobile = useIsMobile();
   const [chooseForumModalOpen, setChooseForumModalOpen] = useState(false);
-  const [searchModalOpen, setSearchModalOpen] = useState(false);
   const { name: forumName, setForum } = useForum();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { disconnect: doDisconnect } = useDisconnect();
   const { openConnectModal } = useConnectModal();
+
+  // Mirror the URL ?q= param into a local controlled value for the text field.
+  const searchQuery = searchParams.get("q") ?? "";
+
+  const setSearchQuery = (value: string) => {
+    if (value) {
+      void navigate(`/?q=${encodeURIComponent(value)}`, { replace: true });
+    } else {
+      void navigate("/", { replace: true });
+    }
+  };
+
+  const clearSearch = () => setSearchQuery("");
 
   useEffect(() => {
     if (address) {
@@ -264,7 +286,7 @@ export default function MenuAppBar() {
                       navigate={(path: string) => void navigate(path)}
                       disconnect={doDisconnect}
                       avatar={avatar}
-                      commitSupport={commitSupport ?? (() => {})}
+                      commitSupport={commitSupport ?? (() => { })}
                       hasStagedChanges={
                         userVoteState?.hasStagedChanges ?? false
                       }
@@ -293,7 +315,11 @@ export default function MenuAppBar() {
                 onClick={() => setChooseForumModalOpen(true)}
               />
 
-              <SearchField onClick={() => setSearchModalOpen(true)} />
+              <SearchField
+                value={searchQuery}
+                onChange={setSearchQuery}
+                onClear={clearSearch}
+              />
 
               {!address && (
                 <Button onClick={() => openConnectModal?.()} size="medium">
@@ -313,7 +339,12 @@ export default function MenuAppBar() {
               alignItems="center"
               sx={{ mt: 1, width: "100%" }}
             >
-              <SearchField onClick={() => setSearchModalOpen(true)} fullWidth />
+              <SearchField
+                value={searchQuery}
+                onChange={setSearchQuery}
+                onClear={clearSearch}
+                fullWidth
+              />
             </Stack>
           )}
         </Toolbar>
@@ -325,10 +356,6 @@ export default function MenuAppBar() {
           setForum(forum);
           setChooseForumModalOpen(false);
         }}
-      />
-      <SearchModal
-        open={searchModalOpen}
-        onClose={() => setSearchModalOpen(false)}
       />
       {userVoteState && resetCommitStatus && (
         <CommitSupportModal

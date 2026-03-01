@@ -1,7 +1,7 @@
 import { FC } from "react";
 
 import { createHashRouter, RouterProvider } from "react-router-dom";
-import Top from "./components/Top.tsx";
+import Home from "./components/Home.tsx";
 
 import Root from "./components/Root.tsx";
 import MySupport from "./components/MySupport.tsx";
@@ -25,12 +25,8 @@ export const App: FC = () => {
       Component: Root,
       children: [
         {
-          Component: Top,
+          Component: Home,
           index: true,
-        },
-        {
-          path: "/top",
-          Component: Top,
         },
         {
           path: "/my-support",
