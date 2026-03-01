@@ -12,7 +12,7 @@ import {
   TextField,
 } from "@mui/material";
 import { useAccount, useDisconnect } from "wagmi";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useUserVotes } from "../state/UserVotes";
 import ChooseForumModal, { FORUMS } from "./ChooseForumModal";
 import SearchIcon from "@mui/icons-material/Search";
@@ -24,6 +24,7 @@ import useIsMobile from "@/hooks/useIsMobile";
 import { useTheme } from "@mui/material/styles";
 import { AccountDrawer } from "./UserProfileMenu";
 import CommitSupportModal from "./CommitSupportModal";
+import { useSearchQuery } from "@/state/Search";
 
 const MIC_ICON = (
   <svg
@@ -186,22 +187,14 @@ export default function MenuAppBar() {
   const [chooseForumModalOpen, setChooseForumModalOpen] = useState(false);
   const { name: forumName, setForum } = useForum();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { disconnect: doDisconnect } = useDisconnect();
   const { openConnectModal } = useConnectModal();
 
-  // Mirror the URL ?q= param into a local controlled value for the text field.
-  const searchQuery = searchParams.get("q") ?? "";
-
-  const setSearchQuery = (value: string) => {
-    if (value) {
-      void navigate(`/?q=${encodeURIComponent(value)}`, { replace: true });
-    } else {
-      void navigate("/", { replace: true });
-    }
-  };
-
-  const clearSearch = () => setSearchQuery("");
+  const {
+    query: localQuery,
+    setQuery: setSearchQuery,
+    clearQuery: clearSearch,
+  } = useSearchQuery();
 
   useEffect(() => {
     if (address) {
@@ -316,7 +309,7 @@ export default function MenuAppBar() {
               />
 
               <SearchField
-                value={searchQuery}
+                value={localQuery}
                 onChange={setSearchQuery}
                 onClear={clearSearch}
               />
@@ -340,7 +333,7 @@ export default function MenuAppBar() {
               sx={{ mt: 1, width: "100%" }}
             >
               <SearchField
-                value={searchQuery}
+                value={localQuery}
                 onChange={setSearchQuery}
                 onClear={clearSearch}
                 fullWidth

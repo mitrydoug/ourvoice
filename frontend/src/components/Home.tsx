@@ -1,6 +1,5 @@
 import { FC, useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useReadContract, useReadContracts } from "wagmi";
-import { useSearchParams } from "react-router-dom";
 import { useForum, FORUM_ABI } from "../state/Forum";
 import { Statement } from "../types";
 import StatementList from "./StatementList";
@@ -9,6 +8,7 @@ import { useSearch } from "@/hooks/useSearch";
 import useIsMobile from "@/hooks/useIsMobile";
 import useBlockSync from "@/hooks/useBlockSync";
 import useLocalStorageSet from "@/hooks/useLocalStorageSet";
+import { useSearchQuery } from "@/state/Search";
 
 /** Minimum time (ms) the loading spinner is shown when paginating. */
 const PAGINATION_MIN_LOADING_MS = 2000;
@@ -23,9 +23,8 @@ const Home: FC = () => {
   const { has: isBookmarked, toggle: toggleBookmark } =
     useLocalStorageSet("bookmarks");
 
-  // ── Search state from URL ──────────────────────────────────────────────
-  const [searchParams] = useSearchParams();
-  const searchQuery = searchParams.get("q") ?? "";
+  // ── Search state from context ───────────────────────────────────────────
+  const { query: searchQuery } = useSearchQuery();
   const hasSearch = searchQuery.trim().length > 0;
 
   // ── Sort tab ───────────────────────────────────────────────────────────
@@ -155,6 +154,7 @@ const SearchResults: FC<SearchResultsProps> = ({
       hasMore={false}
       isLoading={isLoading}
       onLoadMore={() => { }}
+      loadingLabel="Searching…"
       isBookmarked={isBookmarked}
       onToggleBookmark={onToggleBookmark}
     />

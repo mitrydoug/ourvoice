@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
+import { writeQueryToHash } from "@/state/Search";
 
 /** Maximum number of search results to fetch from the backend. */
 export const SEARCH_RESULTS_LIMIT = 20;
 
 const SEARCH_URL = import.meta.env.VITE_SEARCH_URL ?? "http://localhost:8000";
 
-/** Debounce delay in milliseconds. */
+/** Debounce delay in milliseconds before hitting the search API. */
 const DEBOUNCE_MS = 300;
 
 export interface SearchHit {
@@ -22,8 +23,14 @@ interface UseSearchResult {
 /**
  * Debounced full-text search against the backend `/search` endpoint.
  *
+ * Waits {@link DEBOUNCE_MS} after the last `query` change before firing the
+ * request.  On a successful response the URL hash is updated so the query
+ * is reflected in a copyable/bookmarkable URL.
+ *
  * Returns an ordered list of statement IDs sorted by relevance.
- * When `query` is empty the result set is empty immediately (no request).
+ * When `query` is empty the result set is cleared immediately (no request)
+ * and the URL is **not** touched (the caller handles clearing via
+ * `clearQuery`).
  */
 export function useSearch(query: string): UseSearchResult {
   const [hits, setHits] = useState<SearchHit[]>([]);
@@ -50,11 +57,9 @@ export function useSearch(query: string): UseSearchResult {
       )
         .then((res) => res.json())
         .then((data: unknown) => {
-          // Discard if a newer request has been fired.
           if (requestId !== inflightRef.current) return;
 
           const results = Array.isArray(data) ? data : [];
-          console.log("Search results:", results);
           setHits(
             results
               .slice(0, SEARCH_RESULTS_LIMIT)
@@ -63,6 +68,9 @@ export function useSearch(query: string): UseSearchResult {
               })),
           );
           setIsLoading(false);
+
+          // Sync the successfully-searched query to the URL.
+          writeQueryToHash(trimmed);
         })
         .catch(() => {
           if (requestId !== inflightRef.current) return;
