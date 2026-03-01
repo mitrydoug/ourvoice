@@ -245,11 +245,20 @@ async def _backfill(
             to_block=end,
         )
         if added_logs:
+            # Resolve block timestamps so each document gets a
+            # lastEngagement value (prevents premature eviction).
+            added_block_nums: set[int] = {log.blockNumber for log in added_logs}
+            added_block_ts: dict[int, int] = {}
+            for bn in added_block_nums:
+                blk = await w3.eth.get_block(bn)
+                added_block_ts[bn] = blk["timestamp"]
+
             docs = [
                 {
                     "id": str(log.args.id),
                     "statementId": log.args.id,
                     "statementText": log.args.statement,
+                    "lastEngagement": added_block_ts[log.blockNumber],
                 }
                 for log in added_logs
             ]
@@ -264,7 +273,7 @@ async def _backfill(
         if engaged_logs:
             # Resolve block timestamps for each engagement event.
             engagement_updates = await _engagement_docs(w3, engaged_logs)
-            index.add_documents(engagement_updates)
+            index.update_documents(engagement_updates)
             total_engaged += len(engagement_updates)
 
         cursor = end + 1
@@ -393,6 +402,7 @@ async def run_indexer(
                                     "id": str(log.args.id),
                                     "statementId": log.args.id,
                                     "statementText": log.args.statement,
+                                    "lastEngagement": block_timestamp,
                                 }
                                 for log in added_logs
                             ]
@@ -417,7 +427,7 @@ async def run_indexer(
                                 }
                                 for log in engaged_logs
                             ]
-                            index.add_documents(engagement_docs)
+                            index.update_documents(engagement_docs)
                             logger.info(
                                 "Updated engagement for %d statement(s) in block #%s",
                                 len(engagement_docs),
