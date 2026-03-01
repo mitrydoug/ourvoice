@@ -66,6 +66,23 @@ const StatementList: FC<StatementListProps> = ({
     };
   }, [hasMore, isLoading, onLoadMore]);
 
+  if (!isLoading && statements.length === 0) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100%",
+        }}
+      >
+        <Typography variant="body1" color="text.secondary">
+          No statements found
+        </Typography>
+      </Box>
+    );
+  }
+
   return (
     <>
       <Stack spacing={1}>
