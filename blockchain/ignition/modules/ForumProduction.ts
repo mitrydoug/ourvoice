@@ -23,6 +23,11 @@ export function createForumProductionModule(
   forumNames: string[],
   stepDurationSeconds: number,
   engagementWindowSeconds: number,
+  maxRankedStatements: number,
+  minStatementSupportToRank: number,
+  maxStatementLength: number,
+  userCreditAllowancePerStep: number,
+  userStartingCredits: number,
 ) {
   return buildModule("ForumProductionModule", (m) => {
     const verifierAddress = m.getParameter<string>("verifierAddress");
@@ -42,7 +47,12 @@ export function createForumProductionModule(
       devMode,
     ]);
 
-    const { forums } = deployForums(m, registry, forumNames, stepDurationSeconds, engagementWindowSeconds);
+    const { forums } = deployForums(
+      m, registry, forumNames,
+      stepDurationSeconds, engagementWindowSeconds,
+      maxRankedStatements, minStatementSupportToRank,
+      maxStatementLength, userCreditAllowancePerStep, userStartingCredits,
+    );
 
     return { registry, ...forums };
   });
