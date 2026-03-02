@@ -16,23 +16,18 @@ contract Forum {
     error InsufficientCredits(uint available, int required);
     error TimestampOrderInvalid(uint fromTimestamp, uint toTimestamp);
 
-    // Maximum length (in chars) of a statement
-    uint public constant MAX_STATEMENT_LENGTH = 120;
+    // Maximum length (in bytes) of a statement
+    uint public immutable maxStatementLength;
     // Amount of credits a user is credited each "step"
-    uint public constant USER_CREDIT_ALLOWANCE_PER_STEP = 25;
-    // Starting credits for a new user, one week of allowance
-    uint public constant USER_STARTING_CREDITS = 1050;
-    // We only track this many statements for ranking purposes
-    uint public constant MAX_RANKED_STATEMENTS = 1000;
+    uint public immutable userCreditAllowancePerStep;
+    // Starting credits for a new user
+    uint public immutable userStartingCredits;
     // Minimum support required for a statement to be ranked
-    int public constant MIN_STATEMENT_SUPPORT_TO_RANK = 2;
-
-    // Configurable max ranked statements (defaults to MAX_RANKED_STATEMENTS)
+    int public immutable minStatementSupportToRank;
+    // We only track this many statements for ranking purposes
     uint public immutable maxRankedStatements;
-
     // Duration of a single decay/credit step in seconds
     uint public immutable stepDurationSeconds;
-
     // Minimum seconds between StatementEngaged events for the same statement
     uint public immutable engagementWindowSeconds;
 
@@ -108,15 +103,21 @@ contract Forum {
         string memory _nationality,
         uint _maxRankedStatements,
         uint _stepDurationSeconds,
-        uint _engagementWindowSeconds
+        uint _engagementWindowSeconds,
+        uint _maxStatementLength,
+        uint _userCreditAllowancePerStep,
+        uint _userStartingCredits,
+        int _minStatementSupportToRank
     ) {
         ourVoiceRegistry = _ourVoiceRegistry;
         nationality = _nationality;
-        maxRankedStatements = _maxRankedStatements == 0
-            ? MAX_RANKED_STATEMENTS
-            : _maxRankedStatements;
+        maxRankedStatements = _maxRankedStatements;
         stepDurationSeconds = _stepDurationSeconds;
         engagementWindowSeconds = _engagementWindowSeconds;
+        maxStatementLength = _maxStatementLength;
+        userCreditAllowancePerStep = _userCreditAllowancePerStep;
+        userStartingCredits = _userStartingCredits;
+        minStatementSupportToRank = _minStatementSupportToRank;
     }
 
     function _resolveStatement(
@@ -205,7 +206,7 @@ contract Forum {
             _getCurrentSupportValue(
                 statements[statementRankings[rankedCount - 1]].support
             ) <
-            MIN_STATEMENT_SUPPORT_TO_RANK
+            minStatementSupportToRank
         ) {
             rankedCount -= 1;
             _setStatementRank(statementRankings[rankedCount], -1);
@@ -214,7 +215,7 @@ contract Forum {
 
     function _getRankingThreshold() internal view returns (int) {
         if (rankedCount < maxRankedStatements) {
-            return MIN_STATEMENT_SUPPORT_TO_RANK;
+            return minStatementSupportToRank;
         }
         uint _lowestRankedStatementId = statementRankings[rankedCount - 1];
         return
@@ -300,10 +301,10 @@ contract Forum {
     }
 
     function addStatement(string calldata _statementText) external onlyMembers {
-        if (bytes(_statementText).length > MAX_STATEMENT_LENGTH)
+        if (bytes(_statementText).length > maxStatementLength)
             revert StatementTooLong(
                 bytes(_statementText).length,
-                MAX_STATEMENT_LENGTH
+                maxStatementLength
             );
 
         // Ensure the statement is not empty
@@ -400,7 +401,7 @@ contract Forum {
         UserBalance memory _balance
     ) internal view returns (uint) {
         if (_balance.lastUpdated == 0) {
-            _balance.credits = USER_STARTING_CREDITS;
+            _balance.credits = userStartingCredits;
             _balance.lastUpdated = ourVoiceRegistry
                 .getUserRegistration(msg.sender)
                 .registrationTimestamp;
@@ -410,8 +411,7 @@ contract Forum {
             _balance.lastUpdated,
             block.timestamp
         );
-        return
-            _balance.credits + (_elapsedSteps * USER_CREDIT_ALLOWANCE_PER_STEP);
+        return _balance.credits + (_elapsedSteps * userCreditAllowancePerStep);
     }
 
     function _updateUserBalanceToBeCurrent(

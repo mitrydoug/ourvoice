@@ -11,6 +11,11 @@ type MockedDeploymentConfig = {
   forums: string[];
   stepDurationSeconds: number;
   engagementWindowSeconds: number;
+  maxRankedStatements: number;
+  minStatementSupportToRank: number;
+  maxStatementLength: number;
+  userCreditAllowancePerStep: number;
+  userStartingCredits: number;
 };
 
 type ProductionDeploymentConfig = {
@@ -18,6 +23,11 @@ type ProductionDeploymentConfig = {
   forums: string[];
   stepDurationSeconds: number;
   engagementWindowSeconds: number;
+  maxRankedStatements: number;
+  minStatementSupportToRank: number;
+  maxStatementLength: number;
+  userCreditAllowancePerStep: number;
+  userStartingCredits: number;
   parametersFile: string;
 };
 
@@ -28,24 +38,39 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
   default: {
     mode: "mocked",
     forums: ["global", "USA", "CAN"],
-    stepDurationSeconds: 10,
-    engagementWindowSeconds: 300, // Short engagement window for testing
+    stepDurationSeconds: 60,
+    engagementWindowSeconds: 300,
+    maxRankedStatements: 10,
+    minStatementSupportToRank: 3,
+    maxStatementLength: 120,
+    userCreditAllowancePerStep: 25,
+    userStartingCredits: 1000,
   },
 
   /** Docker Compose Hardhat node with mock data. */
   compose_hardhat: {
     mode: "mocked",
     forums: ["global", "USA", "CAN"],
-    stepDurationSeconds: 10,
-    engagementWindowSeconds: 300, // Short engagement window for testing
+    stepDurationSeconds: 60,
+    engagementWindowSeconds: 300,
+    maxRankedStatements: 10,
+    minStatementSupportToRank: 3,
+    maxStatementLength: 120,
+    userCreditAllowancePerStep: 25,
+    userStartingCredits: 1000,
   },
 
   /** Local Sepolia fork with real OurVoiceRegistry (dev mode). */
   local_sepolia_fork: {
     mode: "production",
     forums: ["global", "USA", "CAN"],
-    stepDurationSeconds: 10,
-    engagementWindowSeconds: 86400,
+    stepDurationSeconds: 60,
+    engagementWindowSeconds: 300,
+    maxRankedStatements: 10,
+    minStatementSupportToRank: 3,
+    maxStatementLength: 120,
+    userCreditAllowancePerStep: 25,
+    userStartingCredits: 1000,
     parametersFile: "local-fork.json",
   },
 
@@ -55,6 +80,11 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
     forums: ["global", "USA", "CAN"],
     stepDurationSeconds: 14400,
     engagementWindowSeconds: 86400,
+    maxRankedStatements: 1000,
+    minStatementSupportToRank: 10,
+    maxStatementLength: 120,
+    userCreditAllowancePerStep: 25,
+    userStartingCredits: 1000,
     parametersFile: "sepolia.json",
   },
 };

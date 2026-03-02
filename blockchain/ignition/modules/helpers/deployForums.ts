@@ -7,12 +7,17 @@ import type {
 /**
  * Shared helper that deploys a set of Forum contracts pointing at the given registry.
  *
- * @param m                       - The Ignition module builder.
- * @param registry                - A Future resolving to the OurVoiceRegistry (or mock) contract.
- * @param forumNames              - The list of forum identifiers to deploy (e.g. ["global", "USA"]).
- *                                  "global" is special-cased to pass an empty nationality string.
- * @param stepDurationSeconds     - The duration (in seconds) of a single decay/credit step.
- * @param engagementWindowSeconds - Minimum seconds between StatementEngaged events per statement.
+ * @param m                          - The Ignition module builder.
+ * @param registry                   - A Future resolving to the OurVoiceRegistry (or mock) contract.
+ * @param forumNames                 - The list of forum identifiers to deploy (e.g. ["global", "USA"]).
+ *                                     "global" is special-cased to pass an empty nationality string.
+ * @param stepDurationSeconds        - The duration (in seconds) of a single decay/credit step.
+ * @param engagementWindowSeconds    - Minimum seconds between StatementEngaged events per statement.
+ * @param maxRankedStatements        - Maximum number of ranked statements per forum.
+ * @param minStatementSupportToRank  - Minimum support value for a statement to enter rankings.
+ * @param maxStatementLength         - Maximum byte length of a statement.
+ * @param userCreditAllowancePerStep - Credits granted per step.
+ * @param userStartingCredits        - Credits for newly registered users.
  * @returns A record mapping each forum name to its deployed Forum contract Future.
  */
 export function deployForums(
@@ -21,6 +26,11 @@ export function deployForums(
   forumNames: string[],
   stepDurationSeconds: number,
   engagementWindowSeconds: number,
+  maxRankedStatements: number,
+  minStatementSupportToRank: number,
+  maxStatementLength: number,
+  userCreditAllowancePerStep: number,
+  userStartingCredits: number,
 ): {
   forums: Record<string, NamedArtifactContractDeploymentFuture<"Forum">>;
 } {
@@ -29,7 +39,17 @@ export function deployForums(
       forum,
       m.contract(
         "Forum",
-        [registry, forum === "global" ? "" : forum, 0, stepDurationSeconds, engagementWindowSeconds],
+        [
+          registry,
+          forum === "global" ? "" : forum,
+          maxRankedStatements,
+          stepDurationSeconds,
+          engagementWindowSeconds,
+          maxStatementLength,
+          userCreditAllowancePerStep,
+          userStartingCredits,
+          minStatementSupportToRank,
+        ],
         { id: `Forum_${forum}` },
       ),
     ]),

@@ -16,14 +16,22 @@ contract ForumHarness is Forum {
         string memory _nationality,
         uint _maxRankedStatements,
         uint _stepDurationSeconds,
-        uint _engagementWindowSeconds
+        uint _engagementWindowSeconds,
+        uint _maxStatementLength,
+        uint _userCreditAllowancePerStep,
+        uint _userStartingCredits,
+        int _minStatementSupportToRank
     )
         Forum(
             _ourVoiceRegistry,
             _nationality,
             _maxRankedStatements,
             _stepDurationSeconds,
-            _engagementWindowSeconds
+            _engagementWindowSeconds,
+            _maxStatementLength,
+            _userCreditAllowancePerStep,
+            _userStartingCredits,
+            _minStatementSupportToRank
         )
     {}
 
@@ -56,7 +64,7 @@ contract ForumTest is Test {
     function setUp() public {
         vm.warp(MOCK_TEST_TIMESTAMP);
         mockRegistry = new MockOurVoiceRegistry();
-        forum = new ForumHarness(mockRegistry, "", 3, 10, 60);
+        forum = new ForumHarness(mockRegistry, "", 3, 10, 60, 120, 25, 1000, 2);
     }
 
     modifier registeredMember() {
@@ -144,8 +152,11 @@ contract ForumTest is Test {
 
     function testInitialUserBalance() external registeredMember {
         uint balance = forum.getUserBalance();
-        // TODO: fix my constants management
-        assertEq(balance, 1050, "Initial user balance should be 1050 credits");
+        assertEq(
+            balance,
+            1000,
+            "Initial user balance should match userStartingCredits"
+        );
     }
 
     function testUserBalanceAllowance() external registeredMember {
