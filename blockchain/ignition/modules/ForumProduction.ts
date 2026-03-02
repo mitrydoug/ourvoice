@@ -22,6 +22,7 @@ import { deployForums } from "./helpers/deployForums.js";
 export function createForumProductionModule(
   forumNames: string[],
   stepDurationSeconds: number,
+  engagementWindowSeconds: number,
 ) {
   return buildModule("ForumProductionModule", (m) => {
     const verifierAddress = m.getParameter<string>("verifierAddress");
@@ -41,7 +42,7 @@ export function createForumProductionModule(
       devMode,
     ]);
 
-    const { forums } = deployForums(m, registry, forumNames, stepDurationSeconds);
+    const { forums } = deployForums(m, registry, forumNames, stepDurationSeconds, engagementWindowSeconds);
 
     return { registry, ...forums };
   });

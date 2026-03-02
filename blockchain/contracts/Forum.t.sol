@@ -2,6 +2,7 @@
 pragma solidity ^0.8.28;
 
 import {Test} from "forge-std/Test.sol";
+import {Vm} from "forge-std/Vm.sol";
 import {console} from "forge-std/console.sol";
 
 import {Forum} from "./Forum.sol";
@@ -14,13 +15,15 @@ contract ForumHarness is Forum {
         AOurVoiceRegistry _ourVoiceRegistry,
         string memory _nationality,
         uint _maxRankedStatements,
-        uint _stepDurationSeconds
+        uint _stepDurationSeconds,
+        uint _engagementWindowSeconds
     )
         Forum(
             _ourVoiceRegistry,
             _nationality,
             _maxRankedStatements,
-            _stepDurationSeconds
+            _stepDurationSeconds,
+            _engagementWindowSeconds
         )
     {}
 
@@ -53,7 +56,7 @@ contract ForumTest is Test {
     function setUp() public {
         vm.warp(MOCK_TEST_TIMESTAMP);
         mockRegistry = new MockOurVoiceRegistry();
-        forum = new ForumHarness(mockRegistry, "", 3, 10);
+        forum = new ForumHarness(mockRegistry, "", 3, 10, 60);
     }
 
     modifier registeredMember() {
@@ -1021,7 +1024,10 @@ contract ForumTest is Test {
         );
     }
 
-    function testPeakRankDoesNotWorsenWhenRankDrops() external registeredMember {
+    function testPeakRankDoesNotWorsenWhenRankDrops()
+        external
+        registeredMember
+    {
         forum.addStatement("Statement A");
         forum.addStatement("Statement B");
         _addStatementSupport(0, 5); // Rank 0
@@ -1096,5 +1102,237 @@ contract ForumTest is Test {
             1,
             "C peakRank should improve to 1"
         );
+    }
+
+    // ======================================================================
+    // Section: StatementRankChanged event
+    // ======================================================================
+
+    function testRankChangedEmittedOnAddStatementSupport()
+        external
+        registeredMember
+    {
+        forum.addStatement("Statement A");
+        vm.expectEmit(true, false, false, true);
+        emit Forum.StatementRankChanged(0, -1, 0);
+        _addStatementSupport(0, 3); // Statement A should go from unranked (-1) to rank 0
+    }
+
+    function testRankChangedEmittedWhenStatementsSwap()
+        external
+        registeredMember
+    {
+        forum.addStatement("Statement A");
+        forum.addStatement("Statement B");
+        _addStatementSupport(0, 5); // A rank 0
+        _addStatementSupport(1, 3); // B rank 1
+
+        // Give B enough to overtake A: A displaced 0→1, B rises 1→0
+        vm.expectEmit(true, false, false, true);
+        emit Forum.StatementRankChanged(0, 0, 1);
+        vm.expectEmit(true, false, false, true);
+        emit Forum.StatementRankChanged(1, 1, 0);
+        _addStatementSupport(1, 4); // B now has 7 > A's 5
+    }
+
+    function testRankChangedEmittedWhenStatementEvictedByMaxRank()
+        external
+        registeredMember
+    {
+        // maxRankedStatements = 3
+        forum.addStatement("Statement A");
+        forum.addStatement("Statement B");
+        forum.addStatement("Statement C");
+        forum.addStatement("Statement D"); // NOT ranked (4th exceeds max)
+
+        _addStatementSupport(0, 6); // A rank 0
+        _addStatementSupport(1, 4); // B rank 1
+        _addStatementSupport(2, 3); // C rank 2
+
+        // D with support 5 evicts C, displaces B, enters at rank 1
+        vm.expectEmit(true, false, false, true);
+        emit Forum.StatementRankChanged(2, 2, -1); // C evicted
+        vm.expectEmit(true, false, false, true);
+        emit Forum.StatementRankChanged(1, 1, 2); // B displaced to rank 2
+        vm.expectEmit(true, false, false, true);
+        emit Forum.StatementRankChanged(3, -1, 1); // D enters at rank 1
+        _addStatementSupport(3, 5);
+    }
+
+    function testRankChangedEmittedByMaintenanceEviction()
+        external
+        registeredMember
+    {
+        forum.addStatement("Statement A");
+        forum.addStatement("Statement B");
+        _addStatementSupport(0, 5);
+        _addStatementSupport(1, 3);
+
+        // Push B's support negative to trigger maintenance eviction
+        vm.expectEmit(true, false, false, true);
+        emit Forum.StatementRankChanged(1, 1, -1);
+        _addStatementSupport(1, -4); // B support goes to -1
+    }
+
+    function testNoRankChangedEmittedWhenRankUnchanged()
+        external
+        registeredMember
+    {
+        forum.addStatement("Statement A");
+        forum.addStatement("Statement B");
+        _addStatementSupport(0, 10); // Rank 0
+        _addStatementSupport(1, 3); // Rank 1
+
+        // Adding more support to A doesn't change its rank (still 0)
+        // We record logs and check no StatementRankChanged was emitted for id 0
+        vm.recordLogs();
+        _addStatementSupport(0, 1);
+
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        bytes32 rankChangedSig = keccak256(
+            "StatementRankChanged(uint256,int256,int256)"
+        );
+        for (uint i = 0; i < logs.length; i++) {
+            if (logs[i].topics[0] == rankChangedSig) {
+                // If a rank changed event was emitted, it should NOT be for statement 0
+                // (statement 0's rank should not have changed)
+                uint emittedId = uint(logs[i].topics[1]);
+                assertTrue(
+                    emittedId != 0,
+                    "Should not emit rank change for statement 0"
+                );
+            }
+        }
+    }
+
+    // ======================================================================
+    // Section: StatementEngaged event
+    // ======================================================================
+
+    function testEngagedEmittedOnFirstInteraction() external registeredMember {
+        forum.addStatement("Statement A");
+
+        // First interaction should always emit (lastEngagementEventTimestamp = 0)
+        vm.recordLogs();
+        _addStatementSupport(0, 1);
+
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        bytes32 engagedSig = keccak256("StatementEngaged(uint256)");
+        bool found = false;
+        for (uint i = 0; i < logs.length; i++) {
+            if (
+                logs[i].topics[0] == engagedSig && uint(logs[i].topics[1]) == 0
+            ) {
+                found = true;
+            }
+        }
+        assertTrue(
+            found,
+            "StatementEngaged should be emitted on first interaction"
+        );
+    }
+
+    function testEngagedNotEmittedWithinWindow() external registeredMember {
+        forum.addStatement("Statement A");
+        _addStatementSupport(0, 1); // First interaction emits
+
+        // Interact again within the engagement window (< 60s)
+        vm.warp(vm.getBlockTimestamp() + 30);
+
+        vm.recordLogs();
+        _addStatementSupport(0, 1);
+
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        bytes32 engagedSig = keccak256("StatementEngaged(uint256)");
+        bool found = false;
+        for (uint i = 0; i < logs.length; i++) {
+            if (
+                logs[i].topics[0] == engagedSig && uint(logs[i].topics[1]) == 0
+            ) {
+                found = true;
+            }
+        }
+        assertFalse(
+            found,
+            "StatementEngaged should not be emitted within window"
+        );
+    }
+
+    function testEngagedEmittedAfterWindowExpires() external registeredMember {
+        forum.addStatement("Statement A");
+        _addStatementSupport(0, 1); // First interaction emits
+
+        // Advance past the engagement window (>= 60s)
+        vm.warp(vm.getBlockTimestamp() + 60);
+
+        vm.expectEmit(true, false, false, false);
+        emit Forum.StatementEngaged(0);
+        _addStatementSupport(0, 1);
+    }
+
+    function testEngagedWindowIsPerStatement() external registeredMember {
+        forum.addStatement("Statement A");
+        forum.addStatement("Statement B");
+
+        _addStatementSupport(0, 1); // Emits for A
+
+        // Advance 30s (within A's window)
+        vm.warp(vm.getBlockTimestamp() + 30);
+
+        // First interaction with B should emit regardless of A's cooldown
+        vm.recordLogs();
+        _addStatementSupport(1, 1);
+
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        bytes32 engagedSig = keccak256("StatementEngaged(uint256)");
+        bool found = false;
+        for (uint i = 0; i < logs.length; i++) {
+            if (
+                logs[i].topics[0] == engagedSig && uint(logs[i].topics[1]) == 1
+            ) {
+                found = true;
+            }
+        }
+        assertTrue(
+            found,
+            "StatementEngaged should emit for B independently of A's cooldown"
+        );
+    }
+
+    function testEngagedTimestampResetsOnEmission() external registeredMember {
+        forum.addStatement("Statement A");
+        _addStatementSupport(0, 1); // t=0, emits
+
+        // Advance past window
+        vm.warp(vm.getBlockTimestamp() + 60); // t=60
+        _addStatementSupport(0, 1); // Emits, resets timestamp to t=60
+
+        // Advance only 30s from the RESET timestamp (not from original)
+        vm.warp(vm.getBlockTimestamp() + 30); // t=90
+
+        vm.recordLogs();
+        _addStatementSupport(0, 1);
+
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        bytes32 engagedSig = keccak256("StatementEngaged(uint256)");
+        bool found = false;
+        for (uint i = 0; i < logs.length; i++) {
+            if (
+                logs[i].topics[0] == engagedSig && uint(logs[i].topics[1]) == 0
+            ) {
+                found = true;
+            }
+        }
+        assertFalse(
+            found,
+            "StatementEngaged should not emit before window from last emission"
+        );
+
+        // Advance another 30s (now 60s from reset)
+        vm.warp(vm.getBlockTimestamp() + 30); // t=120
+
+        vm.expectEmit(true, false, false, false);
+        emit Forum.StatementEngaged(0);
+        _addStatementSupport(0, 1);
     }
 }

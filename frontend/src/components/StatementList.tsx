@@ -16,6 +16,8 @@ type StatementListProps = {
   onLoadMore: () => void;
   /** How many pages the user has loaded beyond the first (0 = first page only). */
   pageIndex?: number;
+  /** Label shown next to the spinner while loading. */
+  loadingLabel?: string;
   isBookmarked?: (statementId: number) => boolean;
   onToggleBookmark?: (statementId: number) => void;
 };
@@ -26,6 +28,7 @@ const StatementList: FC<StatementListProps> = ({
   isLoading,
   onLoadMore,
   pageIndex = 0,
+  loadingLabel = "Loading more statements\u2026",
   isBookmarked,
   onToggleBookmark,
 }) => {
@@ -66,6 +69,23 @@ const StatementList: FC<StatementListProps> = ({
     };
   }, [hasMore, isLoading, onLoadMore]);
 
+  if (!isLoading && statements.length === 0) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100%",
+        }}
+      >
+        <Typography variant="body1" color="text.secondary">
+          No statements found.
+        </Typography>
+      </Box>
+    );
+  }
+
   return (
     <>
       <Stack spacing={1}>
@@ -94,7 +114,7 @@ const StatementList: FC<StatementListProps> = ({
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <CircularProgress size={16} />
             <Typography variant="body2" color="text.secondary">
-              Loading more statements…
+              {loadingLabel}
             </Typography>
           </Box>
         )}

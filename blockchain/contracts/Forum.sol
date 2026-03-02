@@ -25,13 +25,16 @@ contract Forum {
     // We only track this many statements for ranking purposes
     uint public constant MAX_RANKED_STATEMENTS = 1000;
     // Minimum support required for a statement to be ranked
-    int public constant MIN_STATEMENT_SUPPORT_TO_RANK = 0;
+    int public constant MIN_STATEMENT_SUPPORT_TO_RANK = 2;
 
     // Configurable max ranked statements (defaults to MAX_RANKED_STATEMENTS)
     uint public immutable maxRankedStatements;
 
     // Duration of a single decay/credit step in seconds
     uint public immutable stepDurationSeconds;
+
+    // Minimum seconds between StatementEngaged events for the same statement
+    uint public immutable engagementWindowSeconds;
 
     AOurVoiceRegistry public ourVoiceRegistry;
 
@@ -57,6 +60,7 @@ contract Forum {
         Support support;
         int rank;
         int peakRank; // best (lowest) rank ever achieved; -1 if never ranked
+        uint lastEngagementEventTimestamp;
     }
 
     struct Statement {
@@ -92,12 +96,19 @@ contract Forum {
     string public nationality;
 
     event StatementAdded(uint indexed id, string statement);
+    event StatementRankChanged(
+        uint indexed statementId,
+        int previousRank,
+        int newRank
+    );
+    event StatementEngaged(uint indexed statementId);
 
     constructor(
         AOurVoiceRegistry _ourVoiceRegistry,
         string memory _nationality,
         uint _maxRankedStatements,
-        uint _stepDurationSeconds
+        uint _stepDurationSeconds,
+        uint _engagementWindowSeconds
     ) {
         ourVoiceRegistry = _ourVoiceRegistry;
         nationality = _nationality;
@@ -105,6 +116,7 @@ contract Forum {
             ? MAX_RANKED_STATEMENTS
             : _maxRankedStatements;
         stepDurationSeconds = _stepDurationSeconds;
+        engagementWindowSeconds = _engagementWindowSeconds;
     }
 
     function _resolveStatement(
@@ -188,30 +200,15 @@ contract Forum {
     }
 
     function _rankingMaintenance() internal {
-        if (rankedCount == 0) {
-            return;
-        }
-        if (
+        while (
+            rankedCount > 0 &&
             _getCurrentSupportValue(
                 statements[statementRankings[rankedCount - 1]].support
-            ) < MIN_STATEMENT_SUPPORT_TO_RANK
+            ) <
+            MIN_STATEMENT_SUPPORT_TO_RANK
         ) {
-            // perform a binary search to find the new rankedCount
-            uint low = 0;
-            uint high = rankedCount - 1;
-            while (low < high) {
-                uint mid = (low + high) / 2;
-                if (
-                    _getCurrentSupportValue(
-                        statements[statementRankings[mid]].support
-                    ) < MIN_STATEMENT_SUPPORT_TO_RANK
-                ) {
-                    high = mid;
-                } else {
-                    low = mid + 1;
-                }
-            }
-            rankedCount = low;
+            rankedCount -= 1;
+            _setStatementRank(statementRankings[rankedCount], -1);
         }
     }
 
@@ -227,8 +224,14 @@ contract Forum {
     }
 
     /// @dev Sets a statement's rank and updates peakRank if this is the best rank achieved.
+    ///      Emits StatementRankChanged when the effective rank actually changes.
     function _setStatementRank(uint _statementId, int _rank) internal {
+        int previousRank = statements[_statementId].rank;
         statements[_statementId].rank = _rank;
+
+        if (previousRank != _rank) {
+            emit StatementRankChanged(_statementId, previousRank, _rank);
+        }
         if (
             _rank >= 0 &&
             (_rank < statements[_statementId].peakRank ||
@@ -312,7 +315,8 @@ contract Forum {
             createdTimestamp: block.timestamp,
             support: Support({value: 0, lastUpdated: block.timestamp}),
             rank: -1,
-            peakRank: -1
+            peakRank: -1,
+            lastEngagementEventTimestamp: 0
         });
         _updateStatementRanking(statementCount);
         emit StatementAdded(statementCount, _statementText);
@@ -523,6 +527,18 @@ contract Forum {
             _updateUserSupportedStatements(_userId, _adjustment.statementId);
 
             _updateStatementRanking(_adjustment.statementId);
+
+            // Emit engagement event if enough time has passed since the last one
+            if (
+                block.timestamp >=
+                statements[_adjustment.statementId]
+                    .lastEngagementEventTimestamp +
+                    engagementWindowSeconds
+            ) {
+                statements[_adjustment.statementId]
+                    .lastEngagementEventTimestamp = block.timestamp;
+                emit StatementEngaged(_adjustment.statementId);
+            }
         }
 
         if (int(_userBalance.credits) < _totalCostChange)

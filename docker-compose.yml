@@ -60,12 +60,13 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
-      - ./frontend/src/contracts.ts:/app/src/contracts.ts
     ports:
       - "5173:5173"
     depends_on:
       hardhat_mocked:
         condition: service_healthy
+      contract_deployer:
+        condition: service_completed_successfully
     command: sh -c "npm install && npm run dev -- --host"
   meilisearch:
     image: getmeili/meilisearch:v1.12
@@ -92,6 +93,7 @@ services:
       - MEILI_API_KEY=dev-master-key
       - FORUM_CONTRACT_ADDRESS=${FORUM_CONTRACT_ADDRESS:-0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0}
       - ETHEREUM_NODE_URL=ws://hardhat_mocked:8545
+      - BACKFILL_FROM=${BACKFILL_FROM:-all}
       - CORS_ORIGINS=*
     ports:
       - "8000:8000"

@@ -1,0 +1,274 @@
+import { FC, useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useReadContract, useReadContracts } from "wagmi";
+import { useForum, FORUM_ABI } from "../state/Forum";
+import { Statement } from "../types";
+import StatementList from "./StatementList";
+import SortTabs, { SortMode } from "./SortTabs";
+import { useSearch } from "@/hooks/useSearch";
+import useIsMobile from "@/hooks/useIsMobile";
+import useBlockSync from "@/hooks/useBlockSync";
+import useLocalStorageSet from "@/hooks/useLocalStorageSet";
+import { useSearchQuery } from "@/state/Search";
+
+/** Minimum time (ms) the loading spinner is shown when paginating. */
+const PAGINATION_MIN_LOADING_MS = 2000;
+
+// ---------------------------------------------------------------------------
+// Home view — dual-mode: ranked browsing (empty search) + search results
+// ---------------------------------------------------------------------------
+
+const Home: FC = () => {
+  const { forumContractAddress } = useForum();
+  const isMobile = useIsMobile();
+  const { has: isBookmarked, toggle: toggleBookmark } =
+    useLocalStorageSet("bookmarks");
+
+  // ── Search state from context ───────────────────────────────────────────
+  const { query: searchQuery } = useSearchQuery();
+  const hasSearch = searchQuery.trim().length > 0;
+
+  // ── Sort tab ───────────────────────────────────────────────────────────
+  const [sortTab, setSortTab] = useState<SortMode>("top");
+
+  // Reset to "Top" whenever the search is cleared.
+  useEffect(() => {
+    if (!hasSearch) {
+      setSortTab("top");
+    }
+  }, [hasSearch]);
+
+  return (
+    <>
+      <SortTabs
+        value={sortTab}
+        onChange={setSortTab}
+        relevantDisabled={!hasSearch}
+      />
+      {hasSearch ? (
+        <SearchResults
+          searchQuery={searchQuery}
+          sortTab={sortTab}
+          forumContractAddress={forumContractAddress}
+          isBookmarked={isBookmarked}
+          onToggleBookmark={toggleBookmark}
+        />
+      ) : (
+        <RankedBrowse
+          forumContractAddress={forumContractAddress}
+          isMobile={isMobile}
+          isBookmarked={isBookmarked}
+          onToggleBookmark={toggleBookmark}
+        />
+      )}
+    </>
+  );
+};
+
+// ---------------------------------------------------------------------------
+// Sub-view: search results (active query)
+// ---------------------------------------------------------------------------
+
+interface SearchResultsProps {
+  searchQuery: string;
+  sortTab: SortMode;
+  forumContractAddress: `0x${string}`;
+  isBookmarked: (id: number) => boolean;
+  onToggleBookmark: (id: number) => void;
+}
+
+const SearchResults: FC<SearchResultsProps> = ({
+  searchQuery,
+  sortTab,
+  forumContractAddress,
+  isBookmarked,
+  onToggleBookmark,
+}) => {
+  const { hits, isLoading: isSearchLoading } = useSearch(searchQuery);
+
+  // Fetch full Statement objects for the search hits.
+  const statementIds = useMemo(
+    () => hits.map((h) => BigInt(h.statementId)),
+    [hits],
+  );
+
+  const result = useReadContract({
+    address: forumContractAddress,
+    abi: FORUM_ABI,
+    functionName: "getStatementsById",
+    args: [statementIds],
+    query: { enabled: statementIds.length > 0 },
+  });
+
+  useBlockSync(result.refetch);
+
+  const rawStatements = result.data as Statement[] | undefined;
+
+  // Build a relevance-order index from the search hits so we can restore it
+  // after potential re-sorting.
+  const relevanceOrder = useMemo(() => {
+    const map = new Map<number, number>();
+    hits.forEach((h, i) => map.set(h.statementId, i));
+    return map;
+  }, [hits]);
+
+  const statements: Statement[] = useMemo(() => {
+    if (!rawStatements) return [];
+
+    if (sortTab === "relevant") {
+      // Display in the order returned by Meilisearch (= relevanceOrder).
+      return [...rawStatements].sort((a, b) => {
+        const ai = relevanceOrder.get(Number(a.id)) ?? Number.MAX_SAFE_INTEGER;
+        const bi = relevanceOrder.get(Number(b.id)) ?? Number.MAX_SAFE_INTEGER;
+        return ai - bi;
+      });
+    }
+
+    // sortTab === "top" → ranked statements first (ascending rank),
+    // then unranked in relevance order.
+    const ranked: Statement[] = [];
+    const unranked: Statement[] = [];
+
+    for (const s of rawStatements) {
+      if (Number(s.rank) >= 0) {
+        ranked.push(s);
+      } else {
+        unranked.push(s);
+      }
+    }
+
+    ranked.sort((a, b) => Number(a.rank) - Number(b.rank));
+    unranked.sort((a, b) => {
+      const ai = relevanceOrder.get(Number(a.id)) ?? Number.MAX_SAFE_INTEGER;
+      const bi = relevanceOrder.get(Number(b.id)) ?? Number.MAX_SAFE_INTEGER;
+      return ai - bi;
+    });
+
+    return [...ranked, ...unranked];
+  }, [rawStatements, sortTab, relevanceOrder]);
+
+  const isLoading = isSearchLoading || result.isLoading;
+
+  return (
+    <StatementList
+      statements={statements}
+      hasMore={false}
+      isLoading={isLoading}
+      onLoadMore={() => {}}
+      loadingLabel="Searching…"
+      isBookmarked={isBookmarked}
+      onToggleBookmark={onToggleBookmark}
+    />
+  );
+};
+
+// ---------------------------------------------------------------------------
+// Sub-view: ranked browsing (empty search — existing behaviour)
+// ---------------------------------------------------------------------------
+
+interface RankedBrowseProps {
+  forumContractAddress: `0x${string}`;
+  isMobile: boolean;
+  isBookmarked: (id: number) => boolean;
+  onToggleBookmark: (id: number) => void;
+}
+
+const RankedBrowse: FC<RankedBrowseProps> = ({
+  forumContractAddress,
+  isMobile,
+  isBookmarked,
+  onToggleBookmark,
+}) => {
+  const PAGE_SIZE = isMobile ? 10 : 20;
+
+  const [statements, setStatements] = useState<Statement[]>([]);
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [pageIndex, setPageIndex] = useState(0);
+  const [isPaginationLoading, setIsPaginationLoading] = useState(false);
+  const paginationTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  // Clean up pagination timer on unmount.
+  useEffect(() => {
+    return () => {
+      if (paginationTimerRef.current) clearTimeout(paginationTimerRef.current);
+    };
+  }, []);
+
+  // Reset state when forum changes.
+  useEffect(() => {
+    setStatements([]);
+    setOffset(0);
+    setHasMore(false);
+    setPageIndex(0);
+    setIsPaginationLoading(false);
+    if (paginationTimerRef.current) clearTimeout(paginationTimerRef.current);
+  }, [forumContractAddress]);
+
+  const result = useReadContracts({
+    contracts: [
+      {
+        address: forumContractAddress,
+        abi: FORUM_ABI,
+        functionName: "rankedCount",
+        args: [],
+      },
+      {
+        address: forumContractAddress,
+        abi: FORUM_ABI,
+        functionName: "getRankedStatementsPage",
+        args: [BigInt(offset), BigInt(PAGE_SIZE)],
+      },
+    ],
+  });
+
+  useBlockSync(result.refetch);
+
+  const rankedCount = result.data && result.data[0].result;
+  const statementsPage =
+    result.data && (result.data[1].result as Statement[] | undefined);
+
+  const isLoading = result.isLoading || isPaginationLoading;
+
+  useEffect(() => {
+    if (statementsPage && statementsPage.length > 0 && !result.isLoading) {
+      setStatements((prev) => {
+        const newStatements = [...prev];
+        for (let i = 0; i < statementsPage.length; i++) {
+          newStatements[offset + i] = statementsPage[i];
+        }
+        return newStatements;
+      });
+
+      if (rankedCount !== undefined) {
+        setHasMore(offset + statementsPage.length < Number(rankedCount));
+      }
+    }
+  }, [statementsPage, offset, rankedCount, result.isLoading]);
+
+  const handleLoadMore = useCallback(() => {
+    if (!isLoading && hasMore) {
+      setOffset((prev) => prev + PAGE_SIZE);
+      setPageIndex((prev) => prev + 1);
+      setIsPaginationLoading(true);
+
+      if (paginationTimerRef.current) clearTimeout(paginationTimerRef.current);
+      paginationTimerRef.current = setTimeout(() => {
+        setIsPaginationLoading(false);
+      }, PAGINATION_MIN_LOADING_MS);
+    }
+  }, [isLoading, hasMore, PAGE_SIZE]);
+
+  return (
+    <StatementList
+      statements={statements}
+      hasMore={hasMore}
+      isLoading={isLoading}
+      onLoadMore={handleLoadMore}
+      pageIndex={pageIndex}
+      isBookmarked={isBookmarked}
+      onToggleBookmark={onToggleBookmark}
+    />
+  );
+};
+
+export default Home;

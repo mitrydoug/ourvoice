@@ -23,7 +23,7 @@ import { useAccount, useDisconnect } from "wagmi";
 import { AccountMenu } from "./UserProfileMenu";
 
 const NAV_ITEMS = [
-  { label: "Home", href: "/top", icon: <HomeIcon /> },
+  { label: "Home", href: "/", icon: <HomeIcon /> },
   { label: "My Support", href: "/my-support", icon: <FavoriteBorderIcon /> },
   { label: "My Statements", href: "/my-statements", icon: <ArticleIcon /> },
   { label: "Bookmarked", href: "/bookmarked", icon: <BookmarkBorderIcon /> },
@@ -77,9 +77,7 @@ const SideNav: FC = () => {
         <List disablePadding>
           {NAV_ITEMS.map((item) => {
             const isActive =
-              item.href !== "#" &&
-              (location.pathname === item.href ||
-                (item.href === "/top" && location.pathname === "/"));
+              item.href !== "#" && location.pathname === item.href;
 
             return (
               <ListItemButton

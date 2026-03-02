@@ -16,14 +16,15 @@ import { Link, useNavigate } from "react-router-dom";
 import { useUserVotes } from "../state/UserVotes";
 import ChooseForumModal, { FORUMS } from "./ChooseForumModal";
 import SearchIcon from "@mui/icons-material/Search";
+import ClearIcon from "@mui/icons-material/Clear";
 import { useForum } from "../state/Forum";
 import { metamaskIcon } from "../util";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
-import SearchModal from "./SearchModal";
 import useIsMobile from "@/hooks/useIsMobile";
 import { useTheme } from "@mui/material/styles";
 import { AccountDrawer } from "./UserProfileMenu";
 import CommitSupportModal from "./CommitSupportModal";
+import { useSearchQuery } from "@/state/Search";
 
 const MIC_ICON = (
   <svg
@@ -129,28 +130,38 @@ const Logo: React.FC<LogoProps> = ({ isMobile }) => {
 };
 
 interface SearchFieldProps {
-  onClick: () => void;
+  value: string;
+  onChange: (value: string) => void;
+  onClear: () => void;
   fullWidth?: boolean;
 }
 
 const SearchField: React.FC<SearchFieldProps> = ({
-  onClick,
+  value,
+  onChange,
+  onClear,
   fullWidth = false,
 }) => (
   <TextField
     placeholder="Search..."
     size="small"
-    onClick={onClick}
+    value={value}
+    onChange={(e) => onChange(e.target.value)}
     slotProps={{
       input: {
-        readOnly: true,
         startAdornment: (
           <InputAdornment position="start">
             <SearchIcon fontSize="small" />
           </InputAdornment>
         ),
+        endAdornment: value ? (
+          <InputAdornment position="end">
+            <IconButton size="small" onClick={onClear} edge="end">
+              <ClearIcon fontSize="small" />
+            </IconButton>
+          </InputAdornment>
+        ) : undefined,
         sx: {
-          cursor: "pointer",
           backgroundColor: "white",
           height: 36,
           fontSize: "0.875rem",
@@ -161,7 +172,6 @@ const SearchField: React.FC<SearchFieldProps> = ({
       width: fullWidth ? "100%" : "auto",
       flexGrow: 1,
       "& .MuiOutlinedInput-root": {
-        cursor: "pointer",
         backgroundColor: "white",
       },
     }}
@@ -175,11 +185,16 @@ export default function MenuAppBar() {
   const { address } = useAccount();
   const isMobile = useIsMobile();
   const [chooseForumModalOpen, setChooseForumModalOpen] = useState(false);
-  const [searchModalOpen, setSearchModalOpen] = useState(false);
   const { name: forumName, setForum } = useForum();
   const navigate = useNavigate();
   const { disconnect: doDisconnect } = useDisconnect();
   const { openConnectModal } = useConnectModal();
+
+  const {
+    query: localQuery,
+    setQuery: setSearchQuery,
+    clearQuery: clearSearch,
+  } = useSearchQuery();
 
   useEffect(() => {
     if (address) {
@@ -293,7 +308,11 @@ export default function MenuAppBar() {
                 onClick={() => setChooseForumModalOpen(true)}
               />
 
-              <SearchField onClick={() => setSearchModalOpen(true)} />
+              <SearchField
+                value={localQuery}
+                onChange={setSearchQuery}
+                onClear={clearSearch}
+              />
 
               {!address && (
                 <Button onClick={() => openConnectModal?.()} size="medium">
@@ -313,7 +332,12 @@ export default function MenuAppBar() {
               alignItems="center"
               sx={{ mt: 1, width: "100%" }}
             >
-              <SearchField onClick={() => setSearchModalOpen(true)} fullWidth />
+              <SearchField
+                value={localQuery}
+                onChange={setSearchQuery}
+                onClear={clearSearch}
+                fullWidth
+              />
             </Stack>
           )}
         </Toolbar>
@@ -325,10 +349,6 @@ export default function MenuAppBar() {
           setForum(forum);
           setChooseForumModalOpen(false);
         }}
-      />
-      <SearchModal
-        open={searchModalOpen}
-        onClose={() => setSearchModalOpen(false)}
       />
       {userVoteState && resetCommitStatus && (
         <CommitSupportModal

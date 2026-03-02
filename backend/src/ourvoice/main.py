@@ -13,7 +13,7 @@ import asyncio
 
 import meilisearch
 
-from ourvoice.indexer import run_indexer
+from ourvoice.indexer import run_indexer, DEFAULT_EVICTION_MAX_AGE_SECONDS
 
 
 def parse_args() -> argparse.Namespace:
@@ -42,6 +42,26 @@ def parse_args() -> argparse.Namespace:
         default="",
         help="Meilisearch API key (optional for local dev)",
     )
+    parser.add_argument(
+        "--backfill-from",
+        type=str,
+        default="",
+        help=(
+            "Backfill historical events before switching to live mode. "
+            "Accepts: ISO datetime (2025-01-01), relative delta (30d, 24h), "
+            "explicit block number (block:12345), or 'all' for full history."
+        ),
+    )
+    parser.add_argument(
+        "--eviction-max-age-seconds",
+        type=int,
+        default=DEFAULT_EVICTION_MAX_AGE_SECONDS,
+        help=(
+            "Maximum age (in seconds) for indexed documents without recent "
+            "engagement.  Documents older than this are periodically evicted. "
+            f"Default: {DEFAULT_EVICTION_MAX_AGE_SECONDS} (7 days)."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -52,6 +72,8 @@ async def main() -> None:
         meili_client=meili_client,
         forum_contract_address=args.forum_contract_address,
         ethereum_node_url=args.ethereum_node_url,
+        backfill_from=args.backfill_from,
+        eviction_max_age_seconds=args.eviction_max_age_seconds,
     )
 
 

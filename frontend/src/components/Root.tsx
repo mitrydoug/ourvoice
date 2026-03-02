@@ -12,6 +12,7 @@ import WriteModal from "./WriteModal";
 import useIsMobile from "@/hooks/useIsMobile";
 import { useUserVotes } from "../state/UserVotes";
 import useLocalStorageSet from "@/hooks/useLocalStorageSet";
+import { SearchProvider } from "@/state/Search";
 
 const Root: FC = () => {
   const layoutRef = useRef<HTMLDivElement>(null);
@@ -23,76 +24,78 @@ const Root: FC = () => {
   const [writeModalOpen, setWriteModalOpen] = useState(false);
 
   return (
-    <Box
-      ref={layoutRef}
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100vh",
-        overflow: "hidden",
-      }}
-    >
-      <MenuAppBar />
-
-      <Container
-        component="main"
-        maxWidth={false}
+    <SearchProvider>
+      <Box
+        ref={layoutRef}
         sx={{
           display: "flex",
           flexDirection: "column",
-          gap: isMobile
-            ? theme.custom.layout.contentGap.mobile
-            : theme.custom.layout.contentGap.desktop,
-          flex: 1,
-          maxWidth: isMobile ? undefined : "1000px",
-          overflowY: "auto",
-          overflowX: "visible",
-          pt: isMobile ? 2 : 3,
-          pb: isMobile ? 14 : 8,
-          /* Hide scrollbar but keep scrolling */
-          scrollbarWidth: "none",
-          "&::-webkit-scrollbar": { display: "none" },
+          height: "100vh",
+          overflow: "hidden",
         }}
       >
-        {isMobile ? (
-          <Outlet />
-        ) : (
-          <Box sx={{ display: "flex", gap: 3 }}>
-            <SideNav />
-            <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-              <Outlet />
+        <MenuAppBar />
+
+        <Container
+          component="main"
+          maxWidth={false}
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            gap: isMobile
+              ? theme.custom.layout.contentGap.mobile
+              : theme.custom.layout.contentGap.desktop,
+            flex: 1,
+            maxWidth: isMobile ? undefined : "1000px",
+            overflowY: "auto",
+            overflowX: "visible",
+            pt: isMobile ? 2 : 3,
+            pb: isMobile ? 14 : 8,
+            /* Hide scrollbar but keep scrolling */
+            scrollbarWidth: "none",
+            "&::-webkit-scrollbar": { display: "none" },
+          }}
+        >
+          {isMobile ? (
+            <Outlet />
+          ) : (
+            <Box sx={{ display: "flex", gap: 3 }}>
+              <SideNav />
+              <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                <Outlet />
+              </Box>
             </Box>
-          </Box>
+          )}
+        </Container>
+
+        {isMobile && <BottomNav />}
+
+        {/* Mobile FAB for Write */}
+        {isMobile && (
+          <>
+            <Fab
+              color="primary"
+              aria-label="write"
+              onClick={() => setWriteModalOpen(true)}
+              disabled={!isUserVerified}
+              sx={{
+                position: "fixed",
+                bottom: 80,
+                right: 24,
+                zIndex: 1201,
+              }}
+            >
+              <CreateIcon />
+            </Fab>
+            <WriteModal
+              open={writeModalOpen}
+              onClose={() => setWriteModalOpen(false)}
+              onStatementAdded={addAuthoredStatement}
+            />
+          </>
         )}
-      </Container>
-
-      {isMobile && <BottomNav />}
-
-      {/* Mobile FAB for Write */}
-      {isMobile && (
-        <>
-          <Fab
-            color="primary"
-            aria-label="write"
-            onClick={() => setWriteModalOpen(true)}
-            disabled={!isUserVerified}
-            sx={{
-              position: "fixed",
-              bottom: 80,
-              right: 24,
-              zIndex: 1201,
-            }}
-          >
-            <CreateIcon />
-          </Fab>
-          <WriteModal
-            open={writeModalOpen}
-            onClose={() => setWriteModalOpen(false)}
-            onStatementAdded={addAuthoredStatement}
-          />
-        </>
-      )}
-    </Box>
+      </Box>
+    </SearchProvider>
   );
 };
 

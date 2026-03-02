@@ -10,6 +10,16 @@ Required env vars:
     MEILI_API_KEY        — Meilisearch API key (default: empty)
     FORUM_CONTRACT_ADDRESS — Forum contract address (required)
     ETHEREUM_NODE_URL    — WebSocket RPC URL (required)
+
+Optional env vars:
+    BACKFILL_FROM        — Backfill historical events on startup.
+                           Accepts: ISO datetime (2025-01-01), relative
+                           delta (30d, 24h), block number (block:123),
+                           or 'all'.  Empty = no backfill.
+    EVICTION_MAX_AGE_SECONDS — Maximum age (in seconds) for indexed
+                               documents without recent engagement.
+                               Documents older than this are periodically
+                               evicted.  Default: 604800 (7 days).
 """
 
 import asyncio
@@ -22,7 +32,7 @@ import meilisearch
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from ourvoice.indexer import run_indexer
+from ourvoice.indexer import run_indexer, DEFAULT_EVICTION_MAX_AGE_SECONDS
 from ourvoice.search_service.api import create_api
 
 logging.basicConfig(
@@ -36,6 +46,10 @@ MEILI_API_KEY = os.getenv("MEILI_API_KEY", "")
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "")
 FORUM_CONTRACT_ADDRESS = os.environ.get("FORUM_CONTRACT_ADDRESS", "")
 ETHEREUM_NODE_URL = os.environ.get("ETHEREUM_NODE_URL", "")
+BACKFILL_FROM = os.environ.get("BACKFILL_FROM", "")
+EVICTION_MAX_AGE_SECONDS = int(
+    os.environ.get("EVICTION_MAX_AGE_SECONDS", str(DEFAULT_EVICTION_MAX_AGE_SECONDS))
+)
 
 
 @asynccontextmanager
@@ -54,6 +68,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             meili_client=app.state.meili_client,
             forum_contract_address=FORUM_CONTRACT_ADDRESS,
             ethereum_node_url=ETHEREUM_NODE_URL,
+            backfill_from=BACKFILL_FROM,
+            eviction_max_age_seconds=EVICTION_MAX_AGE_SECONDS,
         )
     )
     logger.info("Indexer background task started")
