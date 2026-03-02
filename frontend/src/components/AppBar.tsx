@@ -279,7 +279,7 @@ export default function MenuAppBar() {
                       navigate={(path: string) => void navigate(path)}
                       disconnect={doDisconnect}
                       avatar={avatar}
-                      commitSupport={commitSupport ?? (() => { })}
+                      commitSupport={commitSupport ?? (() => {})}
                       hasStagedChanges={
                         userVoteState?.hasStagedChanges ?? false
                       }
