@@ -7,8 +7,7 @@ import {
   Typography,
 } from "@mui/material";
 import { FC, useCallback, useState } from "react";
-import { useReadContract, useWriteContract } from "wagmi";
-import { FORUM_ABI, useForum } from "../state/Forum";
+import { useUserVotes } from "../state/UserVotes";
 
 const MAX_STATEMENT_LENGTH = 280;
 
@@ -28,50 +27,19 @@ const style = {
 type WriteModalProps = {
   open: boolean;
   onClose: () => void;
-  onStatementAdded?: (statementId: number) => void;
 };
 
-const WriteModal: FC<WriteModalProps> = ({
-  open,
-  onClose,
-  onStatementAdded,
-}) => {
-  const { writeContract } = useWriteContract();
+const WriteModal: FC<WriteModalProps> = ({ open, onClose }) => {
   const [text, setText] = useState("");
-  const { forumContractAddress } = useForum();
-
-  // Read the current statement count so we know the ID of the next statement
-  const { data: statementCount } = useReadContract({
-    address: forumContractAddress,
-    abi: FORUM_ABI,
-    functionName: "statementCount",
-  });
+  const { isUserVerified, stageStatement } = useUserVotes();
 
   const submitStatement = useCallback(() => {
-    if (text.length > 0) {
-      const nextId =
-        statementCount !== undefined ? Number(statementCount) : undefined;
-      writeContract({
-        address: forumContractAddress,
-        abi: FORUM_ABI,
-        functionName: "addStatement",
-        args: [text],
-      });
-      if (nextId !== undefined && onStatementAdded) {
-        onStatementAdded(nextId);
-      }
+    if (text.length > 0 && isUserVerified && stageStatement) {
+      stageStatement(text);
       setText("");
       onClose();
     }
-  }, [
-    text,
-    writeContract,
-    setText,
-    onClose,
-    forumContractAddress,
-    statementCount,
-    onStatementAdded,
-  ]);
+  }, [text, isUserVerified, stageStatement, setText, onClose]);
 
   const updateText = useCallback(
     (textVal: string) => {
@@ -122,7 +90,7 @@ const WriteModal: FC<WriteModalProps> = ({
           </Typography>
           <Button onClick={onClose}> Cancel </Button>
           <Button disabled={text.length === 0} onClick={submitStatement}>
-            Submit
+            Create
           </Button>
         </Stack>
       </Box>

@@ -2,12 +2,17 @@ import { FC, useEffect, useRef } from "react";
 import { Statement } from "../types";
 import {
   Box,
+  Card,
+  Chip,
   CircularProgress,
+  IconButton,
   Stack,
   Typography,
   useTheme,
 } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
 import StatementCard from "./StatementCard";
+import { type StagedStatement } from "../state/UserVotes";
 
 type StatementListProps = {
   statements: Statement[];
@@ -20,6 +25,10 @@ type StatementListProps = {
   loadingLabel?: string;
   isBookmarked?: (statementId: number) => boolean;
   onToggleBookmark?: (statementId: number) => void;
+  /** Staged (not yet committed) statements to render above the on-chain list. */
+  stagedStatements?: StagedStatement[];
+  /** Called when the user removes a staged statement. */
+  onUnstagStatement?: (tempId: string) => void;
 };
 
 const StatementList: FC<StatementListProps> = ({
@@ -31,6 +40,8 @@ const StatementList: FC<StatementListProps> = ({
   loadingLabel = "Loading more statements\u2026",
   isBookmarked,
   onToggleBookmark,
+  stagedStatements,
+  onUnstagStatement,
 }) => {
   const theme = useTheme();
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -69,7 +80,9 @@ const StatementList: FC<StatementListProps> = ({
     };
   }, [hasMore, isLoading, onLoadMore]);
 
-  if (!isLoading && statements.length === 0) {
+  const hasStagedStatements = stagedStatements && stagedStatements.length > 0;
+
+  if (!isLoading && statements.length === 0 && !hasStagedStatements) {
     return (
       <Box
         sx={{
@@ -89,6 +102,55 @@ const StatementList: FC<StatementListProps> = ({
   return (
     <>
       <Stack spacing={1}>
+        {/* Staged (pending) statements */}
+        {hasStagedStatements &&
+          stagedStatements.map((staged) => (
+            <Card
+              key={`staged-${staged.tempId}`}
+              sx={{
+                p: 2,
+                opacity: 0.85,
+                border: "1px dashed",
+                borderColor: "warning.main",
+              }}
+            >
+              <Stack
+                direction="row"
+                alignItems="center"
+                justifyContent="space-between"
+              >
+                <Stack spacing={0.5} sx={{ flex: 1, minWidth: 0 }}>
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <Chip
+                      label="Pending"
+                      size="small"
+                      color="warning"
+                      variant="outlined"
+                    />
+                    {staged.initialSupport !== 0 && (
+                      <Typography variant="caption" color="text.secondary">
+                        Initial support: {staged.initialSupport}
+                      </Typography>
+                    )}
+                  </Stack>
+                  <Typography variant="h6" sx={{ fontWeight: 500 }}>
+                    {staged.text}
+                  </Typography>
+                </Stack>
+                {onUnstagStatement && (
+                  <IconButton
+                    size="small"
+                    onClick={() => onUnstagStatement(staged.tempId)}
+                    aria-label="Remove staged statement"
+                  >
+                    <CloseIcon fontSize="small" />
+                  </IconButton>
+                )}
+              </Stack>
+            </Card>
+          ))}
+
+        {/* On-chain statements */}
         {statements?.map((stmt) => (
           <StatementCard
             key={`stmt-${Number(stmt.id)}`}

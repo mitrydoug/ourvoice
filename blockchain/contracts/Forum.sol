@@ -316,7 +316,7 @@ contract Forum is Multicall {
     function addStatement(
         string calldata _statementText,
         int _initialSupport
-    ) external onlyMembers {
+    ) external onlyMembers returns (uint) {
         if (bytes(_statementText).length > maxStatementLength)
             revert StatementTooLong(
                 bytes(_statementText).length,
@@ -360,7 +360,9 @@ contract Forum is Multicall {
 
         _updateStatementRanking(statementCount);
         emit StatementAdded(statementCount, _statementText);
+        uint _id = statementCount;
         statementCount++;
+        return _id;
     }
 
     function getUserBalance() external view onlyMembers returns (uint) {

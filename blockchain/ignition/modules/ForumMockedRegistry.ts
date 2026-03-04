@@ -5,6 +5,8 @@ type MockStatement = {
   addrIndex: number;
   forum: string;
   content: string;
+  /** Initial support applied by the author at creation time (default 0). */
+  initialSupport?: number;
 };
 
 type MockSupport = {
@@ -20,45 +22,63 @@ const MOCK_STATEMENTS: MockStatement[] = [
     addrIndex: 0,
     forum: "USA",
     content: "Access to high-quality medical care is a human right.",
+    initialSupport: 10,
   },
   {
     addrIndex: 0,
     forum: "USA",
     content: "We need to consider and prevent the potential downsides of AI.",
+    initialSupport: 10,
   },
   {
     addrIndex: 0,
     forum: "USA",
     content: "Loneliness is an epidemic. Touch grass, find a friend.",
+    initialSupport: 10,
   },
-  { addrIndex: 0, forum: "USA", content: "We're better together." },
-  { addrIndex: 0, forum: "USA", content: "I want something to believe in." },
+  {
+    addrIndex: 0,
+    forum: "USA",
+    content: "We're better together.",
+    initialSupport: 10,
+  },
+  {
+    addrIndex: 0,
+    forum: "USA",
+    content: "I want something to believe in.",
+    initialSupport: 10,
+  },
   {
     addrIndex: 0,
     forum: "USA",
     content: "Nothing heals like a good chocolate chip cookie!",
+    initialSupport: 10,
   },
   {
     addrIndex: 0,
     forum: "USA",
     content: "We're in the longest government shutdown in our history.",
+    initialSupport: 10,
   },
   {
     addrIndex: 0,
     forum: "USA",
     content: "All work and now play makes Hannah and sad girl",
+    initialSupport: 10,
   },
   {
     addrIndex: 0,
     forum: "USA",
     content:
       "We should continue providing SNAP benefits despite the government shutdown",
+    initialSupport: 10,
   },
   {
     addrIndex: 0,
     forum: "USA",
     content:
       "There should be a minimum of 4 weeks PTO for primary care givers.",
+    initialSupport: 10,
   },
   { addrIndex: 0, forum: "global", content: "Gazan's deserve to not starve." },
   {
@@ -71,16 +91,19 @@ const MOCK_STATEMENTS: MockStatement[] = [
     addrIndex: 1,
     forum: "CAN",
     content: "Universal healthcare is something to be proud of.",
+    initialSupport: 10,
   },
   {
     addrIndex: 1,
     forum: "CAN",
     content: "We need more affordable housing in our cities.",
+    initialSupport: 10,
   },
   {
     addrIndex: 1,
     forum: "CAN",
     content: "Reconciliation with Indigenous peoples must be a priority.",
+    initialSupport: 10,
   },
 ];
 
@@ -96,31 +119,19 @@ const MOCK_STATEMENTS: MockStatement[] = [
  *   - account 1 (nationality "CAN") → member of CAN & global
  *   - account 2 (nationality "")    → member of global only
  */
+/**
+ * Cross-user support votes. Author self-support is now handled by
+ * initialSupport in MOCK_STATEMENTS above, so only votes from users
+ * other than the statement author remain here.
+ */
 const MOCK_SUPPORT: MockSupport[] = [
-  // ── USA forum: only account 0 is a member, so one user gives +2 ──
-  { addrIndex: 0, forum: "USA", statementIndex: 0, value: 10 },
-  { addrIndex: 0, forum: "USA", statementIndex: 1, value: 10 },
-  { addrIndex: 0, forum: "USA", statementIndex: 2, value: 10 },
-  { addrIndex: 0, forum: "USA", statementIndex: 3, value: 10 },
-  { addrIndex: 0, forum: "USA", statementIndex: 4, value: 10 },
-  { addrIndex: 0, forum: "USA", statementIndex: 5, value: 10 },
-  { addrIndex: 0, forum: "USA", statementIndex: 6, value: 10 },
-  { addrIndex: 0, forum: "USA", statementIndex: 7, value: 10 },
-  { addrIndex: 0, forum: "USA", statementIndex: 8, value: 10 },
-  { addrIndex: 0, forum: "USA", statementIndex: 9, value: 10 },
-
-  // ── global forum: accounts 0, 1, 2 are all members ──
+  // ── global forum: support from users other than the author ──
   { addrIndex: 1, forum: "global", statementIndex: 0, value: 10 },
   { addrIndex: 2, forum: "global", statementIndex: 0, value: 10 },
   { addrIndex: 0, forum: "global", statementIndex: 1, value: 10 },
   { addrIndex: 2, forum: "global", statementIndex: 1, value: 10 },
   { addrIndex: 0, forum: "global", statementIndex: 2, value: 10 },
   { addrIndex: 1, forum: "global", statementIndex: 2, value: 10 },
-
-  // ── CAN forum: only account 1 is a member, so one user gives +2 ──
-  { addrIndex: 1, forum: "CAN", statementIndex: 0, value: 10 },
-  { addrIndex: 1, forum: "CAN", statementIndex: 1, value: 10 },
-  { addrIndex: 1, forum: "CAN", statementIndex: 2, value: 10 },
 ];
 
 /**
@@ -175,7 +186,7 @@ export function createForumMockedModule(
     const statementFutures: Record<string, ReturnType<typeof m.call>[]> = {};
     MOCK_STATEMENTS.forEach((stmt, idx) => {
       const fromAddress = m.getAccount(stmt.addrIndex);
-      const future = m.call(forums[stmt.forum], "addStatement", [stmt.content], {
+      const future = m.call(forums[stmt.forum], "addStatement", [stmt.content, BigInt(stmt.initialSupport ?? 0)], {
         id: `addMockStatement${idx}`,
         from: fromAddress,
       });

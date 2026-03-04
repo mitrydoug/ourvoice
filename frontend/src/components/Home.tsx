@@ -1,6 +1,7 @@
 import { FC, useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useReadContract, useReadContracts } from "wagmi";
 import { useForum, FORUM_ABI } from "../state/Forum";
+import { useUserVotes, type StagedStatement } from "../state/UserVotes";
 import { Statement } from "../types";
 import StatementList from "./StatementList";
 import SortTabs, { SortMode } from "./SortTabs";
@@ -22,6 +23,10 @@ const Home: FC = () => {
   const isMobile = useIsMobile();
   const { has: isBookmarked, toggle: toggleBookmark } =
     useLocalStorageSet("bookmarks");
+  const userVotes = useUserVotes();
+
+  const stagedStatements = userVotes.state?.staged?.stagedStatements ?? [];
+  const unstageStatement = userVotes.unstageStatement;
 
   // ── Search state from context ───────────────────────────────────────────
   const { query: searchQuery } = useSearchQuery();
@@ -51,6 +56,8 @@ const Home: FC = () => {
           forumContractAddress={forumContractAddress}
           isBookmarked={isBookmarked}
           onToggleBookmark={toggleBookmark}
+          stagedStatements={stagedStatements}
+          onUnstagStatement={unstageStatement}
         />
       ) : (
         <RankedBrowse
@@ -58,6 +65,8 @@ const Home: FC = () => {
           isMobile={isMobile}
           isBookmarked={isBookmarked}
           onToggleBookmark={toggleBookmark}
+          stagedStatements={stagedStatements}
+          onUnstagStatement={unstageStatement}
         />
       )}
     </>
@@ -74,6 +83,8 @@ interface SearchResultsProps {
   forumContractAddress: `0x${string}`;
   isBookmarked: (id: number) => boolean;
   onToggleBookmark: (id: number) => void;
+  stagedStatements?: StagedStatement[];
+  onUnstagStatement?: (tempId: string) => void;
 }
 
 const SearchResults: FC<SearchResultsProps> = ({
@@ -82,6 +93,8 @@ const SearchResults: FC<SearchResultsProps> = ({
   forumContractAddress,
   isBookmarked,
   onToggleBookmark,
+  stagedStatements,
+  onUnstagStatement,
 }) => {
   const { hits, isLoading: isSearchLoading } = useSearch(searchQuery);
 
@@ -157,6 +170,8 @@ const SearchResults: FC<SearchResultsProps> = ({
       loadingLabel="Searching…"
       isBookmarked={isBookmarked}
       onToggleBookmark={onToggleBookmark}
+      stagedStatements={stagedStatements}
+      onUnstagStatement={onUnstagStatement}
     />
   );
 };
@@ -170,6 +185,8 @@ interface RankedBrowseProps {
   isMobile: boolean;
   isBookmarked: (id: number) => boolean;
   onToggleBookmark: (id: number) => void;
+  stagedStatements?: StagedStatement[];
+  onUnstagStatement?: (tempId: string) => void;
 }
 
 const RankedBrowse: FC<RankedBrowseProps> = ({
@@ -177,6 +194,8 @@ const RankedBrowse: FC<RankedBrowseProps> = ({
   isMobile,
   isBookmarked,
   onToggleBookmark,
+  stagedStatements,
+  onUnstagStatement,
 }) => {
   const PAGE_SIZE = isMobile ? 10 : 20;
 
@@ -267,6 +286,8 @@ const RankedBrowse: FC<RankedBrowseProps> = ({
       pageIndex={pageIndex}
       isBookmarked={isBookmarked}
       onToggleBookmark={onToggleBookmark}
+      stagedStatements={stagedStatements}
+      onUnstagStatement={onUnstagStatement}
     />
   );
 };

@@ -3,638 +3,820 @@
 
 export default [
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "contract AOurVoiceRegistry",
-        name: "_ourVoiceRegistry",
-        type: "address",
+        "internalType": "contract AOurVoiceRegistry",
+        "name": "_ourVoiceRegistry",
+        "type": "address"
       },
       {
-        internalType: "string",
-        name: "_nationality",
-        type: "string",
+        "internalType": "string",
+        "name": "_nationality",
+        "type": "string"
       },
       {
-        internalType: "uint256",
-        name: "_maxRankedStatements",
-        type: "uint256",
+        "internalType": "uint256",
+        "name": "_maxRankedStatements",
+        "type": "uint256"
       },
+      {
+        "internalType": "uint256",
+        "name": "_stepDurationSeconds",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_engagementWindowSeconds",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_maxStatementLength",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_userCreditAllowancePerStep",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_userStartingCredits",
+        "type": "uint256"
+      },
+      {
+        "internalType": "int256",
+        "name": "_minStatementSupportToRank",
+        "type": "int256"
+      }
     ],
-    stateMutability: "nonpayable",
-    type: "constructor",
+    "stateMutability": "nonpayable",
+    "type": "constructor"
   },
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "uint256",
-        name: "available",
-        type: "uint256",
-      },
-      {
-        internalType: "int256",
-        name: "required",
-        type: "int256",
-      },
+        "internalType": "address",
+        "name": "target",
+        "type": "address"
+      }
     ],
-    name: "InsufficientCredits",
-    type: "error",
+    "name": "AddressEmptyCode",
+    "type": "error"
   },
   {
-    inputs: [
+    "inputs": [],
+    "name": "FailedCall",
+    "type": "error"
+  },
+  {
+    "inputs": [
       {
-        internalType: "uint256",
-        name: "statementId",
-        type: "uint256",
+        "internalType": "uint256",
+        "name": "available",
+        "type": "uint256"
       },
+      {
+        "internalType": "int256",
+        "name": "required",
+        "type": "int256"
+      }
     ],
-    name: "InvalidStatementId",
-    type: "error",
+    "name": "InsufficientCredits",
+    "type": "error"
   },
   {
-    inputs: [],
-    name: "NotMember",
-    type: "error",
-  },
-  {
-    inputs: [
+    "inputs": [
       {
-        internalType: "uint256",
-        name: "rank",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "rankedCount",
-        type: "uint256",
-      },
+        "internalType": "uint256",
+        "name": "statementId",
+        "type": "uint256"
+      }
     ],
-    name: "RankOutOfBounds",
-    type: "error",
+    "name": "InvalidStatementId",
+    "type": "error"
   },
   {
-    inputs: [
+    "inputs": [],
+    "name": "NotMember",
+    "type": "error"
+  },
+  {
+    "inputs": [
       {
-        internalType: "uint256",
-        name: "start",
-        type: "uint256",
+        "internalType": "uint256",
+        "name": "rank",
+        "type": "uint256"
       },
       {
-        internalType: "uint256",
-        name: "statementCount",
-        type: "uint256",
-      },
+        "internalType": "uint256",
+        "name": "rankedCount",
+        "type": "uint256"
+      }
     ],
-    name: "StartOutOfBounds",
-    type: "error",
+    "name": "RankOutOfBounds",
+    "type": "error"
   },
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "uint256",
-        name: "length",
-        type: "uint256",
+        "internalType": "uint256",
+        "name": "expected",
+        "type": "uint256"
       },
       {
-        internalType: "uint256",
-        name: "maxLength",
-        type: "uint256",
-      },
+        "internalType": "uint256",
+        "name": "actual",
+        "type": "uint256"
+      }
     ],
-    name: "StatementTooLong",
-    type: "error",
+    "name": "StaleStep",
+    "type": "error"
   },
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "address",
-        name: "user",
-        type: "address",
+        "internalType": "uint256",
+        "name": "start",
+        "type": "uint256"
       },
+      {
+        "internalType": "uint256",
+        "name": "statementCount",
+        "type": "uint256"
+      }
     ],
-    name: "UserNotRegistered",
-    type: "error",
+    "name": "StartOutOfBounds",
+    "type": "error"
   },
   {
-    anonymous: false,
-    inputs: [
+    "inputs": [
       {
-        indexed: true,
-        internalType: "uint256",
-        name: "id",
-        type: "uint256",
+        "internalType": "uint256",
+        "name": "length",
+        "type": "uint256"
       },
       {
-        indexed: false,
-        internalType: "string",
-        name: "statement",
-        type: "string",
-      },
+        "internalType": "uint256",
+        "name": "maxLength",
+        "type": "uint256"
+      }
     ],
-    name: "StatementAdded",
-    type: "event",
+    "name": "StatementTooLong",
+    "type": "error"
   },
   {
-    stateMutability: "nonpayable",
-    type: "fallback",
-  },
-  {
-    inputs: [],
-    name: "MAX_RANKED_STATEMENTS",
-    outputs: [
+    "inputs": [
       {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
+        "internalType": "uint256",
+        "name": "fromTimestamp",
+        "type": "uint256"
       },
+      {
+        "internalType": "uint256",
+        "name": "toTimestamp",
+        "type": "uint256"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "name": "TimestampOrderInvalid",
+    "type": "error"
   },
   {
-    inputs: [],
-    name: "MAX_STATEMENT_LENGTH",
-    outputs: [
+    "inputs": [
       {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      }
+    ],
+    "name": "UserNotRegistered",
+    "type": "error"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "id",
+        "type": "uint256"
       },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "statement",
+        "type": "string"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "name": "StatementAdded",
+    "type": "event"
   },
   {
-    inputs: [],
-    name: "MIN_STATEMENT_SUPPORT_TO_RANK",
-    outputs: [
+    "anonymous": false,
+    "inputs": [
       {
-        internalType: "int256",
-        name: "",
-        type: "int256",
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "statementId",
+        "type": "uint256"
+      }
+    ],
+    "name": "StatementEngaged",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "statementId",
+        "type": "uint256"
       },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "USER_CREDIT_ALLOWANCE_PER_STEP",
-    outputs: [
       {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
+        "indexed": false,
+        "internalType": "int256",
+        "name": "previousRank",
+        "type": "int256"
       },
+      {
+        "indexed": false,
+        "internalType": "int256",
+        "name": "newRank",
+        "type": "int256"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "name": "StatementRankChanged",
+    "type": "event"
   },
   {
-    inputs: [],
-    name: "USER_STARTING_CREDITS",
-    outputs: [
+    "stateMutability": "nonpayable",
+    "type": "fallback"
+  },
+  {
+    "inputs": [
       {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
+        "internalType": "string",
+        "name": "_statementText",
+        "type": "string"
       },
+      {
+        "internalType": "int256",
+        "name": "_initialSupport",
+        "type": "int256"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "name": "addStatement",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "string",
-        name: "_statementText",
-        type: "string",
-      },
-    ],
-    name: "addStatement",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        components: [
+        "components": [
           {
-            internalType: "uint256",
-            name: "statementId",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "statementId",
+            "type": "uint256"
           },
           {
-            internalType: "int256",
-            name: "value",
-            type: "int256",
-          },
+            "internalType": "int256",
+            "name": "value",
+            "type": "int256"
+          }
         ],
-        internalType: "struct Forum.SupportAdjustment[]",
-        name: "_supportAdjustments",
-        type: "tuple[]",
-      },
+        "internalType": "struct Forum.SupportAdjustment[]",
+        "name": "_supportAdjustments",
+        "type": "tuple[]"
+      }
     ],
-    name: "adjustSupport",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
+    "name": "adjustSupport",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [],
+    "name": "engagementWindowSeconds",
+    "outputs": [
       {
-        internalType: "uint256",
-        name: "_rank",
-        type: "uint256",
-      },
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
     ],
-    name: "getRankedStatement",
-    outputs: [
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
       {
-        components: [
+        "internalType": "uint256",
+        "name": "_rank",
+        "type": "uint256"
+      }
+    ],
+    "name": "getRankedStatement",
+    "outputs": [
+      {
+        "components": [
           {
-            internalType: "uint256",
-            name: "id",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "id",
+            "type": "uint256"
           },
           {
-            internalType: "string",
-            name: "text",
-            type: "string",
+            "internalType": "string",
+            "name": "text",
+            "type": "string"
           },
           {
-            internalType: "uint256",
-            name: "createdTimestamp",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "createdTimestamp",
+            "type": "uint256"
           },
           {
-            internalType: "int256",
-            name: "support",
-            type: "int256",
+            "internalType": "int256",
+            "name": "support",
+            "type": "int256"
           },
           {
-            internalType: "int256",
-            name: "rank",
-            type: "int256",
+            "internalType": "int256",
+            "name": "rank",
+            "type": "int256"
           },
           {
-            internalType: "int256",
-            name: "peakRank",
-            type: "int256",
-          },
+            "internalType": "int256",
+            "name": "peakRank",
+            "type": "int256"
+          }
         ],
-        internalType: "struct Forum.Statement",
-        name: "",
-        type: "tuple",
-      },
+        "internalType": "struct Forum.Statement",
+        "name": "",
+        "type": "tuple"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "uint256",
-        name: "_start",
-        type: "uint256",
+        "internalType": "uint256",
+        "name": "_start",
+        "type": "uint256"
       },
       {
-        internalType: "uint256",
-        name: "_limit",
-        type: "uint256",
-      },
+        "internalType": "uint256",
+        "name": "_limit",
+        "type": "uint256"
+      }
     ],
-    name: "getRankedStatementsPage",
-    outputs: [
+    "name": "getRankedStatementsPage",
+    "outputs": [
       {
-        components: [
+        "components": [
           {
-            internalType: "uint256",
-            name: "id",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "id",
+            "type": "uint256"
           },
           {
-            internalType: "string",
-            name: "text",
-            type: "string",
+            "internalType": "string",
+            "name": "text",
+            "type": "string"
           },
           {
-            internalType: "uint256",
-            name: "createdTimestamp",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "createdTimestamp",
+            "type": "uint256"
           },
           {
-            internalType: "int256",
-            name: "support",
-            type: "int256",
+            "internalType": "int256",
+            "name": "support",
+            "type": "int256"
           },
           {
-            internalType: "int256",
-            name: "rank",
-            type: "int256",
+            "internalType": "int256",
+            "name": "rank",
+            "type": "int256"
           },
           {
-            internalType: "int256",
-            name: "peakRank",
-            type: "int256",
-          },
+            "internalType": "int256",
+            "name": "peakRank",
+            "type": "int256"
+          }
         ],
-        internalType: "struct Forum.Statement[]",
-        name: "",
-        type: "tuple[]",
-      },
+        "internalType": "struct Forum.Statement[]",
+        "name": "",
+        "type": "tuple[]"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "uint256[]",
-        name: "_statementIds",
-        type: "uint256[]",
-      },
+        "internalType": "uint256[]",
+        "name": "_statementIds",
+        "type": "uint256[]"
+      }
     ],
-    name: "getStatementsById",
-    outputs: [
+    "name": "getStatementsById",
+    "outputs": [
       {
-        components: [
+        "components": [
           {
-            internalType: "uint256",
-            name: "id",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "id",
+            "type": "uint256"
           },
           {
-            internalType: "string",
-            name: "text",
-            type: "string",
+            "internalType": "string",
+            "name": "text",
+            "type": "string"
           },
           {
-            internalType: "uint256",
-            name: "createdTimestamp",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "createdTimestamp",
+            "type": "uint256"
           },
           {
-            internalType: "int256",
-            name: "support",
-            type: "int256",
+            "internalType": "int256",
+            "name": "support",
+            "type": "int256"
           },
           {
-            internalType: "int256",
-            name: "rank",
-            type: "int256",
+            "internalType": "int256",
+            "name": "rank",
+            "type": "int256"
           },
           {
-            internalType: "int256",
-            name: "peakRank",
-            type: "int256",
-          },
+            "internalType": "int256",
+            "name": "peakRank",
+            "type": "int256"
+          }
         ],
-        internalType: "struct Forum.Statement[]",
-        name: "",
-        type: "tuple[]",
-      },
+        "internalType": "struct Forum.Statement[]",
+        "name": "",
+        "type": "tuple[]"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [],
-    name: "getUserBalance",
-    outputs: [
+    "inputs": [],
+    "name": "getUserBalance",
+    "outputs": [
       {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [],
-    name: "getUserStatementSupport",
-    outputs: [
+    "inputs": [],
+    "name": "getUserStatementSupport",
+    "outputs": [
       {
-        components: [
+        "components": [
           {
-            internalType: "uint256",
-            name: "statementId",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "statementId",
+            "type": "uint256"
           },
           {
-            internalType: "int256",
-            name: "support",
-            type: "int256",
-          },
+            "internalType": "int256",
+            "name": "support",
+            "type": "int256"
+          }
         ],
-        internalType: "struct Forum.StatementSupport[]",
-        name: "",
-        type: "tuple[]",
-      },
+        "internalType": "struct Forum.StatementSupport[]",
+        "name": "",
+        "type": "tuple[]"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [],
-    name: "isMember",
-    outputs: [
+    "inputs": [],
+    "name": "isMember",
+    "outputs": [
       {
-        internalType: "bool",
-        name: "",
-        type: "bool",
-      },
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [],
-    name: "maxRankedStatements",
-    outputs: [
+    "inputs": [],
+    "name": "maxRankedStatements",
+    "outputs": [
       {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [],
-    name: "nationality",
-    outputs: [
+    "inputs": [],
+    "name": "maxStatementLength",
+    "outputs": [
       {
-        internalType: "string",
-        name: "",
-        type: "string",
-      },
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [],
-    name: "ourVoiceRegistry",
-    outputs: [
+    "inputs": [],
+    "name": "minStatementSupportToRank",
+    "outputs": [
       {
-        internalType: "contract AOurVoiceRegistry",
-        name: "",
-        type: "address",
-      },
+        "internalType": "int256",
+        "name": "",
+        "type": "int256"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [],
-    name: "rankedCount",
-    outputs: [
+    "inputs": [
       {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
+        "internalType": "bytes[]",
+        "name": "data",
+        "type": "bytes[]"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "name": "multicall",
+    "outputs": [
+      {
+        "internalType": "bytes[]",
+        "name": "results",
+        "type": "bytes[]"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    inputs: [],
-    name: "statementCount",
-    outputs: [
+    "inputs": [],
+    "name": "nationality",
+    "outputs": [
       {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [],
+    "name": "ourVoiceRegistry",
+    "outputs": [
       {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
+        "internalType": "contract AOurVoiceRegistry",
+        "name": "",
+        "type": "address"
+      }
     ],
-    name: "statementRankings",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [],
+    "name": "rankedCount",
+    "outputs": [
       {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
     ],
-    name: "statements",
-    outputs: [
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
       {
-        internalType: "uint256",
-        name: "id",
-        type: "uint256",
+        "internalType": "uint256",
+        "name": "_expectedStep",
+        "type": "uint256"
+      }
+    ],
+    "name": "requireStep",
+    "outputs": [],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "statementCount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "statementRankings",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "statements",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "id",
+        "type": "uint256"
       },
       {
-        internalType: "string",
-        name: "text",
-        type: "string",
+        "internalType": "string",
+        "name": "text",
+        "type": "string"
       },
       {
-        internalType: "uint256",
-        name: "createdTimestamp",
-        type: "uint256",
+        "internalType": "uint256",
+        "name": "createdTimestamp",
+        "type": "uint256"
       },
       {
-        components: [
+        "components": [
           {
-            internalType: "int256",
-            name: "value",
-            type: "int256",
+            "internalType": "int256",
+            "name": "value",
+            "type": "int256"
           },
           {
-            internalType: "uint256",
-            name: "lastUpdated",
-            type: "uint256",
-          },
+            "internalType": "uint256",
+            "name": "lastUpdated",
+            "type": "uint256"
+          }
         ],
-        internalType: "struct Forum.Support",
-        name: "support",
-        type: "tuple",
+        "internalType": "struct Forum.Support",
+        "name": "support",
+        "type": "tuple"
       },
       {
-        internalType: "int256",
-        name: "rank",
-        type: "int256",
+        "internalType": "int256",
+        "name": "rank",
+        "type": "int256"
       },
+      {
+        "internalType": "int256",
+        "name": "peakRank",
+        "type": "int256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "lastEngagementEventTimestamp",
+        "type": "uint256"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [],
+    "name": "stepDurationSeconds",
+    "outputs": [
       {
-        internalType: "bytes32",
-        name: "",
-        type: "bytes32",
-      },
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
     ],
-    name: "userCredits",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "credits",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "lastUpdated",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [],
+    "name": "userCreditAllowancePerStep",
+    "outputs": [
       {
-        internalType: "bytes32",
-        name: "",
-        type: "bytes32",
-      },
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
     ],
-    name: "userSupportMap",
-    outputs: [
-      {
-        internalType: "int256",
-        name: "value",
-        type: "int256",
-      },
-      {
-        internalType: "uint256",
-        name: "lastUpdated",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "name": "userCredits",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "credits",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "lastUpdated",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "userStartingCredits",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "userSupportMap",
+    "outputs": [
+      {
+        "internalType": "int256",
+        "name": "value",
+        "type": "int256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "lastUpdated",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
 ] as const;

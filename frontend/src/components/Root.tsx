@@ -11,7 +11,6 @@ import BottomNav from "./BottomNav";
 import WriteModal from "./WriteModal";
 import useIsMobile from "@/hooks/useIsMobile";
 import { useUserVotes } from "../state/UserVotes";
-import useLocalStorageSet from "@/hooks/useLocalStorageSet";
 import { SearchProvider } from "@/state/Search";
 
 const Root: FC = () => {
@@ -19,8 +18,6 @@ const Root: FC = () => {
   const isMobile = useIsMobile();
   const theme = useTheme();
   const { isUserVerified } = useUserVotes();
-  const { add: addAuthoredStatement } =
-    useLocalStorageSet("authoredStatements");
   const [writeModalOpen, setWriteModalOpen] = useState(false);
 
   return (
@@ -90,7 +87,6 @@ const Root: FC = () => {
             <WriteModal
               open={writeModalOpen}
               onClose={() => setWriteModalOpen(false)}
-              onStatementAdded={addAuthoredStatement}
             />
           </>
         )}

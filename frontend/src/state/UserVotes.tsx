@@ -13,8 +13,10 @@ import {
   useWaitForTransactionReceipt,
   useWriteContract,
 } from "wagmi";
+import { encodeFunctionData, parseEventLogs } from "viem";
 import { FORUM_ABI, useForum } from "./Forum";
 import useBlockSync from "@/hooks/useBlockSync";
+import useLocalStorageSet from "@/hooks/useLocalStorageSet";
 
 interface StatementSupport {
   statementId: bigint;
@@ -29,6 +31,14 @@ interface UserSupport {
 interface StagedSupport {
   credits: number;
   supportAdjustments: Map<number, number>;
+  stagedStatements: StagedStatement[];
+}
+
+export interface StagedStatement {
+  /** Client-side temporary ID (uuid or counter) — NOT an on-chain ID. */
+  tempId: string;
+  text: string;
+  initialSupport: number;
 }
 
 export type CommitStatus =
@@ -37,6 +47,7 @@ export type CommitStatus =
   | "pending-confirmation"
   | "confirmed"
   | "cancelled"
+  | "stale-step"
   | "error";
 
 interface UserSupportState {
@@ -89,6 +100,20 @@ type ResetCommitStatus = {
   type: "RESET_COMMIT_STATUS";
 };
 
+type StageStatement = {
+  type: "STAGE_STATEMENT";
+  payload: { tempId: string; text: string; initialSupport: number };
+};
+
+type UnstageStatement = {
+  type: "UNSTAGE_STATEMENT";
+  payload: { tempId: string };
+};
+
+type CommitStaleStep = {
+  type: "COMMIT_STALE_STEP";
+};
+
 type UserSupportAction =
   | SyncOnChainState
   | StageUserSupport
@@ -98,7 +123,10 @@ type UserSupportAction =
   | CommitConfirmed
   | CommitCancelled
   | CommitError
-  | ResetCommitStatus;
+  | ResetCommitStatus
+  | StageStatement
+  | UnstageStatement
+  | CommitStaleStep;
 
 // Triangle number: triangle(x) = x*(x+1)/2
 const triangle = (x: number): number => (x * (x + 1)) / 2;
@@ -139,6 +167,7 @@ const reducer = (
         newState.staged = {
           credits: onChainState.credits,
           supportAdjustments: new Map(),
+          stagedStatements: [],
         };
         newState.commitStatus = "confirmed";
         newState.pendingTxHash = undefined;
@@ -147,6 +176,7 @@ const reducer = (
         newState.staged = {
           credits: onChainState.credits,
           supportAdjustments: new Map(),
+          stagedStatements: [],
         };
       }
       break;
@@ -161,6 +191,7 @@ const reducer = (
       newState.staged = {
         ...state.staged,
         supportAdjustments: new Map(state.staged.supportAdjustments),
+        stagedStatements: [...state.staged.stagedStatements],
       };
       if (adjustment === 0) {
         newState.staged.supportAdjustments.delete(Number(statementId));
@@ -173,6 +204,7 @@ const reducer = (
       newState.staged = {
         credits: newState.onChain ? newState.onChain.credits : 0,
         supportAdjustments: new Map(),
+        stagedStatements: [],
       };
       break;
     }
@@ -205,11 +237,49 @@ const reducer = (
       newState.staged = {
         credits: newState.onChain ? newState.onChain.credits : 0,
         supportAdjustments: new Map(),
+        stagedStatements: [],
       };
       break;
     }
     case "RESET_COMMIT_STATUS": {
       newState.commitStatus = "idle";
+      newState.pendingTxHash = undefined;
+      newState.confirmedBlockNumber = undefined;
+      break;
+    }
+    case "STAGE_STATEMENT": {
+      if (!state.staged) {
+        throw new Error(
+          "Cannot stage statement before on-chain state is synced",
+        );
+      }
+      newState.staged = {
+        ...state.staged,
+        supportAdjustments: new Map(state.staged.supportAdjustments),
+        stagedStatements: [
+          ...state.staged.stagedStatements,
+          {
+            tempId: action.payload.tempId,
+            text: action.payload.text,
+            initialSupport: action.payload.initialSupport,
+          },
+        ],
+      };
+      break;
+    }
+    case "UNSTAGE_STATEMENT": {
+      if (!state.staged) break;
+      newState.staged = {
+        ...state.staged,
+        supportAdjustments: new Map(state.staged.supportAdjustments),
+        stagedStatements: state.staged.stagedStatements.filter(
+          (s) => s.tempId !== action.payload.tempId,
+        ),
+      };
+      break;
+    }
+    case "COMMIT_STALE_STEP": {
+      newState.commitStatus = "stale-step";
       newState.pendingTxHash = undefined;
       newState.confirmedBlockNumber = undefined;
       break;
@@ -226,9 +296,17 @@ const reducer = (
       const newSupport = onChainSupport + adjustment;
       totalAdjustmentCost += adjustmentCost(onChainSupport, newSupport);
     }
+    // Include cost for staged new statements
+    for (const stmt of newState.staged.stagedStatements) {
+      totalAdjustmentCost += adjustmentCost(0, stmt.initialSupport);
+    }
   }
 
   const stagedCredits = (newState.onChain?.credits || 0) - totalAdjustmentCost;
+
+  const hasStagedChanges =
+    (newState.staged?.supportAdjustments.size ?? 0) > 0 ||
+    (newState.staged?.stagedStatements.length ?? 0) > 0;
 
   newState = {
     ...newState,
@@ -238,9 +316,7 @@ const reducer = (
           credits: stagedCredits,
         }
       : undefined,
-    hasStagedChanges: newState.staged?.supportAdjustments.size
-      ? newState.staged.supportAdjustments.size > 0
-      : false,
+    hasStagedChanges,
     hasEnoughCredits: stagedCredits >= 0,
   };
 
@@ -252,31 +328,35 @@ type UserNotVerifiedContextValue = {
   isUserVerified: false;
   state: undefined;
   dispatch: undefined;
-  commitSupport: undefined;
+  commitChanges: undefined;
   resetCommitStatus: undefined;
   getEffectiveSupport: undefined;
   getOnChainSupport: undefined;
   hasAdjustment: undefined;
+  stageStatement: undefined;
+  unstageStatement: undefined;
 };
 
 type UserSupportContextValue = {
   isUserVerified: true;
   state: UserSupportState;
   dispatch: React.Dispatch<UserSupportAction>;
-  commitSupport: () => void | Promise<void>;
+  commitChanges: () => void | Promise<void>;
   resetCommitStatus: () => void;
   getEffectiveSupport: (statementId: number) => number;
   getOnChainSupport: (statementId: number) => number;
   hasAdjustment: (statementId: number) => boolean;
+  stageStatement: (text: string, initialSupport?: number) => void;
+  unstageStatement: (tempId: string) => void;
 };
 
 export const UserVoteContext = createContext<
   UserNotVerifiedContextValue | UserSupportContextValue | undefined
 >(undefined);
 
-export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+export const UserVoteProvider: FC<{
+  children: React.ReactNode;
+}> = ({ children }) => {
   const [state, dispatch] = useReducer(reducer, {
     onChain: undefined,
     staged: undefined,
@@ -289,6 +369,18 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
   const { forumContractAddress } = useForum();
   console.log("UserVoteProvider for address: ", address);
   console.log("Forum contract address: ", forumContractAddress);
+
+  // Read stepDurationSeconds for requireStep guard
+  const { data: stepDurationSeconds } = useReadContract({
+    address: forumContractAddress,
+    abi: FORUM_ABI,
+    functionName: "stepDurationSeconds",
+    query: { enabled: !!forumContractAddress },
+  });
+
+  // Track authored statements in localStorage for "My Statements"
+  const { add: addAuthoredStatement } =
+    useLocalStorageSet("authoredStatements");
 
   const { data: isUserVerified } = useReadContract({
     address: forumContractAddress,
@@ -375,19 +467,35 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
     },
   });
 
-  // When receipt arrives, dispatch COMMIT_CONFIRMED with the block number
+  // When receipt arrives, extract authored statement IDs from logs and
+  // dispatch COMMIT_CONFIRMED with the block number.
   useEffect(() => {
     if (
       txReceipt &&
       state.commitStatus === "pending-confirmation" &&
       state.confirmedBlockNumber === undefined
     ) {
+      // Decode StatementAdded events to get the actual on-chain IDs
+      const statementEvents = parseEventLogs({
+        abi: FORUM_ABI,
+        logs: txReceipt.logs,
+        eventName: "StatementAdded",
+      });
+      for (const event of statementEvents) {
+        addAuthoredStatement(Number(event.args.id));
+      }
+
       dispatch({
         type: "COMMIT_CONFIRMED",
         payload: { blockNumber: txReceipt.blockNumber },
       });
     }
-  }, [txReceipt, state.commitStatus, state.confirmedBlockNumber]);
+  }, [
+    txReceipt,
+    state.commitStatus,
+    state.confirmedBlockNumber,
+    addAuthoredStatement,
+  ]);
 
   // Timeout: if commit is in-flight for more than 30 seconds, treat as error
   const commitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -415,38 +523,95 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
     };
   }, [state.commitStatus]);
 
-  const commitSupport = useCallback(async () => {
+  const commitChanges = useCallback(async () => {
     if (state.hasStagedChanges && state.hasEnoughCredits && state.staged) {
       console.log(
-        "Committing support changes: ",
+        "Committing changes: ",
         state.staged.supportAdjustments,
+        state.staged.stagedStatements,
       );
 
-      const supportAdjustments: { statementId: bigint; value: bigint }[] = [];
-      for (const [statementId, adjustment] of state.staged.supportAdjustments) {
-        supportAdjustments.push({
-          statementId: BigInt(statementId),
-          value: BigInt(adjustment),
-        });
-      }
+      const hasSupportAdjustments = state.staged.supportAdjustments.size > 0;
 
       dispatch({ type: "BEGIN_COMMIT" });
 
       try {
+        // Build the list of encoded calls for multicall
+        const calls: `0x${string}`[] = [];
+
+        // 1. requireStep guard — protects against decay drift
+        if (stepDurationSeconds && stepDurationSeconds > 0n) {
+          const currentStep =
+            BigInt(Math.floor(Date.now() / 1000)) / stepDurationSeconds;
+          calls.push(
+            encodeFunctionData({
+              abi: FORUM_ABI,
+              functionName: "requireStep",
+              args: [currentStep],
+            }),
+          );
+        }
+
+        // 2. addStatement calls for staged new statements
+        for (const stmt of state.staged.stagedStatements) {
+          calls.push(
+            encodeFunctionData({
+              abi: FORUM_ABI,
+              functionName: "addStatement",
+              args: [stmt.text, BigInt(stmt.initialSupport)],
+            }),
+          );
+        }
+
+        // 3. adjustSupport call for support adjustments on existing statements
+        if (hasSupportAdjustments) {
+          const supportAdjustments: { statementId: bigint; value: bigint }[] =
+            [];
+          for (const [statementId, adjustment] of state.staged
+            .supportAdjustments) {
+            supportAdjustments.push({
+              statementId: BigInt(statementId),
+              value: BigInt(adjustment),
+            });
+          }
+          calls.push(
+            encodeFunctionData({
+              abi: FORUM_ABI,
+              functionName: "adjustSupport",
+              args: [supportAdjustments],
+            }),
+          );
+        }
+
+        // Use multicall to batch everything in a single transaction.
+        // Authored statement IDs are extracted from the receipt logs in
+        // the COMMIT_CONFIRMED effect, avoiding prediction race conditions.
         const txHash = await writeContractAsync({
           address: forumContractAddress,
           abi: FORUM_ABI,
-          functionName: "adjustSupport",
-          args: [supportAdjustments],
+          functionName: "multicall",
+          args: [calls],
         });
 
         dispatch({ type: "COMMIT_SUBMITTED", payload: { txHash } });
-      } catch {
-        // User rejected the transaction in their wallet, or other error
-        dispatch({ type: "COMMIT_CANCELLED" });
+      } catch (err: unknown) {
+        // Check for StaleStep revert
+        const errorStr = String(err);
+        if (errorStr.includes("StaleStep")) {
+          dispatch({ type: "COMMIT_STALE_STEP" });
+        } else {
+          // User rejected the transaction in their wallet, or other error
+          dispatch({ type: "COMMIT_CANCELLED" });
+        }
       }
     }
-  }, [state, writeContractAsync, forumContractAddress, dispatch]);
+  }, [
+    state,
+    writeContractAsync,
+    forumContractAddress,
+    dispatch,
+    stepDurationSeconds,
+  ]);
 
   const resetCommitStatus = useCallback(() => {
     dispatch({ type: "RESET_COMMIT_STATUS" });
@@ -479,6 +644,26 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
     [state.staged],
   );
 
+  // Stage a new statement for batched submission
+  const stageStatement = useCallback(
+    (text: string, initialSupport = 0) => {
+      const tempId = crypto.randomUUID();
+      dispatch({
+        type: "STAGE_STATEMENT",
+        payload: { tempId, text, initialSupport },
+      });
+    },
+    [dispatch],
+  );
+
+  // Remove a staged statement before it is committed
+  const unstageStatement = useCallback(
+    (tempId: string) => {
+      dispatch({ type: "UNSTAGE_STATEMENT", payload: { tempId } });
+    },
+    [dispatch],
+  );
+
   if (isUserVerified) {
     return (
       <UserVoteContext.Provider
@@ -486,11 +671,13 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
           isUserVerified: isUserVerified,
           state,
           dispatch,
-          commitSupport,
+          commitChanges,
           resetCommitStatus,
           getEffectiveSupport,
           getOnChainSupport,
           hasAdjustment,
+          stageStatement,
+          unstageStatement,
         }}
       >
         {children}
@@ -503,11 +690,13 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
           isUserVerified: !!isUserVerified,
           state: undefined,
           dispatch: undefined,
-          commitSupport: undefined,
+          commitChanges: undefined,
           resetCommitStatus: undefined,
           getEffectiveSupport: undefined,
           getOnChainSupport: undefined,
           hasAdjustment: undefined,
+          stageStatement: undefined,
+          unstageStatement: undefined,
         }}
       >
         {children}
