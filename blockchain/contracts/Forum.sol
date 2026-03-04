@@ -4,8 +4,9 @@ pragma solidity ^0.8.28;
 import "./IOurVoiceRegistry.sol";
 import "./StringUtils.sol";
 import "./DecayUtils.sol";
+import "@openzeppelin/contracts/utils/Multicall.sol";
 
-contract Forum {
+contract Forum is Multicall {
     // Custom errors
     error NotMember();
     error RankOutOfBounds(uint rank, uint rankedCount);
@@ -296,11 +297,25 @@ contract Forum {
             _rank += 1;
         }
 
+        // If the statement's support has fallen below the ranking threshold,
+        // unrank it and compact the array.
+        if (
+            _getCurrentSupportValue(statement.support) <
+            minStatementSupportToRank
+        ) {
+            rankedCount -= 1;
+            _setStatementRank(_statementId, -1);
+            return;
+        }
+
         statementRankings[_rank] = _statementId;
         _setStatementRank(_statementId, int(_rank));
     }
 
-    function addStatement(string calldata _statementText) external onlyMembers {
+    function addStatement(
+        string calldata _statementText,
+        int _initialSupport
+    ) external onlyMembers {
         if (bytes(_statementText).length > maxStatementLength)
             revert StatementTooLong(
                 bytes(_statementText).length,
@@ -319,6 +334,29 @@ contract Forum {
             peakRank: -1,
             lastEngagementEventTimestamp: 0
         });
+
+        if (_initialSupport != 0) {
+            if (!ourVoiceRegistry.isRegistered(msg.sender))
+                revert UserNotRegistered(msg.sender);
+            bytes32 _userId = ourVoiceRegistry.getUserIdentifier(msg.sender);
+
+            // Apply initial support to statement and user support map
+            statements[statementCount].support.value = _initialSupport;
+            userSupportMap[_userId][statementCount] = Support({
+                value: _initialSupport,
+                lastUpdated: block.timestamp
+            });
+            _updateUserSupportedStatements(_userId, statementCount);
+
+            // Charge credits (old cost is 0 since this is a new statement)
+            uint _cost = _costOfUserSupport(_initialSupport);
+            UserBalance storage _userBalance = userCredits[_userId];
+            _updateUserBalanceToBeCurrent(_userBalance);
+            if (_userBalance.credits < _cost)
+                revert InsufficientCredits(_userBalance.credits, int(_cost));
+            _userBalance.credits -= _cost;
+        }
+
         _updateStatementRanking(statementCount);
         emit StatementAdded(statementCount, _statementText);
         statementCount++;
@@ -489,13 +527,10 @@ contract Forum {
         }
     }
 
-    function adjustSupport(
-        SupportAdjustment[] calldata _supportAdjustments
-    ) external onlyMembers {
-        if (!ourVoiceRegistry.isRegistered(msg.sender))
-            revert UserNotRegistered(msg.sender);
-        bytes32 _userId = ourVoiceRegistry.getUserIdentifier(msg.sender);
-
+    function _adjustSupport(
+        bytes32 _userId,
+        SupportAdjustment[] memory _supportAdjustments
+    ) internal {
         UserBalance storage _userBalance = userCredits[_userId];
         _updateUserBalanceToBeCurrent(_userBalance);
 
@@ -546,6 +581,37 @@ contract Forum {
         _userBalance.credits = uint(
             int(_userBalance.credits) - _totalCostChange
         );
+    }
+
+    function adjustSupport(
+        SupportAdjustment[] calldata _supportAdjustments
+    ) external onlyMembers {
+        if (!ourVoiceRegistry.isRegistered(msg.sender))
+            revert UserNotRegistered(msg.sender);
+        bytes32 _userId = ourVoiceRegistry.getUserIdentifier(msg.sender);
+        _adjustSupport(_userId, _supportAdjustments);
+    }
+
+    function clearSupport(uint[] calldata _statementIds) external onlyMembers {
+        if (!ourVoiceRegistry.isRegistered(msg.sender))
+            revert UserNotRegistered(msg.sender);
+        bytes32 _userId = ourVoiceRegistry.getUserIdentifier(msg.sender);
+
+        SupportAdjustment[] memory _adjustments = new SupportAdjustment[](
+            _statementIds.length
+        );
+        for (uint i = 0; i < _statementIds.length; i++) {
+            if (_statementIds[i] >= statementCount)
+                revert InvalidStatementId(_statementIds[i]);
+            int _currentSupport = _getCurrentSupportValue(
+                userSupportMap[_userId][_statementIds[i]]
+            );
+            _adjustments[i] = SupportAdjustment({
+                statementId: _statementIds[i],
+                value: -_currentSupport
+            });
+        }
+        _adjustSupport(_userId, _adjustments);
     }
 
     fallback() external {}
