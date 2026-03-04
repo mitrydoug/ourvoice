@@ -16,6 +16,7 @@ contract Forum is Multicall {
     error UserNotRegistered(address user);
     error InsufficientCredits(uint available, int required);
     error TimestampOrderInvalid(uint fromTimestamp, uint toTimestamp);
+    error StaleStep(uint expected, uint actual);
 
     // Maximum length (in bytes) of a statement
     uint public immutable maxStatementLength;
@@ -527,10 +528,13 @@ contract Forum is Multicall {
         }
     }
 
-    function _adjustSupport(
-        bytes32 _userId,
-        SupportAdjustment[] memory _supportAdjustments
-    ) internal {
+    function adjustSupport(
+        SupportAdjustment[] calldata _supportAdjustments
+    ) external onlyMembers {
+        if (!ourVoiceRegistry.isRegistered(msg.sender))
+            revert UserNotRegistered(msg.sender);
+        bytes32 _userId = ourVoiceRegistry.getUserIdentifier(msg.sender);
+
         UserBalance storage _userBalance = userCredits[_userId];
         _updateUserBalanceToBeCurrent(_userBalance);
 
@@ -583,35 +587,12 @@ contract Forum is Multicall {
         );
     }
 
-    function adjustSupport(
-        SupportAdjustment[] calldata _supportAdjustments
-    ) external onlyMembers {
-        if (!ourVoiceRegistry.isRegistered(msg.sender))
-            revert UserNotRegistered(msg.sender);
-        bytes32 _userId = ourVoiceRegistry.getUserIdentifier(msg.sender);
-        _adjustSupport(_userId, _supportAdjustments);
-    }
-
-    function clearSupport(uint[] calldata _statementIds) external onlyMembers {
-        if (!ourVoiceRegistry.isRegistered(msg.sender))
-            revert UserNotRegistered(msg.sender);
-        bytes32 _userId = ourVoiceRegistry.getUserIdentifier(msg.sender);
-
-        SupportAdjustment[] memory _adjustments = new SupportAdjustment[](
-            _statementIds.length
-        );
-        for (uint i = 0; i < _statementIds.length; i++) {
-            if (_statementIds[i] >= statementCount)
-                revert InvalidStatementId(_statementIds[i]);
-            int _currentSupport = _getCurrentSupportValue(
-                userSupportMap[_userId][_statementIds[i]]
-            );
-            _adjustments[i] = SupportAdjustment({
-                statementId: _statementIds[i],
-                value: -_currentSupport
-            });
-        }
-        _adjustSupport(_userId, _adjustments);
+    /// @notice Reverts if the current decay step does not match the expected value.
+    /// @dev Intended for use via multicall to guard against decay drift.
+    function requireStep(uint _expectedStep) external view {
+        uint actualStep = block.timestamp / stepDurationSeconds;
+        if (actualStep != _expectedStep)
+            revert StaleStep(_expectedStep, actualStep);
     }
 
     fallback() external {}

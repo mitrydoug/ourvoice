@@ -1405,61 +1405,49 @@ contract ForumTest is Test {
         _addStatementSupport(0, 1);
     }
 
-    function testClearSupportResetsSupportAndRefundsCredits()
+    function testRequireStepSucceedsOnCorrectStep() external registeredMember {
+        uint expectedStep = block.timestamp / forum.stepDurationSeconds();
+        // Should not revert
+        forum.requireStep(expectedStep);
+    }
+
+    function testRequireStepRevertsOnWrongStep() external registeredMember {
+        uint expectedStep = block.timestamp / forum.stepDurationSeconds();
+        uint wrongStep = expectedStep + 1;
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Forum.StaleStep.selector,
+                wrongStep,
+                expectedStep
+            )
+        );
+        forum.requireStep(wrongStep);
+    }
+
+    function testRequireStepChangesAfterTimeAdvance()
         external
         registeredMember
     {
-        forum.addStatement("Statement A", 0);
-        forum.addStatement("Statement B", 0);
+        uint stepDuration = forum.stepDurationSeconds();
+        uint stepBefore = block.timestamp / stepDuration;
 
-        _addStatementSupport(0, 5); // Cost: 15
-        _addStatementSupport(1, 3); // Cost: 6
+        // Advance time by one full step
+        vm.warp(block.timestamp + stepDuration);
 
-        uint balanceAfterSupport = forum.getUserBalance();
+        uint stepAfter = block.timestamp / stepDuration;
+        assertEq(stepAfter, stepBefore + 1, "Step should have advanced by 1");
 
-        // Clear support on both statements
-        uint[] memory statementIds = new uint[](2);
-        statementIds[0] = 0;
-        statementIds[1] = 1;
-        forum.clearSupport(statementIds);
-
-        // Support should be zero
-        Forum.Statement memory s0 = _getStatementById(0);
-        Forum.Statement memory s1 = _getStatementById(1);
-        assertEq(s0.support, 0, "Statement 0 support should be 0 after clear");
-        assertEq(s1.support, 0, "Statement 1 support should be 0 after clear");
-
-        // Credits should be fully refunded (15 + 6 = 21)
-        uint finalBalance = forum.getUserBalance();
-        assertEq(
-            finalBalance,
-            balanceAfterSupport + 21,
-            "Credits should be refunded by 21 after clearing support"
+        // Old step should now revert
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Forum.StaleStep.selector,
+                stepBefore,
+                stepAfter
+            )
         );
-    }
+        forum.requireStep(stepBefore);
 
-    function testClearSupportRemovesFromRanking() external registeredMember {
-        forum.addStatement("Statement A", 0);
-        forum.addStatement("Statement B", 0);
-
-        _addStatementSupport(0, 5); // Ranked
-        _addStatementSupport(1, 3); // Ranked
-
-        // Verify both are ranked
-        assertEq(forum.rankedCount(), 2, "Both statements should be ranked");
-
-        // Clear support on statement 0
-        uint[] memory statementIds = new uint[](1);
-        statementIds[0] = 0;
-        forum.clearSupport(statementIds);
-
-        // Statement 0 should be immediately unranked
-        Forum.Statement memory s0 = _getStatementById(0);
-        assertEq(s0.rank, -1, "Statement 0 should be unranked after clear");
-        assertEq(
-            forum.rankedCount(),
-            1,
-            "Only one statement should remain ranked"
-        );
+        // New step should succeed
+        forum.requireStep(stepAfter);
     }
 }
