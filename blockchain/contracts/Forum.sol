@@ -4,8 +4,9 @@ pragma solidity ^0.8.28;
 import "./IOurVoiceRegistry.sol";
 import "./StringUtils.sol";
 import "./DecayUtils.sol";
+import "@openzeppelin/contracts/utils/Multicall.sol";
 
-contract Forum {
+contract Forum is Multicall {
     // Custom errors
     error NotMember();
     error RankOutOfBounds(uint rank, uint rankedCount);
@@ -15,6 +16,7 @@ contract Forum {
     error UserNotRegistered(address user);
     error InsufficientCredits(uint available, int required);
     error TimestampOrderInvalid(uint fromTimestamp, uint toTimestamp);
+    error StaleStep(uint expected, uint actual);
 
     // Maximum length (in bytes) of a statement
     uint public immutable maxStatementLength;
@@ -296,11 +298,25 @@ contract Forum {
             _rank += 1;
         }
 
+        // If the statement's support has fallen below the ranking threshold,
+        // unrank it and compact the array.
+        if (
+            _getCurrentSupportValue(statement.support) <
+            minStatementSupportToRank
+        ) {
+            rankedCount -= 1;
+            _setStatementRank(_statementId, -1);
+            return;
+        }
+
         statementRankings[_rank] = _statementId;
         _setStatementRank(_statementId, int(_rank));
     }
 
-    function addStatement(string calldata _statementText) external onlyMembers {
+    function addStatement(
+        string calldata _statementText,
+        int _initialSupport
+    ) external onlyMembers returns (uint) {
         if (bytes(_statementText).length > maxStatementLength)
             revert StatementTooLong(
                 bytes(_statementText).length,
@@ -319,9 +335,34 @@ contract Forum {
             peakRank: -1,
             lastEngagementEventTimestamp: 0
         });
+
+        if (_initialSupport != 0) {
+            if (!ourVoiceRegistry.isRegistered(msg.sender))
+                revert UserNotRegistered(msg.sender);
+            bytes32 _userId = ourVoiceRegistry.getUserIdentifier(msg.sender);
+
+            // Apply initial support to statement and user support map
+            statements[statementCount].support.value = _initialSupport;
+            userSupportMap[_userId][statementCount] = Support({
+                value: _initialSupport,
+                lastUpdated: block.timestamp
+            });
+            _updateUserSupportedStatements(_userId, statementCount);
+
+            // Charge credits (old cost is 0 since this is a new statement)
+            uint _cost = _costOfUserSupport(_initialSupport);
+            UserBalance storage _userBalance = userCredits[_userId];
+            _updateUserBalanceToBeCurrent(_userBalance);
+            if (_userBalance.credits < _cost)
+                revert InsufficientCredits(_userBalance.credits, int(_cost));
+            _userBalance.credits -= _cost;
+        }
+
         _updateStatementRanking(statementCount);
         emit StatementAdded(statementCount, _statementText);
+        uint _id = statementCount;
         statementCount++;
+        return _id;
     }
 
     function getUserBalance() external view onlyMembers returns (uint) {
@@ -546,6 +587,21 @@ contract Forum {
         _userBalance.credits = uint(
             int(_userBalance.credits) - _totalCostChange
         );
+    }
+
+    /// @notice Returns the current decay step index (block.timestamp / stepDurationSeconds).
+    /// @dev Read this on-chain immediately before building a multicall with requireStep
+    ///      to avoid StaleStep reverts caused by frontend clock skew.
+    function getCurrentStep() external view returns (uint) {
+        return block.timestamp / stepDurationSeconds;
+    }
+
+    /// @notice Reverts if the current decay step does not match the expected value.
+    /// @dev Intended for use via multicall to guard against decay drift.
+    function requireStep(uint _expectedStep) external view {
+        uint actualStep = block.timestamp / stepDurationSeconds;
+        if (actualStep != _expectedStep)
+            revert StaleStep(_expectedStep, actualStep);
     }
 
     fallback() external {}

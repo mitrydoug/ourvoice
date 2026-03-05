@@ -13,8 +13,15 @@ import {
   useWaitForTransactionReceipt,
   useWriteContract,
 } from "wagmi";
+import {
+  encodeFunctionData,
+  parseEventLogs,
+  BaseError,
+  ContractFunctionRevertedError,
+} from "viem";
 import { FORUM_ABI, useForum } from "./Forum";
 import useBlockSync from "@/hooks/useBlockSync";
+import useLocalStorageSet from "@/hooks/useLocalStorageSet";
 
 interface StatementSupport {
   statementId: bigint;
@@ -29,6 +36,14 @@ interface UserSupport {
 interface StagedSupport {
   credits: number;
   supportAdjustments: Map<number, number>;
+  stagedStatements: StagedStatement[];
+}
+
+export interface StagedStatement {
+  /** Client-side temporary ID (uuid or counter) — NOT an on-chain ID. */
+  tempId: string;
+  text: string;
+  initialSupport: number;
 }
 
 export type CommitStatus =
@@ -37,6 +52,7 @@ export type CommitStatus =
   | "pending-confirmation"
   | "confirmed"
   | "cancelled"
+  | "stale-step"
   | "error";
 
 interface UserSupportState {
@@ -89,6 +105,25 @@ type ResetCommitStatus = {
   type: "RESET_COMMIT_STATUS";
 };
 
+type StageStatement = {
+  type: "STAGE_STATEMENT";
+  payload: { tempId: string; text: string; initialSupport: number };
+};
+
+type UnstageStatement = {
+  type: "UNSTAGE_STATEMENT";
+  payload: { tempId: string };
+};
+
+type UpdateStagedInitialSupport = {
+  type: "UPDATE_STAGED_INITIAL_SUPPORT";
+  payload: { tempId: string; newSupport: number };
+};
+
+type CommitStaleStep = {
+  type: "COMMIT_STALE_STEP";
+};
+
 type UserSupportAction =
   | SyncOnChainState
   | StageUserSupport
@@ -98,7 +133,11 @@ type UserSupportAction =
   | CommitConfirmed
   | CommitCancelled
   | CommitError
-  | ResetCommitStatus;
+  | ResetCommitStatus
+  | StageStatement
+  | UnstageStatement
+  | UpdateStagedInitialSupport
+  | CommitStaleStep;
 
 // Triangle number: triangle(x) = x*(x+1)/2
 const triangle = (x: number): number => (x * (x + 1)) / 2;
@@ -139,6 +178,7 @@ const reducer = (
         newState.staged = {
           credits: onChainState.credits,
           supportAdjustments: new Map(),
+          stagedStatements: [],
         };
         newState.commitStatus = "confirmed";
         newState.pendingTxHash = undefined;
@@ -147,6 +187,7 @@ const reducer = (
         newState.staged = {
           credits: onChainState.credits,
           supportAdjustments: new Map(),
+          stagedStatements: [],
         };
       }
       break;
@@ -161,6 +202,7 @@ const reducer = (
       newState.staged = {
         ...state.staged,
         supportAdjustments: new Map(state.staged.supportAdjustments),
+        stagedStatements: [...state.staged.stagedStatements],
       };
       if (adjustment === 0) {
         newState.staged.supportAdjustments.delete(Number(statementId));
@@ -173,6 +215,7 @@ const reducer = (
       newState.staged = {
         credits: newState.onChain ? newState.onChain.credits : 0,
         supportAdjustments: new Map(),
+        stagedStatements: [],
       };
       break;
     }
@@ -205,11 +248,62 @@ const reducer = (
       newState.staged = {
         credits: newState.onChain ? newState.onChain.credits : 0,
         supportAdjustments: new Map(),
+        stagedStatements: [],
       };
       break;
     }
     case "RESET_COMMIT_STATUS": {
       newState.commitStatus = "idle";
+      newState.pendingTxHash = undefined;
+      newState.confirmedBlockNumber = undefined;
+      break;
+    }
+    case "STAGE_STATEMENT": {
+      if (!state.staged) {
+        throw new Error(
+          "Cannot stage statement before on-chain state is synced",
+        );
+      }
+      newState.staged = {
+        ...state.staged,
+        supportAdjustments: new Map(state.staged.supportAdjustments),
+        stagedStatements: [
+          ...state.staged.stagedStatements,
+          {
+            tempId: action.payload.tempId,
+            text: action.payload.text,
+            initialSupport: action.payload.initialSupport,
+          },
+        ],
+      };
+      break;
+    }
+    case "UNSTAGE_STATEMENT": {
+      if (!state.staged) break;
+      newState.staged = {
+        ...state.staged,
+        supportAdjustments: new Map(state.staged.supportAdjustments),
+        stagedStatements: state.staged.stagedStatements.filter(
+          (s) => s.tempId !== action.payload.tempId,
+        ),
+      };
+      break;
+    }
+    case "UPDATE_STAGED_INITIAL_SUPPORT": {
+      if (!state.staged) break;
+      newState.staged = {
+        ...state.staged,
+        supportAdjustments: new Map(state.staged.supportAdjustments),
+        stagedStatements: state.staged.stagedStatements.map((s) =>
+          s.tempId === action.payload.tempId
+            ? { ...s, initialSupport: action.payload.newSupport }
+            : s,
+        ),
+      };
+      break;
+    }
+    case "COMMIT_STALE_STEP": {
+      newState.commitStatus = "stale-step";
       newState.pendingTxHash = undefined;
       newState.confirmedBlockNumber = undefined;
       break;
@@ -226,9 +320,17 @@ const reducer = (
       const newSupport = onChainSupport + adjustment;
       totalAdjustmentCost += adjustmentCost(onChainSupport, newSupport);
     }
+    // Include cost for staged new statements
+    for (const stmt of newState.staged.stagedStatements) {
+      totalAdjustmentCost += adjustmentCost(0, stmt.initialSupport);
+    }
   }
 
   const stagedCredits = (newState.onChain?.credits || 0) - totalAdjustmentCost;
+
+  const hasStagedChanges =
+    (newState.staged?.supportAdjustments.size ?? 0) > 0 ||
+    (newState.staged?.stagedStatements.length ?? 0) > 0;
 
   newState = {
     ...newState,
@@ -238,13 +340,10 @@ const reducer = (
           credits: stagedCredits,
         }
       : undefined,
-    hasStagedChanges: newState.staged?.supportAdjustments.size
-      ? newState.staged.supportAdjustments.size > 0
-      : false,
+    hasStagedChanges,
     hasEnoughCredits: stagedCredits >= 0,
   };
 
-  console.log("Updating state: ", newState);
   return newState;
 };
 
@@ -252,31 +351,37 @@ type UserNotVerifiedContextValue = {
   isUserVerified: false;
   state: undefined;
   dispatch: undefined;
-  commitSupport: undefined;
+  commitChanges: undefined;
   resetCommitStatus: undefined;
   getEffectiveSupport: undefined;
   getOnChainSupport: undefined;
   hasAdjustment: undefined;
+  stageStatement: undefined;
+  unstageStatement: undefined;
+  updateStagedInitialSupport: undefined;
 };
 
 type UserSupportContextValue = {
   isUserVerified: true;
   state: UserSupportState;
   dispatch: React.Dispatch<UserSupportAction>;
-  commitSupport: () => void | Promise<void>;
+  commitChanges: () => void | Promise<void>;
   resetCommitStatus: () => void;
   getEffectiveSupport: (statementId: number) => number;
   getOnChainSupport: (statementId: number) => number;
   hasAdjustment: (statementId: number) => boolean;
+  stageStatement: (text: string, initialSupport?: number) => void;
+  unstageStatement: (tempId: string) => void;
+  updateStagedInitialSupport: (tempId: string, newSupport: number) => void;
 };
 
 export const UserVoteContext = createContext<
   UserNotVerifiedContextValue | UserSupportContextValue | undefined
 >(undefined);
 
-export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+export const UserVoteProvider: FC<{
+  children: React.ReactNode;
+}> = ({ children }) => {
   const [state, dispatch] = useReducer(reducer, {
     onChain: undefined,
     staged: undefined,
@@ -287,8 +392,27 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
   const { writeContractAsync } = useWriteContract();
   const { address } = useAccount();
   const { forumContractAddress } = useForum();
-  console.log("UserVoteProvider for address: ", address);
-  console.log("Forum contract address: ", forumContractAddress);
+
+  // Read stepDurationSeconds for requireStep guard
+  const { data: stepDurationSeconds } = useReadContract({
+    address: forumContractAddress,
+    abi: FORUM_ABI,
+    functionName: "stepDurationSeconds",
+    query: { enabled: !!forumContractAddress },
+  });
+
+  // Read the current decay step from the chain, refreshed on every block.
+  const { data: onChainStep, refetch: refetchStep } = useReadContract({
+    address: forumContractAddress,
+    abi: FORUM_ABI,
+    functionName: "getCurrentStep",
+    args: [],
+    query: { enabled: !!forumContractAddress },
+  });
+
+  // Track authored statements in localStorage for "My Statements"
+  const { add: addAuthoredStatement } =
+    useLocalStorageSet("authoredStatements");
 
   const { data: isUserVerified } = useReadContract({
     address: forumContractAddress,
@@ -301,50 +425,36 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
     },
   });
 
-  console.log("User verified status: ", isUserVerified);
+  const { data: onChainUserStatementSupport, refetch: refetchSupport } =
+    useReadContract({
+      address: forumContractAddress,
+      abi: FORUM_ABI,
+      account: address,
+      functionName: "getUserStatementSupport",
+      args: [],
+      query: {
+        enabled: Boolean(address && isUserVerified),
+      },
+    });
 
-  const {
-    data: onChainUserStatementSupport,
-    refetch: refetchSupport,
-    error: supportError,
-  } = useReadContract({
-    address: forumContractAddress,
-    abi: FORUM_ABI,
-    account: address,
-    functionName: "getUserStatementSupport",
-    args: [],
-    query: {
-      enabled: Boolean(address && isUserVerified),
+  const { data: onChainUserBalance, refetch: refetchBalance } = useReadContract(
+    {
+      address: forumContractAddress,
+      abi: FORUM_ABI,
+      account: address,
+      functionName: "getUserBalance",
+      args: [],
+      query: {
+        enabled: Boolean(address && isUserVerified),
+      },
     },
-  });
-
-  const {
-    data: onChainUserBalance,
-    refetch: refetchBalance,
-    error: balanceError,
-  } = useReadContract({
-    address: forumContractAddress,
-    abi: FORUM_ABI,
-    account: address,
-    functionName: "getUserBalance",
-    args: [],
-    query: {
-      enabled: Boolean(address && isUserVerified),
-    },
-  });
+  );
 
   const refetch = useCallback(() => {
     void refetchSupport();
     void refetchBalance();
-  }, [refetchSupport, refetchBalance]);
-
-  console.log("Support error: ", supportError);
-  console.log("Balance error: ", balanceError);
-  console.log(
-    "Fetched user support from contract: ",
-    onChainUserStatementSupport,
-  );
-  console.log("Fetched user balance from contract: ", onChainUserBalance);
+    void refetchStep();
+  }, [refetchSupport, refetchBalance, refetchStep]);
 
   useEffect(() => {
     // Load state from blockchain
@@ -352,7 +462,6 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
       onChainUserStatementSupport !== undefined &&
       onChainUserBalance !== undefined
     ) {
-      console.log("Dispatching SYNC_ONCHAIN_STATE");
       dispatch({
         type: "SYNC_ONCHAIN_STATE",
         payload: {
@@ -375,19 +484,35 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
     },
   });
 
-  // When receipt arrives, dispatch COMMIT_CONFIRMED with the block number
+  // When receipt arrives, extract authored statement IDs from logs and
+  // dispatch COMMIT_CONFIRMED with the block number.
   useEffect(() => {
     if (
       txReceipt &&
       state.commitStatus === "pending-confirmation" &&
       state.confirmedBlockNumber === undefined
     ) {
+      // Decode StatementAdded events to get the actual on-chain IDs
+      const statementEvents = parseEventLogs({
+        abi: FORUM_ABI,
+        logs: txReceipt.logs,
+        eventName: "StatementAdded",
+      });
+      for (const event of statementEvents) {
+        addAuthoredStatement(Number(event.args.id));
+      }
+
       dispatch({
         type: "COMMIT_CONFIRMED",
         payload: { blockNumber: txReceipt.blockNumber },
       });
     }
-  }, [txReceipt, state.commitStatus, state.confirmedBlockNumber]);
+  }, [
+    txReceipt,
+    state.commitStatus,
+    state.confirmedBlockNumber,
+    addAuthoredStatement,
+  ]);
 
   // Timeout: if commit is in-flight for more than 30 seconds, treat as error
   const commitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -396,7 +521,8 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
       state.commitStatus !== "idle" &&
       state.commitStatus !== "confirmed" &&
       state.commitStatus !== "cancelled" &&
-      state.commitStatus !== "error"
+      state.commitStatus !== "error" &&
+      state.commitStatus !== "stale-step"
     ) {
       commitTimeoutRef.current = setTimeout(() => {
         dispatch({ type: "COMMIT_ERROR" });
@@ -415,38 +541,110 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
     };
   }, [state.commitStatus]);
 
-  const commitSupport = useCallback(async () => {
+  const commitChanges = useCallback(async () => {
     if (state.hasStagedChanges && state.hasEnoughCredits && state.staged) {
-      console.log(
-        "Committing support changes: ",
-        state.staged.supportAdjustments,
-      );
-
-      const supportAdjustments: { statementId: bigint; value: bigint }[] = [];
-      for (const [statementId, adjustment] of state.staged.supportAdjustments) {
-        supportAdjustments.push({
-          statementId: BigInt(statementId),
-          value: BigInt(adjustment),
-        });
-      }
+      const hasSupportAdjustments = state.staged.supportAdjustments.size > 0;
 
       dispatch({ type: "BEGIN_COMMIT" });
 
       try {
+        // Build the list of encoded calls for multicall
+        const calls: `0x${string}`[] = [];
+
+        // 1. requireStep guard — ensures the decay step hasn't changed since
+        //    the user last saw the UI state. Uses the same last-block value that
+        //    drives all on-chain reads, so any mismatch surfaces as a StaleStep
+        //    that the user can resolve by retrying.
+        if (
+          stepDurationSeconds &&
+          stepDurationSeconds > 0n &&
+          onChainStep !== undefined
+        ) {
+          calls.push(
+            encodeFunctionData({
+              abi: FORUM_ABI,
+              functionName: "requireStep",
+              args: [onChainStep],
+            }),
+          );
+        }
+
+        // 2. addStatement calls for staged new statements
+        for (const stmt of state.staged.stagedStatements) {
+          calls.push(
+            encodeFunctionData({
+              abi: FORUM_ABI,
+              functionName: "addStatement",
+              args: [stmt.text, BigInt(stmt.initialSupport)],
+            }),
+          );
+        }
+
+        // 3. adjustSupport call for support adjustments on existing statements
+        if (hasSupportAdjustments) {
+          const supportAdjustments: { statementId: bigint; value: bigint }[] =
+            [];
+          for (const [statementId, adjustment] of state.staged
+            .supportAdjustments) {
+            supportAdjustments.push({
+              statementId: BigInt(statementId),
+              value: BigInt(adjustment),
+            });
+          }
+          calls.push(
+            encodeFunctionData({
+              abi: FORUM_ABI,
+              functionName: "adjustSupport",
+              args: [supportAdjustments],
+            }),
+          );
+        }
+
+        // Use multicall to batch everything in a single transaction.
+        // Authored statement IDs are extracted from the receipt logs in
+        // the COMMIT_CONFIRMED effect, avoiding prediction race conditions.
         const txHash = await writeContractAsync({
           address: forumContractAddress,
           abi: FORUM_ABI,
-          functionName: "adjustSupport",
-          args: [supportAdjustments],
+          functionName: "multicall",
+          args: [calls],
         });
 
         dispatch({ type: "COMMIT_SUBMITTED", payload: { txHash } });
-      } catch {
-        // User rejected the transaction in their wallet, or other error
-        dispatch({ type: "COMMIT_CANCELLED" });
+      } catch (err: unknown) {
+        if (err instanceof BaseError) {
+          if (err.shortMessage?.toLowerCase().includes("rejected")) {
+            dispatch({ type: "COMMIT_CANCELLED" });
+            return;
+          }
+
+          const revert = err.walk(
+            (e) => e instanceof ContractFunctionRevertedError,
+          ) as ContractFunctionRevertedError | null;
+
+          if (revert && revert.data?.errorName === "StaleStep") {
+            dispatch({ type: "COMMIT_STALE_STEP" });
+            return;
+          }
+        }
+
+        const errStr = JSON.stringify(err, Object.getOwnPropertyNames(err));
+        if (errStr.includes("0x595d8517") || errStr.includes("StaleStep")) {
+          dispatch({ type: "COMMIT_STALE_STEP" });
+          return;
+        }
+
+        dispatch({ type: "COMMIT_ERROR" });
       }
     }
-  }, [state, writeContractAsync, forumContractAddress, dispatch]);
+  }, [
+    state,
+    writeContractAsync,
+    forumContractAddress,
+    onChainStep,
+    dispatch,
+    stepDurationSeconds,
+  ]);
 
   const resetCommitStatus = useCallback(() => {
     dispatch({ type: "RESET_COMMIT_STATUS" });
@@ -479,6 +677,37 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
     [state.staged],
   );
 
+  // Stage a new statement for batched submission
+  const stageStatement = useCallback(
+    (text: string, initialSupport = 0) => {
+      const tempId = crypto.randomUUID();
+      dispatch({
+        type: "STAGE_STATEMENT",
+        payload: { tempId, text, initialSupport },
+      });
+    },
+    [dispatch],
+  );
+
+  // Remove a staged statement before it is committed
+  const unstageStatement = useCallback(
+    (tempId: string) => {
+      dispatch({ type: "UNSTAGE_STATEMENT", payload: { tempId } });
+    },
+    [dispatch],
+  );
+
+  // Update the initial support value of a staged statement
+  const updateStagedInitialSupport = useCallback(
+    (tempId: string, newSupport: number) => {
+      dispatch({
+        type: "UPDATE_STAGED_INITIAL_SUPPORT",
+        payload: { tempId, newSupport },
+      });
+    },
+    [dispatch],
+  );
+
   if (isUserVerified) {
     return (
       <UserVoteContext.Provider
@@ -486,11 +715,14 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
           isUserVerified: isUserVerified,
           state,
           dispatch,
-          commitSupport,
+          commitChanges,
           resetCommitStatus,
           getEffectiveSupport,
           getOnChainSupport,
           hasAdjustment,
+          stageStatement,
+          unstageStatement,
+          updateStagedInitialSupport,
         }}
       >
         {children}
@@ -503,11 +735,14 @@ export const UserVoteProvider: FC<{ children: React.ReactNode }> = ({
           isUserVerified: !!isUserVerified,
           state: undefined,
           dispatch: undefined,
-          commitSupport: undefined,
+          commitChanges: undefined,
           resetCommitStatus: undefined,
           getEffectiveSupport: undefined,
           getOnChainSupport: undefined,
           hasAdjustment: undefined,
+          stageStatement: undefined,
+          unstageStatement: undefined,
+          updateStagedInitialSupport: undefined,
         }}
       >
         {children}

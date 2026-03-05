@@ -63,7 +63,7 @@ const UserProfilePill: React.FC<UserProfilePillProps> = ({ onOpenMenu }) => {
     ? userVotes.state?.commitStatus !== undefined &&
       userVotes.state?.commitStatus !== "idle"
     : false;
-  const commitSupport = isUserVerified ? userVotes.commitSupport : () => {};
+  const commitChanges = isUserVerified ? userVotes.commitChanges : () => {};
 
   const showCommit = credits !== null;
 
@@ -107,7 +107,7 @@ const UserProfilePill: React.FC<UserProfilePillProps> = ({ onOpenMenu }) => {
             size="small"
             onClick={(e) => {
               e.stopPropagation();
-              void commitSupport();
+              void commitChanges();
             }}
             disabled={!hasStagedChanges || commitBusy}
             sx={{

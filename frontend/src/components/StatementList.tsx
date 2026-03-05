@@ -8,6 +8,8 @@ import {
   useTheme,
 } from "@mui/material";
 import StatementCard from "./StatementCard";
+import StagedStatementCard from "./StagedStatementCard";
+import { useUserVotes } from "../state/UserVotes";
 
 type StatementListProps = {
   statements: Statement[];
@@ -20,6 +22,8 @@ type StatementListProps = {
   loadingLabel?: string;
   isBookmarked?: (statementId: number) => boolean;
   onToggleBookmark?: (statementId: number) => void;
+  /** When true, staged (uncommitted) statements are shown at the top. */
+  showStagedStatements?: boolean;
 };
 
 const StatementList: FC<StatementListProps> = ({
@@ -31,9 +35,15 @@ const StatementList: FC<StatementListProps> = ({
   loadingLabel = "Loading more statements\u2026",
   isBookmarked,
   onToggleBookmark,
+  showStagedStatements = false,
 }) => {
   const theme = useTheme();
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const userVotes = useUserVotes();
+
+  const stagedStatements = userVotes.state?.staged?.stagedStatements ?? [];
+  const unstageStatement = userVotes.unstageStatement;
+  const updateStagedInitialSupport = userVotes.updateStagedInitialSupport;
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -69,7 +79,10 @@ const StatementList: FC<StatementListProps> = ({
     };
   }, [hasMore, isLoading, onLoadMore]);
 
-  if (!isLoading && statements.length === 0) {
+  const hasStagedStatements =
+    showStagedStatements && stagedStatements && stagedStatements.length > 0;
+
+  if (!isLoading && statements.length === 0 && !hasStagedStatements) {
     return (
       <Box
         sx={{
@@ -89,6 +102,18 @@ const StatementList: FC<StatementListProps> = ({
   return (
     <>
       <Stack spacing={1}>
+        {/* Staged (pending) statements */}
+        {hasStagedStatements &&
+          stagedStatements.map((staged) => (
+            <StagedStatementCard
+              key={`staged-${staged.tempId}`}
+              staged={staged}
+              onUnstage={unstageStatement}
+              onUpdateSupport={updateStagedInitialSupport}
+            />
+          ))}
+
+        {/* On-chain statements */}
         {statements?.map((stmt) => (
           <StatementCard
             key={`stmt-${Number(stmt.id)}`}

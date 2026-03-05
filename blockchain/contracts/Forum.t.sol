@@ -178,7 +178,7 @@ contract ForumTest is Test {
     }
 
     function testAddStatement() external registeredMember {
-        forum.addStatement("Hello, world!");
+        forum.addStatement("Hello, world!", 0);
         assertEq(
             forum.statementCount(),
             1,
@@ -196,7 +196,7 @@ contract ForumTest is Test {
     }
 
     function testAddStatementSupport() external registeredMember {
-        forum.addStatement("Hello, world!");
+        forum.addStatement("Hello, world!", 0);
         _addStatementSupport(0, 1);
 
         Forum.Statement memory statement = _getStatementById(0);
@@ -208,7 +208,7 @@ contract ForumTest is Test {
     // ======================================================================
 
     function testSupportOfOneDoesNotCauseRanking() external registeredMember {
-        forum.addStatement("Test statement");
+        forum.addStatement("Test statement", 0);
         _addStatementSupport(0, 1);
 
         Forum.Statement memory statement = _getStatementById(0);
@@ -221,7 +221,7 @@ contract ForumTest is Test {
         external
         registeredMember
     {
-        forum.addStatement("Test statement");
+        forum.addStatement("Test statement", 0);
         _addStatementSupport(0, 2);
 
         Forum.Statement memory statement = _getStatementById(0);
@@ -235,8 +235,8 @@ contract ForumTest is Test {
         registeredMember
     {
         // Create and rank two statements
-        forum.addStatement("Statement A");
-        forum.addStatement("Statement B");
+        forum.addStatement("Statement A", 0);
+        forum.addStatement("Statement B", 0);
         _addStatementSupport(0, 3); // Rank 0
         _addStatementSupport(1, 2); // Rank 1
 
@@ -270,8 +270,8 @@ contract ForumTest is Test {
         registeredMember
     {
         // Create and rank two statements
-        forum.addStatement("Statement A");
-        forum.addStatement("Statement B");
+        forum.addStatement("Statement A", 0);
+        forum.addStatement("Statement B", 0);
         _addStatementSupport(0, 5); // Rank 0
         _addStatementSupport(1, 3); // Rank 1
 
@@ -293,9 +293,9 @@ contract ForumTest is Test {
 
     function testRemovingSupportLowersRank() external registeredMember {
         // Create and rank three statements
-        forum.addStatement("Statement A");
-        forum.addStatement("Statement B");
-        forum.addStatement("Statement C");
+        forum.addStatement("Statement A", 0);
+        forum.addStatement("Statement B", 0);
+        forum.addStatement("Statement C", 0);
         _addStatementSupport(0, 5); // Rank 0
         _addStatementSupport(1, 4); // Rank 1
         _addStatementSupport(2, 3); // Rank 2
@@ -325,7 +325,7 @@ contract ForumTest is Test {
         external
         registeredMember
     {
-        forum.addStatement("Test statement");
+        forum.addStatement("Test statement", 0);
         _addStatementSupport(0, 3); // Gets ranked
 
         assertEq(_getStatementById(0).rank, 0, "Statement should be ranked");
@@ -344,8 +344,8 @@ contract ForumTest is Test {
         external
         registeredMember
     {
-        forum.addStatement("Statement A");
-        forum.addStatement("Statement B");
+        forum.addStatement("Statement A", 0);
+        forum.addStatement("Statement B", 0);
         _addStatementSupport(0, 10); // Rank 0
         _addStatementSupport(1, 3); // Rank 1
 
@@ -377,7 +377,7 @@ contract ForumTest is Test {
         external
         registeredMember
     {
-        forum.addStatement("Test statement");
+        forum.addStatement("Test statement", 0);
         uint initialBalance = forum.getUserBalance();
 
         _addStatementSupport(0, 3); // Cost should be 6 (triangular number)
@@ -394,7 +394,7 @@ contract ForumTest is Test {
         external
         registeredMember
     {
-        forum.addStatement("Test statement");
+        forum.addStatement("Test statement", 0);
         _addStatementSupport(0, 5); // Cost: 15
         uint balanceAfterAdding = forum.getUserBalance();
 
@@ -412,7 +412,7 @@ contract ForumTest is Test {
         external
         registeredMember
     {
-        forum.addStatement("Test statement");
+        forum.addStatement("Test statement", 0);
 
         // Spend most of the balance
         uint currentBalance = forum.getUserBalance();
@@ -489,7 +489,7 @@ contract ForumTest is Test {
     }
 
     function testMarginalCostIsCorrect() external registeredMember {
-        forum.addStatement("Test statement");
+        forum.addStatement("Test statement", 0);
 
         // The marginal cost of the (n+1)th unit is n+1
         // When going from n to n+1, the cost change is:
@@ -524,9 +524,9 @@ contract ForumTest is Test {
         external
         registeredMember
     {
-        forum.addStatement("Statement A");
-        forum.addStatement("Statement B");
-        forum.addStatement("Statement C");
+        forum.addStatement("Statement A", 0);
+        forum.addStatement("Statement B", 0);
+        forum.addStatement("Statement C", 0);
 
         uint initialBalance = forum.getUserBalance();
 
@@ -569,7 +569,7 @@ contract ForumTest is Test {
     // ======================================================================
 
     function testStatementSupportDecaysOverTime() external registeredMember {
-        forum.addStatement("Test statement");
+        forum.addStatement("Test statement", 0);
         _addStatementSupport(0, 10);
 
         int supportBefore = _getStatementById(0).support;
@@ -589,7 +589,7 @@ contract ForumTest is Test {
     }
 
     function testAdjustingSupportAccountsForDecay() external registeredMember {
-        forum.addStatement("Test statement");
+        forum.addStatement("Test statement", 0);
         _addStatementSupport(0, 10);
 
         // Advance time to cause decay
@@ -610,8 +610,8 @@ contract ForumTest is Test {
 
     function testRankingUpdatedAfterSupportDecay() external registeredMember {
         // Create two statements with different support levels
-        forum.addStatement("Statement A");
-        forum.addStatement("Statement B");
+        forum.addStatement("Statement A", 0);
+        forum.addStatement("Statement B", 0);
         _addStatementSupport(0, 20); // High initial support
         _addStatementSupport(1, 10); // Lower initial support
 
@@ -650,7 +650,7 @@ contract ForumTest is Test {
         external
         registeredMember
     {
-        forum.addStatement("Test statement");
+        forum.addStatement("Test statement", 0);
         _addStatementSupport(0, 10);
 
         // Check user's support immediately
@@ -700,7 +700,7 @@ contract ForumTest is Test {
         external
         registeredMember
     {
-        forum.addStatement("Test statement");
+        forum.addStatement("Test statement", 0);
 
         uint initialBalance = forum.getUserBalance();
         _addStatementSupport(0, 10); // Cost: 55
@@ -735,7 +735,7 @@ contract ForumTest is Test {
         external
         registeredMember
     {
-        forum.addStatement("Test statement");
+        forum.addStatement("Test statement", 0);
         _addStatementSupport(0, 10);
 
         // Verify statement is in user's support list
@@ -766,10 +766,10 @@ contract ForumTest is Test {
         external
         registeredMember
     {
-        forum.addStatement("Statement A");
-        forum.addStatement("Statement B");
-        forum.addStatement("Statement C");
-        forum.addStatement("Statement D");
+        forum.addStatement("Statement A", 0);
+        forum.addStatement("Statement B", 0);
+        forum.addStatement("Statement C", 0);
+        forum.addStatement("Statement D", 0);
 
         // Add support to fill up the ranking (maxRankedStatements = 3)
         Forum.SupportAdjustment[]
@@ -836,10 +836,10 @@ contract ForumTest is Test {
 
     function testNewItemsAreAddedToFirstEmptySlot() external registeredMember {
         // Create multiple statements
-        forum.addStatement("Statement A");
-        forum.addStatement("Statement B");
-        forum.addStatement("Statement C");
-        forum.addStatement("Statement D");
+        forum.addStatement("Statement A", 0);
+        forum.addStatement("Statement B", 0);
+        forum.addStatement("Statement C", 0);
+        forum.addStatement("Statement D", 0);
 
         // Support statements A, B, and C
         _addStatementSupport(0, 10);
@@ -903,11 +903,11 @@ contract ForumTest is Test {
         registeredMember
     {
         // Create 5 statements: A, B, C, D, E
-        forum.addStatement("Statement A");
-        forum.addStatement("Statement B");
-        forum.addStatement("Statement C");
-        forum.addStatement("Statement D");
-        forum.addStatement("Statement E");
+        forum.addStatement("Statement A", 0);
+        forum.addStatement("Statement B", 0);
+        forum.addStatement("Statement C", 0);
+        forum.addStatement("Statement D", 0);
+        forum.addStatement("Statement E", 0);
 
         // Support all 5 statements - array will be [A, B, C, D, E]
         _addStatementSupport(0, 10);
@@ -949,7 +949,7 @@ contract ForumTest is Test {
 
         // Now add support to a new statement F
         // F fills the first empty slot; no further compaction occurs
-        forum.addStatement("Statement F");
+        forum.addStatement("Statement F", 0);
         _addStatementSupport(5, 5);
 
         // Verify array length stays at 4 (F just filled an empty slot)
@@ -993,7 +993,7 @@ contract ForumTest is Test {
         external
         registeredMember
     {
-        forum.addStatement("Fresh statement");
+        forum.addStatement("Fresh statement", 0);
         Forum.Statement memory s = _getStatementById(0);
         assertEq(s.rank, -1, "New statement should not be ranked");
         assertEq(
@@ -1004,7 +1004,7 @@ contract ForumTest is Test {
     }
 
     function testPeakRankTracksFirstRanking() external registeredMember {
-        forum.addStatement("Test statement");
+        forum.addStatement("Test statement", 0);
         _addStatementSupport(0, 3); // Gets ranked at position 0
 
         Forum.Statement memory s = _getStatementById(0);
@@ -1013,8 +1013,8 @@ contract ForumTest is Test {
     }
 
     function testPeakRankImprovesWhenRankImproves() external registeredMember {
-        forum.addStatement("Statement A");
-        forum.addStatement("Statement B");
+        forum.addStatement("Statement A", 0);
+        forum.addStatement("Statement B", 0);
         _addStatementSupport(0, 5); // Rank 0
         _addStatementSupport(1, 3); // Rank 1
 
@@ -1039,8 +1039,8 @@ contract ForumTest is Test {
         external
         registeredMember
     {
-        forum.addStatement("Statement A");
-        forum.addStatement("Statement B");
+        forum.addStatement("Statement A", 0);
+        forum.addStatement("Statement B", 0);
         _addStatementSupport(0, 5); // Rank 0
         _addStatementSupport(1, 3); // Rank 1
 
@@ -1059,10 +1059,10 @@ contract ForumTest is Test {
 
     function testPeakRankPreservedAfterEviction() external registeredMember {
         // maxRankedStatements = 3 from setUp, so fill 3 slots then evict the lowest
-        forum.addStatement("Statement A");
-        forum.addStatement("Statement B");
-        forum.addStatement("Statement C");
-        forum.addStatement("Statement D");
+        forum.addStatement("Statement A", 0);
+        forum.addStatement("Statement B", 0);
+        forum.addStatement("Statement C", 0);
+        forum.addStatement("Statement D", 0);
 
         // Rank A, B, C to fill all 3 slots
         _addStatementSupport(0, 6); // Rank 0
@@ -1084,9 +1084,9 @@ contract ForumTest is Test {
     function testPeakRankTracksDisplacedStatements() external registeredMember {
         // When statement X rises in rank, statements it displaces get
         // their rank set via _setStatementRank, which should also track peakRank.
-        forum.addStatement("Statement A");
-        forum.addStatement("Statement B");
-        forum.addStatement("Statement C");
+        forum.addStatement("Statement A", 0);
+        forum.addStatement("Statement B", 0);
+        forum.addStatement("Statement C", 0);
         _addStatementSupport(0, 6); // Rank 0
         _addStatementSupport(1, 4); // Rank 1
         _addStatementSupport(2, 2); // Rank 2
@@ -1123,7 +1123,7 @@ contract ForumTest is Test {
         external
         registeredMember
     {
-        forum.addStatement("Statement A");
+        forum.addStatement("Statement A", 0);
         vm.expectEmit(true, false, false, true);
         emit Forum.StatementRankChanged(0, -1, 0);
         _addStatementSupport(0, 3); // Statement A should go from unranked (-1) to rank 0
@@ -1133,8 +1133,8 @@ contract ForumTest is Test {
         external
         registeredMember
     {
-        forum.addStatement("Statement A");
-        forum.addStatement("Statement B");
+        forum.addStatement("Statement A", 0);
+        forum.addStatement("Statement B", 0);
         _addStatementSupport(0, 5); // A rank 0
         _addStatementSupport(1, 3); // B rank 1
 
@@ -1151,10 +1151,10 @@ contract ForumTest is Test {
         registeredMember
     {
         // maxRankedStatements = 3
-        forum.addStatement("Statement A");
-        forum.addStatement("Statement B");
-        forum.addStatement("Statement C");
-        forum.addStatement("Statement D"); // NOT ranked (4th exceeds max)
+        forum.addStatement("Statement A", 0);
+        forum.addStatement("Statement B", 0);
+        forum.addStatement("Statement C", 0);
+        forum.addStatement("Statement D", 0); // NOT ranked (4th exceeds max)
 
         _addStatementSupport(0, 6); // A rank 0
         _addStatementSupport(1, 4); // B rank 1
@@ -1174,8 +1174,8 @@ contract ForumTest is Test {
         external
         registeredMember
     {
-        forum.addStatement("Statement A");
-        forum.addStatement("Statement B");
+        forum.addStatement("Statement A", 0);
+        forum.addStatement("Statement B", 0);
         _addStatementSupport(0, 5);
         _addStatementSupport(1, 3);
 
@@ -1189,8 +1189,8 @@ contract ForumTest is Test {
         external
         registeredMember
     {
-        forum.addStatement("Statement A");
-        forum.addStatement("Statement B");
+        forum.addStatement("Statement A", 0);
+        forum.addStatement("Statement B", 0);
         _addStatementSupport(0, 10); // Rank 0
         _addStatementSupport(1, 3); // Rank 1
 
@@ -1216,12 +1216,70 @@ contract ForumTest is Test {
         }
     }
 
+    function testSupportBelowThresholdUnranksImmediatelyFromMiddle()
+        external
+        registeredMember
+    {
+        // Three ranked statements; remove support from the top-ranked one
+        // so it drops below threshold. It should be unranked immediately,
+        // not deferred to maintenance.
+        forum.addStatement("Statement A", 0);
+        forum.addStatement("Statement B", 0);
+        forum.addStatement("Statement C", 0);
+        _addStatementSupport(0, 6); // Rank 0
+        _addStatementSupport(1, 4); // Rank 1
+        _addStatementSupport(2, 3); // Rank 2
+
+        assertEq(forum.rankedCount(), 3, "All three should be ranked");
+
+        // Drop A's support to 1 (below minStatementSupportToRank = 2)
+        _addStatementSupport(0, -5);
+
+        Forum.Statement memory sA = _getStatementById(0);
+        assertEq(sA.rank, -1, "Statement A should be immediately unranked");
+        assertEq(
+            forum.rankedCount(),
+            2,
+            "Ranked count should be 2 after eviction"
+        );
+
+        // B and C should remain ranked and compact correctly
+        Forum.Statement memory sB = _getStatementById(1);
+        Forum.Statement memory sC = _getStatementById(2);
+        assertEq(sB.rank, 0, "Statement B should be rank 0");
+        assertEq(sC.rank, 1, "Statement C should be rank 1");
+    }
+
+    function testSupportBelowThresholdUnranksFromSecondPosition()
+        external
+        registeredMember
+    {
+        // Remove support from the middle-ranked statement
+        forum.addStatement("Statement A", 0);
+        forum.addStatement("Statement B", 0);
+        forum.addStatement("Statement C", 0);
+        _addStatementSupport(0, 6); // Rank 0
+        _addStatementSupport(1, 4); // Rank 1
+        _addStatementSupport(2, 3); // Rank 2
+
+        // Drop B's support below threshold
+        _addStatementSupport(1, -3); // B now has 1 support
+
+        Forum.Statement memory sB = _getStatementById(1);
+        assertEq(sB.rank, -1, "Statement B should be immediately unranked");
+        assertEq(forum.rankedCount(), 2, "Ranked count should be 2");
+
+        // A stays rank 0, C moves up to rank 1
+        assertEq(_getStatementById(0).rank, 0, "Statement A should be rank 0");
+        assertEq(_getStatementById(2).rank, 1, "Statement C should be rank 1");
+    }
+
     // ======================================================================
     // Section: StatementEngaged event
     // ======================================================================
 
     function testEngagedEmittedOnFirstInteraction() external registeredMember {
-        forum.addStatement("Statement A");
+        forum.addStatement("Statement A", 0);
 
         // First interaction should always emit (lastEngagementEventTimestamp = 0)
         vm.recordLogs();
@@ -1244,7 +1302,7 @@ contract ForumTest is Test {
     }
 
     function testEngagedNotEmittedWithinWindow() external registeredMember {
-        forum.addStatement("Statement A");
+        forum.addStatement("Statement A", 0);
         _addStatementSupport(0, 1); // First interaction emits
 
         // Interact again within the engagement window (< 60s)
@@ -1270,7 +1328,7 @@ contract ForumTest is Test {
     }
 
     function testEngagedEmittedAfterWindowExpires() external registeredMember {
-        forum.addStatement("Statement A");
+        forum.addStatement("Statement A", 0);
         _addStatementSupport(0, 1); // First interaction emits
 
         // Advance past the engagement window (>= 60s)
@@ -1282,8 +1340,8 @@ contract ForumTest is Test {
     }
 
     function testEngagedWindowIsPerStatement() external registeredMember {
-        forum.addStatement("Statement A");
-        forum.addStatement("Statement B");
+        forum.addStatement("Statement A", 0);
+        forum.addStatement("Statement B", 0);
 
         _addStatementSupport(0, 1); // Emits for A
 
@@ -1311,7 +1369,7 @@ contract ForumTest is Test {
     }
 
     function testEngagedTimestampResetsOnEmission() external registeredMember {
-        forum.addStatement("Statement A");
+        forum.addStatement("Statement A", 0);
         _addStatementSupport(0, 1); // t=0, emits
 
         // Advance past window
@@ -1345,5 +1403,51 @@ contract ForumTest is Test {
         vm.expectEmit(true, false, false, false);
         emit Forum.StatementEngaged(0);
         _addStatementSupport(0, 1);
+    }
+
+    function testRequireStepSucceedsOnCorrectStep() external registeredMember {
+        uint expectedStep = block.timestamp / forum.stepDurationSeconds();
+        // Should not revert
+        forum.requireStep(expectedStep);
+    }
+
+    function testRequireStepRevertsOnWrongStep() external registeredMember {
+        uint expectedStep = block.timestamp / forum.stepDurationSeconds();
+        uint wrongStep = expectedStep + 1;
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Forum.StaleStep.selector,
+                wrongStep,
+                expectedStep
+            )
+        );
+        forum.requireStep(wrongStep);
+    }
+
+    function testRequireStepChangesAfterTimeAdvance()
+        external
+        registeredMember
+    {
+        uint stepDuration = forum.stepDurationSeconds();
+        uint stepBefore = block.timestamp / stepDuration;
+
+        // Advance time by one full step
+        vm.warp(block.timestamp + stepDuration);
+
+        uint stepAfter = block.timestamp / stepDuration;
+        assertEq(stepAfter, stepBefore + 1, "Step should have advanced by 1");
+
+        // Old step should now revert
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Forum.StaleStep.selector,
+                stepBefore,
+                stepAfter
+            )
+        );
+        forum.requireStep(stepBefore);
+
+        // New step should succeed
+        forum.requireStep(stepAfter);
     }
 }

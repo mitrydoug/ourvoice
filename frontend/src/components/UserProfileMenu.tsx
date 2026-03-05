@@ -111,7 +111,7 @@ export interface AccountDrawerProps {
   disconnect: () => void;
   username?: string;
   avatar?: string | null;
-  commitSupport: () => void | Promise<void>;
+  commitChanges: () => void | Promise<void>;
   hasStagedChanges: boolean;
   commitBusy?: boolean;
 }
@@ -124,7 +124,7 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
   disconnect,
   username,
   avatar,
-  commitSupport,
+  commitChanges,
   hasStagedChanges,
   commitBusy = false,
 }) => {
@@ -134,7 +134,7 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
   };
 
   const handleCommit = () => {
-    void commitSupport();
+    void commitChanges();
     onClose();
   };
 

@@ -206,7 +206,7 @@ export default function MenuAppBar() {
 
   const {
     isUserVerified,
-    commitSupport,
+    commitChanges,
     resetCommitStatus,
     state: userVoteState,
   } = useUserVotes();
@@ -279,7 +279,7 @@ export default function MenuAppBar() {
                       navigate={(path: string) => void navigate(path)}
                       disconnect={doDisconnect}
                       avatar={avatar}
-                      commitSupport={commitSupport ?? (() => {})}
+                      commitChanges={commitChanges ?? (() => {})}
                       hasStagedChanges={
                         userVoteState?.hasStagedChanges ?? false
                       }

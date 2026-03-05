@@ -61,6 +61,13 @@ export const useCreditAllocation = (): CreditAllocation | null => {
       }
     }
 
+    // Include cost for staged new statements
+    for (const stmt of staged.stagedStatements) {
+      if (stmt.initialSupport !== 0) {
+        totalIncreaseCost += creditCost(stmt.initialSupport);
+      }
+    }
+
     const allocated = totalOnChainCost - totalDecreaseCost;
     const stagedAmount = totalDecreaseCost + totalIncreaseCost;
     const unallocated = onChain.credits - totalIncreaseCost;

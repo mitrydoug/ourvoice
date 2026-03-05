@@ -10,7 +10,8 @@ import useLocalStorageSet from "@/hooks/useLocalStorageSet";
 import useBlockSync from "@/hooks/useBlockSync";
 
 const MyStatements: FC = () => {
-  const { isUserVerified } = useUserVotes();
+  const userVotes = useUserVotes();
+  const { isUserVerified } = userVotes;
   const { forumContractAddress } = useForum();
   const isMobile = useIsMobile();
   const { values: authoredIds } = useLocalStorageSet("authoredStatements");
@@ -58,6 +59,7 @@ const MyStatements: FC = () => {
       pageIndex={pageIndex}
       isBookmarked={isBookmarked}
       onToggleBookmark={toggleBookmark}
+      showStagedStatements
     />
   );
 };

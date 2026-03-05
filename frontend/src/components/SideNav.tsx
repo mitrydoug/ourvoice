@@ -17,7 +17,6 @@ import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import CreateIcon from "@mui/icons-material/Create";
 import WriteModal from "./WriteModal";
 import { useUserVotes } from "../state/UserVotes";
-import useLocalStorageSet from "@/hooks/useLocalStorageSet";
 import UserProfilePill from "./UserProfilePill";
 import { useAccount, useDisconnect } from "wagmi";
 import { AccountMenu } from "./UserProfileMenu";
@@ -37,8 +36,6 @@ const SideNav: FC = () => {
   const { isUserVerified } = useUserVotes();
   const { address } = useAccount();
   const { disconnect: doDisconnect } = useDisconnect();
-  const { add: addAuthoredStatement } =
-    useLocalStorageSet("authoredStatements");
 
   const [writeModalOpen, setWriteModalOpen] = useState(false);
   const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
@@ -116,7 +113,6 @@ const SideNav: FC = () => {
       <WriteModal
         open={writeModalOpen}
         onClose={() => setWriteModalOpen(false)}
-        onStatementAdded={addAuthoredStatement}
       />
     </>
   );
