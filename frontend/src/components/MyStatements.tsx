@@ -18,9 +18,6 @@ const MyStatements: FC = () => {
   const { has: isBookmarked, toggle: toggleBookmark } =
     useLocalStorageSet("bookmarks");
 
-  const stagedStatements = userVotes.state?.staged?.stagedStatements ?? [];
-  const unstageStatement = userVotes.unstageStatement;
-
   const PAGE_SIZE = isMobile ? 10 : 20;
   const [displayCount, setDisplayCount] = useState(PAGE_SIZE);
   const [pageIndex, setPageIndex] = useState(0);
@@ -56,14 +53,13 @@ const MyStatements: FC = () => {
   return (
     <StatementList
       statements={displayedStatements}
-      stagedStatements={stagedStatements}
-      onUnstagStatement={unstageStatement}
       hasMore={hasMore}
       isLoading={result.isLoading}
       onLoadMore={handleLoadMore}
       pageIndex={pageIndex}
       isBookmarked={isBookmarked}
       onToggleBookmark={toggleBookmark}
+      showStagedStatements
     />
   );
 };

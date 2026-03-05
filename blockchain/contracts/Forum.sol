@@ -589,6 +589,13 @@ contract Forum is Multicall {
         );
     }
 
+    /// @notice Returns the current decay step index (block.timestamp / stepDurationSeconds).
+    /// @dev Read this on-chain immediately before building a multicall with requireStep
+    ///      to avoid StaleStep reverts caused by frontend clock skew.
+    function getCurrentStep() external view returns (uint) {
+        return block.timestamp / stepDurationSeconds;
+    }
+
     /// @notice Reverts if the current decay step does not match the expected value.
     /// @dev Intended for use via multicall to guard against decay drift.
     function requireStep(uint _expectedStep) external view {

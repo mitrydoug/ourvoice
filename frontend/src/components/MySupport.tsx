@@ -81,6 +81,7 @@ const MySupport: FC = () => {
       pageIndex={pageIndex}
       isBookmarked={isBookmarked}
       onToggleBookmark={toggleBookmark}
+      showStagedStatements
     />
   );
 };

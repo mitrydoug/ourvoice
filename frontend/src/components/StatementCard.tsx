@@ -1,5 +1,5 @@
 import { FC, useEffect } from "react";
-import { Card, IconButton, Stack, Typography } from "@mui/material";
+import { IconButton, Stack, Typography } from "@mui/material";
 import BookmarkIcon from "@mui/icons-material/Bookmark";
 import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
@@ -8,9 +8,9 @@ import LandscapeIcon from "@mui/icons-material/Landscape";
 
 import { useUserVotes } from "../state/UserVotes";
 import VoteToggle from "./VoteToggle";
+import StatementCardShell from "./StatementCardShell";
 import { useBlockNumber, useReadContract } from "wagmi";
 import { useForum, FORUM_ABI } from "../state/Forum";
-import useIsMobile from "@/hooks/useIsMobile";
 
 const LOOK_BACK_BLOCKS = BigInt(1);
 
@@ -79,7 +79,6 @@ export const StatementCard: FC<StatementCardProps> = ({
     hasAdjustment,
   } = useUserVotes();
   const { forumContractAddress } = useForum();
-  const isMobile = useIsMobile();
 
   // Watch for new blocks
   const { data: blockNumber } = useBlockNumber({ watch: true });
@@ -140,172 +139,113 @@ export const StatementCard: FC<StatementCardProps> = ({
 
   const globalSupport = Number(statement.support);
 
-  return (
-    <Card
+  const leftSlot = currentRank !== null ? (
+    <Typography
+      variant="h4"
       sx={{
-        p: 2,
-        transition: "box-shadow 0.2s ease",
-        "&:hover": {
-          boxShadow: 3,
-        },
+        fontWeight: 700,
+        fontSize: rankFontSize(currentRank),
+        lineHeight: 1.1,
+        color: rankColor(currentRank) ?? "text.primary",
       }}
     >
-      <Stack direction="row" spacing={2}>
-        {/* Left column: rank */}
-        <Stack
-          alignItems="center"
-          justifyContent="center"
-          sx={{ width: 48, minWidth: 48, flexShrink: 0 }}
-        >
-          {currentRank !== null ? (
-            <Typography
-              variant="h4"
-              sx={{
-                fontWeight: 700,
-                fontSize: rankFontSize(currentRank),
-                lineHeight: 1.1,
-                color: rankColor(currentRank) ?? "text.primary",
-              }}
-            >
-              {currentRank}
-            </Typography>
-          ) : (
-            <Typography
-              variant="caption"
-              sx={{
-                fontWeight: 600,
-                fontSize: "0.6rem",
-                lineHeight: 1.2,
-                color: "text.disabled",
-                textAlign: "center",
-                textTransform: "uppercase",
-                letterSpacing: "0.04em",
-              }}
-            >
-              Not
-              <br />
-              Ranked
-            </Typography>
-          )}
-        </Stack>
+      {currentRank}
+    </Typography>
+  ) : (
+    <Typography
+      variant="caption"
+      sx={{
+        fontWeight: 600,
+        fontSize: "0.6rem",
+        lineHeight: 1.2,
+        color: "text.disabled",
+        textAlign: "center",
+        textTransform: "uppercase",
+        letterSpacing: "0.04em",
+      }}
+    >
+      Not
+      <br />
+      Ranked
+    </Typography>
+  );
 
-        {/* Middle column: content */}
-        <Stack
-          spacing={1.5}
-          sx={{ flex: 1, minWidth: 0 }}
-          justifyContent="space-between"
-        >
-          {/* Statement text */}
-          <Typography variant="h6" sx={{ fontWeight: 500 }}>
-            {statement.text}
+  const statsSlot = (
+    <Stack direction="row" alignItems="center" spacing={2} sx={{ mt: 0.5 }}>
+      <Typography variant="body2" sx={{ fontWeight: 600, color: "primary.main" }}>
+        {formatSupport(globalSupport)}
+      </Typography>
+
+      <Stack direction="row" alignItems="center" spacing={0.25}>
+        {rankChange === null || rankChange === 0 ? (
+          <Typography variant="body2" color="text.disabled">
+            —
           </Typography>
-
-          {/* Vote controls — inline on mobile only */}
-          {isUserVerified && isMobile && (
-            <VoteToggle
-              userSupport={userSupport}
-              uncommittedSupport={hasUncommittedSupport}
-              onUserVoteChange={handleSupportChange}
-              direction="horizontal"
-            />
-          )}
-
-          {/* Bottom stats row */}
-          <Stack
-            direction="row"
-            alignItems="center"
-            spacing={2}
-            sx={{ mt: 0.5 }}
-          >
-            {/* Global support (blue) */}
-            <Typography
-              variant="body2"
-              sx={{ fontWeight: 600, color: "primary.main" }}
-            >
-              {formatSupport(globalSupport)}
+        ) : rankChange > 0 ? (
+          <>
+            <ArrowUpwardIcon sx={{ fontSize: 16, color: "success.main" }} />
+            <Typography variant="body2" sx={{ fontWeight: 600, color: "success.main" }}>
+              {rankChange}
             </Typography>
-
-            {/* Rank change */}
-            <Stack direction="row" alignItems="center" spacing={0.25}>
-              {rankChange === null || rankChange === 0 ? (
-                <Typography variant="body2" color="text.disabled">
-                  —
-                </Typography>
-              ) : rankChange > 0 ? (
-                <>
-                  <ArrowUpwardIcon
-                    sx={{ fontSize: 16, color: "success.main" }}
-                  />
-                  <Typography
-                    variant="body2"
-                    sx={{ fontWeight: 600, color: "success.main" }}
-                  >
-                    {rankChange}
-                  </Typography>
-                </>
-              ) : (
-                <>
-                  <ArrowDownwardIcon
-                    sx={{ fontSize: 16, color: "error.main" }}
-                  />
-                  <Typography
-                    variant="body2"
-                    sx={{ fontWeight: 600, color: "error.main" }}
-                  >
-                    {Math.abs(rankChange)}
-                  </Typography>
-                </>
-              )}
-            </Stack>
-
-            {/* Peak rank */}
-            {peakRank !== null && (
-              <Stack direction="row" alignItems="center" spacing={0.5}>
-                <LandscapeIcon sx={{ fontSize: 18, color: "text.secondary" }} />
-                <Typography variant="body2" color="text.secondary">
-                  {peakRank}
-                </Typography>
-              </Stack>
-            )}
-
-            {/* Spacer pushes bookmark to the right */}
-            <Stack sx={{ flexGrow: 1 }} />
-
-            {/* Bookmark */}
-            {onToggleBookmark && (
-              <IconButton
-                size="small"
-                onClick={() => onToggleBookmark(Number(statement.id))}
-                aria-label={isBookmarked ? "Remove bookmark" : "Bookmark"}
-                sx={{ p: 0 }}
-              >
-                {isBookmarked ? (
-                  <BookmarkIcon sx={{ fontSize: 22 }} />
-                ) : (
-                  <BookmarkBorderIcon sx={{ fontSize: 22 }} />
-                )}
-              </IconButton>
-            )}
-          </Stack>
-        </Stack>
-
-        {/* Right column: vertical vote controls — desktop only */}
-        {isUserVerified && !isMobile && (
-          <Stack
-            alignItems="center"
-            justifyContent="center"
-            sx={{ flexShrink: 0, ml: "auto" }}
-          >
-            <VoteToggle
-              userSupport={userSupport}
-              uncommittedSupport={hasUncommittedSupport}
-              onUserVoteChange={handleSupportChange}
-              direction="vertical"
-            />
-          </Stack>
+          </>
+        ) : (
+          <>
+            <ArrowDownwardIcon sx={{ fontSize: 16, color: "error.main" }} />
+            <Typography variant="body2" sx={{ fontWeight: 600, color: "error.main" }}>
+              {Math.abs(rankChange)}
+            </Typography>
+          </>
         )}
       </Stack>
-    </Card>
+
+      {peakRank !== null && (
+        <Stack direction="row" alignItems="center" spacing={0.5}>
+          <LandscapeIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+          <Typography variant="body2" color="text.secondary">
+            {peakRank}
+          </Typography>
+        </Stack>
+      )}
+
+      <Stack sx={{ flexGrow: 1 }} />
+
+      {onToggleBookmark && (
+        <IconButton
+          size="small"
+          onClick={() => onToggleBookmark(Number(statement.id))}
+          aria-label={isBookmarked ? "Remove bookmark" : "Bookmark"}
+          sx={{ p: 0 }}
+        >
+          {isBookmarked ? (
+            <BookmarkIcon sx={{ fontSize: 22 }} />
+          ) : (
+            <BookmarkBorderIcon sx={{ fontSize: 22 }} />
+          )}
+        </IconButton>
+      )}
+    </Stack>
+  );
+
+  const voteControls = isUserVerified ? (
+    <VoteToggle
+      userSupport={userSupport}
+      uncommittedSupport={hasUncommittedSupport}
+      onUserVoteChange={handleSupportChange}
+      direction="vertical"
+    />
+  ) : undefined;
+
+  return (
+    <StatementCardShell
+      leftSlot={leftSlot}
+      text={statement.text}
+      statsSlot={statsSlot}
+      voteControls={voteControls}
+      sx={{
+        transition: "box-shadow 0.2s ease",
+        "&:hover": { boxShadow: 3 },
+      }}
+    />
   );
 };
 
