@@ -336,9 +336,9 @@ const reducer = (
     ...newState,
     staged: newState.staged
       ? {
-        ...newState.staged,
-        credits: stagedCredits,
-      }
+          ...newState.staged,
+          credits: stagedCredits,
+        }
       : undefined,
     hasStagedChanges,
     hasEnoughCredits: stagedCredits >= 0,
@@ -402,10 +402,7 @@ export const UserVoteProvider: FC<{
   });
 
   // Read the current decay step from the chain, refreshed on every block.
-  const {
-    data: onChainStep,
-    refetch: refetchStep,
-  } = useReadContract({
+  const { data: onChainStep, refetch: refetchStep } = useReadContract({
     address: forumContractAddress,
     abi: FORUM_ABI,
     functionName: "getCurrentStep",
@@ -428,33 +425,30 @@ export const UserVoteProvider: FC<{
     },
   });
 
-  const {
-    data: onChainUserStatementSupport,
-    refetch: refetchSupport,
-  } = useReadContract({
-    address: forumContractAddress,
-    abi: FORUM_ABI,
-    account: address,
-    functionName: "getUserStatementSupport",
-    args: [],
-    query: {
-      enabled: Boolean(address && isUserVerified),
-    },
-  });
+  const { data: onChainUserStatementSupport, refetch: refetchSupport } =
+    useReadContract({
+      address: forumContractAddress,
+      abi: FORUM_ABI,
+      account: address,
+      functionName: "getUserStatementSupport",
+      args: [],
+      query: {
+        enabled: Boolean(address && isUserVerified),
+      },
+    });
 
-  const {
-    data: onChainUserBalance,
-    refetch: refetchBalance,
-  } = useReadContract({
-    address: forumContractAddress,
-    abi: FORUM_ABI,
-    account: address,
-    functionName: "getUserBalance",
-    args: [],
-    query: {
-      enabled: Boolean(address && isUserVerified),
+  const { data: onChainUserBalance, refetch: refetchBalance } = useReadContract(
+    {
+      address: forumContractAddress,
+      abi: FORUM_ABI,
+      account: address,
+      functionName: "getUserBalance",
+      args: [],
+      query: {
+        enabled: Boolean(address && isUserVerified),
+      },
     },
-  });
+  );
 
   const refetch = useCallback(() => {
     void refetchSupport();
@@ -561,7 +555,11 @@ export const UserVoteProvider: FC<{
         //    the user last saw the UI state. Uses the same last-block value that
         //    drives all on-chain reads, so any mismatch surfaces as a StaleStep
         //    that the user can resolve by retrying.
-        if (stepDurationSeconds && stepDurationSeconds > 0n && onChainStep !== undefined) {
+        if (
+          stepDurationSeconds &&
+          stepDurationSeconds > 0n &&
+          onChainStep !== undefined
+        ) {
           calls.push(
             encodeFunctionData({
               abi: FORUM_ABI,
@@ -614,10 +612,7 @@ export const UserVoteProvider: FC<{
 
         dispatch({ type: "COMMIT_SUBMITTED", payload: { txHash } });
       } catch (err: unknown) {
-
-
         if (err instanceof BaseError) {
-
           if (err.shortMessage?.toLowerCase().includes("rejected")) {
             dispatch({ type: "COMMIT_CANCELLED" });
             return;
@@ -631,7 +626,6 @@ export const UserVoteProvider: FC<{
             dispatch({ type: "COMMIT_STALE_STEP" });
             return;
           }
-
         }
 
         const errStr = JSON.stringify(err, Object.getOwnPropertyNames(err));

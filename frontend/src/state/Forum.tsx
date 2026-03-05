@@ -17,10 +17,7 @@ const FORUM_STORAGE_KEY = "ourvoice:selectedForum";
  * Keys that must survive a chain-fingerprint sweep because they are either
  * chain-agnostic (selected forum) or already scoped by address (nickname).
  */
-const SWEEP_EXEMPT_PREFIXES = [
-  "ourvoice:selectedForum",
-  "ourvoice:nickname:",
-];
+const SWEEP_EXEMPT_PREFIXES = ["ourvoice:selectedForum", "ourvoice:nickname:"];
 
 /**
  * Remove all `ourvoice:*` localStorage keys that do not belong to the

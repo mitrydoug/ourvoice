@@ -153,7 +153,7 @@ const SearchResults: FC<SearchResultsProps> = ({
       statements={statements}
       hasMore={false}
       isLoading={isLoading}
-      onLoadMore={() => { }}
+      onLoadMore={() => {}}
       loadingLabel="Searching…"
       isBookmarked={isBookmarked}
       onToggleBookmark={onToggleBookmark}

@@ -139,40 +139,44 @@ export const StatementCard: FC<StatementCardProps> = ({
 
   const globalSupport = Number(statement.support);
 
-  const leftSlot = currentRank !== null ? (
-    <Typography
-      variant="h4"
-      sx={{
-        fontWeight: 700,
-        fontSize: rankFontSize(currentRank),
-        lineHeight: 1.1,
-        color: rankColor(currentRank) ?? "text.primary",
-      }}
-    >
-      {currentRank}
-    </Typography>
-  ) : (
-    <Typography
-      variant="caption"
-      sx={{
-        fontWeight: 600,
-        fontSize: "0.6rem",
-        lineHeight: 1.2,
-        color: "text.disabled",
-        textAlign: "center",
-        textTransform: "uppercase",
-        letterSpacing: "0.04em",
-      }}
-    >
-      Not
-      <br />
-      Ranked
-    </Typography>
-  );
+  const leftSlot =
+    currentRank !== null ? (
+      <Typography
+        variant="h4"
+        sx={{
+          fontWeight: 700,
+          fontSize: rankFontSize(currentRank),
+          lineHeight: 1.1,
+          color: rankColor(currentRank) ?? "text.primary",
+        }}
+      >
+        {currentRank}
+      </Typography>
+    ) : (
+      <Typography
+        variant="caption"
+        sx={{
+          fontWeight: 600,
+          fontSize: "0.6rem",
+          lineHeight: 1.2,
+          color: "text.disabled",
+          textAlign: "center",
+          textTransform: "uppercase",
+          letterSpacing: "0.04em",
+        }}
+      >
+        Not
+        <br />
+        Ranked
+      </Typography>
+    );
 
   const statsSlot = (
     <Stack direction="row" alignItems="center" spacing={2} sx={{ mt: 0.5 }}>
-      <Typography variant="body2" sx={{ fontWeight: 600, color: "primary.main" }}>
+      <Typography
+        variant="body2"
+        sx={{ fontWeight: 600, color: "primary.main" }}
+      >
         {formatSupport(globalSupport)}
       </Typography>
 
@@ -184,14 +188,20 @@ export const StatementCard: FC<StatementCardProps> = ({
         ) : rankChange > 0 ? (
           <>
             <ArrowUpwardIcon sx={{ fontSize: 16, color: "success.main" }} />
-            <Typography variant="body2" sx={{ fontWeight: 600, color: "success.main" }}>
+            <Typography
+              variant="body2"
+              sx={{ fontWeight: 600, color: "success.main" }}
+            >
               {rankChange}
             </Typography>
           </>
         ) : (
           <>
             <ArrowDownwardIcon sx={{ fontSize: 16, color: "error.main" }} />
-            <Typography variant="body2" sx={{ fontWeight: 600, color: "error.main" }}>
+            <Typography
+              variant="body2"
+              sx={{ fontWeight: 600, color: "error.main" }}
+            >
               {Math.abs(rankChange)}
             </Typography>
           </>
