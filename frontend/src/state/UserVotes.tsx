@@ -527,7 +527,8 @@ export const UserVoteProvider: FC<{
       state.commitStatus !== "idle" &&
       state.commitStatus !== "confirmed" &&
       state.commitStatus !== "cancelled" &&
-      state.commitStatus !== "error"
+      state.commitStatus !== "error" &&
+      state.commitStatus !== "stale-step"
     ) {
       commitTimeoutRef.current = setTimeout(() => {
         dispatch({ type: "COMMIT_ERROR" });

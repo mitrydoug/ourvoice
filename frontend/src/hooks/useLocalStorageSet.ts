@@ -1,9 +1,18 @@
 import { useCallback, useEffect, useState } from "react";
+import { useAccount } from "wagmi";
 import { useForum } from "../state/Forum";
 
 /**
  * A hook that manages a Set<number> backed by localStorage.
- * The data is scoped per forum so each forum has its own set.
+ *
+ * The storage key is scoped by:
+ *   - forum name  — each forum has its own set
+ *   - chain fingerprint  — derived from the genesis block hash so data is
+ *     automatically invalidated whenever the chain is reset
+ *   - wallet address  — per-user data stays private to each account
+ *
+ * Returns empty data (no reads/writes) until the chain fingerprint has been
+ * resolved, preventing any stale-deployment data from leaking through.
  */
 const useLocalStorageSet = (
   key: string,
@@ -14,10 +23,21 @@ const useLocalStorageSet = (
   remove: (id: number) => void;
   toggle: (id: number) => void;
 } => {
-  const { name: forumName } = useForum();
-  const storageKey = `ourvoice:${key}:${forumName}`;
+  const { name: forumName, chainFingerprint } = useForum();
+  const { address } = useAccount();
+
+  // Shorten address to first 4 bytes (10 chars inc. "0x") for a compact key.
+  const addrKey = address ? address.slice(0, 10) : "anon";
+
+  // storageKey is undefined while the chain fingerprint is loading — hooks
+  // that depend on it will return empty data during that window.
+  const storageKey =
+    chainFingerprint !== undefined
+      ? `ourvoice:${key}:${forumName}:${chainFingerprint}:${addrKey}`
+      : undefined;
 
   const [set, setSet] = useState<Set<number>>(() => {
+    if (!storageKey) return new Set();
     try {
       const stored = localStorage.getItem(storageKey);
       if (stored) {
@@ -29,8 +49,12 @@ const useLocalStorageSet = (
     return new Set();
   });
 
-  // Re-read from localStorage when the forum changes
+  // Re-read from localStorage when the key changes (forum, fingerprint, or address)
   useEffect(() => {
+    if (!storageKey) {
+      setSet(new Set());
+      return;
+    }
     try {
       const stored = localStorage.getItem(storageKey);
       if (stored) {
@@ -45,6 +69,7 @@ const useLocalStorageSet = (
 
   // Persist to localStorage whenever the set changes
   useEffect(() => {
+    if (!storageKey) return;
     try {
       localStorage.setItem(storageKey, JSON.stringify([...set]));
     } catch {
