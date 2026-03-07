@@ -8,7 +8,7 @@ import CreateIcon from "@mui/icons-material/Create";
 import MenuAppBar from "./AppBar";
 import SideNav from "./SideNav";
 import BottomNav from "./BottomNav";
-import WriteModal from "./WriteModal";
+import CreateStatementModal from "./CreateStatementModal";
 import useIsMobile from "@/hooks/useIsMobile";
 import { useUserVotes } from "../state/UserVotes";
 import { SearchProvider } from "@/state/Search";
@@ -84,7 +84,7 @@ const Root: FC = () => {
             >
               <CreateIcon />
             </Fab>
-            <WriteModal
+            <CreateStatementModal
               open={writeModalOpen}
               onClose={() => setWriteModalOpen(false)}
             />

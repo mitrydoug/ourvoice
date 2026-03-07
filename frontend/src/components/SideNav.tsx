@@ -15,7 +15,7 @@ import ArticleIcon from "@mui/icons-material/Article";
 import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import CreateIcon from "@mui/icons-material/Create";
-import WriteModal from "./WriteModal";
+import CreateStatementModal from "./CreateStatementModal";
 import { useUserVotes } from "../state/UserVotes";
 import UserProfilePill from "./UserProfilePill";
 import { useAccount, useDisconnect } from "wagmi";
@@ -110,7 +110,7 @@ const SideNav: FC = () => {
         </Box>
       </Box>
 
-      <WriteModal
+      <CreateStatementModal
         open={writeModalOpen}
         onClose={() => setWriteModalOpen(false)}
       />
