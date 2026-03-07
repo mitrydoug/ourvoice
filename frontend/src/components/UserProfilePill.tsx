@@ -61,11 +61,15 @@ const UserProfilePill: React.FC<UserProfilePillProps> = ({ onOpenMenu }) => {
     : false;
   const commitBusy = isUserVerified
     ? userVotes.state?.commitStatus !== undefined &&
-      userVotes.state?.commitStatus !== "idle"
+    userVotes.state?.commitStatus !== "idle"
     : false;
-  const commitChanges = isUserVerified ? userVotes.commitChanges : () => {};
+  const commitChanges = isUserVerified ? userVotes.commitChanges : () => { };
+  const hasEnoughCredits = isUserVerified
+    ? (userVotes.state?.hasEnoughCredits ?? true)
+    : true;
 
   const showCommit = credits !== null;
+  const isOverBudget = credits !== null && credits < 0;
 
   /** Format credits with locale-aware thousands separators */
   const formattedCredits = credits !== null ? credits.toLocaleString() : null;
@@ -109,15 +113,15 @@ const UserProfilePill: React.FC<UserProfilePillProps> = ({ onOpenMenu }) => {
               e.stopPropagation();
               void commitChanges();
             }}
-            disabled={!hasStagedChanges || commitBusy}
+            disabled={!hasStagedChanges || commitBusy || !hasEnoughCredits}
             sx={{
               ...(hasStagedChanges && !commitBusy
                 ? {
-                    animation: `${shimmer} 1.5s ease-in-out infinite`,
-                    bgcolor: "primary.main",
-                    color: "white",
-                    "&:hover": { bgcolor: "primary.dark" },
-                  }
+                  animation: `${shimmer} 1.5s ease-in-out infinite`,
+                  bgcolor: "primary.main",
+                  color: "white",
+                  "&:hover": { bgcolor: "primary.dark" },
+                }
                 : {}),
             }}
           >
@@ -135,6 +139,14 @@ const UserProfilePill: React.FC<UserProfilePillProps> = ({ onOpenMenu }) => {
             gap: 0.75,
             mt: 0.5,
             ml: "25px",
+            ...(isOverBudget && {
+              bgcolor: "error.main",
+              color: "error.contrastText",
+              borderRadius: 100,
+              px: 1.5,
+              py: 0.25,
+              ml: "20px",
+            }),
           }}
         >
           <CoinIcon size={18} />
@@ -149,7 +161,10 @@ const UserProfilePill: React.FC<UserProfilePillProps> = ({ onOpenMenu }) => {
               },
             }}
           />
-          <Typography variant="caption" color="text.secondary">
+          <Typography
+            variant="caption"
+            color={isOverBudget ? "inherit" : "text.secondary"}
+          >
             credits
           </Typography>
         </Box>

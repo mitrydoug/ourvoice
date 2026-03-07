@@ -68,6 +68,10 @@ export const useCreditAllocation = (): CreditAllocation | null => {
       }
     }
 
+    // Include cost of the in-progress draft (before it is staged)
+    const draftCost = userVotes.state.pendingDraftCost;
+    totalIncreaseCost += draftCost;
+
     const allocated = totalOnChainCost - totalDecreaseCost;
     const stagedAmount = totalDecreaseCost + totalIncreaseCost;
     const unallocated = onChain.credits - totalIncreaseCost;
