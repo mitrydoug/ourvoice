@@ -63,6 +63,8 @@ interface UserSupportState {
   commitStatus: CommitStatus;
   pendingTxHash?: `0x${string}`;
   confirmedBlockNumber?: bigint;
+  /** Credit cost of the in-progress draft statement (before it is staged). */
+  pendingDraftCost: number;
 }
 
 type SyncOnChainState = {
@@ -124,6 +126,11 @@ type CommitStaleStep = {
   type: "COMMIT_STALE_STEP";
 };
 
+type SetPendingDraftCost = {
+  type: "SET_PENDING_DRAFT_COST";
+  payload: { cost: number };
+};
+
 type UserSupportAction =
   | SyncOnChainState
   | StageUserSupport
@@ -137,7 +144,8 @@ type UserSupportAction =
   | StageStatement
   | UnstageStatement
   | UpdateStagedInitialSupport
-  | CommitStaleStep;
+  | CommitStaleStep
+  | SetPendingDraftCost;
 
 // Triangle number: triangle(x) = x*(x+1)/2
 const triangle = (x: number): number => (x * (x + 1)) / 2;
@@ -308,6 +316,10 @@ const reducer = (
       newState.confirmedBlockNumber = undefined;
       break;
     }
+    case "SET_PENDING_DRAFT_COST": {
+      newState.pendingDraftCost = action.payload.cost;
+      break;
+    }
   }
 
   // Calculate total adjustment cost
@@ -324,6 +336,8 @@ const reducer = (
     for (const stmt of newState.staged.stagedStatements) {
       totalAdjustmentCost += adjustmentCost(0, stmt.initialSupport);
     }
+    // Include cost of the in-progress draft (before it is staged)
+    totalAdjustmentCost += newState.pendingDraftCost;
   }
 
   const stagedCredits = (newState.onChain?.credits || 0) - totalAdjustmentCost;
@@ -336,9 +350,9 @@ const reducer = (
     ...newState,
     staged: newState.staged
       ? {
-          ...newState.staged,
-          credits: stagedCredits,
-        }
+        ...newState.staged,
+        credits: stagedCredits,
+      }
       : undefined,
     hasStagedChanges,
     hasEnoughCredits: stagedCredits >= 0,
@@ -359,6 +373,7 @@ type UserNotVerifiedContextValue = {
   stageStatement: undefined;
   unstageStatement: undefined;
   updateStagedInitialSupport: undefined;
+  setPendingDraftCost: (cost: number) => void;
 };
 
 type UserSupportContextValue = {
@@ -373,6 +388,7 @@ type UserSupportContextValue = {
   stageStatement: (text: string, initialSupport?: number) => void;
   unstageStatement: (tempId: string) => void;
   updateStagedInitialSupport: (tempId: string, newSupport: number) => void;
+  setPendingDraftCost: (cost: number) => void;
 };
 
 export const UserVoteContext = createContext<
@@ -388,6 +404,7 @@ export const UserVoteProvider: FC<{
     hasStagedChanges: false,
     hasEnoughCredits: true,
     commitStatus: "idle",
+    pendingDraftCost: 0,
   });
   const { writeContractAsync } = useWriteContract();
   const { address } = useAccount();
@@ -708,6 +725,14 @@ export const UserVoteProvider: FC<{
     [dispatch],
   );
 
+  // Set the credit cost of the in-progress draft statement
+  const setPendingDraftCost = useCallback(
+    (cost: number) => {
+      dispatch({ type: "SET_PENDING_DRAFT_COST", payload: { cost } });
+    },
+    [dispatch],
+  );
+
   if (isUserVerified) {
     return (
       <UserVoteContext.Provider
@@ -723,6 +748,7 @@ export const UserVoteProvider: FC<{
           stageStatement,
           unstageStatement,
           updateStagedInitialSupport,
+          setPendingDraftCost,
         }}
       >
         {children}
@@ -743,6 +769,7 @@ export const UserVoteProvider: FC<{
           stageStatement: undefined,
           unstageStatement: undefined,
           updateStagedInitialSupport: undefined,
+          setPendingDraftCost,
         }}
       >
         {children}

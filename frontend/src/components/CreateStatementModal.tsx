@@ -1,4 +1,4 @@
-import { FC, useCallback, useMemo, useState } from "react";
+import { FC, useCallback, useEffect, useMemo, useState } from "react";
 import {
   Box,
   Button,
@@ -36,7 +36,8 @@ const CreateStatementModal: FC<CreateStatementModalProps> = ({
   const [initialSupport, setInitialSupport] = useState(0);
   const [sortTab, setSortTab] = useState<SortMode>("top");
 
-  const { isUserVerified, stageStatement } = useUserVotes();
+  const { isUserVerified, stageStatement, setPendingDraftCost } =
+    useUserVotes();
   const { forumContractAddress } = useForum();
   const { has: isBookmarked, toggle: toggleBookmark } =
     useLocalStorageSet("bookmarks");
@@ -110,22 +111,35 @@ const CreateStatementModal: FC<CreateStatementModalProps> = ({
     }
   }, []);
 
+  // Keep the credit bar in sync with the draft's initial support
+  const draftCreditCost = Math.abs(initialSupport) * (Math.abs(initialSupport) + 1) / 2;
+  useEffect(() => {
+    if (open) {
+      setPendingDraftCost(draftCreditCost);
+    } else {
+      setPendingDraftCost(0);
+    }
+    return () => setPendingDraftCost(0);
+  }, [open, draftCreditCost, setPendingDraftCost]);
+
   const handleCreate = useCallback(() => {
     if (text.length > 0 && isUserVerified && stageStatement) {
+      setPendingDraftCost(0);
       stageStatement(text, initialSupport);
       setText("");
       setInitialSupport(0);
       setSortTab("top");
       onClose();
     }
-  }, [text, initialSupport, isUserVerified, stageStatement, onClose]);
+  }, [text, initialSupport, isUserVerified, stageStatement, setPendingDraftCost, onClose]);
 
   const handleCancel = useCallback(() => {
+    setPendingDraftCost(0);
     setText("");
     setInitialSupport(0);
     setSortTab("top");
     onClose();
-  }, [onClose]);
+  }, [setPendingDraftCost, onClose]);
 
   return (
     <Modal

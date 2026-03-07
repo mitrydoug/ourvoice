@@ -114,6 +114,7 @@ export interface AccountDrawerProps {
   commitChanges: () => void | Promise<void>;
   hasStagedChanges: boolean;
   commitBusy?: boolean;
+  hasEnoughCredits?: boolean;
 }
 
 export const AccountDrawer: React.FC<AccountDrawerProps> = ({
@@ -127,6 +128,7 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
   commitChanges,
   hasStagedChanges,
   commitBusy = false,
+  hasEnoughCredits = true,
 }) => {
   const handleNavigate = (path: string) => {
     navigate(path);
@@ -182,7 +184,7 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
             variant="outlined"
             fullWidth
             onClick={handleCommit}
-            disabled={!hasStagedChanges || commitBusy}
+            disabled={!hasStagedChanges || commitBusy || !hasEnoughCredits}
             sx={{
               mb: 2,
               borderColor:

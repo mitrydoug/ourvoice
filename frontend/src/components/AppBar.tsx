@@ -279,13 +279,16 @@ export default function MenuAppBar() {
                       navigate={(path: string) => void navigate(path)}
                       disconnect={doDisconnect}
                       avatar={avatar}
-                      commitChanges={commitChanges ?? (() => {})}
+                      commitChanges={commitChanges ?? (() => { })}
                       hasStagedChanges={
                         userVoteState?.hasStagedChanges ?? false
                       }
                       commitBusy={
                         userVoteState?.commitStatus !== undefined &&
                         userVoteState?.commitStatus !== "idle"
+                      }
+                      hasEnoughCredits={
+                        userVoteState?.hasEnoughCredits ?? true
                       }
                     />
                   </>
