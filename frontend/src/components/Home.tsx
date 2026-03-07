@@ -30,20 +30,9 @@ const Home: FC = () => {
   // ── Sort tab ───────────────────────────────────────────────────────────
   const [sortTab, setSortTab] = useState<SortMode>("top");
 
-  // Reset to "Top" whenever the search is cleared.
-  useEffect(() => {
-    if (!hasSearch) {
-      setSortTab("top");
-    }
-  }, [hasSearch]);
-
   return (
     <>
-      <SortTabs
-        value={sortTab}
-        onChange={setSortTab}
-        relevantDisabled={!hasSearch}
-      />
+      <SortTabs value={sortTab} onChange={setSortTab} />
       {hasSearch ? (
         <SearchResults
           searchQuery={searchQuery}
@@ -114,16 +103,12 @@ const SearchResults: FC<SearchResultsProps> = ({
   const statements: Statement[] = useMemo(() => {
     if (!rawStatements) return [];
 
-    if (sortTab === "relevant") {
-      // Display in the order returned by Meilisearch (= relevanceOrder).
-      return [...rawStatements].sort((a, b) => {
-        const ai = relevanceOrder.get(Number(a.id)) ?? Number.MAX_SAFE_INTEGER;
-        const bi = relevanceOrder.get(Number(b.id)) ?? Number.MAX_SAFE_INTEGER;
-        return ai - bi;
-      });
+    if (sortTab === "latest") {
+      // Sort by statement ID descending (newest first).
+      return [...rawStatements].sort((a, b) => Number(b.id) - Number(a.id));
     }
 
-    // sortTab === "top" → ranked statements first (ascending rank),
+    // "top" / "trending" → ranked statements first (ascending rank),
     // then unranked in relevance order.
     const ranked: Statement[] = [];
     const unranked: Statement[] = [];

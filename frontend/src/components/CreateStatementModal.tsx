@@ -72,15 +72,11 @@ const CreateStatementModal: FC<CreateStatementModalProps> = ({
   const similarStatements: Statement[] = useMemo(() => {
     if (!rawStatements) return [];
 
-    if (sortTab === "relevant") {
-      return [...rawStatements].sort((a, b) => {
-        const ai = relevanceOrder.get(Number(a.id)) ?? Number.MAX_SAFE_INTEGER;
-        const bi = relevanceOrder.get(Number(b.id)) ?? Number.MAX_SAFE_INTEGER;
-        return ai - bi;
-      });
+    if (sortTab === "latest") {
+      return [...rawStatements].sort((a, b) => Number(b.id) - Number(a.id));
     }
 
-    // "top" → ranked first (ascending rank), then unranked in relevance order.
+    // "top" / "trending" → ranked first (ascending rank), then unranked in relevance order.
     const ranked: Statement[] = [];
     const unranked: Statement[] = [];
 
@@ -112,7 +108,8 @@ const CreateStatementModal: FC<CreateStatementModalProps> = ({
   }, []);
 
   // Keep the credit bar in sync with the draft's initial support
-  const draftCreditCost = Math.abs(initialSupport) * (Math.abs(initialSupport) + 1) / 2;
+  const draftCreditCost =
+    (Math.abs(initialSupport) * (Math.abs(initialSupport) + 1)) / 2;
   useEffect(() => {
     if (open) {
       setPendingDraftCost(draftCreditCost);
@@ -131,7 +128,14 @@ const CreateStatementModal: FC<CreateStatementModalProps> = ({
       setSortTab("top");
       onClose();
     }
-  }, [text, initialSupport, isUserVerified, stageStatement, setPendingDraftCost, onClose]);
+  }, [
+    text,
+    initialSupport,
+    isUserVerified,
+    stageStatement,
+    setPendingDraftCost,
+    onClose,
+  ]);
 
   const handleCancel = useCallback(() => {
     setPendingDraftCost(0);
@@ -247,11 +251,7 @@ const CreateStatementModal: FC<CreateStatementModalProps> = ({
               Similar Statements
             </Typography>
 
-            <SortTabs
-              value={sortTab}
-              onChange={setSortTab}
-              relevantDisabled={!hasSearch}
-            />
+            <SortTabs value={sortTab} onChange={setSortTab} />
 
             <Box
               sx={{
