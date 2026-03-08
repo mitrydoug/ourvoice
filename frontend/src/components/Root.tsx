@@ -1,7 +1,7 @@
 import { FC, useState } from "react";
 import Box from "@mui/material/Box";
+import { Button, Fab } from "@mui/material";
 import { Outlet } from "react-router-dom";
-import { Fab } from "@mui/material";
 import CreateIcon from "@mui/icons-material/Create";
 
 import MenuAppBar from "./AppBar";
@@ -9,9 +9,29 @@ import SideNav from "./SideNav";
 import BottomNav from "./BottomNav";
 import CreateStatementModal from "./CreateStatementModal";
 import SearchField from "./SearchField";
+import UserProfilePill from "./UserProfilePill";
 import useIsMobile from "@/hooks/useIsMobile";
 import { useUserVotes } from "../state/UserVotes";
+import { useAccount } from "wagmi";
+import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { SearchProvider, useSearchQuery } from "@/state/Search";
+
+/* ── Right column: user profile pill / connect wallet ──────────────────── */
+
+const RightColumn: FC = () => {
+  const { address } = useAccount();
+  const { openConnectModal } = useConnectModal();
+
+  if (!address) {
+    return (
+      <Button onClick={() => openConnectModal?.()} size="medium" fullWidth>
+        Connect Wallet
+      </Button>
+    );
+  }
+
+  return <UserProfilePill />;
+};
 
 /* ── Desktop: 3-column layout ─────────────────────────────────────────── */
 
@@ -50,8 +70,10 @@ const DesktopLayout: FC = () => {
       {/* Middle column – search, tabs, statements */}
       <Box
         sx={{
-          width: 700,
-          flexShrink: 0,
+          width: 600,
+          maxWidth: 600,
+          minWidth: 0,
+          flexShrink: 1,
           overflowY: "auto",
           px: 3,
           pt: 3,
@@ -62,7 +84,7 @@ const DesktopLayout: FC = () => {
           "&::-webkit-scrollbar": { display: "none" },
         }}
       >
-        <Box sx={{ mb: 2 }}>
+        <Box sx={{ mb: 1 }}>
           <SearchField
             value={localQuery}
             onChange={setSearchQuery}
@@ -73,8 +95,19 @@ const DesktopLayout: FC = () => {
         <Outlet />
       </Box>
 
-      {/* Right column – empty for now (mirrors left column width for balance) */}
-      <Box sx={{ width: 280, flexShrink: 0 }} />
+      {/* Right column – user profile */}
+      <Box
+        sx={{
+          width: 280,
+          flexShrink: 0,
+          overflowY: "auto",
+          p: 3,
+          scrollbarWidth: "none",
+          "&::-webkit-scrollbar": { display: "none" },
+        }}
+      >
+        <RightColumn />
+      </Box>
     </Box>
   );
 };

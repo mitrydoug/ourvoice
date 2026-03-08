@@ -44,12 +44,28 @@ const CreateStatementModal: FC<CreateStatementModalProps> = ({
 
   // ── Similar-statements search ──────────────────────────────────────────
   const hasSearch = text.trim().length > 0;
-  const { hits, isLoading: isSearchLoading } = useSearch(text);
-
-  const statementIds = useMemo(
-    () => hits.map((h) => BigInt(h.statementId)),
-    [hits],
+  const { hits, isLoading: isSearchLoading } = useSearch(
+    text,
+    forumContractAddress,
   );
+
+  // Fetch the current statement count so we can discard stale/invalid IDs
+  // that would cause getStatementsById to revert.
+  const { data: statementCountRaw } = useReadContract({
+    address: forumContractAddress,
+    abi: FORUM_ABI,
+    functionName: "statementCount",
+  });
+  const statementCount =
+    statementCountRaw !== undefined ? Number(statementCountRaw) : undefined;
+
+  // Filter out any search hit whose ID is >= statementCount (stale index).
+  const statementIds = useMemo(() => {
+    if (statementCount === undefined) return [];
+    return hits
+      .filter((h) => h.statementId < statementCount)
+      .map((h) => BigInt(h.statementId));
+  }, [hits, statementCount]);
 
   const result = useReadContract({
     address: forumContractAddress,
@@ -99,6 +115,8 @@ const CreateStatementModal: FC<CreateStatementModalProps> = ({
   }, [rawStatements, sortTab, relevanceOrder]);
 
   const isSimilarLoading = isSearchLoading || result.isLoading;
+  // Treat contract errors (e.g. all IDs invalid) as "no results".
+  const noSimilarResults = result.isError && !result.isLoading;
 
   // ── Handlers ───────────────────────────────────────────────────────────
   const updateText = useCallback((textVal: string) => {
@@ -263,7 +281,7 @@ const CreateStatementModal: FC<CreateStatementModalProps> = ({
                 py: 0.5,
               }}
             >
-              {isSimilarLoading && hasSearch ? (
+              {isSimilarLoading && !noSimilarResults && hasSearch ? (
                 <Stack
                   alignItems="center"
                   justifyContent="center"

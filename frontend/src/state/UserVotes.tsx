@@ -366,6 +366,7 @@ type UserNotVerifiedContextValue = {
   state: undefined;
   dispatch: undefined;
   commitChanges: undefined;
+  resetChanges: undefined;
   resetCommitStatus: undefined;
   getEffectiveSupport: undefined;
   getOnChainSupport: undefined;
@@ -381,6 +382,7 @@ type UserSupportContextValue = {
   state: UserSupportState;
   dispatch: React.Dispatch<UserSupportAction>;
   commitChanges: () => void | Promise<void>;
+  resetChanges: () => void;
   resetCommitStatus: () => void;
   getEffectiveSupport: (statementId: number) => number;
   getOnChainSupport: (statementId: number) => number;
@@ -733,6 +735,10 @@ export const UserVoteProvider: FC<{
     [dispatch],
   );
 
+  const resetChanges = useCallback(() => {
+    dispatch({ type: "CLEAR_STAGED_SUPPORT" });
+  }, [dispatch]);
+
   if (isUserVerified) {
     return (
       <UserVoteContext.Provider
@@ -741,6 +747,7 @@ export const UserVoteProvider: FC<{
           state,
           dispatch,
           commitChanges,
+          resetChanges,
           resetCommitStatus,
           getEffectiveSupport,
           getOnChainSupport,
@@ -762,6 +769,7 @@ export const UserVoteProvider: FC<{
           state: undefined,
           dispatch: undefined,
           commitChanges: undefined,
+          resetChanges: undefined,
           resetCommitStatus: undefined,
           getEffectiveSupport: undefined,
           getOnChainSupport: undefined,

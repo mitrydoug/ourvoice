@@ -72,13 +72,28 @@ const SearchResults: FC<SearchResultsProps> = ({
   isBookmarked,
   onToggleBookmark,
 }) => {
-  const { hits, isLoading: isSearchLoading } = useSearch(searchQuery);
-
-  // Fetch full Statement objects for the search hits.
-  const statementIds = useMemo(
-    () => hits.map((h) => BigInt(h.statementId)),
-    [hits],
+  const { hits, isLoading: isSearchLoading } = useSearch(
+    searchQuery,
+    forumContractAddress,
   );
+
+  // Fetch the current statement count so we can discard stale/invalid IDs
+  // that would cause getStatementsById to revert.
+  const { data: statementCountRaw } = useReadContract({
+    address: forumContractAddress,
+    abi: FORUM_ABI,
+    functionName: "statementCount",
+  });
+  const statementCount =
+    statementCountRaw !== undefined ? Number(statementCountRaw) : undefined;
+
+  // Filter out any search hit whose ID is >= statementCount (stale index).
+  const statementIds = useMemo(() => {
+    if (statementCount === undefined) return [];
+    return hits
+      .filter((h) => h.statementId < statementCount)
+      .map((h) => BigInt(h.statementId));
+  }, [hits, statementCount]);
 
   const result = useReadContract({
     address: forumContractAddress,
@@ -132,13 +147,15 @@ const SearchResults: FC<SearchResultsProps> = ({
   }, [rawStatements, sortTab, relevanceOrder]);
 
   const isLoading = isSearchLoading || result.isLoading;
+  // Treat contract errors (e.g. all IDs invalid) as "no results".
+  const noResults = result.isError && !result.isLoading;
 
   return (
     <StatementList
-      statements={statements}
+      statements={noResults ? [] : statements}
       hasMore={false}
-      isLoading={isLoading}
-      onLoadMore={() => {}}
+      isLoading={noResults ? false : isLoading}
+      onLoadMore={() => { }}
       loadingLabel="Searching…"
       isBookmarked={isBookmarked}
       onToggleBookmark={onToggleBookmark}
