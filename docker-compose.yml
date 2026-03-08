@@ -75,6 +75,8 @@ services:
     environment:
       MEILI_MASTER_KEY: "dev-master-key"
       MEILI_ENV: "development"
+    tmpfs:
+      - /meili_data
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:7700/health" ]
       interval: 15s
