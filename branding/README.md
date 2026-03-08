@@ -1,4 +1,4 @@
-# Symvoli Brand Assets
+# Symvolia Brand Assets
 
 ## Concept: The Tessera
 
@@ -14,12 +14,12 @@ the core idea behind the platform.
 
 ## Files
 
-| File                     | Purpose                                                     |
-| ------------------------ | ----------------------------------------------------------- |
-| `symvoli-icon.svg`       | Icon only (scalable, square)                                |
-| `symvoli-icon-white.svg` | White icon for dark backgrounds                             |
-| `symvoli-logo.svg`       | Icon + "Symvoli" wordmark (horizontal)                      |
-| `favicon.svg`            | Simplified icon for browser favicon (32×32, no speech tail) |
+| File                      | Purpose                                                     |
+| ------------------------- | ----------------------------------------------------------- |
+| `symvolia-icon.svg`       | Icon only (scalable, square)                                |
+| `symvolia-icon-white.svg` | White icon for dark backgrounds                             |
+| `symvolia-logo.svg`       | Icon + "Symvolia" wordmark (horizontal)                     |
+| `favicon.svg`             | Simplified icon for browser favicon (32×32, no speech tail) |
 
 ## Color Palette
 

@@ -19,6 +19,7 @@ import useNickname from "@/hooks/useNickname";
 import { useUserVotes } from "../state/UserVotes";
 import { useForum } from "../state/Forum";
 import { FORUMS } from "./ChooseForumModal";
+import ForumIcon from "./ForumIcon";
 import { metamaskIcon } from "../util";
 import AnimatedCounter from "./AnimatedCounter";
 
@@ -133,16 +134,11 @@ const UserProfilePanel: React.FC = () => {
                 }}
               >
                 {forum && (
-                  <img
-                    src={forum.iconSrc}
-                    alt={forum.label}
-                    style={{ height: "1rem", width: "1rem" }}
-                  />
+                  <ForumIcon forum={forum} size="1rem" />
                 )}
                 <Typography variant="body2" color="text.secondary">
                   Verified
                 </Typography>
-                <VerifiedUserIcon sx={{ fontSize: 16, color: "success.main" }} />
               </Box>
             )}
           </Box>

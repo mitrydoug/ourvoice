@@ -7,7 +7,7 @@ const chains = import.meta.env.DEV
   : ([sepolia] as const);
 
 const wagmiConfig = getDefaultConfig({
-  appName: "Our Voice",
+  appName: "Symvolia",
   // Get a free projectId at https://cloud.walletconnect.com
   projectId: import.meta.env.VITE_WALLETCONNECT_PROJECT_ID ?? "YOUR_PROJECT_ID",
   chains,

@@ -20,6 +20,7 @@ import GppBadIcon from "@mui/icons-material/GppBad";
 import { useUserVotes } from "../state/UserVotes";
 import { useCreditAllocation } from "@/hooks/useCreditAllocation";
 import { useUserRegistration } from "@/hooks/useUserRegistration";
+import { toAlpha2 } from "../countryCodeMap";
 import useNickname from "@/hooks/useNickname";
 
 // ── SVG Donut Chart ──────────────────────────────────────────────────────────
@@ -179,22 +180,22 @@ const UserProfile: FC = () => {
   // Use the MUI theme palette so colors stay in sync with SupportAllocationBar
   const segments: DonutSegment[] = allocation
     ? [
-        {
-          value: allocation.allocated,
-          color: theme.palette.primary.main,
-          label: "Allocated",
-        },
-        {
-          value: allocation.staged,
-          color: theme.palette.warning.main,
-          label: "Staged",
-        },
-        {
-          value: allocation.unallocated,
-          color: theme.palette.success.main,
-          label: "Unallocated",
-        },
-      ]
+      {
+        value: allocation.allocated,
+        color: theme.palette.primary.main,
+        label: "Allocated",
+      },
+      {
+        value: allocation.staged,
+        color: theme.palette.warning.main,
+        label: "Staged",
+      },
+      {
+        value: allocation.unallocated,
+        color: theme.palette.success.main,
+        label: "Unallocated",
+      },
+    ]
     : [];
 
   if (!address) return <Navigate to="/" replace />;
@@ -253,12 +254,11 @@ const UserProfile: FC = () => {
               <>
                 <VerifiedUserIcon color="success" />
                 <Typography variant="body1">Verified</Typography>
-                {nationality && (
-                  <Box
-                    component="img"
-                    src={`${nationality}.svg`}
+                {nationality && toAlpha2(nationality) && (
+                  <img
+                    src={`/flags/${toAlpha2(nationality)}.svg`}
                     alt={`${nationality} flag`}
-                    sx={{ width: 24, height: 16, ml: 0.5 }}
+                    style={{ height: "1rem", width: "auto", marginLeft: 4, borderRadius: "2px" }}
                   />
                 )}
               </>
