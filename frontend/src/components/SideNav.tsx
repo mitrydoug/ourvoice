@@ -22,11 +22,11 @@ import ForumIcon from "./ForumIcon";
 import { useForum } from "../state/Forum";
 
 const NAV_ITEMS = [
-  { label: "Home", href: "/", icon: <HomeIcon /> },
-  { label: "My Support", href: "/my-support", icon: <FavoriteBorderIcon /> },
-  { label: "My Statements", href: "/my-statements", icon: <ArticleIcon /> },
-  { label: "Bookmarked", href: "/bookmarked", icon: <BookmarkBorderIcon /> },
-  { label: "How it works", href: "#", icon: <HelpOutlineIcon /> },
+  { label: "Home", href: "/", icon: <HomeIcon />, memberOnly: false },
+  { label: "My Support", href: "/my-support", icon: <FavoriteBorderIcon />, memberOnly: true },
+  { label: "My Statements", href: "/my-statements", icon: <ArticleIcon />, memberOnly: true },
+  { label: "Bookmarked", href: "/bookmarked", icon: <BookmarkBorderIcon />, memberOnly: false },
+  { label: "How it works", href: "#", icon: <HelpOutlineIcon />, memberOnly: false },
 ];
 
 const SideNav: FC = () => {
@@ -73,7 +73,7 @@ const SideNav: FC = () => {
         </Box>
 
         <List disablePadding>
-          {NAV_ITEMS.map((item) => {
+          {NAV_ITEMS.filter((item) => !item.memberOnly || isUserVerified).map((item) => {
             const isActive =
               item.href !== "#" && location.pathname === item.href;
 

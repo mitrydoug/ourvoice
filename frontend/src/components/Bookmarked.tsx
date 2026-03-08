@@ -1,8 +1,6 @@
 import { FC, useState, useCallback, useMemo } from "react";
-import { Navigate } from "react-router-dom";
 import { useReadContract } from "wagmi";
 import { useForum, FORUM_ABI } from "../state/Forum";
-import { useUserVotes } from "../state/UserVotes";
 import { Statement } from "../types";
 import StatementList from "./StatementList";
 import useIsMobile from "@/hooks/useIsMobile";
@@ -10,7 +8,6 @@ import useLocalStorageSet from "@/hooks/useLocalStorageSet";
 import useBlockSync from "@/hooks/useBlockSync";
 
 const Bookmarked: FC = () => {
-  const { isUserVerified } = useUserVotes();
   const { forumContractAddress } = useForum();
   const isMobile = useIsMobile();
   const {
@@ -52,10 +49,6 @@ const Bookmarked: FC = () => {
       (a, b) => Number(b.support) - Number(a.support),
     );
   }, [allStatements]);
-
-  if (!isUserVerified) {
-    return <Navigate to="/" replace />;
-  }
 
   const displayedStatements = sorted.slice(0, displayCount);
   const hasMore = sorted.length > displayCount;

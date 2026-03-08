@@ -19,7 +19,8 @@ import useNickname from "@/hooks/useNickname";
 import { useUserVotes } from "../state/UserVotes";
 import { useForum } from "../state/Forum";
 import { FORUMS } from "./ChooseForumModal";
-import ForumIcon from "./ForumIcon";
+import { useUserRegistration } from "@/hooks/useUserRegistration";
+import { toAlpha2, toDemonym } from "../countryCodeMap";
 import { metamaskIcon } from "../util";
 import AnimatedCounter from "./AnimatedCounter";
 
@@ -61,14 +62,16 @@ const UserProfilePanel: React.FC = () => {
   const [nickname] = useNickname();
   const userVotes = useUserVotes();
   const { isUserVerified } = userVotes;
+  const { nationality, isRegistered } = useUserRegistration();
   const { name: forumName } = useForum();
+  const forum = FORUMS[forumName];
 
   const avatar = useMemo(() => {
     if (address) return metamaskIcon(address);
     return null;
   }, [address]);
 
-  const forum = FORUMS[forumName];
+  const alpha2 = nationality ? toAlpha2(nationality) : null;
 
   const credits = isUserVerified
     ? (userVotes.state?.staged?.credits ?? 0)
@@ -116,7 +119,7 @@ const UserProfilePanel: React.FC = () => {
             gap: 1.5,
           }}
         >
-          <Avatar src={avatar ?? undefined} sx={{ width: 48, height: 48 }} />
+          <Avatar src={avatar ?? undefined} sx={{ width: 40, height: 40 }} />
 
           <Box sx={{ minWidth: 0 }}>
             <Typography variant="h6" fontWeight={700} noWrap>
@@ -124,7 +127,7 @@ const UserProfilePanel: React.FC = () => {
             </Typography>
 
             {/* Verified status */}
-            {isUserVerified && (
+            {isRegistered && (
               <Box
                 sx={{
                   display: "flex",
@@ -133,8 +136,18 @@ const UserProfilePanel: React.FC = () => {
                   mt: 0.25,
                 }}
               >
-                {forum && (
-                  <ForumIcon forum={forum} size="1rem" />
+                {alpha2 ? (
+                  <img
+                    src={`/flags/${alpha2}.svg`}
+                    alt={`${nationality} flag`}
+                    style={{ height: "0.75rem", width: "auto", borderRadius: "2px" }}
+                  />
+                ) : (
+                  <img
+                    src="/earth.png"
+                    alt="Global"
+                    style={{ height: "1rem", width: "auto", borderRadius: "2px" }}
+                  />
                 )}
                 <Typography variant="body2" color="text.secondary">
                   Verified
@@ -145,6 +158,14 @@ const UserProfilePanel: React.FC = () => {
         </Box>
 
         {/* Credits row */}
+        {isRegistered && !isUserVerified && forum?.countryCode && (
+          <>
+            <Divider sx={{ my: 1.5 }} />
+            <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center" }}>
+              Only {toDemonym(forum.countryCode) ?? forum.label} citizens can participate in this Forum.
+            </Typography>
+          </>
+        )}
         {credits !== null && (
           <>
             <Divider sx={{ my: 1.5 }} />

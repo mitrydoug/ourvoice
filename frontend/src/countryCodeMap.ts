@@ -262,4 +262,21 @@ export function toAlpha2(alpha3: string): string | undefined {
   return alpha3ToAlpha2[alpha3.toUpperCase()];
 }
 
+/**
+ * Mapping of ISO 3166-1 alpha-3 country codes to nationality adjectives (demonyms).
+ * Add entries here as new country forums are introduced.
+ */
+const alpha3ToDemonym: Record<string, string> = {
+  USA: "American",
+  CAN: "Canadian",
+};
+
+/**
+ * Get the nationality adjective (demonym) for an ISO 3166-1 alpha-3 country code.
+ * Returns undefined if no demonym is configured for that code.
+ */
+export function toDemonym(alpha3: string): string | undefined {
+  return alpha3ToDemonym[alpha3.toUpperCase()];
+}
+
 export default alpha3ToAlpha2;
