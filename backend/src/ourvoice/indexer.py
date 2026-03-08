@@ -63,7 +63,7 @@ def _ensure_index(client: meilisearch.Client) -> None:
     # Ensure searchable/filterable attributes are configured.
     client.index(STATEMENTS_INDEX).update_searchable_attributes(["statementText"])
     client.index(STATEMENTS_INDEX).update_filterable_attributes(
-        ["statementId", "lastEngagement"]
+        ["statementId", "lastEngagement", "forumAddress"]
     )
     client.index(STATEMENTS_INDEX).update_sortable_attributes(["lastEngagement"])
 
@@ -215,6 +215,7 @@ async def _backfill(
     contract: Any,
     index: Any,
     from_block: int,
+    forum_contract_address: str,
 ) -> None:
     """Fetch historical ``StatementAdded`` and ``StatementEngaged`` events and
     index them."""
@@ -258,6 +259,7 @@ async def _backfill(
                     "id": str(log.args.id),
                     "statementId": log.args.id,
                     "statementText": log.args.statement,
+                    "forumAddress": forum_contract_address,
                     "lastEngagement": added_block_ts[log.blockNumber],
                 }
                 for log in added_logs
@@ -379,7 +381,9 @@ async def run_indexer(
                     if not backfill_done and backfill_from:
                         start_block = await _resolve_start_block(w3, backfill_from)
                         if start_block is not None:
-                            await _backfill(w3, contract, index, start_block)
+                            await _backfill(
+                                w3, contract, index, start_block, forum_contract_address
+                            )
                         backfill_done = True
 
                     # ── Live subscription ─────────────────────────────
@@ -402,6 +406,7 @@ async def run_indexer(
                                     "id": str(log.args.id),
                                     "statementId": log.args.id,
                                     "statementText": log.args.statement,
+                                    "forumAddress": forum_contract_address,
                                     "lastEngagement": block_timestamp,
                                 }
                                 for log in added_logs
