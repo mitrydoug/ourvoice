@@ -7,6 +7,7 @@ import Root from "./components/Root.tsx";
 import MySupport from "./components/MySupport.tsx";
 import MyStatements from "./components/MyStatements.tsx";
 import Bookmarked from "./components/Bookmarked.tsx";
+import CreateStatementForm from "./components/CreateStatementForm.tsx";
 import { UserVoteProvider } from "./state/UserVotes.tsx";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import GetVerified from "./components/GetVerified.tsx";
@@ -43,6 +44,10 @@ export const App: FC = () => {
         {
           path: "/account",
           Component: Account,
+        },
+        {
+          path: "/write",
+          Component: CreateStatementForm,
         },
       ],
     },

@@ -19,7 +19,6 @@ import ArticleIcon from "@mui/icons-material/Article";
 import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import CreateIcon from "@mui/icons-material/Create";
-import CreateStatementModal from "./CreateStatementModal";
 import { useUserVotes } from "../state/UserVotes";
 import ChooseForumModal, { FORUMS } from "./ChooseForumModal";
 import { useForum } from "../state/Forum";
@@ -55,7 +54,6 @@ const SideNav: FC = () => {
   const { isUserVerified } = useUserVotes();
   const { name: forumName, setForum } = useForum();
 
-  const [writeModalOpen, setWriteModalOpen] = useState(false);
   const [chooseForumModalOpen, setChooseForumModalOpen] = useState(false);
 
   return (
@@ -148,7 +146,7 @@ const SideNav: FC = () => {
             fullWidth
             size="medium"
             startIcon={<CreateIcon />}
-            onClick={() => setWriteModalOpen(true)}
+            onClick={() => void navigate("/write")}
             disabled={!isUserVerified}
             sx={{ borderRadius: 100, py: 1 }}
           >
@@ -156,11 +154,6 @@ const SideNav: FC = () => {
           </Button>
         </Box>
       </Box>
-
-      <CreateStatementModal
-        open={writeModalOpen}
-        onClose={() => setWriteModalOpen(false)}
-      />
 
       <ChooseForumModal
         open={chooseForumModalOpen}

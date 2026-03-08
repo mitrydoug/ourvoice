@@ -1,7 +1,7 @@
 import { FC, useState } from "react";
 import Box from "@mui/material/Box";
 import { Button, Fab } from "@mui/material";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import CreateIcon from "@mui/icons-material/Create";
 
 import MenuAppBar from "./AppBar";
@@ -36,11 +36,14 @@ const RightColumn: FC = () => {
 /* ── Desktop: 3-column layout ─────────────────────────────────────────── */
 
 const DesktopLayout: FC = () => {
+  const location = useLocation();
   const {
     query: localQuery,
     setQuery: setSearchQuery,
     clearQuery: clearSearch,
   } = useSearchQuery();
+
+  const hideSearch = location.pathname === "/write";
 
   return (
     <Box
@@ -84,14 +87,16 @@ const DesktopLayout: FC = () => {
           "&::-webkit-scrollbar": { display: "none" },
         }}
       >
-        <Box sx={{ mb: 1 }}>
-          <SearchField
-            value={localQuery}
-            onChange={setSearchQuery}
-            onClear={clearSearch}
-            fullWidth
-          />
-        </Box>
+        {!hideSearch && (
+          <Box sx={{ mb: 1 }}>
+            <SearchField
+              value={localQuery}
+              onChange={setSearchQuery}
+              onClear={clearSearch}
+              fullWidth
+            />
+          </Box>
+        )}
         <Outlet />
       </Box>
 
