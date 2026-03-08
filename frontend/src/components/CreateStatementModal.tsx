@@ -92,7 +92,16 @@ const CreateStatementModal: FC<CreateStatementModalProps> = ({
       return [...rawStatements].sort((a, b) => Number(b.id) - Number(a.id));
     }
 
-    // "top" / "trending" → ranked first (ascending rank), then unranked in relevance order.
+    if (sortTab === "relevant") {
+      // Pure Meilisearch relevance order.
+      return [...rawStatements].sort((a, b) => {
+        const ai = relevanceOrder.get(Number(a.id)) ?? Number.MAX_SAFE_INTEGER;
+        const bi = relevanceOrder.get(Number(b.id)) ?? Number.MAX_SAFE_INTEGER;
+        return ai - bi;
+      });
+    }
+
+    // "top" → ranked first (ascending rank), then unranked in relevance order.
     const ranked: Statement[] = [];
     const unranked: Statement[] = [];
 
@@ -269,7 +278,7 @@ const CreateStatementModal: FC<CreateStatementModalProps> = ({
               Similar Statements
             </Typography>
 
-            <SortTabs value={sortTab} onChange={setSortTab} />
+            <SortTabs value={sortTab} onChange={setSortTab} hasSearch={hasSearch} />
 
             <Box
               sx={{

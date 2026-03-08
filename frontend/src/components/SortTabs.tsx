@@ -1,21 +1,23 @@
 import { FC } from "react";
 import { Box, Tab, Tabs } from "@mui/material";
 
-export type SortMode = "top" | "trending" | "latest";
+export type SortMode = "top" | "relevant" | "latest";
 
 interface SortTabsProps {
   value: SortMode;
   onChange: (value: SortMode) => void;
+  /** When false, "Relevant" and "Latest" tabs are disabled. */
+  hasSearch?: boolean;
 }
 
 const TAB_INDEX: Record<SortMode, number> = {
   top: 0,
-  trending: 1,
+  relevant: 1,
   latest: 2,
 };
-const INDEX_TAB: SortMode[] = ["top", "trending", "latest"];
+const INDEX_TAB: SortMode[] = ["top", "relevant", "latest"];
 
-const SortTabs: FC<SortTabsProps> = ({ value, onChange }) => (
+const SortTabs: FC<SortTabsProps> = ({ value, onChange, hasSearch = true }) => (
   <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 1 }}>
     <Tabs
       value={TAB_INDEX[value]}
@@ -24,8 +26,8 @@ const SortTabs: FC<SortTabsProps> = ({ value, onChange }) => (
       }}
     >
       <Tab label="Top" />
-      <Tab label="Trending" />
-      <Tab label="Latest" />
+      <Tab label="Relevant" disabled={!hasSearch} />
+      <Tab label="Latest" disabled={!hasSearch} />
     </Tabs>
   </Box>
 );
