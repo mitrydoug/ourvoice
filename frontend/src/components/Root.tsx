@@ -9,7 +9,7 @@ import SideNav from "./SideNav";
 import BottomNav from "./BottomNav";
 import CreateStatementModal from "./CreateStatementModal";
 import SearchField from "./SearchField";
-import UserProfilePill from "./UserProfilePill";
+import UserProfilePanel from "./UserProfilePanel";
 import useIsMobile from "@/hooks/useIsMobile";
 import { useUserVotes } from "../state/UserVotes";
 import { useAccount } from "wagmi";
@@ -30,7 +30,7 @@ const RightColumn: FC = () => {
     );
   }
 
-  return <UserProfilePill />;
+  return <UserProfilePanel />;
 };
 
 /* ── Desktop: 3-column layout ─────────────────────────────────────────── */
