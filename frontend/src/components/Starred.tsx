@@ -7,7 +7,7 @@ import useIsMobile from "@/hooks/useIsMobile";
 import useLocalStorageSet from "@/hooks/useLocalStorageSet";
 import useBlockSync from "@/hooks/useBlockSync";
 
-const Bookmarked: FC = () => {
+const Starred: FC = () => {
   const { forumContractAddress } = useForum();
   const isMobile = useIsMobile();
   const {
@@ -66,4 +66,4 @@ const Bookmarked: FC = () => {
   );
 };
 
-export default Bookmarked;
+export default Starred;

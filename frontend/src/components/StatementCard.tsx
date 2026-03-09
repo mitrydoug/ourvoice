@@ -1,13 +1,39 @@
 import { FC, useEffect } from "react";
 import { IconButton, Stack, Typography } from "@mui/material";
-import BookmarkIcon from "@mui/icons-material/Bookmark";
-import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
+import StarIcon from "@mui/icons-material/Star";
+import StarBorderIcon from "@mui/icons-material/StarBorder";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import LandscapeIcon from "@mui/icons-material/Landscape";
 
 import { useUserVotes } from "../state/UserVotes";
+
+// ── Coin icon SVG ────────────────────────────────────────────────────────────
+const CoinIcon: React.FC<{ size?: number }> = ({ size = 14 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <circle cx="12" cy="12" r="10" fill="#FBBF24" />
+    <circle cx="12" cy="12" r="8" fill="#F59E0B" />
+    <text
+      x="12"
+      y="16.5"
+      textAnchor="middle"
+      fontSize="12"
+      fontWeight="bold"
+      fill="#FFFBEB"
+      fontFamily="Inter, sans-serif"
+    >
+      C
+    </text>
+  </svg>
+);
 import VoteToggle from "./VoteToggle";
+import AnimatedCounter from "./AnimatedCounter";
 import StatementCardShell from "./StatementCardShell";
 import { useBlockNumber, useReadContract } from "wagmi";
 import { useForum, FORUM_ABI } from "../state/Forum";
@@ -139,6 +165,9 @@ export const StatementCard: FC<StatementCardProps> = ({
 
   const globalSupport = Number(statement.support);
 
+  /** Credits allocated = triangular number of |support| */
+  const creditsAllocated = Math.abs(userSupport) * (Math.abs(userSupport) + 1) / 2;
+
   const leftSlot =
     currentRank !== null ? (
       <Typography
@@ -217,19 +246,36 @@ export const StatementCard: FC<StatementCardProps> = ({
         </Stack>
       )}
 
+      {creditsAllocated > 0 && (
+        <Stack direction="row" alignItems="center" spacing={0.5}>
+          <CoinIcon size={16} />
+          <AnimatedCounter
+            value={creditsAllocated}
+            typographyProps={{
+              variant: "body2",
+              fontWeight: 600,
+              sx: {
+                fontVariantNumeric: "tabular-nums",
+                color: "text.secondary",
+              },
+            }}
+          />
+        </Stack>
+      )}
+
       <Stack sx={{ flexGrow: 1 }} />
 
       {onToggleBookmark && (
         <IconButton
           size="small"
           onClick={() => onToggleBookmark(Number(statement.id))}
-          aria-label={isBookmarked ? "Remove bookmark" : "Bookmark"}
+          aria-label={isBookmarked ? "Unstar" : "Star"}
           sx={{ p: 0 }}
         >
           {isBookmarked ? (
-            <BookmarkIcon sx={{ fontSize: 22 }} />
+            <StarIcon sx={{ fontSize: 22, color: "#E8C84A" }} />
           ) : (
-            <BookmarkBorderIcon sx={{ fontSize: 22 }} />
+            <StarBorderIcon sx={{ fontSize: 22, color: "text.secondary" }} />
           )}
         </IconButton>
       )}

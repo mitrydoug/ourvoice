@@ -156,9 +156,9 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
                 </ListItemButton>
               </ListItem>
               <ListItem disablePadding>
-                <ListItemButton onClick={() => handleNavigate("/bookmarked")}>
+                <ListItemButton onClick={() => handleNavigate("/starred")}>
                   <ListItemText
-                    primary="Bookmarked"
+                    primary="Starred"
                     slotProps={{
                       primary: { variant: "body1", fontWeight: 500 },
                     }}

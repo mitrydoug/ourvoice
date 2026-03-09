@@ -3,16 +3,25 @@ import {
   Avatar,
   Box,
   Button,
+  Collapse,
   Dialog,
   DialogActions,
   DialogContent,
   DialogContentText,
   DialogTitle,
   Divider,
+  List,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
   Typography,
   keyframes,
 } from "@mui/material";
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
+import SettingsIcon from "@mui/icons-material/Settings";
+import LogoutIcon from "@mui/icons-material/Logout";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import { useAccount, useDisconnect } from "wagmi";
 import { useNavigate } from "react-router-dom";
 import useNickname from "@/hooks/useNickname";
@@ -98,6 +107,7 @@ const UserProfilePanel: React.FC = () => {
 
   const isOverBudget = credits !== null && credits < 0;
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <>
@@ -108,7 +118,8 @@ const UserProfilePanel: React.FC = () => {
           borderRadius: 4,
           bgcolor: "action.hover",
           px: 2,
-          py: 2,
+          pt: 2,
+          pb: 1,
         }}
       >
         {/* Avatar + name row */}
@@ -119,10 +130,10 @@ const UserProfilePanel: React.FC = () => {
             gap: 1.5,
           }}
         >
-          <Avatar src={avatar ?? undefined} sx={{ width: 40, height: 40 }} />
+          <Avatar src={avatar ?? undefined} sx={{ width: 36, height: 36 }} />
 
           <Box sx={{ minWidth: 0 }}>
-            <Typography variant="h6" fontWeight={700} noWrap>
+            <Typography variant="subtitle1" fontWeight={700} noWrap>
               {nickname}
             </Typography>
 
@@ -253,36 +264,48 @@ const UserProfilePanel: React.FC = () => {
 
         <Divider sx={{ my: 1.5 }} />
 
-        <Button
-          fullWidth
-          variant="text"
-          color="inherit"
-          onClick={() => void navigate("/account")}
-          sx={{
-            fontWeight: 600,
-            textTransform: "none",
-            color: "text.secondary",
-          }}
-        >
-          Settings
-        </Button>
+        <Collapse in={menuOpen}>
+          <List disablePadding dense>
+            <ListItemButton
+              onClick={() => void navigate("/account")}
+              sx={{ borderRadius: 2 }}
+            >
+              <ListItemIcon sx={{ minWidth: 36 }}>
+                <SettingsIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText primary="Settings" />
+            </ListItemButton>
+            <ListItemButton
+              onClick={(e) => {
+                e.stopPropagation();
+                disconnect();
+              }}
+              sx={{ borderRadius: 2 }}
+            >
+              <ListItemIcon sx={{ minWidth: 36 }}>
+                <LogoutIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText primary="Disconnect" />
+            </ListItemButton>
+          </List>
+        </Collapse>
 
-        <Button
-          fullWidth
-          variant="text"
-          color="inherit"
-          onClick={(e) => {
-            e.stopPropagation();
-            disconnect();
-          }}
+        <Box
           sx={{
-            fontWeight: 600,
-            textTransform: "none",
-            color: "text.secondary",
+            display: "flex",
+            justifyContent: "center",
+            cursor: "pointer",
           }}
+          onClick={() => setMenuOpen((prev) => !prev)}
+          role="button"
+          aria-label={menuOpen ? "Collapse menu" : "Expand menu"}
         >
-          Disconnect
-        </Button>
+          {menuOpen ? (
+            <KeyboardArrowUpIcon sx={{ color: "text.secondary" }} />
+          ) : (
+            <KeyboardArrowDownIcon sx={{ color: "text.secondary" }} />
+          )}
+        </Box>
       </Box>
 
       {/* Reset confirmation dialog */}

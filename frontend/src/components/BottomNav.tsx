@@ -4,7 +4,7 @@ import { BottomNavigation, BottomNavigationAction, Paper } from "@mui/material";
 import HomeIcon from "@mui/icons-material/Home";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import ArticleIcon from "@mui/icons-material/Article";
-import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
+import StarIcon from "@mui/icons-material/Star";
 import { useUserVotes } from "../state/UserVotes";
 
 const ALL_NAV_ITEMS = [
@@ -16,7 +16,7 @@ const ALL_NAV_ITEMS = [
     icon: <ArticleIcon />,
     memberOnly: true,
   },
-  { label: "Bookmarked", href: "/bookmarked", icon: <BookmarkBorderIcon />, memberOnly: false },
+  { label: "Starred", href: "/starred", icon: <StarIcon sx={{ color: "text.secondary" }} />, memberOnly: false },
 ];
 
 const BottomNav: FC = () => {

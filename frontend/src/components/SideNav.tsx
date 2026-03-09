@@ -11,9 +11,9 @@ import {
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
 import HomeIcon from "@mui/icons-material/Home";
-import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
+import FavoriteIcon from "@mui/icons-material/Favorite";
 import ArticleIcon from "@mui/icons-material/Article";
-import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
+import StarIcon from "@mui/icons-material/Star";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import CreateIcon from "@mui/icons-material/Create";
 import { useUserVotes } from "../state/UserVotes";
@@ -23,9 +23,9 @@ import { useForum } from "../state/Forum";
 
 const NAV_ITEMS = [
   { label: "Home", href: "/", icon: <HomeIcon />, memberOnly: false },
-  { label: "My Support", href: "/my-support", icon: <FavoriteBorderIcon />, memberOnly: true },
+  { label: "My Support", href: "/my-support", icon: <FavoriteIcon />, memberOnly: true },
   { label: "My Statements", href: "/my-statements", icon: <ArticleIcon />, memberOnly: true },
-  { label: "Bookmarked", href: "/bookmarked", icon: <BookmarkBorderIcon />, memberOnly: false },
+  { label: "Starred", href: "/starred", icon: <StarIcon sx={{ color: "text.secondary" }} />, memberOnly: false },
   { label: "How it works", href: "#", icon: <HelpOutlineIcon />, memberOnly: false },
 ];
 
