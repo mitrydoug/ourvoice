@@ -14,7 +14,7 @@ import GetVerified from "./components/GetVerified.tsx";
 
 import { theme } from "./theme.ts";
 import { ForumProvider } from "./state/Forum.tsx";
-import Account from "./components/UserProfile.tsx";
+import Profile from "./components/UserProfile.tsx";
 
 export const App: FC = () => {
   const router = createHashRouter([
@@ -42,8 +42,8 @@ export const App: FC = () => {
           Component: Starred,
         },
         {
-          path: "/account",
-          Component: Account,
+          path: "/profile",
+          Component: Profile,
         },
         {
           path: "/write",

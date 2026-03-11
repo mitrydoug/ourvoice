@@ -17,7 +17,7 @@ import HowToRegIcon from "@mui/icons-material/HowToReg";
 import SettingsIcon from "@mui/icons-material/Settings";
 import GitHubIcon from "@mui/icons-material/GitHub";
 
-export interface AccountDrawerProps {
+export interface ProfileDrawerProps {
   open: boolean;
   onClose: () => void;
   isUserVerified: boolean;
@@ -31,7 +31,7 @@ export interface AccountDrawerProps {
   hasEnoughCredits?: boolean;
 }
 
-export const AccountDrawer: React.FC<AccountDrawerProps> = ({
+export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
   open,
   onClose,
   isUserVerified,
@@ -124,7 +124,7 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
           {isUserVerified ? (
             <>
               <ListItem disablePadding>
-                <ListItemButton onClick={() => handleNavigate("/account")}>
+                <ListItemButton onClick={() => handleNavigate("/profile")}>
                   <ListItemText
                     primary="Profile"
                     slotProps={{

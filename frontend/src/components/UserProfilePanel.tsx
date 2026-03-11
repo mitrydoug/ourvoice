@@ -267,7 +267,7 @@ const UserProfilePanel: React.FC = () => {
         <Collapse in={menuOpen}>
           <List disablePadding dense>
             <ListItemButton
-              onClick={() => void navigate("/account")}
+              onClick={() => void navigate("/profile")}
               sx={{ borderRadius: 2 }}
             >
               <ListItemIcon sx={{ minWidth: 36 }}>

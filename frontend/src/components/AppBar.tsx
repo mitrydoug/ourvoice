@@ -15,7 +15,7 @@ import { metamaskIcon } from "../util";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import useIsMobile from "@/hooks/useIsMobile";
 import { useTheme } from "@mui/material/styles";
-import { AccountDrawer } from "./UserProfileMenu";
+import { ProfileDrawer } from "./UserProfileMenu";
 import CommitSupportModal from "./CommitSupportModal";
 import { useSearchQuery } from "@/state/Search";
 import SearchField from "./SearchField";
@@ -141,7 +141,7 @@ export default function MenuAppBar() {
                 <Logo isMobile={isMobile} />
               </Box>
 
-              {/* Right section: Account */}
+              {/* Right section: Profile */}
               <Box
                 sx={{ flex: 1, display: "flex", justifyContent: "flex-end" }}
               >
@@ -149,7 +149,7 @@ export default function MenuAppBar() {
                   <>
                     <IconButton
                       size="medium"
-                      aria-label="account of current user"
+                      aria-label="profile of current user"
                       aria-controls="menu-appbar"
                       aria-haspopup="true"
                       onClick={() => setDrawerOpen(true)}
@@ -157,7 +157,7 @@ export default function MenuAppBar() {
                     >
                       <Avatar src={avatar ?? undefined} />
                     </IconButton>
-                    <AccountDrawer
+                    <ProfileDrawer
                       open={drawerOpen}
                       onClose={() => setDrawerOpen(false)}
                       isUserVerified={isUserVerified}

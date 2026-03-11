@@ -258,7 +258,7 @@ const UserProfilePanel: React.FC = () => {
           fullWidth
           variant="text"
           color="inherit"
-          onClick={() => void navigate("/account")}
+          onClick={() => void navigate("/profile")}
           sx={{
             fontWeight: 600,
             textTransform: "none",
