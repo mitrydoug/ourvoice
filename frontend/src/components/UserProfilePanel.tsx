@@ -280,9 +280,9 @@ const UserProfilePanel: React.FC = () => {
                 e.stopPropagation();
                 disconnect();
               }}
-              sx={{ borderRadius: 2 }}
+              sx={{ borderRadius: 2, color: "#e57373" }}
             >
-              <ListItemIcon sx={{ minWidth: 36 }}>
+              <ListItemIcon sx={{ minWidth: 36, color: "inherit" }}>
                 <LogoutIcon fontSize="small" />
               </ListItemIcon>
               <ListItemText primary="Disconnect" />
