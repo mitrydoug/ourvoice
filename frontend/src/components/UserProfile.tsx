@@ -179,22 +179,22 @@ const UserProfile: FC = () => {
   // Use the MUI theme palette so colors stay in sync with SupportAllocationBar
   const segments: DonutSegment[] = allocation
     ? [
-      {
-        value: allocation.allocated,
-        color: theme.palette.primary.main,
-        label: "Allocated",
-      },
-      {
-        value: allocation.staged,
-        color: theme.palette.warning.main,
-        label: "Staged",
-      },
-      {
-        value: allocation.unallocated,
-        color: theme.palette.success.main,
-        label: "Unallocated",
-      },
-    ]
+        {
+          value: allocation.allocated,
+          color: theme.palette.primary.main,
+          label: "Allocated",
+        },
+        {
+          value: allocation.staged,
+          color: theme.palette.warning.main,
+          label: "Staged",
+        },
+        {
+          value: allocation.unallocated,
+          color: theme.palette.success.main,
+          label: "Unallocated",
+        },
+      ]
     : [];
 
   if (!address) return <Navigate to="/" replace />;
@@ -208,7 +208,12 @@ const UserProfile: FC = () => {
 
           {/* Nickname */}
           {editingNickname ? (
-            <Stack direction="row" spacing={1} alignItems="center" justifyContent="center">
+            <Stack
+              direction="row"
+              spacing={1}
+              alignItems="center"
+              justifyContent="center"
+            >
               <TextField
                 size="small"
                 value={nicknameInput}
@@ -260,13 +265,21 @@ const UserProfile: FC = () => {
                   <img
                     src={`/flags/${toAlpha2(nationality)}.svg`}
                     alt={`${nationality} flag`}
-                    style={{ height: "1rem", width: "auto", borderRadius: "2px" }}
+                    style={{
+                      height: "1rem",
+                      width: "auto",
+                      borderRadius: "2px",
+                    }}
                   />
                 ) : (
                   <img
                     src="/earth.png"
-                    alt="Global"
-                    style={{ height: "1rem", width: "auto", borderRadius: "2px" }}
+                    alt="Earth"
+                    style={{
+                      height: "1rem",
+                      width: "auto",
+                      borderRadius: "2px",
+                    }}
                   />
                 )}
                 <Typography variant="body1">Verified</Typography>

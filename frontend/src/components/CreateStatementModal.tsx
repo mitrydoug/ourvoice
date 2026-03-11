@@ -10,7 +10,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useReadContract } from "wagmi";
-import { useNavigate } from "react-router-dom";
+import { useForumNavigate } from "../hooks/useForumNavigate";
 
 import { useUserVotes } from "../state/UserVotes";
 import { useForum, FORUM_ABI } from "../state/Forum";
@@ -33,7 +33,7 @@ const CreateStatementModal: FC<CreateStatementModalProps> = ({
   open,
   onClose,
 }) => {
-  const navigate = useNavigate();
+  const navigate = useForumNavigate();
   const [text, setText] = useState("");
   const [initialSupport, setInitialSupport] = useState(0);
   const [sortTab, setSortTab] = useState<SortMode>("top");
@@ -282,7 +282,11 @@ const CreateStatementModal: FC<CreateStatementModalProps> = ({
               Similar Statements
             </Typography>
 
-            <SortTabs value={sortTab} onChange={setSortTab} hasSearch={hasSearch} />
+            <SortTabs
+              value={sortTab}
+              onChange={setSortTab}
+              hasSearch={hasSearch}
+            />
 
             <Box
               sx={{

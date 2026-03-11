@@ -1,13 +1,6 @@
 import { FC, useCallback, useEffect, useState } from "react";
-import {
-  Box,
-  Button,
-  Card,
-  InputBase,
-  Stack,
-  Typography,
-} from "@mui/material";
-import { useNavigate } from "react-router-dom";
+import { Box, Button, Card, InputBase, Stack, Typography } from "@mui/material";
+import { useForumNavigate } from "../hooks/useForumNavigate";
 
 import { useUserVotes } from "../state/UserVotes";
 import VoteToggle from "./VoteToggle";
@@ -16,7 +9,7 @@ import SimilarStatements from "./SimilarStatements";
 const MAX_STATEMENT_LENGTH = 280;
 
 const CreateStatementForm: FC = () => {
-  const navigate = useNavigate();
+  const navigate = useForumNavigate();
   const [text, setText] = useState("");
   const [initialSupport, setInitialSupport] = useState(0);
 
@@ -44,7 +37,14 @@ const CreateStatementForm: FC = () => {
       stageStatement(text, initialSupport);
       void navigate("/my-statements");
     }
-  }, [text, initialSupport, isUserVerified, stageStatement, setPendingDraftCost, navigate]);
+  }, [
+    text,
+    initialSupport,
+    isUserVerified,
+    stageStatement,
+    setPendingDraftCost,
+    navigate,
+  ]);
 
   const handleCancel = useCallback(() => {
     setPendingDraftCost(0);
@@ -54,10 +54,7 @@ const CreateStatementForm: FC = () => {
   return (
     <Box>
       {/* ── Header ──────────────────────────────────────────────────── */}
-      <Typography
-        variant="h6"
-        sx={{ pb: 1.5, fontWeight: 600 }}
-      >
+      <Typography variant="h6" sx={{ pb: 1.5, fontWeight: 600 }}>
         New Statement
       </Typography>
 
@@ -85,9 +82,7 @@ const CreateStatementForm: FC = () => {
               sx={{
                 textAlign: "right",
                 fontWeight:
-                  text.length < MAX_STATEMENT_LENGTH * 0.9
-                    ? "normal"
-                    : "bold",
+                  text.length < MAX_STATEMENT_LENGTH * 0.9 ? "normal" : "bold",
               }}
               color={
                 text.length < MAX_STATEMENT_LENGTH * 0.8

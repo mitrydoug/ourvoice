@@ -44,13 +44,13 @@ const METHOD_CARDS: MethodCardProps[] = [
     title: "Personhood",
     imgSrc: "Global.png",
     description:
-      "Verify that you are a unique human being, and nothing else! You will be able to participate in global forums.",
+      "Verify that you are a unique human being, and nothing else! You will be able to participate in the Earth forum.",
   },
   {
     title: "Nationality",
     imgSrc: "Nationality.png",
     description:
-      "Verify that you are a unique human being from a specific country. You will be able to participate in both global and country-specific forums.",
+      "Verify that you are a unique human being from a specific country. You will be able to participate in both the Earth forum and country-specific forums.",
   },
 ];
 
@@ -168,7 +168,7 @@ const Verify: FC<VerifyProps> = ({ methodIndex, onBack }) => {
         onReject,
         onError,
       } = revealContry
-          ? queryBuilder
+        ? queryBuilder
             // Verify the user's age is greater than or equal to 18
             .gte("age", 18)
             .disclose("nationality")
@@ -176,7 +176,7 @@ const Verify: FC<VerifyProps> = ({ methodIndex, onBack }) => {
             .bind("chain", "ethereum_sepolia")
             // Finalize the query
             .done()
-          : queryBuilder
+        : queryBuilder
             // Verify the user's age is greater than or equal to 18
             .gte("age", 18)
             // Bind to the chain where the proof will be verified

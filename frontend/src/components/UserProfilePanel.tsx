@@ -17,7 +17,6 @@ import {
   Typography,
   keyframes,
 } from "@mui/material";
-import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
 import PersonIcon from "@mui/icons-material/Person";
 import LogoutIcon from "@mui/icons-material/Logout";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
@@ -90,10 +89,10 @@ const UserProfilePanel: React.FC = () => {
     : false;
   const commitBusy = isUserVerified
     ? userVotes.state?.commitStatus !== undefined &&
-    userVotes.state?.commitStatus !== "idle"
+      userVotes.state?.commitStatus !== "idle"
     : false;
-  const commitChanges = isUserVerified ? userVotes.commitChanges : () => { };
-  const resetChanges = isUserVerified ? userVotes.resetChanges : () => { };
+  const commitChanges = isUserVerified ? userVotes.commitChanges : () => {};
+  const resetChanges = isUserVerified ? userVotes.resetChanges : () => {};
   const hasEnoughCredits = isUserVerified
     ? (userVotes.state?.hasEnoughCredits ?? true)
     : true;
@@ -151,13 +150,21 @@ const UserProfilePanel: React.FC = () => {
                   <img
                     src={`/flags/${alpha2}.svg`}
                     alt={`${nationality} flag`}
-                    style={{ height: "0.75rem", width: "auto", borderRadius: "2px" }}
+                    style={{
+                      height: "0.75rem",
+                      width: "auto",
+                      borderRadius: "2px",
+                    }}
                   />
                 ) : (
                   <img
                     src="/earth.png"
-                    alt="Global"
-                    style={{ height: "1rem", width: "auto", borderRadius: "2px" }}
+                    alt="Earth"
+                    style={{
+                      height: "1rem",
+                      width: "auto",
+                      borderRadius: "2px",
+                    }}
                   />
                 )}
                 <Typography variant="body2" color="text.secondary">
@@ -172,8 +179,13 @@ const UserProfilePanel: React.FC = () => {
         {isRegistered && !isUserVerified && forum?.countryCode && (
           <>
             <Divider sx={{ my: 1.5 }} />
-            <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center" }}>
-              Only {toDemonym(forum.countryCode) ?? forum.label} citizens can participate in this Forum.
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ textAlign: "center" }}
+            >
+              Only {toDemonym(forum.countryCode) ?? forum.label} citizens can
+              participate in this Forum.
             </Typography>
           </>
         )}
@@ -233,8 +245,8 @@ const UserProfilePanel: React.FC = () => {
                   letterSpacing: "0.05em",
                   ...(hasStagedChanges && !commitBusy
                     ? {
-                      animation: `${shimmer} 1.5s ease-in-out infinite`,
-                    }
+                        animation: `${shimmer} 1.5s ease-in-out infinite`,
+                      }
                     : {}),
                 }}
               >
@@ -309,10 +321,7 @@ const UserProfilePanel: React.FC = () => {
       </Box>
 
       {/* Reset confirmation dialog */}
-      <Dialog
-        open={resetDialogOpen}
-        onClose={() => setResetDialogOpen(false)}
-      >
+      <Dialog open={resetDialogOpen} onClose={() => setResetDialogOpen(false)}>
         <DialogTitle>Reset staged changes?</DialogTitle>
         <DialogContent>
           <DialogContentText>

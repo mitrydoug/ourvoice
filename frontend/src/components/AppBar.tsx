@@ -10,7 +10,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useUserVotes } from "../state/UserVotes";
 import ChooseForumModal, { FORUMS } from "./ChooseForumModal";
 import ForumIcon from "./ForumIcon";
-import { useForum } from "../state/Forum";
+import { useForum, forumToSlug } from "../state/Forum";
 import { metamaskIcon } from "../util";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import useIsMobile from "@/hooks/useIsMobile";
@@ -19,6 +19,7 @@ import { ProfileDrawer } from "./UserProfileMenu";
 import CommitSupportModal from "./CommitSupportModal";
 import { useSearchQuery } from "@/state/Search";
 import SearchField from "./SearchField";
+import { useForumNavigate, useForumPath } from "../hooks/useForumNavigate";
 
 // Sub-components
 interface ForumSelectorProps {
@@ -42,13 +43,14 @@ const ForumSelector: React.FC<ForumSelectorProps> = ({
 
 interface LogoProps {
   isMobile: boolean;
+  homePath: string;
 }
 
-const Logo: React.FC<LogoProps> = ({ isMobile }) => {
+const Logo: React.FC<LogoProps> = ({ isMobile, homePath }) => {
   const theme = useTheme();
 
   return (
-    <Link to="/" style={{ textDecoration: "none" }}>
+    <Link to={homePath} style={{ textDecoration: "none" }}>
       <img
         src="/symvolia-logo.svg"
         alt="Symvolia"
@@ -71,9 +73,11 @@ export default function MenuAppBar() {
   const isMobile = useIsMobile();
   const [chooseForumModalOpen, setChooseForumModalOpen] = useState(false);
   const { name: forumName, setForum } = useForum();
-  const navigate = useNavigate();
+  const navigate = useForumNavigate();
+  const rawNavigate = useNavigate();
   const { disconnect: doDisconnect } = useDisconnect();
   const { openConnectModal } = useConnectModal();
+  const forumPath = useForumPath();
 
   const {
     query: localQuery,
@@ -138,7 +142,7 @@ export default function MenuAppBar() {
 
               {/* Center section: Logo */}
               <Box sx={{ flex: 1, display: "flex", justifyContent: "center" }}>
-                <Logo isMobile={isMobile} />
+                <Logo isMobile={isMobile} homePath={forumPath("/")} />
               </Box>
 
               {/* Right section: Profile */}
@@ -164,7 +168,7 @@ export default function MenuAppBar() {
                       navigate={(path: string) => void navigate(path)}
                       disconnect={doDisconnect}
                       avatar={avatar}
-                      commitChanges={commitChanges ?? (() => { })}
+                      commitChanges={commitChanges ?? (() => {})}
                       hasStagedChanges={
                         userVoteState?.hasStagedChanges ?? false
                       }
@@ -187,7 +191,7 @@ export default function MenuAppBar() {
           ) : (
             <Stack direction="row" spacing={2} alignItems="center" flexGrow={1}>
               {/* Desktop layout */}
-              <Logo isMobile={isMobile} />
+              <Logo isMobile={isMobile} homePath={forumPath("/")} />
 
               <ForumSelector
                 forumName={forumName}
@@ -234,6 +238,8 @@ export default function MenuAppBar() {
         chooseForum={(forum: string) => {
           setForum(forum);
           setChooseForumModalOpen(false);
+          const slug = forumToSlug(forum);
+          void rawNavigate(`/${slug}`);
         }}
       />
       {userVoteState && resetCommitStatus && (

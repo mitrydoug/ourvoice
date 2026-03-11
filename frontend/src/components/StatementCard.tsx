@@ -5,7 +5,7 @@ import StarBorderIcon from "@mui/icons-material/StarBorder";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import LandscapeIcon from "@mui/icons-material/Landscape";
-import { useNavigate } from "react-router-dom";
+import { useForumNavigate } from "../hooks/useForumNavigate";
 
 import { useUserVotes } from "../state/UserVotes";
 
@@ -98,7 +98,7 @@ export const StatementCard: FC<StatementCardProps> = ({
   isBookmarked,
   onToggleBookmark,
 }) => {
-  const navigate = useNavigate();
+  const navigate = useForumNavigate();
   const handleCardClick = () => {
     void navigate(`/statement/${statement.id}`);
   };
@@ -171,7 +171,8 @@ export const StatementCard: FC<StatementCardProps> = ({
   const globalSupport = Number(statement.support);
 
   /** Credits allocated = triangular number of |support| */
-  const creditsAllocated = Math.abs(userSupport) * (Math.abs(userSupport) + 1) / 2;
+  const creditsAllocated =
+    (Math.abs(userSupport) * (Math.abs(userSupport) + 1)) / 2;
 
   const leftSlot =
     currentRank !== null ? (
@@ -307,7 +308,9 @@ export const StatementCard: FC<StatementCardProps> = ({
         cursor: "pointer",
         transition: "box-shadow 0.2s ease, border-color 0.2s ease",
         "&:hover": { boxShadow: 3 },
-        borderLeft: hasUncommittedSupport ? "3.5px solid" : "3.5px solid transparent",
+        borderLeft: hasUncommittedSupport
+          ? "3.5px solid"
+          : "3.5px solid transparent",
         borderColor: hasUncommittedSupport ? "#ffb74d" : "transparent",
       }}
     />

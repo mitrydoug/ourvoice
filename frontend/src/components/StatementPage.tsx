@@ -1,5 +1,5 @@
 import { FC } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useReadContract } from "wagmi";
 import { Box, Button, CircularProgress, Typography } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -10,9 +10,10 @@ import StatementCard from "./StatementCard";
 import SupportChart from "./SupportChart";
 import SimilarStatements from "./SimilarStatements";
 import useBlockSync from "@/hooks/useBlockSync";
+import { useForumNavigate } from "../hooks/useForumNavigate";
 
 const StatementPage: FC = () => {
-  const navigate = useNavigate();
+  const navigate = useForumNavigate();
   const { statementId } = useParams<{ statementId: string }>();
   const { forumContractAddress } = useForum();
 
@@ -28,9 +29,7 @@ const StatementPage: FC = () => {
 
   useBlockSync(result.refetch);
 
-  const statement = result.data
-    ? (result.data as Statement[])[0]
-    : undefined;
+  const statement = result.data ? (result.data as Statement[])[0] : undefined;
 
   if (result.isLoading) {
     return (
@@ -52,8 +51,17 @@ const StatementPage: FC = () => {
     <Box>
       <Button
         startIcon={<ArrowBackIcon sx={{ fontSize: 16 }} />}
-        onClick={() => { void navigate(-1); }}
-        sx={{ mb: 1, textTransform: "none", color: "text.secondary", fontSize: "0.8rem", p: 0, minWidth: 0 }}
+        onClick={() => {
+          void navigate(-1);
+        }}
+        sx={{
+          mb: 1,
+          textTransform: "none",
+          color: "text.secondary",
+          fontSize: "0.8rem",
+          p: 0,
+          minWidth: 0,
+        }}
         size="small"
         variant="text"
       >

@@ -1,28 +1,40 @@
 import { FC, useMemo } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { BottomNavigation, BottomNavigationAction, Paper } from "@mui/material";
 import HomeIcon from "@mui/icons-material/Home";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import ArticleIcon from "@mui/icons-material/Article";
 import StarIcon from "@mui/icons-material/Star";
 import { useUserVotes } from "../state/UserVotes";
+import { useForumNavigate, useForumPath } from "../hooks/useForumNavigate";
 
 const ALL_NAV_ITEMS = [
   { label: "Home", href: "/", icon: <HomeIcon />, memberOnly: false },
-  { label: "My Support", href: "/my-support", icon: <FavoriteBorderIcon />, memberOnly: true },
+  {
+    label: "My Support",
+    href: "/my-support",
+    icon: <FavoriteBorderIcon />,
+    memberOnly: true,
+  },
   {
     label: "My Statements",
     href: "/my-statements",
     icon: <ArticleIcon />,
     memberOnly: true,
   },
-  { label: "Starred", href: "/starred", icon: <StarIcon sx={{ color: "text.secondary" }} />, memberOnly: false },
+  {
+    label: "Starred",
+    href: "/starred",
+    icon: <StarIcon sx={{ color: "text.secondary" }} />,
+    memberOnly: false,
+  },
 ];
 
 const BottomNav: FC = () => {
   const location = useLocation();
-  const navigate = useNavigate();
+  const navigate = useForumNavigate();
   const { isUserVerified } = useUserVotes();
+  const forumPath = useForumPath();
 
   const navItems = useMemo(
     () => ALL_NAV_ITEMS.filter((item) => !item.memberOnly || isUserVerified),
@@ -30,7 +42,7 @@ const BottomNav: FC = () => {
   );
 
   const currentIndex = navItems.findIndex(
-    (item) => location.pathname === item.href,
+    (item) => location.pathname === forumPath(item.href),
   );
 
   return (

@@ -1,7 +1,7 @@
-import { FC, useState } from "react";
+import { FC, useEffect, useState } from "react";
 import Box from "@mui/material/Box";
 import { Button, Fab } from "@mui/material";
-import { Outlet, useLocation } from "react-router-dom";
+import { Outlet, useLocation, useParams } from "react-router-dom";
 import CreateIcon from "@mui/icons-material/Create";
 
 import MenuAppBar from "./AppBar";
@@ -15,6 +15,22 @@ import { useUserVotes } from "../state/UserVotes";
 import { useAccount } from "wagmi";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { SearchProvider, useSearchQuery } from "@/state/Search";
+import { useForum } from "../state/Forum";
+
+/**
+ * Sync the `:forumSlug` URL param → ForumProvider context.
+ * Runs on every route change so the context always matches the URL.
+ */
+const useForumSlugSync = () => {
+  const { forumSlug } = useParams<{ forumSlug: string }>();
+  const { syncFromSlug } = useForum();
+
+  useEffect(() => {
+    if (forumSlug) {
+      syncFromSlug(forumSlug);
+    }
+  }, [forumSlug, syncFromSlug]);
+};
 
 /* ── Right column: user profile pill / connect wallet ──────────────────── */
 
@@ -44,8 +60,8 @@ const DesktopLayout: FC = () => {
   } = useSearchQuery();
 
   const hideSearch =
-    location.pathname === "/write" ||
-    location.pathname.startsWith("/statement/");
+    location.pathname.endsWith("/write") ||
+    location.pathname.includes("/statement/");
 
   return (
     <Box
@@ -192,6 +208,7 @@ const MobileLayout: FC = () => {
 
 const Root: FC = () => {
   const isMobile = useIsMobile();
+  useForumSlugSync();
 
   return (
     <SearchProvider>

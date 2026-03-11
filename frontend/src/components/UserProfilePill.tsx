@@ -14,7 +14,7 @@ import {
 } from "@mui/material";
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
 import { useAccount, useDisconnect } from "wagmi";
-import { useNavigate } from "react-router-dom";
+import { useForumNavigate } from "../hooks/useForumNavigate";
 import useNickname from "@/hooks/useNickname";
 import { useUserVotes } from "../state/UserVotes";
 import { useForum } from "../state/Forum";
@@ -58,7 +58,7 @@ const CoinIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
 const UserProfilePanel: React.FC = () => {
   const { address } = useAccount();
   const { disconnect } = useDisconnect();
-  const navigate = useNavigate();
+  const navigate = useForumNavigate();
   const [nickname] = useNickname();
   const userVotes = useUserVotes();
   const { isUserVerified } = userVotes;
@@ -81,10 +81,10 @@ const UserProfilePanel: React.FC = () => {
     : false;
   const commitBusy = isUserVerified
     ? userVotes.state?.commitStatus !== undefined &&
-    userVotes.state?.commitStatus !== "idle"
+      userVotes.state?.commitStatus !== "idle"
     : false;
-  const commitChanges = isUserVerified ? userVotes.commitChanges : () => { };
-  const resetChanges = isUserVerified ? userVotes.resetChanges : () => { };
+  const commitChanges = isUserVerified ? userVotes.commitChanges : () => {};
+  const resetChanges = isUserVerified ? userVotes.resetChanges : () => {};
   const hasEnoughCredits = isUserVerified
     ? (userVotes.state?.hasEnoughCredits ?? true)
     : true;
@@ -140,19 +140,29 @@ const UserProfilePanel: React.FC = () => {
                   <img
                     src={`/flags/${alpha2}.svg`}
                     alt={`${nationality} flag`}
-                    style={{ height: "1rem", width: "auto", borderRadius: "2px" }}
+                    style={{
+                      height: "1rem",
+                      width: "auto",
+                      borderRadius: "2px",
+                    }}
                   />
                 ) : (
                   <img
                     src="/earth.png"
-                    alt="Global"
-                    style={{ height: "1rem", width: "auto", borderRadius: "2px" }}
+                    alt="Earth"
+                    style={{
+                      height: "1rem",
+                      width: "auto",
+                      borderRadius: "2px",
+                    }}
                   />
                 )}
                 <Typography variant="body2" color="text.secondary">
                   Verified
                 </Typography>
-                <VerifiedUserIcon sx={{ fontSize: 16, color: "success.main" }} />
+                <VerifiedUserIcon
+                  sx={{ fontSize: 16, color: "success.main" }}
+                />
               </Box>
             )}
           </Box>
@@ -162,8 +172,13 @@ const UserProfilePanel: React.FC = () => {
         {isRegistered && !isUserVerified && forum?.countryCode && (
           <>
             <Divider sx={{ my: 1.5 }} />
-            <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center" }}>
-              Only {toDemonym(forum.countryCode) ?? forum.label} citizens can participate in this Forum.
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ textAlign: "center" }}
+            >
+              Only {toDemonym(forum.countryCode) ?? forum.label} citizens can
+              participate in this Forum.
             </Typography>
           </>
         )}
@@ -223,8 +238,8 @@ const UserProfilePanel: React.FC = () => {
                   letterSpacing: "0.05em",
                   ...(hasStagedChanges && !commitBusy
                     ? {
-                      animation: `${shimmer} 1.5s ease-in-out infinite`,
-                    }
+                        animation: `${shimmer} 1.5s ease-in-out infinite`,
+                      }
                     : {}),
                 }}
               >
@@ -287,10 +302,7 @@ const UserProfilePanel: React.FC = () => {
       </Box>
 
       {/* Reset confirmation dialog */}
-      <Dialog
-        open={resetDialogOpen}
-        onClose={() => setResetDialogOpen(false)}
-      >
+      <Dialog open={resetDialogOpen} onClose={() => setResetDialogOpen(false)}>
         <DialogTitle>Reset staged changes?</DialogTitle>
         <DialogContent>
           <DialogContentText>

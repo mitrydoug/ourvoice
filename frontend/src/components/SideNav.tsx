@@ -19,22 +19,45 @@ import CreateIcon from "@mui/icons-material/Create";
 import { useUserVotes } from "../state/UserVotes";
 import ChooseForumModal, { FORUMS } from "./ChooseForumModal";
 import ForumIcon from "./ForumIcon";
-import { useForum } from "../state/Forum";
+import { useForum, forumToSlug } from "../state/Forum";
+import { useForumNavigate, useForumPath } from "../hooks/useForumNavigate";
 
 const NAV_ITEMS = [
   { label: "Home", href: "/", icon: <HomeIcon />, memberOnly: false },
-  { label: "My Support", href: "/my-support", icon: <FavoriteIcon />, memberOnly: true },
-  { label: "My Statements", href: "/my-statements", icon: <ArticleIcon />, memberOnly: true },
-  { label: "Starred", href: "/starred", icon: <StarIcon sx={{ color: "text.secondary" }} />, memberOnly: false },
-  { label: "How it works", href: "#", icon: <HelpOutlineIcon />, memberOnly: false },
+  {
+    label: "My Support",
+    href: "/my-support",
+    icon: <FavoriteIcon />,
+    memberOnly: true,
+  },
+  {
+    label: "My Statements",
+    href: "/my-statements",
+    icon: <ArticleIcon />,
+    memberOnly: true,
+  },
+  {
+    label: "Starred",
+    href: "/starred",
+    icon: <StarIcon sx={{ color: "text.secondary" }} />,
+    memberOnly: false,
+  },
+  {
+    label: "How it works",
+    href: "#",
+    icon: <HelpOutlineIcon />,
+    memberOnly: false,
+  },
 ];
 
 const SideNav: FC = () => {
   const location = useLocation();
-  const navigate = useNavigate();
+  const navigate = useForumNavigate();
+  const rawNavigate = useNavigate();
   const theme = useTheme();
   const { isUserVerified } = useUserVotes();
   const { name: forumName, setForum } = useForum();
+  const forumPath = useForumPath();
 
   const [chooseForumModalOpen, setChooseForumModalOpen] = useState(false);
 
@@ -53,7 +76,7 @@ const SideNav: FC = () => {
         {/* Logo + Forum selector */}
         <Box sx={{ mb: 3 }}>
           <Stack direction="column" alignItems="center" spacing={1}>
-            <Link to="/" style={{ textDecoration: "none" }}>
+            <Link to={forumPath("/")} style={{ textDecoration: "none" }}>
               <img
                 src="/symvolia-logo.svg"
                 alt="Symvolia"
@@ -73,28 +96,32 @@ const SideNav: FC = () => {
         </Box>
 
         <List disablePadding>
-          {NAV_ITEMS.filter((item) => !item.memberOnly || isUserVerified).map((item) => {
-            const isActive =
-              item.href !== "#" && location.pathname === item.href;
+          {NAV_ITEMS.filter((item) => !item.memberOnly || isUserVerified).map(
+            (item) => {
+              const isActive =
+                item.href !== "#" && location.pathname === forumPath(item.href);
 
-            return (
-              <ListItemButton
-                key={item.label}
-                selected={isActive}
-                onClick={() => {
-                  if (item.href !== "#") void navigate(item.href);
-                }}
-                disabled={item.href === "#"}
-                sx={{ borderRadius: 2, mb: 0.5 }}
-              >
-                <ListItemIcon sx={{ minWidth: 40 }}>{item.icon}</ListItemIcon>
-                <ListItemText
-                  primary={item.label}
-                  slotProps={{ primary: { fontWeight: isActive ? 600 : 400 } }}
-                />
-              </ListItemButton>
-            );
-          })}
+              return (
+                <ListItemButton
+                  key={item.label}
+                  selected={isActive}
+                  onClick={() => {
+                    if (item.href !== "#") void navigate(item.href);
+                  }}
+                  disabled={item.href === "#"}
+                  sx={{ borderRadius: 2, mb: 0.5 }}
+                >
+                  <ListItemIcon sx={{ minWidth: 40 }}>{item.icon}</ListItemIcon>
+                  <ListItemText
+                    primary={item.label}
+                    slotProps={{
+                      primary: { fontWeight: isActive ? 600 : 400 },
+                    }}
+                  />
+                </ListItemButton>
+              );
+            },
+          )}
         </List>
 
         <Box sx={{ px: 1, mt: 2 }}>
@@ -117,6 +144,8 @@ const SideNav: FC = () => {
         chooseForum={(forum: string) => {
           setForum(forum);
           setChooseForumModalOpen(false);
+          const slug = forumToSlug(forum);
+          void rawNavigate(`/${slug}`);
         }}
       />
     </>

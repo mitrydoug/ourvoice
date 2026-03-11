@@ -13,14 +13,21 @@ import ForumIcon from "./ForumIcon";
 export type Forum = {
   label: string;
   value: string;
+  /** Lowercase URL slug used as the first route segment. */
+  slug: string;
   /** ISO 3166-1 alpha-3 country code, or null for non-country forums (e.g. "global") */
   countryCode: string | null;
 };
 
 export const FORUMS: Record<string, Forum> = {
-  global: { label: "Global", value: "global", countryCode: null },
-  USA: { label: "United States", value: "USA", countryCode: "USA" },
-  CAN: { label: "Canada", value: "CAN", countryCode: "CAN" },
+  global: { label: "Earth", value: "global", slug: "earth", countryCode: null },
+  USA: {
+    label: "United States",
+    value: "USA",
+    slug: "usa",
+    countryCode: "USA",
+  },
+  CAN: { label: "Canada", value: "CAN", slug: "can", countryCode: "CAN" },
 };
 
 const style = {

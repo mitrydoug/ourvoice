@@ -11,7 +11,7 @@ interface ForumIconProps {
 /**
  * Renders the appropriate icon for a forum:
  * - Country forums: 4×3 flag SVG from /flags/
- * - Non-country forums (e.g. "global"): earth.png globe icon
+ * - Non-country forums (e.g. "global"): earth.png globe icon (displayed as "Earth")
  */
 const ForumIcon: FC<ForumIconProps> = ({ forum, size = "1.5rem" }) => {
   if (forum.countryCode) {
@@ -29,8 +29,12 @@ const ForumIcon: FC<ForumIconProps> = ({ forum, size = "1.5rem" }) => {
   return (
     <img
       src="/earth.png"
-      alt="Global"
-      style={{ height: `calc(${size} * 1.4)`, width: "auto", borderRadius: "3px" }}
+      alt="Earth"
+      style={{
+        height: `calc(${size} * 1.4)`,
+        width: "auto",
+        borderRadius: "3px",
+      }}
     />
   );
 };
