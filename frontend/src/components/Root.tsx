@@ -77,18 +77,16 @@ const DesktopLayout: FC = () => {
           maxWidth: 600,
           minWidth: 0,
           flexShrink: 1,
-          overflowY: "auto",
-          px: 3,
-          pt: 3,
-          pb: 8,
+          display: "flex",
+          flexDirection: "column",
           borderRight: "1px solid",
           borderColor: "divider",
-          scrollbarWidth: "none",
-          "&::-webkit-scrollbar": { display: "none" },
+          overflow: "hidden",
         }}
       >
+        {/* Fixed search header */}
         {!hideSearch && (
-          <Box sx={{ mb: 1 }}>
+          <Box sx={{ px: 3, pt: 3, pb: 1, flexShrink: 0 }}>
             <SearchField
               value={localQuery}
               onChange={setSearchQuery}
@@ -97,7 +95,21 @@ const DesktopLayout: FC = () => {
             />
           </Box>
         )}
-        <Outlet />
+
+        {/* Scrollable content area */}
+        <Box
+          sx={{
+            flex: 1,
+            overflowY: "auto",
+            px: 3,
+            pt: hideSearch ? 3 : 0,
+            pb: 8,
+            scrollbarWidth: "none",
+            "&::-webkit-scrollbar": { display: "none" },
+          }}
+        >
+          <Outlet />
+        </Box>
       </Box>
 
       {/* Right column – user profile */}
