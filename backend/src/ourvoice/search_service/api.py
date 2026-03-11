@@ -26,16 +26,23 @@ def create_api(app: FastAPI) -> None:
 
     @app.get("/search")
     async def search(
-        statement_text: str, forum_address: str | None = None
+        statement_text: str,
+        forum_address: str | None = None,
     ) -> list[SearchResult]:
         """Full-text search over indexed statements.
 
         If *forum_address* is provided, results are filtered to only
         include statements from that forum contract.
+
+        Uses Meilisearch's ``frequency`` matching strategy so that
+        rare/distinctive words are weighted higher than common ones.
         """
-        search_params: dict[str, object] = {}
+        search_params: dict[str, object] = {
+            "matchingStrategy": "frequency",
+        }
         if forum_address:
             search_params["filter"] = f'forumAddress = "{forum_address}"'
+
         results = app.state.meili_client.index(STATEMENTS_INDEX).search(
             statement_text, search_params
         )
