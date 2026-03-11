@@ -1,5 +1,5 @@
 import { FC } from "react";
-import { Chip, IconButton, Stack } from "@mui/material";
+import { IconButton, Stack, Typography } from "@mui/material";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
 import { StagedStatement } from "../state/UserVotes";
@@ -17,9 +17,25 @@ const StagedStatementCard: FC<StagedStatementCardProps> = ({
   onUnstage,
   onUpdateSupport,
 }) => {
+  const leftSlot = (
+    <Typography
+      variant="caption"
+      sx={{
+        fontWeight: 600,
+        fontSize: "0.6rem",
+        lineHeight: 1.2,
+        color: "warning.main",
+        textAlign: "center",
+        textTransform: "uppercase",
+        letterSpacing: "0.04em",
+      }}
+    >
+      Pending
+    </Typography>
+  );
+
   const statsSlot = (
     <Stack direction="row" alignItems="center" spacing={1} sx={{ mt: 0.5 }}>
-      <Chip label="Pending" size="small" color="warning" variant="outlined" />
       {onUnstage && (
         <IconButton
           size="small"
@@ -46,10 +62,15 @@ const StagedStatementCard: FC<StagedStatementCardProps> = ({
 
   return (
     <StatementCardShell
+      leftSlot={leftSlot}
       text={staged.text}
       statsSlot={statsSlot}
       voteControls={voteControls}
-      sx={{ opacity: 0.85 }}
+      sx={{
+        opacity: 0.85,
+        borderLeft: "3.5px solid",
+        borderColor: "#ffb74d",
+      }}
     />
   );
 };
