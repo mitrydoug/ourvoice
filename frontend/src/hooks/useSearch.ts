@@ -35,6 +35,7 @@ interface UseSearchResult {
 export function useSearch(
   query: string,
   forumAddress?: string,
+  { updateUrl = false }: { updateUrl?: boolean } = {},
 ): UseSearchResult {
   const [hits, setHits] = useState<SearchHit[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -78,7 +79,9 @@ export function useSearch(
           setIsLoading(false);
 
           // Sync the successfully-searched query to the URL.
-          writeQueryToHash(trimmed);
+          if (updateUrl) {
+            writeQueryToHash(trimmed);
+          }
         })
         .catch(() => {
           if (requestId !== inflightRef.current) return;
@@ -88,7 +91,7 @@ export function useSearch(
     }, DEBOUNCE_MS);
 
     return () => clearTimeout(timer);
-  }, [query, forumAddress]);
+  }, [query, forumAddress, updateUrl]);
 
   return { hits, isLoading };
 }

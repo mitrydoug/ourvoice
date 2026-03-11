@@ -82,6 +82,7 @@ const SearchResults: FC<SearchResultsProps> = ({
   const { hits, isLoading: isSearchLoading } = useSearch(
     searchQuery,
     forumContractAddress,
+    { updateUrl: true },
   );
 
   // Fetch the current statement count so we can discard stale/invalid IDs
