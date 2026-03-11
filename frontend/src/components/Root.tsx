@@ -80,7 +80,9 @@ const DesktopLayout: FC = () => {
           borderRight: "1px solid",
           borderColor: "divider",
           overflowY: "auto",
-          p: 3,
+          pt: 1.5,
+          px: 3,
+          pb: 3,
           scrollbarWidth: "none",
           "&::-webkit-scrollbar": { display: "none" },
         }}

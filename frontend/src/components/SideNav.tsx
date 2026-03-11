@@ -6,7 +6,6 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
-  Stack,
 } from "@mui/material";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
@@ -73,26 +72,34 @@ const SideNav: FC = () => {
           alignSelf: "flex-start",
         }}
       >
-        {/* Logo + Forum selector */}
-        <Box sx={{ mb: 3 }}>
-          <Stack direction="column" alignItems="center" spacing={1}>
-            <Link to={forumPath("/")} style={{ textDecoration: "none" }}>
-              <img
-                src="/symvolia-logo.svg"
-                alt="Symvolia"
-                style={{ height: "2.6rem", width: "auto" }}
-              />
-            </Link>
+        {/* Logo */}
+        <Box sx={{ mb: 0, display: "flex", justifyContent: "center" }}>
+          <Link to={forumPath("/")} style={{ textDecoration: "none" }}>
+            <img
+              src="/symvolia-logo.svg"
+              alt="Symvolia"
+              style={{ height: "3.1rem", width: "auto" }}
+            />
+          </Link>
+        </Box>
 
-            <Box
-              onClick={() => setChooseForumModalOpen(true)}
-              sx={{ cursor: "pointer", display: "flex", alignItems: "center" }}
-            >
-              {FORUMS[forumName] && (
-                <ForumIcon forum={FORUMS[forumName]} size="1.2rem" />
-              )}
-            </Box>
-          </Stack>
+        {/* Forum selector — centered between logo and nav list */}
+        <Box
+          sx={{
+            mt: 0.5,
+            mb: 2.5,
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
+          <Box
+            onClick={() => setChooseForumModalOpen(true)}
+            sx={{ cursor: "pointer", display: "flex", alignItems: "center" }}
+          >
+            {FORUMS[forumName] && (
+              <ForumIcon forum={FORUMS[forumName]} size="1.8rem" />
+            )}
+          </Box>
         </Box>
 
         <List disablePadding>

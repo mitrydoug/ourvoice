@@ -4,7 +4,7 @@ import type { Forum } from "./ChooseForumModal";
 
 interface ForumIconProps {
   forum: Forum;
-  /** Icon height in CSS units. Defaults to "1.5rem". Width scales to 4:3 ratio. */
+  /** Icon height in CSS units. Defaults to "1.5rem". Both flag and globe icons share this exact height. */
   size?: string;
 }
 
@@ -12,30 +12,44 @@ interface ForumIconProps {
  * Renders the appropriate icon for a forum:
  * - Country forums: 4×3 flag SVG from /flags/
  * - Non-country forums (e.g. "global"): earth.png globe icon (displayed as "Earth")
+ *
+ * Both variants render at exactly the same height to prevent layout shift.
  */
 const ForumIcon: FC<ForumIconProps> = ({ forum, size = "1.5rem" }) => {
+  // Wrap in a fixed-height container so swapping icons causes no layout shift
+  const wrapper: React.CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    height: size,
+  };
+
   if (forum.countryCode) {
     const alpha2 = toAlpha2(forum.countryCode);
     if (alpha2) {
       return (
-        <img
-          src={`/flags/${alpha2}.svg`}
-          alt={`${forum.label} flag`}
-          style={{ height: size, width: "auto", borderRadius: "3px" }}
-        />
+        <span style={wrapper}>
+          <img
+            src={`/flags/${alpha2}.svg`}
+            alt={`${forum.label} flag`}
+            style={{ height: size, width: "auto", borderRadius: "3px" }}
+          />
+        </span>
       );
     }
   }
   return (
-    <img
-      src="/earth.png"
-      alt="Earth"
-      style={{
-        height: `calc(${size} * 1.4)`,
-        width: "auto",
-        borderRadius: "3px",
-      }}
-    />
+    <span style={wrapper}>
+      <img
+        src="/earth.png"
+        alt="Earth"
+        style={{
+          height: `calc(${size} * 1.4)`,
+          width: "auto",
+          borderRadius: "3px",
+        }}
+      />
+    </span>
   );
 };
 
