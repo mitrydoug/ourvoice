@@ -15,8 +15,7 @@ import {
 import { useTheme } from "@mui/material/styles";
 import CheckIcon from "@mui/icons-material/Check";
 import EditIcon from "@mui/icons-material/Edit";
-import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
-import GppBadIcon from "@mui/icons-material/GppBad";
+import IndeterminateCheckBoxIcon from "@mui/icons-material/IndeterminateCheckBox";
 import { useUserVotes } from "../state/UserVotes";
 import { useCreditAllocation } from "@/hooks/useCreditAllocation";
 import { useUserRegistration } from "@/hooks/useUserRegistration";
@@ -155,7 +154,7 @@ const UserProfile: FC = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const { isUserVerified } = useUserVotes();
-  const { nationality } = useUserRegistration();
+  const { isRegistered, nationality } = useUserRegistration();
   const allocation = useCreditAllocation();
 
   const [nickname, setNickname] = useNickname();
@@ -209,7 +208,7 @@ const UserProfile: FC = () => {
 
           {/* Nickname */}
           {editingNickname ? (
-            <Stack direction="row" spacing={1} alignItems="center">
+            <Stack direction="row" spacing={1} alignItems="center" justifyContent="center">
               <TextField
                 size="small"
                 value={nicknameInput}
@@ -235,9 +234,14 @@ const UserProfile: FC = () => {
                 direction="row"
                 spacing={0.5}
                 alignItems="center"
+                justifyContent="center"
                 sx={{ cursor: "pointer" }}
                 onClick={handleStartEdit}
               >
+                {/* Invisible counterweight so the name stays visually centred */}
+                <IconButton size="small" sx={{ visibility: "hidden" }}>
+                  <EditIcon fontSize="small" />
+                </IconButton>
                 <Typography variant="h5" fontWeight={600}>
                   {nickname || "Set nickname"}
                 </Typography>
@@ -250,21 +254,26 @@ const UserProfile: FC = () => {
 
           {/* Verification status */}
           <Stack direction="row" spacing={1} alignItems="center">
-            {isUserVerified ? (
+            {isRegistered ? (
               <>
-                <VerifiedUserIcon color="success" />
-                <Typography variant="body1">Verified</Typography>
-                {nationality && toAlpha2(nationality) && (
+                {nationality && toAlpha2(nationality) ? (
                   <img
                     src={`/flags/${toAlpha2(nationality)}.svg`}
                     alt={`${nationality} flag`}
-                    style={{ height: "1rem", width: "auto", marginLeft: 4, borderRadius: "2px" }}
+                    style={{ height: "1rem", width: "auto", borderRadius: "2px" }}
+                  />
+                ) : (
+                  <img
+                    src="/earth.png"
+                    alt="Global"
+                    style={{ height: "1rem", width: "auto", borderRadius: "2px" }}
                   />
                 )}
+                <Typography variant="body1">Verified</Typography>
               </>
             ) : (
               <>
-                <GppBadIcon color="disabled" />
+                <IndeterminateCheckBoxIcon color="disabled" />
                 <Typography variant="body1" color="text.secondary">
                   Not verified
                 </Typography>
@@ -273,7 +282,7 @@ const UserProfile: FC = () => {
           </Stack>
 
           {/* Get verified CTA */}
-          {!isUserVerified && (
+          {!isRegistered && (
             <Box sx={{ textAlign: "center" }}>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                 Verify your humanity with ZKPassport to participate in voting
@@ -285,8 +294,8 @@ const UserProfile: FC = () => {
             </Box>
           )}
 
-          {/* Credit allocation donut chart */}
-          {allocation && allocation.total > 0 && (
+          {/* Credit allocation donut chart (only for current-forum members) */}
+          {isUserVerified && allocation && allocation.total > 0 && (
             <>
               <Box
                 sx={{

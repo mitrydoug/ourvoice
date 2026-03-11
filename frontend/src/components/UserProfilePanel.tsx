@@ -18,7 +18,7 @@ import {
   keyframes,
 } from "@mui/material";
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
-import SettingsIcon from "@mui/icons-material/Settings";
+import PersonIcon from "@mui/icons-material/Person";
 import LogoutIcon from "@mui/icons-material/Logout";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
@@ -271,9 +271,9 @@ const UserProfilePanel: React.FC = () => {
               sx={{ borderRadius: 2 }}
             >
               <ListItemIcon sx={{ minWidth: 36 }}>
-                <SettingsIcon fontSize="small" />
+                <PersonIcon fontSize="small" />
               </ListItemIcon>
-              <ListItemText primary="Settings" />
+              <ListItemText primary="Profile" />
             </ListItemButton>
             <ListItemButton
               onClick={(e) => {
