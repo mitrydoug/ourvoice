@@ -138,7 +138,7 @@ const CreateStatementForm: FC = () => {
     if (text.length > 0 && isUserVerified && stageStatement) {
       setPendingDraftCost(0);
       stageStatement(text, initialSupport);
-      void navigate("/");
+      void navigate("/my-statements");
     }
   }, [text, initialSupport, isUserVerified, stageStatement, setPendingDraftCost, navigate]);
 

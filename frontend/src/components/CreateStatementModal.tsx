@@ -10,6 +10,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useReadContract } from "wagmi";
+import { useNavigate } from "react-router-dom";
 
 import { useUserVotes } from "../state/UserVotes";
 import { useForum, FORUM_ABI } from "../state/Forum";
@@ -32,6 +33,7 @@ const CreateStatementModal: FC<CreateStatementModalProps> = ({
   open,
   onClose,
 }) => {
+  const navigate = useNavigate();
   const [text, setText] = useState("");
   const [initialSupport, setInitialSupport] = useState(0);
   const [sortTab, setSortTab] = useState<SortMode>("top");
@@ -154,6 +156,7 @@ const CreateStatementModal: FC<CreateStatementModalProps> = ({
       setInitialSupport(0);
       setSortTab("top");
       onClose();
+      void navigate("/my-statements");
     }
   }, [
     text,
@@ -162,6 +165,7 @@ const CreateStatementModal: FC<CreateStatementModalProps> = ({
     stageStatement,
     setPendingDraftCost,
     onClose,
+    navigate,
   ]);
 
   const handleCancel = useCallback(() => {
