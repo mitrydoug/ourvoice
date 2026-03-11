@@ -11,6 +11,7 @@ import CreateStatementForm from "./components/CreateStatementForm.tsx";
 import { UserVoteProvider } from "./state/UserVotes.tsx";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import GetVerified from "./components/GetVerified.tsx";
+import StatementPage from "./components/StatementPage.tsx";
 
 import { theme } from "./theme.ts";
 import { ForumProvider } from "./state/Forum.tsx";
@@ -48,6 +49,10 @@ export const App: FC = () => {
         {
           path: "/write",
           Component: CreateStatementForm,
+        },
+        {
+          path: "/statement/:statementId",
+          Component: StatementPage,
         },
       ],
     },

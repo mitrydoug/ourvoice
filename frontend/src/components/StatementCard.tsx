@@ -5,6 +5,7 @@ import StarBorderIcon from "@mui/icons-material/StarBorder";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import LandscapeIcon from "@mui/icons-material/Landscape";
+import { useNavigate } from "react-router-dom";
 
 import { useUserVotes } from "../state/UserVotes";
 
@@ -97,6 +98,10 @@ export const StatementCard: FC<StatementCardProps> = ({
   isBookmarked,
   onToggleBookmark,
 }) => {
+  const navigate = useNavigate();
+  const handleCardClick = () => {
+    void navigate(`/statement/${statement.id}`);
+  };
   const {
     isUserVerified,
     dispatch,
@@ -297,7 +302,9 @@ export const StatementCard: FC<StatementCardProps> = ({
       text={statement.text}
       statsSlot={statsSlot}
       voteControls={voteControls}
+      onClick={handleCardClick}
       sx={{
+        cursor: "pointer",
         transition: "box-shadow 0.2s ease, border-color 0.2s ease",
         "&:hover": { boxShadow: 3 },
         borderLeft: hasUncommittedSupport ? "3.5px solid" : "3.5px solid transparent",
