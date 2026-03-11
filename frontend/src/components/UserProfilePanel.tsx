@@ -22,8 +22,8 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import { useAccount, useDisconnect } from "wagmi";
-import { useNavigate } from "react-router-dom";
 import useNickname from "@/hooks/useNickname";
+import { useForumNavigate } from "@/hooks/useForumNavigate";
 import { useUserVotes } from "../state/UserVotes";
 import { useForum } from "../state/Forum";
 import { FORUMS } from "./ChooseForumModal";
@@ -66,7 +66,7 @@ const CoinIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
 const UserProfilePanel: React.FC = () => {
   const { address } = useAccount();
   const { disconnect } = useDisconnect();
-  const navigate = useNavigate();
+  const navigate = useForumNavigate();
   const [nickname] = useNickname();
   const userVotes = useUserVotes();
   const { isUserVerified } = userVotes;
