@@ -168,7 +168,7 @@ const Verify: FC<VerifyProps> = ({ methodIndex, onBack }) => {
         onReject,
         onError,
       } = revealContry
-        ? queryBuilder
+          ? queryBuilder
             // Verify the user's age is greater than or equal to 18
             .gte("age", 18)
             .disclose("nationality")
@@ -176,7 +176,7 @@ const Verify: FC<VerifyProps> = ({ methodIndex, onBack }) => {
             .bind("chain", "ethereum_sepolia")
             // Finalize the query
             .done()
-        : queryBuilder
+          : queryBuilder
             // Verify the user's age is greater than or equal to 18
             .gte("age", 18)
             // Bind to the chain where the proof will be verified
