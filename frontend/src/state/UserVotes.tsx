@@ -131,6 +131,14 @@ type SetPendingDraftCost = {
   payload: { cost: number };
 };
 
+type RestoreStaged = {
+  type: "RESTORE_STAGED";
+  payload: {
+    supportAdjustments: Map<number, number>;
+    stagedStatements: StagedStatement[];
+  };
+};
+
 type UserSupportAction =
   | SyncOnChainState
   | StageUserSupport
@@ -145,7 +153,8 @@ type UserSupportAction =
   | UnstageStatement
   | UpdateStagedInitialSupport
   | CommitStaleStep
-  | SetPendingDraftCost;
+  | SetPendingDraftCost
+  | RestoreStaged;
 
 // Triangle number: triangle(x) = x*(x+1)/2
 const triangle = (x: number): number => (x * (x + 1)) / 2;
@@ -155,6 +164,59 @@ const triangle = (x: number): number => (x * (x + 1)) / 2;
 // credits are spent; a negative result means credits are refunded.
 const adjustmentCost = (fromSupport: number, toSupport: number): number => {
   return triangle(Math.abs(toSupport)) - triangle(Math.abs(fromSupport));
+};
+
+// ── localStorage helpers for staged-support persistence ──────────────────────
+
+interface PersistedStaged {
+  supportAdjustments: [number, number][];
+  stagedStatements: StagedStatement[];
+}
+
+const stagedStorageKey = (
+  chainFingerprint: string,
+  forumName: string,
+  address: string,
+): string =>
+  `symvolia:staged:${chainFingerprint}:${forumName}:${address.toLowerCase()}`;
+
+const saveStagedToStorage = (
+  key: string,
+  staged: StagedSupport,
+): void => {
+  try {
+    const data: PersistedStaged = {
+      supportAdjustments: [...staged.supportAdjustments.entries()],
+      stagedStatements: staged.stagedStatements,
+    };
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch {
+    // quota exceeded or localStorage unavailable
+  }
+};
+
+const loadStagedFromStorage = (
+  key: string,
+): { supportAdjustments: Map<number, number>; stagedStatements: StagedStatement[] } | null => {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const data: PersistedStaged = JSON.parse(raw);
+    return {
+      supportAdjustments: new Map(data.supportAdjustments),
+      stagedStatements: data.stagedStatements ?? [],
+    };
+  } catch {
+    return null;
+  }
+};
+
+const clearStagedStorage = (key: string): void => {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    // ignore
+  }
 };
 
 const reducer = (
@@ -320,6 +382,15 @@ const reducer = (
       newState.pendingDraftCost = action.payload.cost;
       break;
     }
+    case "RESTORE_STAGED": {
+      if (!state.staged) break;
+      newState.staged = {
+        ...state.staged,
+        supportAdjustments: action.payload.supportAdjustments,
+        stagedStatements: action.payload.stagedStatements,
+      };
+      break;
+    }
   }
 
   // Calculate total adjustment cost
@@ -410,7 +481,7 @@ export const UserVoteProvider: FC<{
   });
   const { writeContractAsync } = useWriteContract();
   const { address } = useAccount();
-  const { forumContractAddress } = useForum();
+  const { forumContractAddress, chainFingerprint, name: forumName } = useForum();
 
   // Read stepDurationSeconds for requireStep guard
   const { data: stepDurationSeconds } = useReadContract({
@@ -490,6 +561,29 @@ export const UserVoteProvider: FC<{
       });
     }
   }, [onChainUserStatementSupport, onChainUserBalance]);
+
+  // ── Staged-support persistence ──────────────────────────────────────────
+  const persistKey =
+    chainFingerprint && address
+      ? stagedStorageKey(chainFingerprint, forumName, address)
+      : undefined;
+  const restoredKeyRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (!persistKey || !state.staged || restoredKeyRef.current === persistKey) return;
+    restoredKeyRef.current = persistKey;
+    const saved = loadStagedFromStorage(persistKey);
+    if (saved && (saved.supportAdjustments.size > 0 || saved.stagedStatements.length > 0)) {
+      dispatch({ type: "RESTORE_STAGED", payload: saved });
+    }
+  }, [persistKey, state.staged, dispatch]);
+  useEffect(() => {
+    if (!persistKey || !state.staged) return;
+    if (state.staged.supportAdjustments.size === 0 && state.staged.stagedStatements.length === 0) {
+      clearStagedStorage(persistKey);
+    } else {
+      saveStagedToStorage(persistKey, state.staged);
+    }
+  }, [persistKey, state.staged]);
 
   // Sync with blockchain on every new block
   useBlockSync(refetch);
