@@ -298,8 +298,10 @@ export const StatementCard: FC<StatementCardProps> = ({
       statsSlot={statsSlot}
       voteControls={voteControls}
       sx={{
-        transition: "box-shadow 0.2s ease",
+        transition: "box-shadow 0.2s ease, border-color 0.2s ease",
         "&:hover": { boxShadow: 3 },
+        borderLeft: hasUncommittedSupport ? "3.5px solid" : "3.5px solid transparent",
+        borderColor: hasUncommittedSupport ? "#ffb74d" : "transparent",
       }}
     />
   );
