@@ -1,53 +1,15 @@
 import { FC } from "react";
 import { Box, CircularProgress, Typography, useTheme } from "@mui/material";
+import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer } from "recharts";
+import type { ActiveDotProps } from "recharts/types/util/types";
 import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
-import type { TooltipProps } from "recharts";
-import type { ValueType, NameType } from "recharts/types/component/DefaultTooltipContent";
-import { useHistoricalSupport, SupportDataPoint } from "@/hooks/useHistoricalSupport";
+  useHistoricalSupport,
+  SupportDataPoint,
+} from "@/hooks/useHistoricalSupport";
 
 interface SupportChartProps {
   statementId: bigint;
 }
-
-/** Props received by the tooltip content renderer. */
-interface ChartTooltipPayload {
-  active?: boolean;
-  payload?: { payload: SupportDataPoint }[];
-}
-
-/** Minimal custom tooltip shown on hover. */
-const ChartTooltip: FC<TooltipProps<ValueType, NameType>> = (outerProps) => {
-  const props = outerProps as unknown as ChartTooltipPayload;
-  if (!props.active || !props.payload?.length) return null;
-  const { label, support } = props.payload[0].payload;
-  return (
-    <Box
-      sx={{
-        bgcolor: "background.paper",
-        border: "1px solid",
-        borderColor: "divider",
-        borderRadius: 1,
-        px: 1.5,
-        py: 0.75,
-        boxShadow: 1,
-      }}
-    >
-      <Typography variant="caption" color="text.secondary">
-        {label}
-      </Typography>
-      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-        {support}
-      </Typography>
-    </Box>
-  );
-};
 
 const SupportChart: FC<SupportChartProps> = ({ statementId }) => {
   const { data, isLoading } = useHistoricalSupport(statementId);
@@ -74,13 +36,51 @@ const SupportChart: FC<SupportChartProps> = ({ statementId }) => {
   }
 
   const primaryColor = theme.palette.primary.main;
+  const textColor = theme.palette.text.primary;
+  const bgColor = theme.palette.background.paper;
+
+  /** Active dot that also renders the y-value as a label above the point. */
+  const renderActiveDot = (dotProps: ActiveDotProps) => {
+    const cx = dotProps.cx ?? 0;
+    const cy = dotProps.cy ?? 0;
+    const idx = dotProps.index ?? 0;
+    const dotPayload = dotProps.payload as SupportDataPoint | undefined;
+
+    // Clamp text anchor so labels at the edges don't get clipped
+    let anchor: "start" | "middle" | "end" = "middle";
+    if (idx === 0) anchor = "start";
+    else if (idx === data.length - 1) anchor = "end";
+
+    return (
+      <g>
+        <circle
+          cx={cx}
+          cy={cy}
+          r={4}
+          stroke={primaryColor}
+          strokeWidth={2}
+          fill={bgColor}
+        />
+        <text
+          x={cx}
+          y={cy - 10}
+          textAnchor={anchor}
+          fontSize={11}
+          fontWeight={600}
+          fill={textColor}
+        >
+          {dotPayload?.support}
+        </text>
+      </g>
+    );
+  };
 
   return (
-    <Box sx={{ width: "100%", height: 200 }}>
+    <Box sx={{ width: "100%", height: 160 }}>
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart
           data={data}
-          margin={{ top: 8, right: 8, bottom: 0, left: -16 }}
+          margin={{ top: 16, right: 12, bottom: 0, left: -40 }}
         >
           <defs>
             <linearGradient id="supportGradient" x1="0" y1="0" x2="0" y2="1">
@@ -100,7 +100,6 @@ const SupportChart: FC<SupportChartProps> = ({ statementId }) => {
             tickLine={false}
             allowDecimals={false}
           />
-          <Tooltip content={<ChartTooltip />} />
           <Area
             type="monotone"
             dataKey="support"
@@ -108,12 +107,7 @@ const SupportChart: FC<SupportChartProps> = ({ statementId }) => {
             strokeWidth={2}
             fill="url(#supportGradient)"
             dot={false}
-            activeDot={{
-              r: 4,
-              stroke: primaryColor,
-              strokeWidth: 2,
-              fill: theme.palette.background.paper,
-            }}
+            activeDot={renderActiveDot}
           />
         </AreaChart>
       </ResponsiveContainer>

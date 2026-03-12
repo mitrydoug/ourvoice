@@ -70,14 +70,11 @@ const StatementPage: FC = () => {
 
       <StatementCard statement={statement} />
 
-      <Box sx={{ mt: 3 }}>
-        <Typography variant="subtitle2" sx={{ mb: 1 }}>
-          Support Over Time
-        </Typography>
+      <Box sx={{ mt: 2 }}>
         <SupportChart statementId={statement.id} />
       </Box>
 
-      <Box sx={{ mt: 4 }}>
+      <Box sx={{ mt: 2 }}>
         <SimilarStatements query={statement.text} excludeId={statement.id} />
       </Box>
     </Box>
