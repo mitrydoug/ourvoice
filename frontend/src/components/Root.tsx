@@ -102,6 +102,7 @@ const DesktopLayout: FC = () => {
           borderRight: "1px solid",
           borderColor: "divider",
           overflow: "hidden",
+          
         }}
       >
         {/* Fixed search header */}
@@ -122,7 +123,7 @@ const DesktopLayout: FC = () => {
             flex: 1,
             overflowY: "auto",
             px: 3,
-            pt: hideSearch ? 3 : 0,
+            pt: hideSearch ? 1.5 : 0,
             pb: 8,
             scrollbarWidth: "none",
             "&::-webkit-scrollbar": { display: "none" },
