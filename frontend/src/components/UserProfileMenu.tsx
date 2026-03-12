@@ -16,6 +16,7 @@ import {
 import HowToRegIcon from "@mui/icons-material/HowToReg";
 import SettingsIcon from "@mui/icons-material/Settings";
 import GitHubIcon from "@mui/icons-material/GitHub";
+import IndeterminateCheckBoxIcon from "@mui/icons-material/IndeterminateCheckBox";
 
 export interface ProfileDrawerProps {
   open: boolean;
@@ -83,9 +84,21 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
         >
           <Stack direction="row" alignItems="center" spacing={1.5}>
             <Avatar src={avatar ?? undefined} sx={{ width: 40, height: 40 }} />
-            <Typography variant="h6" fontWeight="medium">
-              {username || "User"}
-            </Typography>
+            <Box>
+              <Typography variant="h6" fontWeight="medium">
+                {username || "User"}
+              </Typography>
+              {!isUserVerified && (
+                <Stack direction="row" spacing={0.75} alignItems="center">
+                  <IndeterminateCheckBoxIcon
+                    sx={{ fontSize: 16, color: "text.disabled" }}
+                  />
+                  <Typography variant="body2" color="text.secondary">
+                    Not verified
+                  </Typography>
+                </Stack>
+              )}
+            </Box>
           </Stack>
           <IconButton onClick={() => handleNavigate("/settings")}>
             <SettingsIcon />

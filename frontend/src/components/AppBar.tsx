@@ -11,9 +11,10 @@ import { useUserVotes } from "../state/UserVotes";
 import ChooseForumModal, { FORUMS } from "./ChooseForumModal";
 import ForumIcon from "./ForumIcon";
 import { useForum, forumToSlug } from "../state/Forum";
-import { metamaskIcon } from "../util";
+import { metamaskIcon, shortenAddress } from "../util";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import useIsMobile from "@/hooks/useIsMobile";
+import useNickname from "@/hooks/useNickname";
 import { useTheme } from "@mui/material/styles";
 import { ProfileDrawer } from "./UserProfileMenu";
 import CommitSupportModal from "./CommitSupportModal";
@@ -78,6 +79,8 @@ export default function MenuAppBar() {
   const { disconnect: doDisconnect } = useDisconnect();
   const { openConnectModal } = useConnectModal();
   const forumPath = useForumPath();
+  const [nickname] = useNickname();
+  const displayName = nickname || (address ? shortenAddress(address) : "");
 
   const {
     query: localQuery,
@@ -167,6 +170,7 @@ export default function MenuAppBar() {
                       isUserVerified={isUserVerified}
                       navigate={(path: string) => void navigate(path)}
                       disconnect={doDisconnect}
+                      username={displayName}
                       avatar={avatar}
                       commitChanges={commitChanges ?? (() => { })}
                       hasStagedChanges={

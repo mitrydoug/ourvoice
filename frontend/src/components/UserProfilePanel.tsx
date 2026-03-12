@@ -22,6 +22,7 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import { useAccount, useDisconnect } from "wagmi";
+import { useNavigate } from "react-router-dom";
 import useNickname from "@/hooks/useNickname";
 import { useForumNavigate } from "@/hooks/useForumNavigate";
 import { useUserVotes } from "../state/UserVotes";
@@ -29,8 +30,9 @@ import { useForum } from "../state/Forum";
 import { FORUMS } from "./ChooseForumModal";
 import { useUserRegistration } from "@/hooks/useUserRegistration";
 import { toAlpha2, toDemonym } from "../countryCodeMap";
-import { metamaskIcon } from "../util";
+import { metamaskIcon, shortenAddress } from "../util";
 import AnimatedCounter from "./AnimatedCounter";
+import IndeterminateCheckBoxIcon from "@mui/icons-material/IndeterminateCheckBox";
 
 const shimmer = keyframes`
   0% { opacity: 0.6; }
@@ -67,6 +69,7 @@ const UserProfilePanel: React.FC = () => {
   const { address } = useAccount();
   const { disconnect } = useDisconnect();
   const navigate = useForumNavigate();
+  const rawNavigate = useNavigate();
   const [nickname] = useNickname();
   const userVotes = useUserVotes();
   const { isUserVerified } = userVotes;
@@ -133,17 +136,32 @@ const UserProfilePanel: React.FC = () => {
 
           <Box sx={{ minWidth: 0 }}>
             <Typography variant="subtitle1" fontWeight={700} noWrap>
-              {nickname}
+              {nickname || (address ? shortenAddress(address) : "")}
             </Typography>
 
-            {/* Verified status */}
+            {/* Verified / Not Verified status */}
+            {!isRegistered && (
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 0.75,
+                }}
+              >
+                <IndeterminateCheckBoxIcon
+                  sx={{ fontSize: 16, color: "text.disabled" }}
+                />
+                <Typography variant="body2" color="text.secondary">
+                  Not verified
+                </Typography>
+              </Box>
+            )}
             {isRegistered && (
               <Box
                 sx={{
                   display: "flex",
                   alignItems: "center",
                   gap: 0.75,
-                  mt: 0.25,
                 }}
               >
                 {alpha2 ? (
@@ -175,7 +193,24 @@ const UserProfilePanel: React.FC = () => {
           </Box>
         </Box>
 
-        {/* Credits row */}
+        {/* Credits / Join In section */}
+        {!isRegistered && (
+          <>
+            <Divider sx={{ my: 1.5 }} />
+            <Button
+              variant="contained"
+              fullWidth
+              onClick={() => void rawNavigate("/verify")}
+              sx={{
+                borderRadius: 2,
+                fontWeight: 700,
+                textTransform: "none",
+              }}
+            >
+              Join In
+            </Button>
+          </>
+        )}
         {isRegistered && !isUserVerified && forum?.countryCode && (
           <>
             <Divider sx={{ my: 1.5 }} />
@@ -238,7 +273,7 @@ const UserProfilePanel: React.FC = () => {
                 }}
                 disabled={!hasStagedChanges || commitBusy || !hasEnoughCredits}
                 sx={{
-                  flex: 1,
+                  flex: 2,
                   borderRadius: 2,
                   fontWeight: 700,
                   textTransform: "uppercase",
@@ -253,7 +288,7 @@ const UserProfilePanel: React.FC = () => {
                 Lock it in!
               </Button>
               <Button
-                variant="text"
+                variant="contained"
                 size="small"
                 onClick={(e) => {
                   e.stopPropagation();
@@ -261,11 +296,15 @@ const UserProfilePanel: React.FC = () => {
                 }}
                 disabled={!hasStagedChanges || commitBusy}
                 sx={{
+                  flex: 1,
+                  borderRadius: 2,
+                  fontWeight: 700,
                   textTransform: "none",
-                  color: "text.secondary",
-                  fontWeight: 500,
-                  minWidth: 0,
-                  px: 1.5,
+                  backgroundColor: "grey.400",
+                  color: "white",
+                  "&:hover": {
+                    backgroundColor: "grey.500",
+                  },
                 }}
               >
                 Reset
