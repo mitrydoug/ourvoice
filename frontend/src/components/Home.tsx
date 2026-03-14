@@ -1,4 +1,12 @@
-import { FC, useState, useEffect, useCallback, useRef, useMemo, useLayoutEffect } from "react";
+import {
+  FC,
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useMemo,
+  useLayoutEffect,
+} from "react";
 import { useReadContract, useReadContracts } from "wagmi";
 import { useForum, FORUM_ABI } from "../state/Forum";
 import { Statement } from "../types";
@@ -172,7 +180,7 @@ const SearchResults: FC<SearchResultsProps> = ({
       statements={noResults ? [] : statements}
       hasMore={false}
       isLoading={noResults ? false : isLoading}
-      onLoadMore={() => { }}
+      onLoadMore={() => {}}
       loadingLabel="Searching…"
       isBookmarked={isBookmarked}
       onToggleBookmark={onToggleBookmark}

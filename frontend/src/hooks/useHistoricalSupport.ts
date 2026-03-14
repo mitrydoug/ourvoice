@@ -103,9 +103,10 @@ export function useHistoricalSupport(statementId: bigint): {
         const minutesAgo = Math.round((now - t) / 60_000);
         result.push({
           timestamp: t,
-          label: minutesAgo >= 60
-            ? `${Math.floor(minutesAgo / 60)}h${minutesAgo % 60}m`
-            : `${minutesAgo}m`,
+          label:
+            minutesAgo >= 60
+              ? `${Math.floor(minutesAgo / 60)}h${minutesAgo % 60}m`
+              : `${minutesAgo}m`,
         });
       }
     }
@@ -196,7 +197,13 @@ export function useHistoricalSupport(statementId: bigint): {
     return () => {
       cancelled = true;
     };
-  }, [publicClient, currentBlockNumber, forumContractAddress, statementId, targets]);
+  }, [
+    publicClient,
+    currentBlockNumber,
+    forumContractAddress,
+    statementId,
+    targets,
+  ]);
 
   return { data: dataPoints, isLoading };
 }

@@ -102,7 +102,6 @@ const DesktopLayout: FC = () => {
           borderRight: "1px solid",
           borderColor: "divider",
           overflow: "hidden",
-          
         }}
       >
         {/* Fixed search header */}

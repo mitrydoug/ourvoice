@@ -180,10 +180,7 @@ const stagedStorageKey = (
 ): string =>
   `symvolia:staged:${chainFingerprint}:${forumName}:${address.toLowerCase()}`;
 
-const saveStagedToStorage = (
-  key: string,
-  staged: StagedSupport,
-): void => {
+const saveStagedToStorage = (key: string, staged: StagedSupport): void => {
   try {
     const data: PersistedStaged = {
       supportAdjustments: [...staged.supportAdjustments.entries()],
@@ -197,7 +194,10 @@ const saveStagedToStorage = (
 
 const loadStagedFromStorage = (
   key: string,
-): { supportAdjustments: Map<number, number>; stagedStatements: StagedStatement[] } | null => {
+): {
+  supportAdjustments: Map<number, number>;
+  stagedStatements: StagedStatement[];
+} | null => {
   try {
     const raw = localStorage.getItem(key);
     if (!raw) return null;
@@ -421,9 +421,9 @@ const reducer = (
     ...newState,
     staged: newState.staged
       ? {
-        ...newState.staged,
-        credits: stagedCredits,
-      }
+          ...newState.staged,
+          credits: stagedCredits,
+        }
       : undefined,
     hasStagedChanges,
     hasEnoughCredits: stagedCredits >= 0,
@@ -481,7 +481,11 @@ export const UserVoteProvider: FC<{
   });
   const { writeContractAsync } = useWriteContract();
   const { address } = useAccount();
-  const { forumContractAddress, chainFingerprint, name: forumName } = useForum();
+  const {
+    forumContractAddress,
+    chainFingerprint,
+    name: forumName,
+  } = useForum();
 
   // Read stepDurationSeconds for requireStep guard
   const { data: stepDurationSeconds } = useReadContract({
@@ -569,16 +573,23 @@ export const UserVoteProvider: FC<{
       : undefined;
   const restoredKeyRef = useRef<string | undefined>(undefined);
   useEffect(() => {
-    if (!persistKey || !state.staged || restoredKeyRef.current === persistKey) return;
+    if (!persistKey || !state.staged || restoredKeyRef.current === persistKey)
+      return;
     restoredKeyRef.current = persistKey;
     const saved = loadStagedFromStorage(persistKey);
-    if (saved && (saved.supportAdjustments.size > 0 || saved.stagedStatements.length > 0)) {
+    if (
+      saved &&
+      (saved.supportAdjustments.size > 0 || saved.stagedStatements.length > 0)
+    ) {
       dispatch({ type: "RESTORE_STAGED", payload: saved });
     }
   }, [persistKey, state.staged, dispatch]);
   useEffect(() => {
     if (!persistKey || !state.staged) return;
-    if (state.staged.supportAdjustments.size === 0 && state.staged.stagedStatements.length === 0) {
+    if (
+      state.staged.supportAdjustments.size === 0 &&
+      state.staged.stagedStatements.length === 0
+    ) {
       clearStagedStorage(persistKey);
     } else {
       saveStagedToStorage(persistKey, state.staged);

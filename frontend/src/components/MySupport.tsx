@@ -47,8 +47,10 @@ const MySupport: FC = () => {
     return Array.from(supportMap.entries())
       .filter(([, support]) => support > 0)
       .sort((e1, e2) => {
-        const onChain1 = userVoteState?.onChain?.statementSupport?.get(e1[0]) || 0;
-        const onChain2 = userVoteState?.onChain?.statementSupport?.get(e2[0]) || 0;
+        const onChain1 =
+          userVoteState?.onChain?.statementSupport?.get(e1[0]) || 0;
+        const onChain2 =
+          userVoteState?.onChain?.statementSupport?.get(e2[0]) || 0;
         return onChain2 - onChain1;
       })
       .map((e) => BigInt(e[0]));

@@ -129,11 +129,7 @@ const SimilarStatements: FC<SimilarStatementsProps> = ({
         {isSimilarLoading && !noSimilarResults && hasSearch ? (
           <Stack alignItems="center" justifyContent="center" sx={{ py: 4 }}>
             <CircularProgress size={24} />
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{ mt: 1 }}
-            >
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
               Searching…
             </Typography>
           </Stack>

@@ -179,22 +179,22 @@ const UserProfile: FC = () => {
   // Use the MUI theme palette so colors stay in sync with SupportAllocationBar
   const segments: DonutSegment[] = allocation
     ? [
-      {
-        value: allocation.allocated,
-        color: theme.palette.primary.main,
-        label: "Allocated",
-      },
-      {
-        value: allocation.staged,
-        color: theme.palette.warning.main,
-        label: "Staged",
-      },
-      {
-        value: allocation.unallocated,
-        color: theme.palette.success.main,
-        label: "Unallocated",
-      },
-    ]
+        {
+          value: allocation.allocated,
+          color: theme.palette.primary.main,
+          label: "Allocated",
+        },
+        {
+          value: allocation.staged,
+          color: theme.palette.warning.main,
+          label: "Staged",
+        },
+        {
+          value: allocation.unallocated,
+          color: theme.palette.success.main,
+          label: "Unallocated",
+        },
+      ]
     : [];
 
   if (!address) return <Navigate to="/" replace />;
