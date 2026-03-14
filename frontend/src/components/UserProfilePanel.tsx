@@ -207,7 +207,7 @@ const UserProfilePanel: React.FC = () => {
                 textTransform: "none",
               }}
             >
-              Join In
+              Get Verified
             </Button>
           </>
         )}
