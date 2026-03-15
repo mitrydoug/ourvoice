@@ -88,6 +88,19 @@ async function main() {
   const outPath = path.join(networksDir, `${networkFileName}.ts`);
   writeFileSync(outPath, networksModuleText);
   console.log(`Wrote frontend network config to ${outPath}`);
+
+  // Switch from automine to interval mining for development networks.
+  // Automine is used during deployment for speed; interval mining (12s)
+  // simulates realistic block production for manual interaction afterward.
+  if (networkName !== "sepolia") {
+    const { provider } = connection;
+    await provider.request({ method: "evm_setAutomine", params: [false] });
+    await provider.request({
+      method: "evm_setIntervalMining",
+      params: [12000],
+    });
+    console.log("Switched to interval mining (12s blocks).");
+  }
 }
 
 main().catch((err) => {
