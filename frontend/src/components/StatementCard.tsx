@@ -10,7 +10,7 @@ import { useForumNavigate } from "../hooks/useForumNavigate";
 import { useUserVotes } from "../state/UserVotes";
 
 // ── Coin icon SVG ────────────────────────────────────────────────────────────
-const CoinIcon: React.FC<{ size?: number }> = ({ size = 14 }) => (
+const CoinIcon = ({ size = 14 }: { size?: number }) => (
   <svg
     width={size}
     height={size}

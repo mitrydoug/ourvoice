@@ -201,7 +201,7 @@ const loadStagedFromStorage = (
   try {
     const raw = localStorage.getItem(key);
     if (!raw) return null;
-    const data: PersistedStaged = JSON.parse(raw);
+    const data = JSON.parse(raw) as PersistedStaged;
     return {
       supportAdjustments: new Map(data.supportAdjustments),
       stagedStatements: data.stagedStatements ?? [],
