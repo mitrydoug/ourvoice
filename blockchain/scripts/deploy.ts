@@ -21,12 +21,16 @@ async function main() {
   let registry: DeployedContract;
   let forums: Record<string, DeployedContract>;
 
-  if (config.mode === "mocked") {
-    // Simulated networks only: advance block timestamp to real time so that
-    // time-dependent contract logic behaves realistically during development.
+  // Simulated networks only: advance block timestamp to real time so that
+  // time-dependent contract logic (e.g. ZKPassport proof validity windows)
+  // behaves realistically during development. Forked networks inherit the
+  // timestamp of the pinned block, which can be far in the past.
+  if ("networkHelpers" in connection) {
     const { networkHelpers } = connection;
     await networkHelpers.time.increaseTo(Math.floor(Date.now() / 1000) + 1);
+  }
 
+  if (config.mode === "mocked") {
     const module = createForumMockedModule(
       config.forums, config.stepDurationSeconds, config.engagementWindowSeconds,
       config.maxRankedStatements, config.minStatementSupportToRank,
