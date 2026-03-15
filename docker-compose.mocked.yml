@@ -42,7 +42,7 @@ services:
       contract_deployer:
         condition: service_completed_successfully
         required: false
-    command: sh -c "npm install && npm run dev -- --host"
+    command: sh -c "npm install && npx vite dev --force -- --host"
   backend:
     environment:
       - ETHEREUM_NODE_URL=ws://hardhat:8545
