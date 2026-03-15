@@ -31,7 +31,7 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
-import { useWriteContract } from "wagmi";
+import { useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import {
   registryContractConfig,
   mockRegistryContractConfig,
@@ -77,8 +77,11 @@ type VerifyPhase =
   | "PRE_SCAN"
   | "GENERATING_PROOF"
   | "PROOF_GENERATED"
+  | "SUBMITTING_TX"
+  | "CONFIRMING_TX"
   | "VERIFIED"
   | "REJECTED"
+  | "TX_FAILED"
   | "ERROR";
 
 // ─── Shared Layout ───────────────────────────────────────────────────────────
@@ -622,13 +625,25 @@ const PHASE_META: Record<
     label: "Generating proof",
     detail:
       "Your phone is building a zero-knowledge proof. This may take a moment…",
-    progress: 40,
+    progress: 33,
   },
   PROOF_GENERATED: {
-    label: "Submitting on-chain",
+    label: "Proof ready",
     detail:
-      "Proof generated! Sending verification transaction to the blockchain…",
-    progress: 70,
+      "Proof generated! Please confirm the transaction in your wallet.",
+    progress: 50,
+  },
+  SUBMITTING_TX: {
+    label: "Confirm in wallet",
+    detail:
+      "Please approve the verification transaction in your wallet…",
+    progress: 50,
+  },
+  CONFIRMING_TX: {
+    label: "Confirming on-chain",
+    detail:
+      "Transaction submitted! Waiting for blockchain confirmation…",
+    progress: 80,
   },
   VERIFIED: {
     label: "Verified!",
@@ -639,6 +654,12 @@ const PHASE_META: Record<
     label: "Verification failed",
     detail:
       "The proof could not be verified. Please try again or contact support.",
+    progress: 0,
+  },
+  TX_FAILED: {
+    label: "Transaction failed",
+    detail:
+      "The on-chain transaction could not be completed. This can happen if the transaction was rejected in your wallet or reverted on-chain. Please try again.",
     progress: 0,
   },
   ERROR: {
@@ -655,27 +676,62 @@ const StepScanVerify: FC<{
   const navigate = useNavigate();
   const [verifyPhase, setVerifyPhase] = useState<VerifyPhase>("PRE_SCAN");
   const [verifyUrl, setVerifyUrl] = useState<string | null>(null);
+  const [pendingTxHash, setPendingTxHash] = useState<`0x${string}` | undefined>();
 
   const zkPassport = useMemo(() => new ZKPassport(), []);
-  const { writeContract } = useWriteContract();
+  const { writeContractAsync } = useWriteContract();
+
+  // Wait for on-chain confirmation once we have a tx hash
+  const { data: txReceipt, error: txReceiptError } =
+    useWaitForTransactionReceipt({
+      hash: pendingTxHash,
+      confirmations: 1,
+      query: { enabled: !!pendingTxHash },
+    });
+
+  // Handle tx confirmation or failure
+  useEffect(() => {
+    if (!pendingTxHash) return;
+    if (txReceipt) {
+      if (txReceipt.status === "success") {
+        setVerifyPhase("VERIFIED");
+        const timer = setTimeout(() => void navigate("/"), 2000);
+        return () => clearTimeout(timer);
+      } else {
+        setVerifyPhase("TX_FAILED");
+        setPendingTxHash(undefined);
+      }
+    } else if (txReceiptError) {
+      console.error("Transaction receipt error:", txReceiptError);
+      setVerifyPhase("TX_FAILED");
+      setPendingTxHash(undefined);
+    }
+  }, [txReceipt, txReceiptError, pendingTxHash, navigate]);
+
+  const submitTx = useCallback(
+    async (
+      config: Parameters<typeof writeContractAsync>[0],
+    ) => {
+      setVerifyPhase("SUBMITTING_TX");
+      try {
+        const txHash = await writeContractAsync(config);
+        setPendingTxHash(txHash);
+        setVerifyPhase("CONFIRMING_TX");
+      } catch (err) {
+        console.error("Transaction submission failed:", err);
+        setVerifyPhase("TX_FAILED");
+      }
+    },
+    [writeContractAsync],
+  );
 
   const devModeRegister = useCallback(() => {
-    writeContract(
-      {
-        ...mockRegistryContractConfig,
-        functionName: "register",
-        args: [""],
-      },
-      {
-        onError: (error) => {
-          console.error("Error writing contract:", error);
-        },
-      },
-    );
-    setTimeout(() => {
-      void navigate("/");
-    }, 5000);
-  }, [writeContract, navigate]);
+    void submitTx({
+      ...mockRegistryContractConfig,
+      functionName: "register",
+      args: [""],
+    });
+  }, [submitTx]);
 
   useEffect(() => {
     const constructRequest = async () => {
@@ -714,10 +770,10 @@ const StepScanVerify: FC<{
 
       onResult(({ uniqueIdentifier, verified, result }) => {
         console.log("Result received:", uniqueIdentifier, verified, result);
-        setVerifyPhase(verified ? "VERIFIED" : "REJECTED");
 
         if (!verified) {
           console.log("Proof is not verified");
+          setVerifyPhase("REJECTED");
           return;
         }
 
@@ -728,26 +784,15 @@ const StepScanVerify: FC<{
         });
 
         console.log("Submitting on-chain verification transaction...");
-        writeContract(
-          {
-            ...registryContractConfig,
-            functionName: "register",
-            // The zkpassport SDK types `version` as `string` rather than
-            // `0x${string}`, causing a mismatch with the on-chain ABI.
-            // The runtime value is always a valid hex string.
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            args: [verifierParams as any],
-          },
-          {
-            onError: (error) => {
-              console.error("Error writing contract:", error);
-            },
-          },
-        );
-
-        setTimeout(() => {
-          void navigate("/");
-        }, 5000);
+        void submitTx({
+          ...registryContractConfig,
+          functionName: "register",
+          // The zkpassport SDK types `version` as `string` rather than
+          // `0x${string}`, causing a mismatch with the on-chain ABI.
+          // The runtime value is always a valid hex string.
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          args: [verifierParams as any],
+        });
       });
 
       onRequestReceived(() => {
@@ -773,13 +818,19 @@ const StepScanVerify: FC<{
     };
 
     void constructRequest();
-  }, [zkPassport, revealNationality, navigate, writeContract]);
+  }, [zkPassport, revealNationality, submitTx]);
 
   const phase = PHASE_META[verifyPhase];
   const isTerminal = verifyPhase === "VERIFIED";
-  const isError = verifyPhase === "REJECTED" || verifyPhase === "ERROR";
+  const isError =
+    verifyPhase === "REJECTED" ||
+    verifyPhase === "TX_FAILED" ||
+    verifyPhase === "ERROR";
   const isInProgress =
-    verifyPhase === "GENERATING_PROOF" || verifyPhase === "PROOF_GENERATED";
+    verifyPhase === "GENERATING_PROOF" ||
+    verifyPhase === "PROOF_GENERATED" ||
+    verifyPhase === "SUBMITTING_TX" ||
+    verifyPhase === "CONFIRMING_TX";
 
   return (
     <StepContainer>
@@ -847,13 +898,16 @@ const StepScanVerify: FC<{
                   {(
                     [
                       ["Proof generation", "GENERATING_PROOF"],
-                      ["On-chain submission", "PROOF_GENERATED"],
+                      ["Wallet approval", "SUBMITTING_TX"],
+                      ["On-chain confirmation", "CONFIRMING_TX"],
                     ] as const
                   ).map(([label, gate]) => {
                     const phases: VerifyPhase[] = [
                       "PRE_SCAN",
                       "GENERATING_PROOF",
                       "PROOF_GENERATED",
+                      "SUBMITTING_TX",
+                      "CONFIRMING_TX",
                       "VERIFIED",
                     ];
                     const current = phases.indexOf(verifyPhase);
