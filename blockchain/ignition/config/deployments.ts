@@ -71,7 +71,7 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
     maxStatementLength: 120,
     userCreditAllowancePerStep: 25,
     userStartingCredits: 1000,
-    parametersFile: "local-fork.json",
+    parametersFile: "local-fork-strict.json",
   },
 
   /** Local Sepolia fork with real OurVoiceRegistry (dev mode). */
