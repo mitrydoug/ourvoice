@@ -76,7 +76,7 @@ const SideNav: FC = () => {
         <Box sx={{ mb: 0, display: "flex", justifyContent: "center" }}>
           <Link to={forumPath("/")} style={{ textDecoration: "none" }}>
             <img
-              src="/symvolia-logo.svg"
+              src="./symvolia-logo.svg"
               alt="Symvolia"
               style={{ height: "3.1rem", width: "auto" }}
             />

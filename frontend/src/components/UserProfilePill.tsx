@@ -156,7 +156,7 @@ const UserProfilePanel: React.FC = () => {
               >
                 {alpha2 ? (
                   <img
-                    src={`/flags/${alpha2}.svg`}
+                    src={`./flags/${alpha2}.svg`}
                     alt={`${nationality} flag`}
                     style={{
                       height: "1rem",
@@ -166,7 +166,7 @@ const UserProfilePanel: React.FC = () => {
                   />
                 ) : (
                   <img
-                    src="/earth.png"
+                    src="./earth.png"
                     alt="Earth"
                     style={{
                       height: "1rem",

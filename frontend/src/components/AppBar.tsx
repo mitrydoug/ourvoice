@@ -53,7 +53,7 @@ const Logo: React.FC<LogoProps> = ({ isMobile, homePath }) => {
   return (
     <Link to={homePath} style={{ textDecoration: "none" }}>
       <img
-        src="/symvolia-logo.svg"
+        src="./symvolia-logo.svg"
         alt="Symvolia"
         style={{
           height: isMobile

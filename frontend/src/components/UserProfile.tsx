@@ -263,7 +263,7 @@ const UserProfile: FC = () => {
               <>
                 {nationality && toAlpha2(nationality) ? (
                   <img
-                    src={`/flags/${toAlpha2(nationality)}.svg`}
+                    src={`./flags/${toAlpha2(nationality)}.svg`}
                     alt={`${nationality} flag`}
                     style={{
                       height: "1rem",
@@ -273,7 +273,7 @@ const UserProfile: FC = () => {
                   />
                 ) : (
                   <img
-                    src="/earth.png"
+                    src="./earth.png"
                     alt="Earth"
                     style={{
                       height: "1rem",

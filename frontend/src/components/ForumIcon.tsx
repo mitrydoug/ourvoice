@@ -30,7 +30,7 @@ const ForumIcon: FC<ForumIconProps> = ({ forum, size = "1.5rem" }) => {
       return (
         <span style={wrapper}>
           <img
-            src={`/flags/${alpha2}.svg`}
+            src={`./flags/${alpha2}.svg`}
             alt={`${forum.label} flag`}
             style={{ height: size, width: "auto", borderRadius: "3px" }}
           />
@@ -41,7 +41,7 @@ const ForumIcon: FC<ForumIconProps> = ({ forum, size = "1.5rem" }) => {
   return (
     <span style={wrapper}>
       <img
-        src="/earth.png"
+        src="./earth.png"
         alt="Earth"
         style={{
           height: `calc(${size} * 1.4)`,
