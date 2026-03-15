@@ -545,10 +545,12 @@ export const UserVoteProvider: FC<{
   );
 
   const refetch = useCallback(() => {
-    void refetchSupport();
-    void refetchBalance();
+    if (isUserVerified) {
+      void refetchSupport();
+      void refetchBalance();
+    }
     void refetchStep();
-  }, [refetchSupport, refetchBalance, refetchStep]);
+  }, [refetchSupport, refetchBalance, refetchStep, isUserVerified]);
 
   useEffect(() => {
     // Load state from blockchain
