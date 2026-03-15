@@ -13,12 +13,10 @@ import {
   Card,
   CardActionArea,
   CardContent,
-  Chip,
   CircularProgress,
   Container,
   Divider,
   Fade,
-  LinearProgress,
   Link,
   Paper,
   Stack,
@@ -122,27 +120,27 @@ const NavButtons: FC<{
   nextDisabled = false,
   backLabel = "Back",
 }) => (
-  <Stack direction="row" justifyContent="space-between" sx={{ mt: 4 }}>
-    <Button
-      variant="text"
-      startIcon={<ArrowBackIcon />}
-      onClick={onBack}
-      size="medium"
-    >
-      {backLabel}
-    </Button>
-    {onNext && (
+    <Stack direction="row" justifyContent="space-between" sx={{ mt: 4 }}>
       <Button
-        endIcon={<ArrowForwardIcon />}
-        onClick={onNext}
-        disabled={nextDisabled}
+        variant="text"
+        startIcon={<ArrowBackIcon />}
+        onClick={onBack}
         size="medium"
       >
-        {nextLabel}
+        {backLabel}
       </Button>
-    )}
-  </Stack>
-);
+      {onNext && (
+        <Button
+          endIcon={<ArrowForwardIcon />}
+          onClick={onNext}
+          disabled={nextDisabled}
+          size="medium"
+        >
+          {nextLabel}
+        </Button>
+      )}
+    </Stack>
+  );
 
 // ─── Step 0: Why Verify ──────────────────────────────────────────────────────
 
@@ -165,127 +163,135 @@ const FAQ_ITEMS = [
   {
     question: "Why is verification required?",
     answer:
-      "Symvolia uses quadratic voting to surface genuine public sentiment. Without one-person-one-vote integrity, bad actors could create thousands of fake accounts to manipulate results. Verification ensures every voice is real — and equal.",
+      "Symvolia uses quadratic voting to surface genuine public sentiment. Without identity verification, bad actors could create thousands of fake accounts to manipulate results. Verification ensures every voice is real — and equal.",
   },
   {
     question: "Can I be tracked or identified?",
     answer:
-      "No. The zero-knowledge proof contains no personally identifiable information. Even the smart contract cannot determine who you are. Your participation on Symvolia remains pseudonymous.",
+      "Symvolia does not collect any identifying information and makes no attempt to connect you with your on-chain activity. However, keep in mind that the blockchain is a public ledger — if someone can connect you to your wallet address, they could see your activity on Symvolia. This is true of all blockchain applications.",
   },
 ];
 
 const StepWhyVerify: FC<{ onBack: () => void; onNext: () => void }> = ({
   onBack,
   onNext,
-}) => (
-  <StepContainer>
-    <Stack spacing={2.5} alignItems="center">
-      <Box
-        sx={{
-          width: 48,
-          height: 48,
-          borderRadius: "50%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          bgcolor: "primary.main",
-          color: "primary.contrastText",
-        }}
-      >
-        <FingerprintIcon sx={{ fontSize: 26 }} />
-      </Box>
+}) => {
+  const [expandedFaq, setExpandedFaq] = useState<string | false>(false);
 
-      <Typography variant="h6" fontWeight={700} textAlign="center">
-        Prove you&apos;re human — privately
-      </Typography>
+  return (
+    <StepContainer>
+      <Stack spacing={2.5} alignItems="center">
+        <Box
+          sx={{
+            width: 48,
+            height: 48,
+            borderRadius: "50%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            bgcolor: "primary.main",
+            color: "primary.contrastText",
+          }}
+        >
+          <FingerprintIcon sx={{ fontSize: 26 }} />
+        </Box>
 
-      <Typography
-        variant="body1"
-        color="text.secondary"
-        textAlign="center"
-        sx={{ maxWidth: 440 }}
-      >
-        Symvolia uses{" "}
-        <Link href={ZKPASSPORT_URL} target="_blank" rel="noopener">
-          ZKPassport
-        </Link>{" "}
-        to verify that every participant is a unique, real person — without
-        collecting any personal data. The process takes about two minutes.
-      </Typography>
+        <Typography variant="h6" fontWeight={700} textAlign="center">
+          Prove you&apos;re human — privately
+        </Typography>
 
-      <Stack
-        direction={{ xs: "column", sm: "row" }}
-        spacing={2}
-        sx={{ width: "100%" }}
-      >
-        {[
-          {
-            icon: <VisibilityOffIcon color="primary" />,
-            label: "No personal data shared",
-          },
-          {
-            icon: <LockOutlinedIcon color="primary" />,
-            label: "Cryptographically secure",
-          },
-          {
-            icon: <PublicIcon color="primary" />,
-            label: "Open-source & auditable",
-          },
-        ].map(({ icon, label }) => (
-          <Paper
-            key={label}
-            variant="outlined"
-            sx={{
-              flex: 1,
-              p: 2,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: 1,
-              borderRadius: 2,
-              textAlign: "center",
-            }}
-          >
-            {icon}
-            <Typography variant="body2">{label}</Typography>
-          </Paper>
-        ))}
+        <Typography
+          variant="body1"
+          color="text.secondary"
+          textAlign="center"
+          sx={{ maxWidth: 440 }}
+        >
+          Symvolia uses{" "}
+          <Link href={ZKPASSPORT_URL} target="_blank" rel="noopener">
+            ZKPassport
+          </Link>{" "}
+          to verify that every participant is a unique, real person — without
+          collecting any personal data. The process takes about five minutes.
+        </Typography>
+
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={2}
+          sx={{ width: "100%" }}
+        >
+          {[
+            {
+              icon: <VisibilityOffIcon color="primary" />,
+              label: "No personal data shared",
+            },
+            {
+              icon: <LockOutlinedIcon color="primary" />,
+              label: "Cryptographically secure",
+            },
+            {
+              icon: <PublicIcon color="primary" />,
+              label: "Open-source & auditable",
+            },
+          ].map(({ icon, label }) => (
+            <Paper
+              key={label}
+              variant="outlined"
+              sx={{
+                flex: 1,
+                p: 2,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 1,
+                borderRadius: 2,
+                textAlign: "center",
+              }}
+            >
+              {icon}
+              <Typography variant="body2">{label}</Typography>
+            </Paper>
+          ))}
+        </Stack>
+
+        <Divider sx={{ width: "100%" }} />
+
+        <Box sx={{ width: "100%" }}>
+          <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+            Frequently asked questions
+          </Typography>
+          {FAQ_ITEMS.map(({ question, answer }) => (
+            <Accordion
+              key={question}
+              expanded={expandedFaq === question}
+              onChange={(_, isExpanded) =>
+                setExpandedFaq(isExpanded ? question : false)
+              }
+              disableGutters
+              elevation={0}
+              sx={{
+                "&:before": { display: "none" },
+                border: 0,
+              }}
+            >
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Typography variant="body2" fontWeight={600}>
+                  {question}
+                </Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <Typography variant="body2" color="text.secondary">
+                  {answer}
+                </Typography>
+              </AccordionDetails>
+            </Accordion>
+          ))}
+        </Box>
       </Stack>
 
-      <Divider sx={{ width: "100%" }} />
-
-      <Box sx={{ width: "100%" }}>
-        <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
-          Frequently asked questions
-        </Typography>
-        {FAQ_ITEMS.map(({ question, answer }) => (
-          <Accordion
-            key={question}
-            disableGutters
-            elevation={0}
-            sx={{
-              "&:before": { display: "none" },
-              border: 0,
-            }}
-          >
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography variant="body2" fontWeight={600}>
-                {question}
-              </Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <Typography variant="body2" color="text.secondary">
-                {answer}
-              </Typography>
-            </AccordionDetails>
-          </Accordion>
-        ))}
-      </Box>
-    </Stack>
-
-    <NavButtons onBack={onBack} onNext={onNext} />
-  </StepContainer>
-);
+      <NavButtons onBack={onBack} onNext={onNext} />
+    </StepContainer>
+  );
+};
 
 // ─── Step 1: Get ZKPassport ────────────────────────────────────────────────── ──────────────────────────────────────────────────
 
@@ -421,39 +427,9 @@ const StepScanPassport: FC<{ onBack: () => void; onNext: () => void }> = ({
         textAlign="center"
         sx={{ maxWidth: 440 }}
       >
-        Open the ZKPassport app on your phone and scan your passport. This reads
-        the NFC chip inside the cover — no photos or uploads needed.
+        Open the ZKPassport app on your phone and scan your passport using NFC.
+        Your passport information does not leave your device.
       </Typography>
-
-      <Divider sx={{ width: "100%" }} />
-
-      <Box sx={{ width: "100%" }}>
-        <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2 }}>
-          How it works
-        </Typography>
-        <Stack spacing={1.5}>
-          {[
-            'Open ZKPassport and tap "Scan Passport"',
-            "Hold your phone against the back cover of your passport",
-            "Wait a few seconds for the NFC chip to be read",
-            "You&apos;ll see a confirmation once your passport is registered",
-          ].map((text, i) => (
-            <Stack key={i} direction="row" spacing={1.5} alignItems="center">
-              <Chip
-                label={i + 1}
-                size="small"
-                color="primary"
-                sx={{
-                  fontWeight: 700,
-                  minWidth: 28,
-                  height: 28,
-                }}
-              />
-              <Typography variant="body2">{text}</Typography>
-            </Stack>
-          ))}
-        </Stack>
-      </Box>
 
       <Alert severity="info" sx={{ width: "100%" }}>
         <AlertTitle>Already registered?</AlertTitle>
@@ -492,7 +468,7 @@ const LEVEL_OPTIONS: LevelOption[] = [
     id: "nationality",
     icon: <FlagIcon sx={{ fontSize: 32 }} />,
     title: "Personhood + Nationality",
-    tagline: "Unlock country-specific forums",
+    tagline: "Unlock your country's forum",
     bullets: [
       "Everything in Personhood, plus…",
       "Join your country's forum",
@@ -524,7 +500,7 @@ const StepChooseLevel: FC<{
         >
           Both options verify you as a unique human. The only difference is
           whether you&apos;d like to share your nationality to access
-          country-specific forums.
+          your country&apos;s forum.
         </Typography>
 
         <Stack
@@ -630,13 +606,13 @@ const PHASE_META: Record<
   PROOF_GENERATED: {
     label: "Proof ready",
     detail:
-      "Proof generated! Please confirm the transaction in your wallet.",
+      "Your identity proof is ready. To complete registration, we need to submit it to the blockchain. Click the button below to continue — your wallet will ask you to approve the transaction.",
     progress: 50,
   },
   SUBMITTING_TX: {
     label: "Confirm in wallet",
     detail:
-      "Please approve the verification transaction in your wallet…",
+      "Your wallet should be prompting you to approve the transaction. Please confirm it to complete registration.",
     progress: 50,
   },
   CONFIRMING_TX: {
@@ -677,6 +653,8 @@ const StepScanVerify: FC<{
   const [verifyPhase, setVerifyPhase] = useState<VerifyPhase>("PRE_SCAN");
   const [verifyUrl, setVerifyUrl] = useState<string | null>(null);
   const [pendingTxHash, setPendingTxHash] = useState<`0x${string}` | undefined>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [verifierParams, setVerifierParams] = useState<any>(null); // eslint-disable-line @typescript-eslint/no-unsafe-assignment
 
   const zkPassport = useMemo(() => new ZKPassport(), []);
   const { writeContractAsync } = useWriteContract();
@@ -753,12 +731,12 @@ const StepScanVerify: FC<{
         onReject,
         onError,
       } = revealNationality
-        ? queryBuilder
+          ? queryBuilder
             .gte("age", 18)
             .disclose("nationality")
             .bind("chain", "ethereum_sepolia")
             .done()
-        : queryBuilder.gte("age", 18).bind("chain", "ethereum_sepolia").done();
+          : queryBuilder.gte("age", 18).bind("chain", "ethereum_sepolia").done();
 
       let proof: ProofResult;
 
@@ -777,22 +755,15 @@ const StepScanVerify: FC<{
           return;
         }
 
-        const verifierParams = zkPassport.getSolidityVerifierParameters({
+        const params = zkPassport.getSolidityVerifierParameters({
           proof,
           scope: MY_SCOPE,
           devMode: isDevMode,
         });
 
-        console.log("Submitting on-chain verification transaction...");
-        void submitTx({
-          ...registryContractConfig,
-          functionName: "register",
-          // The zkpassport SDK types `version` as `string` rather than
-          // `0x${string}`, causing a mismatch with the on-chain ABI.
-          // The runtime value is always a valid hex string.
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          args: [verifierParams as any],
-        });
+        // Store params and wait for user to click "Register" button
+        setVerifierParams(params);
+        setVerifyPhase("PROOF_GENERATED");
       });
 
       onRequestReceived(() => {
@@ -818,7 +789,20 @@ const StepScanVerify: FC<{
     };
 
     void constructRequest();
-  }, [zkPassport, revealNationality, submitTx]);
+  }, [zkPassport, revealNationality]);
+
+  const handleRegisterClick = useCallback(() => {
+    if (verifierParams) {
+      void submitTx({
+        ...registryContractConfig,
+        functionName: "register",
+        // The zkpassport SDK types `version` as `string` rather than
+        // `0x${string}`, causing a mismatch with the on-chain ABI.
+        // The runtime value is always a valid hex string.
+        args: [verifierParams],
+      });
+    }
+  }, [verifierParams, submitTx]);
 
   const phase = PHASE_META[verifyPhase];
   const isTerminal = verifyPhase === "VERIFIED";
@@ -887,19 +871,13 @@ const StepScanVerify: FC<{
           ) : isInProgress ? (
             <Fade in>
               <Stack spacing={2} alignItems="center" sx={{ minWidth: 260 }}>
-                <CircularProgress size={56} thickness={4} />
-                <LinearProgress
-                  variant="determinate"
-                  value={phase.progress}
-                  sx={{ width: "100%", borderRadius: 1, height: 6 }}
-                />
-                {/* Mini progress steps */}
+                {/* Progress steps */}
                 <Stack spacing={1} sx={{ width: "100%" }}>
                   {(
                     [
                       ["Proof generation", "GENERATING_PROOF"],
-                      ["Wallet approval", "SUBMITTING_TX"],
-                      ["On-chain confirmation", "CONFIRMING_TX"],
+                      ["Register on-chain", "SUBMITTING_TX"],
+                      ["Blockchain confirmation", "CONFIRMING_TX"],
                     ] as const
                   ).map(([label, gate]) => {
                     const phases: VerifyPhase[] = [
@@ -949,6 +927,19 @@ const StepScanVerify: FC<{
                     );
                   })}
                 </Stack>
+
+                {/* Register button — shown when proof is ready */}
+                {verifyPhase === "PROOF_GENERATED" && (
+                  <Button
+                    variant="contained"
+                    size="large"
+                    onClick={handleRegisterClick}
+                    startIcon={<FingerprintIcon />}
+                    sx={{ mt: 1, textTransform: "none" }}
+                  >
+                    Register on blockchain
+                  </Button>
+                )}
               </Stack>
             </Fade>
           ) : isTerminal ? (

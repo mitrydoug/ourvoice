@@ -421,9 +421,9 @@ const reducer = (
     ...newState,
     staged: newState.staged
       ? {
-          ...newState.staged,
-          credits: stagedCredits,
-        }
+        ...newState.staged,
+        credits: stagedCredits,
+      }
       : undefined,
     hasStagedChanges,
     hasEnoughCredits: stagedCredits >= 0,
@@ -508,7 +508,7 @@ export const UserVoteProvider: FC<{
   const { add: addAuthoredStatement } =
     useLocalStorageSet("authoredStatements");
 
-  const { data: isUserVerified } = useReadContract({
+  const { data: isUserVerified, refetch: refetchIsMember } = useReadContract({
     address: forumContractAddress,
     abi: FORUM_ABI,
     account: address,
@@ -545,12 +545,13 @@ export const UserVoteProvider: FC<{
   );
 
   const refetch = useCallback(() => {
+    void refetchIsMember();
     if (isUserVerified) {
       void refetchSupport();
       void refetchBalance();
     }
     void refetchStep();
-  }, [refetchSupport, refetchBalance, refetchStep, isUserVerified]);
+  }, [refetchIsMember, refetchSupport, refetchBalance, refetchStep, isUserVerified]);
 
   useEffect(() => {
     // Load state from blockchain
