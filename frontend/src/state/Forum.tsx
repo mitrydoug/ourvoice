@@ -9,7 +9,25 @@ import React, {
 } from "react";
 import { usePublicClient } from "wagmi";
 import { FORUMS } from "../contracts";
+import { FORUMS as FORUM_DATA } from "../components/ChooseForumModal";
 export { FORUM_ABI } from "../contracts";
+
+/**
+ * Convert a contract-level forum name (e.g. "global", "USA") to a URL slug
+ * (e.g. "earth", "usa").
+ */
+export const forumToSlug = (forumName: string): string => {
+  return FORUM_DATA[forumName]?.slug ?? forumName.toLowerCase();
+};
+
+/**
+ * Convert a URL slug (e.g. "earth", "usa") back to the contract-level forum
+ * key (e.g. "global", "USA"). Returns `undefined` for unrecognised slugs.
+ */
+export const slugToForum = (slug: string): string | undefined => {
+  const entry = Object.entries(FORUM_DATA).find(([, f]) => f.slug === slug);
+  return entry?.[0];
+};
 
 const FORUM_STORAGE_KEY = "ourvoice:selectedForum";
 
@@ -56,10 +74,26 @@ const getStoredForum = (): ForumName | null => {
   return null;
 };
 
+/**
+ * Read the last-visited forum from localStorage and return its URL slug.
+ * Falls back to the default forum slug ("earth") if nothing is stored.
+ * Safe to call outside of React (used by the root redirect).
+ */
+export const getStoredForumSlug = (): string => {
+  const stored = getStoredForum();
+  return forumToSlug(stored ?? "global");
+};
+
 type ForumContextValue = {
   forumContractAddress: `0x${string}`;
   name: string;
   setForum: (name: ForumName) => void;
+  /**
+   * Sync the forum context from a URL slug. Called by the root layout
+   * when the `:forumSlug` param changes. Unlike `setForum` this accepts
+   * a slug string and silently ignores unrecognised values.
+   */
+  syncFromSlug: (slug: string) => void;
   /**
    * A short hex string derived from the genesis block hash that uniquely
    * identifies this chain deployment. `undefined` until the genesis block
@@ -124,12 +158,24 @@ export const ForumProvider: FC<{ children: React.ReactNode }> = ({
     [setForumName],
   );
 
+  const syncFromSlug = useCallback((slug: string) => {
+    const resolved = slugToForum(slug);
+    if (resolved && isValidForumName(resolved)) {
+      // Use functional setState so the callback identity is stable
+      // (no dependency on forumName). This avoids a render cascade
+      // where a stale closure sees the OLD forumName after setForum
+      // already updated it, causing a bounce back.
+      setForumName((current) => (current === resolved ? current : resolved));
+    }
+  }, []);
+
   return (
     <ForumContext.Provider
       value={{
         forumContractAddress: address,
         name: forumName,
         setForum,
+        syncFromSlug,
         chainFingerprint,
       }}
     >

@@ -1,4 +1,12 @@
-import { FC, useState, useEffect, useCallback, useRef, useMemo } from "react";
+import {
+  FC,
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useMemo,
+  useLayoutEffect,
+} from "react";
 import { useReadContract, useReadContracts } from "wagmi";
 import { useForum, FORUM_ABI } from "../state/Forum";
 import { Statement } from "../types";
@@ -30,9 +38,16 @@ const Home: FC = () => {
   // ── Sort tab ───────────────────────────────────────────────────────────
   const [sortTab, setSortTab] = useState<SortMode>("top");
 
+  // Reset to "top" when the search query is cleared
+  useLayoutEffect(() => {
+    if (!hasSearch && sortTab !== "top") {
+      setSortTab("top");
+    }
+  }, [hasSearch, sortTab]);
+
   return (
     <>
-      <SortTabs value={sortTab} onChange={setSortTab} />
+      <SortTabs value={sortTab} onChange={setSortTab} hasSearch={hasSearch} />
       {hasSearch ? (
         <SearchResults
           searchQuery={searchQuery}
@@ -72,13 +87,29 @@ const SearchResults: FC<SearchResultsProps> = ({
   isBookmarked,
   onToggleBookmark,
 }) => {
-  const { hits, isLoading: isSearchLoading } = useSearch(searchQuery);
-
-  // Fetch full Statement objects for the search hits.
-  const statementIds = useMemo(
-    () => hits.map((h) => BigInt(h.statementId)),
-    [hits],
+  const { hits, isLoading: isSearchLoading } = useSearch(
+    searchQuery,
+    forumContractAddress,
+    { updateUrl: true },
   );
+
+  // Fetch the current statement count so we can discard stale/invalid IDs
+  // that would cause getStatementsById to revert.
+  const { data: statementCountRaw } = useReadContract({
+    address: forumContractAddress,
+    abi: FORUM_ABI,
+    functionName: "statementCount",
+  });
+  const statementCount =
+    statementCountRaw !== undefined ? Number(statementCountRaw) : undefined;
+
+  // Filter out any search hit whose ID is >= statementCount (stale index).
+  const statementIds = useMemo(() => {
+    if (statementCount === undefined) return [];
+    return hits
+      .filter((h) => h.statementId < statementCount)
+      .map((h) => BigInt(h.statementId));
+  }, [hits, statementCount]);
 
   const result = useReadContract({
     address: forumContractAddress,
@@ -108,7 +139,16 @@ const SearchResults: FC<SearchResultsProps> = ({
       return [...rawStatements].sort((a, b) => Number(b.id) - Number(a.id));
     }
 
-    // "top" / "trending" → ranked statements first (ascending rank),
+    if (sortTab === "relevant") {
+      // Pure Meilisearch relevance order.
+      return [...rawStatements].sort((a, b) => {
+        const ai = relevanceOrder.get(Number(a.id)) ?? Number.MAX_SAFE_INTEGER;
+        const bi = relevanceOrder.get(Number(b.id)) ?? Number.MAX_SAFE_INTEGER;
+        return ai - bi;
+      });
+    }
+
+    // "top" → ranked statements first (ascending rank),
     // then unranked in relevance order.
     const ranked: Statement[] = [];
     const unranked: Statement[] = [];
@@ -132,12 +172,14 @@ const SearchResults: FC<SearchResultsProps> = ({
   }, [rawStatements, sortTab, relevanceOrder]);
 
   const isLoading = isSearchLoading || result.isLoading;
+  // Treat contract errors (e.g. all IDs invalid) as "no results".
+  const noResults = result.isError && !result.isLoading;
 
   return (
     <StatementList
-      statements={statements}
+      statements={noResults ? [] : statements}
       hasMore={false}
-      isLoading={isLoading}
+      isLoading={noResults ? false : isLoading}
       onLoadMore={() => {}}
       loadingLabel="Searching…"
       isBookmarked={isBookmarked}

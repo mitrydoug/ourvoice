@@ -1,7 +1,7 @@
-import { FC, useState } from "react";
+import { FC, useEffect, useState } from "react";
 import Box from "@mui/material/Box";
-import { Outlet } from "react-router-dom";
-import { Fab } from "@mui/material";
+import { Button, Fab } from "@mui/material";
+import { Outlet, useLocation, useParams } from "react-router-dom";
 import CreateIcon from "@mui/icons-material/Create";
 
 import MenuAppBar from "./AppBar";
@@ -9,18 +9,59 @@ import SideNav from "./SideNav";
 import BottomNav from "./BottomNav";
 import CreateStatementModal from "./CreateStatementModal";
 import SearchField from "./SearchField";
+import UserProfilePanel from "./UserProfilePanel";
 import useIsMobile from "@/hooks/useIsMobile";
 import { useUserVotes } from "../state/UserVotes";
+import { useAccount } from "wagmi";
+import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { SearchProvider, useSearchQuery } from "@/state/Search";
+import { useForum } from "../state/Forum";
+
+/**
+ * Sync the `:forumSlug` URL param → ForumProvider context.
+ * Runs on every route change so the context always matches the URL.
+ */
+const useForumSlugSync = () => {
+  const { forumSlug } = useParams<{ forumSlug: string }>();
+  const { syncFromSlug } = useForum();
+
+  useEffect(() => {
+    if (forumSlug) {
+      syncFromSlug(forumSlug);
+    }
+  }, [forumSlug, syncFromSlug]);
+};
+
+/* ── Right column: user profile pill / connect wallet ──────────────────── */
+
+const RightColumn: FC = () => {
+  const { address } = useAccount();
+  const { openConnectModal } = useConnectModal();
+
+  if (!address) {
+    return (
+      <Button onClick={() => openConnectModal?.()} size="medium" fullWidth>
+        Connect Wallet
+      </Button>
+    );
+  }
+
+  return <UserProfilePanel />;
+};
 
 /* ── Desktop: 3-column layout ─────────────────────────────────────────── */
 
 const DesktopLayout: FC = () => {
+  const location = useLocation();
   const {
     query: localQuery,
     setQuery: setSearchQuery,
     clearQuery: clearSearch,
   } = useSearchQuery();
+
+  const hideSearch =
+    location.pathname.endsWith("/write") ||
+    location.pathname.includes("/statement/");
 
   return (
     <Box
@@ -39,7 +80,9 @@ const DesktopLayout: FC = () => {
           borderRight: "1px solid",
           borderColor: "divider",
           overflowY: "auto",
-          p: 3,
+          pt: 1.5,
+          px: 3,
+          pb: 3,
           scrollbarWidth: "none",
           "&::-webkit-scrollbar": { display: "none" },
         }}
@@ -50,31 +93,58 @@ const DesktopLayout: FC = () => {
       {/* Middle column – search, tabs, statements */}
       <Box
         sx={{
-          width: 700,
-          flexShrink: 0,
-          overflowY: "auto",
-          px: 3,
-          pt: 3,
-          pb: 8,
+          width: 600,
+          maxWidth: 600,
+          minWidth: 0,
+          flexShrink: 1,
+          display: "flex",
+          flexDirection: "column",
           borderRight: "1px solid",
           borderColor: "divider",
+          overflow: "hidden",
+        }}
+      >
+        {/* Fixed search header */}
+        {!hideSearch && (
+          <Box sx={{ px: 3, pt: 3, pb: 1, flexShrink: 0 }}>
+            <SearchField
+              value={localQuery}
+              onChange={setSearchQuery}
+              onClear={clearSearch}
+              fullWidth
+            />
+          </Box>
+        )}
+
+        {/* Scrollable content area */}
+        <Box
+          sx={{
+            flex: 1,
+            overflowY: "auto",
+            px: 3,
+            pt: hideSearch ? 1.5 : 0,
+            pb: 8,
+            scrollbarWidth: "none",
+            "&::-webkit-scrollbar": { display: "none" },
+          }}
+        >
+          <Outlet />
+        </Box>
+      </Box>
+
+      {/* Right column – user profile */}
+      <Box
+        sx={{
+          width: 280,
+          flexShrink: 0,
+          overflowY: "auto",
+          p: 3,
           scrollbarWidth: "none",
           "&::-webkit-scrollbar": { display: "none" },
         }}
       >
-        <Box sx={{ mb: 2 }}>
-          <SearchField
-            value={localQuery}
-            onChange={setSearchQuery}
-            onClear={clearSearch}
-            fullWidth
-          />
-        </Box>
-        <Outlet />
+        <RightColumn />
       </Box>
-
-      {/* Right column – empty for now (mirrors left column width for balance) */}
-      <Box sx={{ width: 280, flexShrink: 0 }} />
     </Box>
   );
 };
@@ -140,6 +210,7 @@ const MobileLayout: FC = () => {
 
 const Root: FC = () => {
   const isMobile = useIsMobile();
+  useForumSlugSync();
 
   return (
     <SearchProvider>

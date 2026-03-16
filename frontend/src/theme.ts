@@ -129,8 +129,8 @@ export const theme = createTheme({
     appBar: {
       logoIcon: {
         size: {
-          mobile: "1.75rem",
-          desktop: "2rem",
+          mobile: "1.3rem",
+          desktop: "1.5rem",
         },
       },
       logoText: {

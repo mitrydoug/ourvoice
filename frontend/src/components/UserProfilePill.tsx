@@ -1,11 +1,30 @@
-import React, { useMemo } from "react";
-import { Avatar, Box, IconButton, Typography, keyframes } from "@mui/material";
-import DoneAllIcon from "@mui/icons-material/DoneAll";
-import { useAccount } from "wagmi";
+import React, { useMemo, useState } from "react";
+import {
+  Avatar,
+  Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  Divider,
+  Typography,
+  keyframes,
+} from "@mui/material";
+import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
+import { useAccount, useDisconnect } from "wagmi";
+import { useNavigate } from "react-router-dom";
+import { useForumNavigate } from "../hooks/useForumNavigate";
 import useNickname from "@/hooks/useNickname";
 import { useUserVotes } from "../state/UserVotes";
-import { metamaskIcon } from "../util";
+import { useForum } from "../state/Forum";
+import { FORUMS } from "./ChooseForumModal";
+import { useUserRegistration } from "@/hooks/useUserRegistration";
+import { toAlpha2, toDemonym } from "../countryCodeMap";
+import { metamaskIcon, shortenAddress } from "../util";
 import AnimatedCounter from "./AnimatedCounter";
+import IndeterminateCheckBoxIcon from "@mui/icons-material/IndeterminateCheckBox";
 
 const shimmer = keyframes`
   0% { opacity: 0.6; }
@@ -38,20 +57,24 @@ const CoinIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
   </svg>
 );
 
-export interface UserProfilePillProps {
-  onOpenMenu: (event: React.MouseEvent<HTMLElement>) => void;
-}
-
-const UserProfilePill: React.FC<UserProfilePillProps> = ({ onOpenMenu }) => {
+const UserProfilePanel: React.FC = () => {
   const { address } = useAccount();
+  const { disconnect } = useDisconnect();
+  const navigate = useForumNavigate();
+  const rawNavigate = useNavigate();
   const [nickname] = useNickname();
   const userVotes = useUserVotes();
   const { isUserVerified } = userVotes;
+  const { nationality, isRegistered } = useUserRegistration();
+  const { name: forumName } = useForum();
+  const forum = FORUMS[forumName];
 
   const avatar = useMemo(() => {
     if (address) return metamaskIcon(address);
     return null;
   }, [address]);
+
+  const alpha2 = nationality ? toAlpha2(nationality) : null;
 
   const credits = isUserVerified
     ? (userVotes.state?.staged?.credits ?? 0)
@@ -61,116 +84,285 @@ const UserProfilePill: React.FC<UserProfilePillProps> = ({ onOpenMenu }) => {
     : false;
   const commitBusy = isUserVerified
     ? userVotes.state?.commitStatus !== undefined &&
-    userVotes.state?.commitStatus !== "idle"
+      userVotes.state?.commitStatus !== "idle"
     : false;
-  const commitChanges = isUserVerified ? userVotes.commitChanges : () => { };
+  const commitChanges = isUserVerified ? userVotes.commitChanges : () => {};
+  const resetChanges = isUserVerified ? userVotes.resetChanges : () => {};
   const hasEnoughCredits = isUserVerified
     ? (userVotes.state?.hasEnoughCredits ?? true)
     : true;
 
-  const showCommit = credits !== null;
-  const isOverBudget = credits !== null && credits < 0;
+  const stagedStatementCount = isUserVerified
+    ? (userVotes.state?.staged?.stagedStatements.length ?? 0)
+    : 0;
+  const stagedSupportCount = isUserVerified
+    ? (userVotes.state?.staged?.supportAdjustments.size ?? 0)
+    : 0;
 
-  /** Format credits with locale-aware thousands separators */
-  const formattedCredits = credits !== null ? credits.toLocaleString() : null;
+  const isOverBudget = credits !== null && credits < 0;
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
 
   return (
-    <Box
-      onClick={onOpenMenu}
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        cursor: "pointer",
-        borderRadius: 4,
-        bgcolor: "action.hover",
-        px: 1.5,
-        py: 1.25,
-        transition: "background-color 0.2s, box-shadow 0.2s",
-        "&:hover": {
-          bgcolor: "action.selected",
-          boxShadow: "0 1px 4px rgba(0,0,0,0.10)",
-        },
-      }}
-    >
-      {/* Top row: avatar, name, commit */}
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-        <Avatar src={avatar ?? undefined} sx={{ width: 36, height: 36 }} />
-
-        <Typography
-          variant="body1"
-          fontWeight={600}
-          noWrap
-          sx={{ flex: 1, minWidth: 0 }}
-        >
-          {nickname}
-        </Typography>
-
-        {/* Commit button */}
-        {showCommit && (
-          <IconButton
-            size="small"
-            onClick={(e) => {
-              e.stopPropagation();
-              void commitChanges();
-            }}
-            disabled={!hasStagedChanges || commitBusy || !hasEnoughCredits}
-            sx={{
-              ...(hasStagedChanges && !commitBusy
-                ? {
-                  animation: `${shimmer} 1.5s ease-in-out infinite`,
-                  bgcolor: "primary.main",
-                  color: "white",
-                  "&:hover": { bgcolor: "primary.dark" },
-                }
-                : {}),
-            }}
-          >
-            <DoneAllIcon fontSize="small" />
-          </IconButton>
-        )}
-      </Box>
-
-      {/* Credits row */}
-      {formattedCredits !== null && (
+    <>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          borderRadius: 4,
+          bgcolor: "action.hover",
+          px: 2,
+          py: 2,
+        }}
+      >
+        {/* Avatar + name row */}
         <Box
           sx={{
             display: "flex",
             alignItems: "center",
-            gap: 0.75,
-            mt: 0.5,
-            ml: "25px",
-            ...(isOverBudget && {
-              bgcolor: "error.main",
-              color: "error.contrastText",
-              borderRadius: 100,
-              px: 1.5,
-              py: 0.25,
-              ml: "20px",
-            }),
+            gap: 1.5,
           }}
         >
-          <CoinIcon size={18} />
-          <AnimatedCounter
-            value={credits!}
-            typographyProps={{
-              variant: "body2",
-              fontWeight: 700,
-              sx: {
-                fontVariantNumeric: "tabular-nums",
-                color: "inherit",
-              },
-            }}
-          />
-          <Typography
-            variant="caption"
-            color={isOverBudget ? "inherit" : "text.secondary"}
-          >
-            credits
-          </Typography>
+          <Avatar src={avatar ?? undefined} sx={{ width: 48, height: 48 }} />
+
+          <Box sx={{ minWidth: 0 }}>
+            <Typography variant="h6" fontWeight={700} noWrap>
+              {nickname || (address ? shortenAddress(address) : "")}
+            </Typography>
+
+            {/* Verified / Not Verified status */}
+            {!isRegistered && (
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 0.75,
+                }}
+              >
+                <IndeterminateCheckBoxIcon
+                  sx={{ fontSize: 16, color: "text.disabled" }}
+                />
+                <Typography variant="body2" color="text.secondary">
+                  Not verified
+                </Typography>
+              </Box>
+            )}
+            {isRegistered && (
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 0.75,
+                }}
+              >
+                {alpha2 ? (
+                  <img
+                    src={`./flags/${alpha2}.svg`}
+                    alt={`${nationality} flag`}
+                    style={{
+                      height: "1rem",
+                      width: "auto",
+                      borderRadius: "2px",
+                    }}
+                  />
+                ) : (
+                  <img
+                    src="./earth.png"
+                    alt="Earth"
+                    style={{
+                      height: "1rem",
+                      width: "auto",
+                      borderRadius: "2px",
+                    }}
+                  />
+                )}
+                <Typography variant="body2" color="text.secondary">
+                  Verified
+                </Typography>
+                <VerifiedUserIcon
+                  sx={{ fontSize: 16, color: "success.main" }}
+                />
+              </Box>
+            )}
+          </Box>
         </Box>
-      )}
-    </Box>
+
+        {/* Credits / Join In section */}
+        {!isRegistered && (
+          <>
+            <Divider sx={{ my: 1.5 }} />
+            <Button
+              variant="contained"
+              fullWidth
+              onClick={() => void rawNavigate("/verify")}
+              sx={{
+                borderRadius: 2,
+                fontWeight: 700,
+                textTransform: "none",
+              }}
+            >
+              Join In
+            </Button>
+          </>
+        )}
+        {isRegistered && !isUserVerified && forum?.countryCode && (
+          <>
+            <Divider sx={{ my: 1.5 }} />
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ textAlign: "center" }}
+            >
+              Only {toDemonym(forum.countryCode) ?? forum.label} citizens can
+              participate in this Forum.
+            </Typography>
+          </>
+        )}
+        {credits !== null && (
+          <>
+            <Divider sx={{ my: 1.5 }} />
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 0.75,
+                ...(isOverBudget && {
+                  bgcolor: "error.main",
+                  color: "error.contrastText",
+                  borderRadius: 100,
+                  px: 1.5,
+                  py: 0.25,
+                }),
+              }}
+            >
+              <CoinIcon size={20} />
+              <AnimatedCounter
+                value={credits}
+                typographyProps={{
+                  variant: "body1",
+                  fontWeight: 700,
+                  sx: {
+                    fontVariantNumeric: "tabular-nums",
+                    color: "inherit",
+                  },
+                }}
+              />
+              <Typography
+                variant="body2"
+                color={isOverBudget ? "inherit" : "text.secondary"}
+              >
+                Credits
+              </Typography>
+            </Box>
+
+            {/* Lock It In + Reset buttons */}
+            <Box sx={{ display: "flex", gap: 1, mt: 1.5 }}>
+              <Button
+                variant="contained"
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void commitChanges();
+                }}
+                disabled={!hasStagedChanges || commitBusy || !hasEnoughCredits}
+                sx={{
+                  flex: 1,
+                  borderRadius: 2,
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                  ...(hasStagedChanges && !commitBusy
+                    ? {
+                        animation: `${shimmer} 1.5s ease-in-out infinite`,
+                      }
+                    : {}),
+                }}
+              >
+                Lock it in!
+              </Button>
+              <Button
+                variant="text"
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setResetDialogOpen(true);
+                }}
+                disabled={!hasStagedChanges || commitBusy}
+                sx={{
+                  textTransform: "none",
+                  color: "text.secondary",
+                  fontWeight: 500,
+                  minWidth: 0,
+                  px: 1.5,
+                }}
+              >
+                Reset
+              </Button>
+            </Box>
+          </>
+        )}
+
+        <Divider sx={{ my: 1.5 }} />
+
+        <Button
+          fullWidth
+          variant="text"
+          color="inherit"
+          onClick={() => void navigate("/profile")}
+          sx={{
+            fontWeight: 600,
+            textTransform: "none",
+            color: "text.secondary",
+          }}
+        >
+          Settings
+        </Button>
+
+        <Button
+          fullWidth
+          variant="text"
+          color="inherit"
+          onClick={(e) => {
+            e.stopPropagation();
+            disconnect();
+          }}
+          sx={{
+            fontWeight: 600,
+            textTransform: "none",
+            color: "text.secondary",
+          }}
+        >
+          Disconnect
+        </Button>
+      </Box>
+
+      {/* Reset confirmation dialog */}
+      <Dialog open={resetDialogOpen} onClose={() => setResetDialogOpen(false)}>
+        <DialogTitle>Reset staged changes?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {stagedStatementCount > 0 && stagedSupportCount > 0
+              ? `You will lose ${stagedStatementCount} staged statement${stagedStatementCount !== 1 ? "s" : ""} and ${stagedSupportCount} support adjustment${stagedSupportCount !== 1 ? "s" : ""}.`
+              : stagedStatementCount > 0
+                ? `You will lose ${stagedStatementCount} staged statement${stagedStatementCount !== 1 ? "s" : ""}.`
+                : `You will lose ${stagedSupportCount} support adjustment${stagedSupportCount !== 1 ? "s" : ""}.`}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setResetDialogOpen(false)}>Cancel</Button>
+          <Button
+            color="error"
+            onClick={() => {
+              resetChanges();
+              setResetDialogOpen(false);
+            }}
+          >
+            Reset
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 };
 
-export default UserProfilePill;
+export default UserProfilePanel;

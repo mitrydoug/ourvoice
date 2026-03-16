@@ -32,7 +32,11 @@ interface UseSearchResult {
  * and the URL is **not** touched (the caller handles clearing via
  * `clearQuery`).
  */
-export function useSearch(query: string): UseSearchResult {
+export function useSearch(
+  query: string,
+  forumAddress?: string,
+  { updateUrl = false }: { updateUrl?: boolean } = {},
+): UseSearchResult {
   const [hits, setHits] = useState<SearchHit[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -52,9 +56,14 @@ export function useSearch(query: string): UseSearchResult {
     const timer = setTimeout(() => {
       const requestId = ++inflightRef.current;
 
-      fetch(
-        `${SEARCH_URL}/search?statement_text=${encodeURIComponent(trimmed)}`,
-      )
+      const params = new URLSearchParams({
+        statement_text: trimmed,
+      });
+      if (forumAddress) {
+        params.set("forum_address", forumAddress);
+      }
+
+      fetch(`${SEARCH_URL}/search?${params.toString()}`)
         .then((res) => res.json())
         .then((data: unknown) => {
           if (requestId !== inflightRef.current) return;
@@ -70,7 +79,9 @@ export function useSearch(query: string): UseSearchResult {
           setIsLoading(false);
 
           // Sync the successfully-searched query to the URL.
-          writeQueryToHash(trimmed);
+          if (updateUrl) {
+            writeQueryToHash(trimmed);
+          }
         })
         .catch(() => {
           if (requestId !== inflightRef.current) return;
@@ -80,7 +91,7 @@ export function useSearch(query: string): UseSearchResult {
     }, DEBOUNCE_MS);
 
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [query, forumAddress, updateUrl]);
 
   return { hits, isLoading };
 }

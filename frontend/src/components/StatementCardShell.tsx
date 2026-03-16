@@ -1,6 +1,9 @@
-import { FC, ReactNode } from "react";
+import { FC, MouseEvent, ReactNode } from "react";
 import { Card, Stack, SxProps, Theme, Typography } from "@mui/material";
 import useIsMobile from "@/hooks/useIsMobile";
+
+/** Prevent clicks inside interactive zones from bubbling to the card. */
+const stopPropagation = (e: MouseEvent) => e.stopPropagation();
 
 interface StatementCardShellProps {
   /**
@@ -21,6 +24,8 @@ interface StatementCardShellProps {
    * inline below the text on mobile, in the right column on desktop.
    */
   voteControls?: ReactNode;
+  /** Optional click handler for the entire card. */
+  onClick?: () => void;
   sx?: SxProps<Theme>;
 }
 
@@ -36,12 +41,13 @@ const StatementCardShell: FC<StatementCardShellProps> = ({
   text,
   statsSlot,
   voteControls,
+  onClick,
   sx,
 }) => {
   const isMobile = useIsMobile();
 
   return (
-    <Card sx={{ p: 2, ...sx }}>
+    <Card sx={{ p: 2, ...sx }} onClick={onClick}>
       <Stack direction="row" spacing={2}>
         {/* Left column: rank or placeholder */}
         <Stack
@@ -63,9 +69,11 @@ const StatementCardShell: FC<StatementCardShellProps> = ({
           </Typography>
 
           {/* Inline vote controls on mobile */}
-          {isMobile && voteControls}
+          {isMobile && voteControls && (
+            <div onClick={stopPropagation}>{voteControls}</div>
+          )}
 
-          {statsSlot}
+          <div onClick={stopPropagation}>{statsSlot}</div>
         </Stack>
 
         {/* Right column: vertical vote controls on desktop */}
@@ -73,6 +81,7 @@ const StatementCardShell: FC<StatementCardShellProps> = ({
           <Stack
             alignItems="center"
             justifyContent="center"
+            onClick={stopPropagation}
             sx={{ flexShrink: 0, ml: "auto" }}
           >
             {voteControls}

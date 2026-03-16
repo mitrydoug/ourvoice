@@ -1,0 +1,52 @@
+services:
+  hardhat:
+    build:
+      context: ./blockchain
+      dockerfile: Dockerfile
+    working_dir: /app
+    volumes:
+      - ./blockchain:/app
+    ports:
+      - "8545:8545"
+    command: sh -c "npm install && npx hardhat node"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8545" ]
+      interval: 30s
+      retries: 3
+      timeout: 2s
+      start_period: 2m
+      # start_interval: 5s
+  contract_deployer:
+    build:
+      context: ./blockchain
+      dockerfile: Dockerfile
+    working_dir: /app
+    volumes:
+      - ./blockchain:/app
+      - ./frontend:/frontend
+    depends_on:
+      hardhat:
+        condition: service_healthy
+    command: sh -c "npm install && rm -rf ignition/deployments/chain-31337 && npx hardhat clean && npx hardhat compile && npx hardhat run scripts/deploy.ts --network compose_hardhat"
+  frontend:
+    image: node:24-slim
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_NETWORK=localhost
+    depends_on:
+      contract_deployer:
+        condition: service_completed_successfully
+        required: false
+    command: sh -c "npm install && npx vite dev --force -- --host"
+  backend:
+    environment:
+      - ETHEREUM_NODE_URL=ws://hardhat:8545
+    depends_on:
+      contract_deployer:
+        condition: service_completed_successfully
+        required: false

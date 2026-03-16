@@ -25,7 +25,7 @@ const SearchField: React.FC<SearchFieldProps> = ({
       input: {
         startAdornment: (
           <InputAdornment position="start">
-            <SearchIcon fontSize="small" />
+            <SearchIcon fontSize="small" sx={{ color: "text.secondary" }} />
           </InputAdornment>
         ),
         endAdornment: value ? (
@@ -36,9 +36,15 @@ const SearchField: React.FC<SearchFieldProps> = ({
           </InputAdornment>
         ) : undefined,
         sx: {
-          backgroundColor: "white",
-          height: 36,
+          height: 40,
           fontSize: "0.875rem",
+          borderRadius: 2,
+          bgcolor: "action.hover",
+          pl: 1.5,
+          pr: 0.5,
+          "&:hover": {
+            bgcolor: "action.selected",
+          },
         },
       },
     }}
@@ -46,7 +52,13 @@ const SearchField: React.FC<SearchFieldProps> = ({
       width: fullWidth ? "100%" : "auto",
       flexGrow: 1,
       "& .MuiOutlinedInput-root": {
-        backgroundColor: "white",
+        borderRadius: 2,
+        "& fieldset": { border: "none" },
+        "&:hover fieldset": { border: "none" },
+        "&.Mui-focused fieldset": {
+          border: "1px solid",
+          borderColor: "primary.main",
+        },
       },
     }}
   />

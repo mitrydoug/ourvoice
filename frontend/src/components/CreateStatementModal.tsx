@@ -10,6 +10,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useReadContract } from "wagmi";
+import { useForumNavigate } from "../hooks/useForumNavigate";
 
 import { useUserVotes } from "../state/UserVotes";
 import { useForum, FORUM_ABI } from "../state/Forum";
@@ -32,6 +33,7 @@ const CreateStatementModal: FC<CreateStatementModalProps> = ({
   open,
   onClose,
 }) => {
+  const navigate = useForumNavigate();
   const [text, setText] = useState("");
   const [initialSupport, setInitialSupport] = useState(0);
   const [sortTab, setSortTab] = useState<SortMode>("top");
@@ -44,12 +46,28 @@ const CreateStatementModal: FC<CreateStatementModalProps> = ({
 
   // ── Similar-statements search ──────────────────────────────────────────
   const hasSearch = text.trim().length > 0;
-  const { hits, isLoading: isSearchLoading } = useSearch(text);
-
-  const statementIds = useMemo(
-    () => hits.map((h) => BigInt(h.statementId)),
-    [hits],
+  const { hits, isLoading: isSearchLoading } = useSearch(
+    text,
+    forumContractAddress,
   );
+
+  // Fetch the current statement count so we can discard stale/invalid IDs
+  // that would cause getStatementsById to revert.
+  const { data: statementCountRaw } = useReadContract({
+    address: forumContractAddress,
+    abi: FORUM_ABI,
+    functionName: "statementCount",
+  });
+  const statementCount =
+    statementCountRaw !== undefined ? Number(statementCountRaw) : undefined;
+
+  // Filter out any search hit whose ID is >= statementCount (stale index).
+  const statementIds = useMemo(() => {
+    if (statementCount === undefined) return [];
+    return hits
+      .filter((h) => h.statementId < statementCount)
+      .map((h) => BigInt(h.statementId));
+  }, [hits, statementCount]);
 
   const result = useReadContract({
     address: forumContractAddress,
@@ -76,7 +94,16 @@ const CreateStatementModal: FC<CreateStatementModalProps> = ({
       return [...rawStatements].sort((a, b) => Number(b.id) - Number(a.id));
     }
 
-    // "top" / "trending" → ranked first (ascending rank), then unranked in relevance order.
+    if (sortTab === "relevant") {
+      // Pure Meilisearch relevance order.
+      return [...rawStatements].sort((a, b) => {
+        const ai = relevanceOrder.get(Number(a.id)) ?? Number.MAX_SAFE_INTEGER;
+        const bi = relevanceOrder.get(Number(b.id)) ?? Number.MAX_SAFE_INTEGER;
+        return ai - bi;
+      });
+    }
+
+    // "top" → ranked first (ascending rank), then unranked in relevance order.
     const ranked: Statement[] = [];
     const unranked: Statement[] = [];
 
@@ -99,6 +126,8 @@ const CreateStatementModal: FC<CreateStatementModalProps> = ({
   }, [rawStatements, sortTab, relevanceOrder]);
 
   const isSimilarLoading = isSearchLoading || result.isLoading;
+  // Treat contract errors (e.g. all IDs invalid) as "no results".
+  const noSimilarResults = result.isError && !result.isLoading;
 
   // ── Handlers ───────────────────────────────────────────────────────────
   const updateText = useCallback((textVal: string) => {
@@ -127,6 +156,7 @@ const CreateStatementModal: FC<CreateStatementModalProps> = ({
       setInitialSupport(0);
       setSortTab("top");
       onClose();
+      void navigate("/my-statements");
     }
   }, [
     text,
@@ -135,6 +165,7 @@ const CreateStatementModal: FC<CreateStatementModalProps> = ({
     stageStatement,
     setPendingDraftCost,
     onClose,
+    navigate,
   ]);
 
   const handleCancel = useCallback(() => {
@@ -251,7 +282,11 @@ const CreateStatementModal: FC<CreateStatementModalProps> = ({
               Similar Statements
             </Typography>
 
-            <SortTabs value={sortTab} onChange={setSortTab} />
+            <SortTabs
+              value={sortTab}
+              onChange={setSortTab}
+              hasSearch={hasSearch}
+            />
 
             <Box
               sx={{
@@ -263,7 +298,7 @@ const CreateStatementModal: FC<CreateStatementModalProps> = ({
                 py: 0.5,
               }}
             >
-              {isSimilarLoading && hasSearch ? (
+              {isSimilarLoading && !noSimilarResults && hasSearch ? (
                 <Stack
                   alignItems="center"
                   justifyContent="center"

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate two logo variations for Symvoli."""
+"""Generate two logo variations for Symvolia."""
 import math
 import os
 
@@ -50,7 +50,7 @@ def ring_icon(size, r, sw):
     dot_r = sw * 0.35
     return (
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {size} {size}">\n'
-        f"  <title>Symvoli — Mosaic Ring</title>\n"
+        f"  <title>Symvolia — Mosaic Ring</title>\n"
         f"  <desc>Six arc segments forming a ring — many contributions, one whole.</desc>\n"
         f"{ring_arcs(cx, cy, r, sw)}\n"
         f'  <circle cx="{cx}" cy="{cy}" r="{dot_r:.1f}" fill="#1A3C6E"/>\n'
@@ -63,13 +63,13 @@ def ring_logo(icon_size, r, sw, total_w):
     dot_r = sw * 0.35
     return (
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {total_w} {icon_size}">\n'
-        f"  <title>Symvoli — Mosaic Ring</title>\n"
+        f"  <title>Symvolia — Mosaic Ring</title>\n"
         f"{ring_arcs(cx, cy, r, sw)}\n"
         f'  <circle cx="{cx}" cy="{cy}" r="{dot_r:.1f}" fill="#1A3C6E"/>\n'
         f'  <text x="{icon_size + 8}" y="{icon_size * 0.66:.0f}" '
         f"font-family=\"Georgia, 'Palatino Linotype', 'Book Antiqua', Palatino, serif\" "
         f'font-size="36" font-weight="400" fill="#1A3C6E" '
-        f'letter-spacing="1.5">Symvoli</text>\n'
+        f'letter-spacing="1.5">Symvolia</text>\n'
         f"</svg>"
     )
 
@@ -132,7 +132,7 @@ def convergence_icon(size, inner_r, outer_r, half_w):
     dot_r = inner_r * 0.55
     return (
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {size} {size}">\n'
-        f"  <title>Symvoli — Convergence</title>\n"
+        f"  <title>Symvolia — Convergence</title>\n"
         f"  <desc>Seven petals converging on a shared center — many voices, one expression.</desc>\n"
         f"{convergence_petals(cx, cy, inner_r, outer_r, half_w)}\n"
         f'  <circle cx="{cx}" cy="{cy}" r="{dot_r:.1f}" fill="#1A3C6E" opacity="0.85"/>\n'
@@ -145,13 +145,13 @@ def convergence_logo(icon_size, inner_r, outer_r, half_w, total_w):
     dot_r = inner_r * 0.55
     return (
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {total_w} {icon_size}">\n'
-        f"  <title>Symvoli — Convergence</title>\n"
+        f"  <title>Symvolia — Convergence</title>\n"
         f"{convergence_petals(cx, cy, inner_r, outer_r, half_w)}\n"
         f'  <circle cx="{cx}" cy="{cy}" r="{dot_r:.1f}" fill="#1A3C6E" opacity="0.85"/>\n'
         f'  <text x="{icon_size + 8}" y="{icon_size * 0.66:.0f}" '
         f"font-family=\"Georgia, 'Palatino Linotype', 'Book Antiqua', Palatino, serif\" "
         f'font-size="36" font-weight="400" fill="#1A3C6E" '
-        f'letter-spacing="1.5">Symvoli</text>\n'
+        f'letter-spacing="1.5">Symvolia</text>\n'
         f"</svg>"
     )
 

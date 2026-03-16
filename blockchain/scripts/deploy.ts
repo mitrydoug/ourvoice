@@ -21,12 +21,16 @@ async function main() {
   let registry: DeployedContract;
   let forums: Record<string, DeployedContract>;
 
-  if (config.mode === "mocked") {
-    // Simulated networks only: advance block timestamp to real time so that
-    // time-dependent contract logic behaves realistically during development.
+  // Simulated networks only: advance block timestamp to real time so that
+  // time-dependent contract logic (e.g. ZKPassport proof validity windows)
+  // behaves realistically during development. Forked networks inherit the
+  // timestamp of the pinned block, which can be far in the past.
+  if ("networkHelpers" in connection) {
     const { networkHelpers } = connection;
     await networkHelpers.time.increaseTo(Math.floor(Date.now() / 1000) + 1);
+  }
 
+  if (config.mode === "mocked") {
     const module = createForumMockedModule(
       config.forums, config.stepDurationSeconds, config.engagementWindowSeconds,
       config.maxRankedStatements, config.minStatementSupportToRank,
@@ -88,6 +92,19 @@ async function main() {
   const outPath = path.join(networksDir, `${networkFileName}.ts`);
   writeFileSync(outPath, networksModuleText);
   console.log(`Wrote frontend network config to ${outPath}`);
+
+  // Switch from automine to interval mining for development networks.
+  // Automine is used during deployment for speed; interval mining (12s)
+  // simulates realistic block production for manual interaction afterward.
+  if (networkName !== "sepolia") {
+    const { provider } = connection;
+    await provider.request({ method: "evm_setAutomine", params: [false] });
+    await provider.request({
+      method: "evm_setIntervalMining",
+      params: [12000],
+    });
+    console.log("Switched to interval mining (12s blocks).");
+  }
 }
 
 main().catch((err) => {

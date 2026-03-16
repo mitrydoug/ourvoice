@@ -42,10 +42,17 @@ const MySupport: FC = () => {
       supportMap.set(id, currentSupport + adjustment);
     }
 
-    // Filter to only statements with positive effective support, sort by support descending
+    // Filter to only statements with positive effective support, sort by
+    // committed (on-chain) support so cards don't jump while staging changes.
     return Array.from(supportMap.entries())
       .filter(([, support]) => support > 0)
-      .sort((e1, e2) => e2[1] - e1[1])
+      .sort((e1, e2) => {
+        const onChain1 =
+          userVoteState?.onChain?.statementSupport?.get(e1[0]) || 0;
+        const onChain2 =
+          userVoteState?.onChain?.statementSupport?.get(e2[0]) || 0;
+        return onChain2 - onChain1;
+      })
       .map((e) => BigInt(e[0]));
   }, [userVoteState]);
 

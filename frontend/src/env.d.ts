@@ -22,6 +22,15 @@ interface ImportMetaEnv {
 
   /** Base URL for the search API. Defaults to http://localhost:8000 for local dev. */
   readonly VITE_SEARCH_URL?: string;
+
+  /**
+   * Duration of one chart period in seconds. The support chart shows 7
+   * periods plus a live "Now" data point.
+   *
+   * Defaults to `86400` (1 day) for production.  Set to `360` (6 min)
+   * when testing with 60-second step durations (6 steps per period).
+   */
+  readonly VITE_CHART_PERIOD_SECONDS?: string;
 }
 
 interface ImportMeta {
