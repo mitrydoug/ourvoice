@@ -346,17 +346,17 @@ const StepGetApp: FC<{ onBack: () => void; onNext: () => void }> = ({
           onChange={(_, val: "iphone" | "android" | null) => {
             if (val) setPlatform(val);
           }}
-          sx={{ width: "100%" }}
+          size="small"
         >
           <ToggleButton
             value="iphone"
-            sx={{ flex: 1, textTransform: "none", gap: 1 }}
+            sx={{ textTransform: "none", gap: 1, px: 2 }}
           >
             <AppleIcon fontSize="small" /> iPhone
           </ToggleButton>
           <ToggleButton
             value="android"
-            sx={{ flex: 1, textTransform: "none", gap: 1 }}
+            sx={{ textTransform: "none", gap: 1, px: 2 }}
           >
             <AndroidIcon fontSize="small" /> Android
           </ToggleButton>
@@ -427,8 +427,8 @@ const StepScanPassport: FC<{ onBack: () => void; onNext: () => void }> = ({
         textAlign="center"
         sx={{ maxWidth: 440 }}
       >
-        Open the ZKPassport app on your phone and scan your passport using NFC.
-        Your passport information does not leave your device.
+        Open the ZKPassport app and follow the instructions to add your
+        passport. Your passport information does not leave your device.
       </Typography>
 
       <Alert severity="info" sx={{ width: "100%" }}>
@@ -438,7 +438,7 @@ const StepScanPassport: FC<{ onBack: () => void; onNext: () => void }> = ({
       </Alert>
     </Stack>
 
-    <NavButtons onBack={onBack} onNext={onNext} nextLabel="Passport ready" />
+    <NavButtons onBack={onBack} onNext={onNext} nextLabel="Passport added" />
   </StepContainer>
 );
 
