@@ -120,27 +120,27 @@ const NavButtons: FC<{
   nextDisabled = false,
   backLabel = "Back",
 }) => (
-    <Stack direction="row" justifyContent="space-between" sx={{ mt: 4 }}>
+  <Stack direction="row" justifyContent="space-between" sx={{ mt: 4 }}>
+    <Button
+      variant="text"
+      startIcon={<ArrowBackIcon />}
+      onClick={onBack}
+      size="medium"
+    >
+      {backLabel}
+    </Button>
+    {onNext && (
       <Button
-        variant="text"
-        startIcon={<ArrowBackIcon />}
-        onClick={onBack}
+        endIcon={<ArrowForwardIcon />}
+        onClick={onNext}
+        disabled={nextDisabled}
         size="medium"
       >
-        {backLabel}
+        {nextLabel}
       </Button>
-      {onNext && (
-        <Button
-          endIcon={<ArrowForwardIcon />}
-          onClick={onNext}
-          disabled={nextDisabled}
-          size="medium"
-        >
-          {nextLabel}
-        </Button>
-      )}
-    </Stack>
-  );
+    )}
+  </Stack>
+);
 
 // ─── Step 0: Why Verify ──────────────────────────────────────────────────────
 
@@ -499,8 +499,8 @@ const StepChooseLevel: FC<{
           sx={{ maxWidth: 500 }}
         >
           Both options verify you as a unique human. The only difference is
-          whether you&apos;d like to share your nationality to access
-          your country&apos;s forum.
+          whether you&apos;d like to share your nationality to access your
+          country&apos;s forum.
         </Typography>
 
         <Stack
@@ -617,8 +617,7 @@ const PHASE_META: Record<
   },
   CONFIRMING_TX: {
     label: "Confirming on-chain",
-    detail:
-      "Transaction submitted! Waiting for blockchain confirmation…",
+    detail: "Transaction submitted! Waiting for blockchain confirmation…",
     progress: 80,
   },
   VERIFIED: {
@@ -652,7 +651,9 @@ const StepScanVerify: FC<{
   const navigate = useNavigate();
   const [verifyPhase, setVerifyPhase] = useState<VerifyPhase>("PRE_SCAN");
   const [verifyUrl, setVerifyUrl] = useState<string | null>(null);
-  const [pendingTxHash, setPendingTxHash] = useState<`0x${string}` | undefined>();
+  const [pendingTxHash, setPendingTxHash] = useState<
+    `0x${string}` | undefined
+  >();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [verifierParams, setVerifierParams] = useState<any>(null); // eslint-disable-line @typescript-eslint/no-unsafe-assignment
 
@@ -687,9 +688,7 @@ const StepScanVerify: FC<{
   }, [txReceipt, txReceiptError, pendingTxHash, navigate]);
 
   const submitTx = useCallback(
-    async (
-      config: Parameters<typeof writeContractAsync>[0],
-    ) => {
+    async (config: Parameters<typeof writeContractAsync>[0]) => {
       setVerifyPhase("SUBMITTING_TX");
       try {
         const txHash = await writeContractAsync(config);
@@ -731,12 +730,12 @@ const StepScanVerify: FC<{
         onReject,
         onError,
       } = revealNationality
-          ? queryBuilder
+        ? queryBuilder
             .gte("age", 18)
             .disclose("nationality")
             .bind("chain", "ethereum_sepolia")
             .done()
-          : queryBuilder.gte("age", 18).bind("chain", "ethereum_sepolia").done();
+        : queryBuilder.gte("age", 18).bind("chain", "ethereum_sepolia").done();
 
       let proof: ProofResult;
 
