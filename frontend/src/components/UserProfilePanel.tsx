@@ -14,6 +14,7 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
+  Skeleton,
   Typography,
   keyframes,
 } from "@mui/material";
@@ -33,6 +34,7 @@ import { toAlpha2, toDemonym } from "../countryCodeMap";
 import { metamaskIcon, shortenAddress } from "../util";
 import AnimatedCounter from "./AnimatedCounter";
 import IndeterminateCheckBoxIcon from "@mui/icons-material/IndeterminateCheckBox";
+import useDelayedLoading from "@/hooks/useDelayedLoading";
 
 const shimmer = keyframes`
   0% { opacity: 0.6; }
@@ -72,10 +74,14 @@ const UserProfilePanel: React.FC = () => {
   const rawNavigate = useNavigate();
   const [nickname] = useNickname();
   const userVotes = useUserVotes();
-  const { isUserVerified } = userVotes;
-  const { nationality, isRegistered } = useUserRegistration();
+  const { isUserVerified, isVerifiedLoading } = userVotes;
+  const { nationality, isRegistered, isLoading: isRegistrationLoading } =
+    useUserRegistration();
   const { name: forumName } = useForum();
   const forum = FORUMS[forumName];
+
+  const isStatusLoading = isVerifiedLoading || isRegistrationLoading;
+  const showSkeleton = useDelayedLoading(isStatusLoading);
 
   const avatar = useMemo(() => {
     if (address) return metamaskIcon(address);
@@ -92,10 +98,10 @@ const UserProfilePanel: React.FC = () => {
     : false;
   const commitBusy = isUserVerified
     ? userVotes.state?.commitStatus !== undefined &&
-      userVotes.state?.commitStatus !== "idle"
+    userVotes.state?.commitStatus !== "idle"
     : false;
-  const commitChanges = isUserVerified ? userVotes.commitChanges : () => {};
-  const resetChanges = isUserVerified ? userVotes.resetChanges : () => {};
+  const commitChanges = isUserVerified ? userVotes.commitChanges : () => { };
+  const resetChanges = isUserVerified ? userVotes.resetChanges : () => { };
   const hasEnoughCredits = isUserVerified
     ? (userVotes.state?.hasEnoughCredits ?? true)
     : true;
@@ -110,6 +116,32 @@ const UserProfilePanel: React.FC = () => {
   const isOverBudget = credits !== null && credits < 0;
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+
+  if (showSkeleton) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          borderRadius: 4,
+          bgcolor: "action.hover",
+          px: 2,
+          pt: 2,
+          pb: 1,
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+          <Skeleton variant="circular" width={36} height={36} />
+          <Box sx={{ flex: 1 }}>
+            <Skeleton variant="text" width="70%" height={24} />
+            <Skeleton variant="text" width="50%" height={18} />
+          </Box>
+        </Box>
+        <Divider sx={{ my: 1.5 }} />
+        <Skeleton variant="rounded" width="100%" height={36} />
+      </Box>
+    );
+  }
 
   return (
     <>
@@ -140,7 +172,10 @@ const UserProfilePanel: React.FC = () => {
             </Typography>
 
             {/* Verified / Not Verified status */}
-            {!isRegistered && (
+            {isStatusLoading && (
+              <Skeleton variant="text" width={80} height={18} />
+            )}
+            {!isStatusLoading && !isRegistered && (
               <Box
                 sx={{
                   display: "flex",
@@ -156,7 +191,7 @@ const UserProfilePanel: React.FC = () => {
                 </Typography>
               </Box>
             )}
-            {isRegistered && (
+            {!isStatusLoading && isRegistered && (
               <Box
                 sx={{
                   display: "flex",
@@ -194,7 +229,7 @@ const UserProfilePanel: React.FC = () => {
         </Box>
 
         {/* Credits / Join In section */}
-        {!isRegistered && (
+        {!isStatusLoading && !isRegistered && (
           <>
             <Divider sx={{ my: 1.5 }} />
             <Button
@@ -211,7 +246,7 @@ const UserProfilePanel: React.FC = () => {
             </Button>
           </>
         )}
-        {isRegistered && !isUserVerified && forum?.countryCode && (
+        {!isStatusLoading && isRegistered && !isUserVerified && forum?.countryCode && (
           <>
             <Divider sx={{ my: 1.5 }} />
             <Typography
@@ -280,8 +315,8 @@ const UserProfilePanel: React.FC = () => {
                   letterSpacing: "0.05em",
                   ...(hasStagedChanges && !commitBusy
                     ? {
-                        animation: `${shimmer} 1.5s ease-in-out infinite`,
-                      }
+                      animation: `${shimmer} 1.5s ease-in-out infinite`,
+                    }
                     : {}),
                 }}
               >

@@ -25,6 +25,8 @@ interface Registration {
 export interface UserRegistration {
   /** Whether the user is registered in the OurVoiceRegistry (any forum). */
   isRegistered: boolean;
+  /** True while the registration query is still in-flight. */
+  isLoading: boolean;
   /**
    * The user's nationality from their registration.
    * - `null` when not registered
@@ -45,27 +47,34 @@ export interface UserRegistration {
 export function useUserRegistration(): UserRegistration {
   const { address } = useAccount();
 
-  const { data: isRegistered } = useReadContract({
-    ...registryReadConfig,
-    functionName: "isRegistered",
-    args: address ? [address] : undefined,
-    query: { enabled: !!address },
-  });
+  const { data: isRegistered, isLoading: isRegisteredLoading } =
+    useReadContract({
+      ...registryReadConfig,
+      functionName: "isRegistered",
+      args: address ? [address] : undefined,
+      query: { enabled: !!address },
+    });
 
-  const { data: registration } = useReadContract({
-    ...registryReadConfig,
-    functionName: "getUserRegistration",
-    args: address ? [address] : undefined,
-    query: { enabled: !!address && isRegistered === true },
-  });
+  const { data: registration, isLoading: isRegistrationLoading } =
+    useReadContract({
+      ...registryReadConfig,
+      functionName: "getUserRegistration",
+      args: address ? [address] : undefined,
+      query: { enabled: !!address && isRegistered === true },
+    });
 
   if (!isRegistered) {
-    return { isRegistered: false, nationality: null };
+    return {
+      isRegistered: false,
+      isLoading: !!address && isRegisteredLoading,
+      nationality: null,
+    };
   }
 
   const reg = registration as Registration | undefined;
   return {
     isRegistered: true,
+    isLoading: isRegistrationLoading || !reg,
     nationality: reg?.nationality ?? null,
   };
 }
