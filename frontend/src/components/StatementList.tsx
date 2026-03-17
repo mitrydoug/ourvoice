@@ -11,6 +11,7 @@ import StatementCard from "./StatementCard";
 import StagedStatementCard from "./StagedStatementCard";
 import { StatementListSkeleton } from "./StatementCardSkeleton";
 import { useUserVotes } from "../state/UserVotes";
+import useDelayedLoading from "@/hooks/useDelayedLoading";
 
 type StatementListProps = {
   statements: Statement[];
@@ -83,9 +84,10 @@ const StatementList: FC<StatementListProps> = ({
   const hasStagedStatements =
     showStagedStatements && stagedStatements && stagedStatements.length > 0;
 
-  // Initial load: show skeleton cards instead of spinner
+  // Initial load: show skeleton cards after a grace period
   const isInitialLoad = isLoading && statements.length === 0 && pageIndex === 0;
-  if (isInitialLoad && !hasStagedStatements) {
+  const showInitialSkeleton = useDelayedLoading(isInitialLoad);
+  if (showInitialSkeleton && !hasStagedStatements) {
     return <StatementListSkeleton />;
   }
 

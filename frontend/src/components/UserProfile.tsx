@@ -22,6 +22,7 @@ import { useCreditAllocation } from "@/hooks/useCreditAllocation";
 import { useUserRegistration } from "@/hooks/useUserRegistration";
 import { toAlpha2 } from "../countryCodeMap";
 import useNickname from "@/hooks/useNickname";
+import useDelayedLoading from "@/hooks/useDelayedLoading";
 
 // ── SVG Donut Chart ──────────────────────────────────────────────────────────
 
@@ -198,7 +199,9 @@ const UserProfile: FC = () => {
     ]
     : [];
 
-  if (isReconnecting) {
+  const showSkeleton = useDelayedLoading(isReconnecting);
+
+  if (showSkeleton) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center" }}>
         <Box sx={{ width: "100%", maxWidth: 480, py: { xs: 2, sm: 4 } }}>
