@@ -7,6 +7,7 @@ import {
   Box,
   Button,
   IconButton,
+  Skeleton,
   Stack,
   TextField,
   Tooltip,
@@ -150,7 +151,7 @@ const DonutLegend: FC<{ segments: DonutSegment[] }> = ({ segments }) => (
 // ── Main Profile Component ───────────────────────────────────────────────────
 
 const UserProfile: FC = () => {
-  const { address } = useAccount();
+  const { address, isReconnecting } = useAccount();
   const navigate = useNavigate();
   const theme = useTheme();
   const { isUserVerified } = useUserVotes();
@@ -179,23 +180,38 @@ const UserProfile: FC = () => {
   // Use the MUI theme palette so colors stay in sync with SupportAllocationBar
   const segments: DonutSegment[] = allocation
     ? [
-        {
-          value: allocation.allocated,
-          color: theme.palette.primary.main,
-          label: "Allocated",
-        },
-        {
-          value: allocation.staged,
-          color: theme.palette.warning.main,
-          label: "Staged",
-        },
-        {
-          value: allocation.unallocated,
-          color: theme.palette.success.main,
-          label: "Unallocated",
-        },
-      ]
+      {
+        value: allocation.allocated,
+        color: theme.palette.primary.main,
+        label: "Allocated",
+      },
+      {
+        value: allocation.staged,
+        color: theme.palette.warning.main,
+        label: "Staged",
+      },
+      {
+        value: allocation.unallocated,
+        color: theme.palette.success.main,
+        label: "Unallocated",
+      },
+    ]
     : [];
+
+  if (isReconnecting) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center" }}>
+        <Box sx={{ width: "100%", maxWidth: 480, py: { xs: 2, sm: 4 } }}>
+          <Stack spacing={3} alignItems="center">
+            <Skeleton variant="circular" width={80} height={80} />
+            <Skeleton variant="text" width={160} height={32} />
+            <Skeleton variant="rounded" width={180} height={180} />
+            <Skeleton variant="rounded" width="100%" height={120} />
+          </Stack>
+        </Box>
+      </Box>
+    );
+  }
 
   if (!address) return <Navigate to="/" replace />;
 

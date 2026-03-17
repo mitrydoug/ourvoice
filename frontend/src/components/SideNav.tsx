@@ -54,7 +54,7 @@ const SideNav: FC = () => {
   const navigate = useForumNavigate();
   const rawNavigate = useNavigate();
   const theme = useTheme();
-  const { isUserVerified } = useUserVotes();
+  const { isUserVerified, isVerifiedLoading } = useUserVotes();
   const { name: forumName, setForum } = useForum();
   const forumPath = useForumPath();
 
@@ -103,7 +103,9 @@ const SideNav: FC = () => {
         </Box>
 
         <List disablePadding>
-          {NAV_ITEMS.filter((item) => !item.memberOnly || isUserVerified).map(
+          {NAV_ITEMS.filter(
+            (item) => !item.memberOnly || isUserVerified || isVerifiedLoading,
+          ).map(
             (item) => {
               const isActive =
                 item.href !== "#" && location.pathname === forumPath(item.href);

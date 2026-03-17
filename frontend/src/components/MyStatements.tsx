@@ -5,13 +5,14 @@ import { useForum, FORUM_ABI } from "../state/Forum";
 import { useUserVotes } from "../state/UserVotes";
 import { Statement } from "../types";
 import StatementList from "./StatementList";
+import { StatementListSkeleton } from "./StatementCardSkeleton";
 import useIsMobile from "@/hooks/useIsMobile";
 import useLocalStorageSet from "@/hooks/useLocalStorageSet";
 import useBlockSync from "@/hooks/useBlockSync";
 
 const MyStatements: FC = () => {
   const userVotes = useUserVotes();
-  const { isUserVerified } = userVotes;
+  const { isUserVerified, isVerifiedLoading } = userVotes;
   const { forumContractAddress } = useForum();
   const isMobile = useIsMobile();
   const { values: authoredIds } = useLocalStorageSet("authoredStatements");
@@ -41,6 +42,10 @@ const MyStatements: FC = () => {
     setDisplayCount((prev) => prev + PAGE_SIZE);
     setPageIndex((prev) => prev + 1);
   }, [PAGE_SIZE]);
+
+  if (isVerifiedLoading) {
+    return <StatementListSkeleton />;
+  }
 
   if (!isUserVerified) {
     return <Navigate to="/" replace />;

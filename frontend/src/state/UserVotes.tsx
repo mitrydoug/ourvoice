@@ -421,9 +421,9 @@ const reducer = (
     ...newState,
     staged: newState.staged
       ? {
-          ...newState.staged,
-          credits: stagedCredits,
-        }
+        ...newState.staged,
+        credits: stagedCredits,
+      }
       : undefined,
     hasStagedChanges,
     hasEnoughCredits: stagedCredits >= 0,
@@ -434,6 +434,7 @@ const reducer = (
 
 type UserNotVerifiedContextValue = {
   isUserVerified: false;
+  isVerifiedLoading: boolean;
   state: undefined;
   dispatch: undefined;
   commitChanges: undefined;
@@ -450,6 +451,7 @@ type UserNotVerifiedContextValue = {
 
 type UserSupportContextValue = {
   isUserVerified: true;
+  isVerifiedLoading: false;
   state: UserSupportState;
   dispatch: React.Dispatch<UserSupportAction>;
   commitChanges: () => void | Promise<void>;
@@ -508,7 +510,11 @@ export const UserVoteProvider: FC<{
   const { add: addAuthoredStatement } =
     useLocalStorageSet("authoredStatements");
 
-  const { data: isUserVerified, refetch: refetchIsMember } = useReadContract({
+  const {
+    data: isUserVerified,
+    refetch: refetchIsMember,
+    isLoading: isVerifiedLoading,
+  } = useReadContract({
     address: forumContractAddress,
     abi: FORUM_ABI,
     account: address,
@@ -853,11 +859,16 @@ export const UserVoteProvider: FC<{
     dispatch({ type: "CLEAR_STAGED_SUPPORT" });
   }, [dispatch]);
 
+  // Verification is still loading if the query is in-flight OR the wallet
+  // address hasn't resolved yet (the query won't even start without it).
+  const isVerifiedStillLoading = !!address && isVerifiedLoading;
+
   if (isUserVerified) {
     return (
       <UserVoteContext.Provider
         value={{
           isUserVerified: isUserVerified,
+          isVerifiedLoading: false,
           state,
           dispatch,
           commitChanges,
@@ -880,6 +891,7 @@ export const UserVoteProvider: FC<{
       <UserVoteContext.Provider
         value={{
           isUserVerified: !!isUserVerified,
+          isVerifiedLoading: isVerifiedStillLoading,
           state: undefined,
           dispatch: undefined,
           commitChanges: undefined,

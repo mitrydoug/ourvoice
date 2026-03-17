@@ -4,13 +4,14 @@ import { useUserVotes } from "../state/UserVotes";
 import { useForum, FORUM_ABI } from "../state/Forum";
 import { Statement } from "../types";
 import StatementList from "./StatementList";
+import { StatementListSkeleton } from "./StatementCardSkeleton";
 import { Navigate } from "react-router-dom";
 import useIsMobile from "@/hooks/useIsMobile";
 import useBlockSync from "@/hooks/useBlockSync";
 import useLocalStorageSet from "@/hooks/useLocalStorageSet";
 
 const MySupport: FC = () => {
-  const { isUserVerified, state: userVoteState } = useUserVotes();
+  const { isUserVerified, isVerifiedLoading, state: userVoteState } = useUserVotes();
   const { forumContractAddress } = useForum();
   const isMobile = useIsMobile();
   const { has: isBookmarked, toggle: toggleBookmark } =
@@ -70,6 +71,10 @@ const MySupport: FC = () => {
     setDisplayCount((prev) => prev + PAGE_SIZE);
     setPageIndex((prev) => prev + 1);
   }, [PAGE_SIZE]);
+
+  if (isVerifiedLoading || (isUserVerified && !userVoteState?.onChain)) {
+    return <StatementListSkeleton />;
+  }
 
   if (!isUserVerified) {
     return <Navigate to="/" replace />;

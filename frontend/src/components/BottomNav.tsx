@@ -33,12 +33,15 @@ const ALL_NAV_ITEMS = [
 const BottomNav: FC = () => {
   const location = useLocation();
   const navigate = useForumNavigate();
-  const { isUserVerified } = useUserVotes();
+  const { isUserVerified, isVerifiedLoading } = useUserVotes();
   const forumPath = useForumPath();
 
   const navItems = useMemo(
-    () => ALL_NAV_ITEMS.filter((item) => !item.memberOnly || isUserVerified),
-    [isUserVerified],
+    () =>
+      ALL_NAV_ITEMS.filter(
+        (item) => !item.memberOnly || isUserVerified || isVerifiedLoading,
+      ),
+    [isUserVerified, isVerifiedLoading],
   );
 
   const currentIndex = navItems.findIndex(

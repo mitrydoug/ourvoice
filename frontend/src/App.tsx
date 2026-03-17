@@ -83,24 +83,24 @@ const forumChildren = [
   },
 ];
 
-export const App: FC = () => {
-  const router = createHashRouter([
-    {
-      path: "/verify",
-      Component: GetVerified,
-    },
-    {
-      path: "/:forumSlug",
-      Component: ValidateForumSlug,
-      children: forumChildren,
-    },
-    {
-      /* Bare "/" redirects to the last-visited forum (localStorage) */
-      path: "/",
-      Component: RootRedirect,
-    },
-  ]);
+const router = createHashRouter([
+  {
+    path: "/verify",
+    Component: GetVerified,
+  },
+  {
+    path: "/:forumSlug",
+    Component: ValidateForumSlug,
+    children: forumChildren,
+  },
+  {
+    /* Bare "/" redirects to the last-visited forum (localStorage) */
+    path: "/",
+    Component: RootRedirect,
+  },
+]);
 
+export const App: FC = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
