@@ -696,6 +696,38 @@ contract ForumTest is Test {
         );
     }
 
+    function testGetUserStatementSupportAfterFullDecay()
+        external
+        registeredMember
+    {
+        // Create two statements with different initial support levels.
+        // Statement 0 gets low support (will decay to zero first).
+        // Statement 1 gets higher support (will survive longer).
+        forum.addStatement("Low support", 0);
+        forum.addStatement("High support", 0);
+        _addStatementSupport(0, 1);
+        _addStatementSupport(1, 10);
+
+        // Advance time so support=1 decays to 0, while support=10 survives.
+        // Halving every 42 steps: support=1 → 0 after ~42 steps, but
+        // support=10 → ~5 after 42 steps, still nonzero.
+        vm.warp(vm.getBlockTimestamp() + 84 * forum.stepDurationSeconds());
+
+        // This call previously reverted due to an out-of-bounds array write.
+        Forum.StatementSupport[] memory userSupport = forum
+            .getUserStatementSupport();
+        assertEq(
+            userSupport.length,
+            1,
+            "Only the non-decayed statement should be returned"
+        );
+        assertEq(
+            userSupport[0].statementId,
+            1,
+            "Surviving statement should be statement 1"
+        );
+    }
+
     function testUserBalanceAccountsForSupportDecay()
         external
         registeredMember

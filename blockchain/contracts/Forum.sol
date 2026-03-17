@@ -391,12 +391,13 @@ contract Forum is Multicall {
         StatementSupport[] memory supportedStatements = new StatementSupport[](
             _numSupported
         );
+        uint j = 0;
         for (uint i = 0; i < _userSupportedStatements[userId].length; i++) {
             uint statementId = _userSupportedStatements[userId][i];
             Support storage support = userSupportMap[userId][statementId];
             int currentSupport = _getCurrentSupportValue(support);
             if (currentSupport != 0) {
-                supportedStatements[i] = StatementSupport({
+                supportedStatements[j++] = StatementSupport({
                     statementId: statementId,
                     support: currentSupport
                 });
