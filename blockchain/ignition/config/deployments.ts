@@ -60,6 +60,33 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
     userStartingCredits: 1000,
   },
 
+  /** Local native Hardhat node with mock data. */
+  localhost: {
+    mode: "mocked",
+    forums: ["global", "USA", "CAN"],
+    stepDurationSeconds: 60,
+    engagementWindowSeconds: 300,
+    maxRankedStatements: 10,
+    minStatementSupportToRank: 3,
+    maxStatementLength: 120,
+    userCreditAllowancePerStep: 25,
+    userStartingCredits: 1000,
+  },
+
+  /** Local native Hardhat node forking Sepolia with real ZKPassport verifier. */
+  localhost_forked: {
+    mode: "production",
+    forums: ["global", "USA", "CAN"],
+    stepDurationSeconds: 60,
+    engagementWindowSeconds: 300,
+    maxRankedStatements: 10,
+    minStatementSupportToRank: 3,
+    maxStatementLength: 120,
+    userCreditAllowancePerStep: 25,
+    userStartingCredits: 1000,
+    parametersFile: "local-fork-strict.json",
+  },
+
   /** Docker Compose Hardhat node forking Sepolia with real ZKPassport verifier. */
   compose_hardhat_forked: {
     mode: "production",

@@ -67,8 +67,11 @@ async function main() {
   // Determine the frontend network file name from the Hardhat network.
   // Mocked-mode deployments always write "localhost"; production-mode
   // deployments use the actual Hardhat network name (e.g. "sepolia").
+  // Local native networks (localhost*) also map to "localhost".
   const networkFileName =
-    config.mode === "mocked" ? "localhost" : networkName;
+    config.mode === "mocked" || networkName.startsWith("localhost")
+      ? "localhost"
+      : networkName;
 
   const networksDir = path.resolve(
     import.meta.dirname,

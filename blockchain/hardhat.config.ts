@@ -41,6 +41,14 @@ const config: HardhatUserConfig = {
       url: configVariable("SEPOLIA_RPC_URL"),
       accounts: [configVariable("SEPOLIA_DEPLOYER_PRIVATE_KEY")],
     },
+    localhost: {
+      type: "http",
+      url: "http://127.0.0.1:8545",
+    },
+    localhost_forked: {
+      type: "http",
+      url: "http://127.0.0.1:8545",
+    },
     compose_hardhat: {
       type: "http",
       url: "http://hardhat:8545",
