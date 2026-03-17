@@ -176,9 +176,9 @@ interface PersistedStaged {
 const stagedStorageKey = (
   chainFingerprint: string,
   forumName: string,
-  address: string,
+  addrKey: string,
 ): string =>
-  `symvolia:staged:${chainFingerprint}:${forumName}:${address.toLowerCase()}`;
+  `symvolia:staged:${chainFingerprint}:${forumName}:${addrKey}`;
 
 const saveStagedToStorage = (key: string, staged: StagedSupport): void => {
   try {
@@ -451,7 +451,7 @@ type UserNotVerifiedContextValue = {
 
 type UserSupportContextValue = {
   isUserVerified: true;
-  isVerifiedLoading: false;
+  isVerifiedLoading: boolean;
   state: UserSupportState;
   dispatch: React.Dispatch<UserSupportAction>;
   commitChanges: () => void | Promise<void>;
@@ -584,7 +584,7 @@ export const UserVoteProvider: FC<{
   // ── Staged-support persistence ──────────────────────────────────────────
   const persistKey =
     chainFingerprint && address
-      ? stagedStorageKey(chainFingerprint, forumName, address)
+      ? stagedStorageKey(chainFingerprint, forumName, address.slice(0, 10))
       : undefined;
   const restoredKeyRef = useRef<string | undefined>(undefined);
   useEffect(() => {
@@ -868,7 +868,7 @@ export const UserVoteProvider: FC<{
       <UserVoteContext.Provider
         value={{
           isUserVerified: isUserVerified,
-          isVerifiedLoading: false,
+          isVerifiedLoading: !state.onChain,
           state,
           dispatch,
           commitChanges,

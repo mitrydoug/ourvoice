@@ -33,7 +33,7 @@ const useLocalStorageSet = (
   // that depend on it will return empty data during that window.
   const storageKey =
     chainFingerprint !== undefined
-      ? `ourvoice:${key}:${forumName}:${chainFingerprint}:${addrKey}`
+      ? `symvolia:${key}:${chainFingerprint}:${forumName}:${addrKey}`
       : undefined;
 
   const [set, setSet] = useState<Set<number>>(() => {
