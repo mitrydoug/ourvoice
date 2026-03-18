@@ -299,10 +299,25 @@ const reducer = (
       break;
     }
     case "COMMIT_CONFIRMED": {
-      // Receipt arrived — store the block number. If SYNC_ONCHAIN_STATE
-      // already covered this block we transition immediately; otherwise we
-      // wait for the next sync to pick it up (handled in SYNC_ONCHAIN_STATE).
-      newState.confirmedBlockNumber = action.payload.blockNumber;
+      // Receipt arrived. The block-sync refetch usually delivers updated
+      // on-chain state before this effect runs, so SYNC_ONCHAIN_STATE may
+      // have already fired without clearing staged (because confirmedBlockNumber
+      // wasn't set yet). Transition immediately when on-chain state is present
+      // instead of waiting for the next sync cycle (one full block away).
+      if (newState.onChain) {
+        newState.staged = {
+          credits: newState.onChain.credits,
+          supportAdjustments: new Map(),
+          stagedStatements: [],
+        };
+        newState.commitStatus = "confirmed";
+        newState.pendingTxHash = undefined;
+        newState.confirmedBlockNumber = undefined;
+      } else {
+        // Fallback: store block number so the next SYNC_ONCHAIN_STATE
+        // can complete the transition.
+        newState.confirmedBlockNumber = action.payload.blockNumber;
+      }
       break;
     }
     case "COMMIT_CANCELLED": {
@@ -498,7 +513,7 @@ export const UserVoteProvider: FC<{
   });
 
   // Read the current decay step from the chain, refreshed on every block.
-  const { data: onChainStep, refetch: refetchStep } = useReadContract({
+  const { refetch: refetchStep } = useReadContract({
     address: forumContractAddress,
     abi: FORUM_ABI,
     functionName: "getCurrentStep",
@@ -691,21 +706,19 @@ export const UserVoteProvider: FC<{
         const calls: `0x${string}`[] = [];
 
         // 1. requireStep guard — ensures the decay step hasn't changed since
-        //    the user last saw the UI state. Uses the same last-block value that
-        //    drives all on-chain reads, so any mismatch surfaces as a StaleStep
-        //    that the user can resolve by retrying.
-        if (
-          stepDurationSeconds &&
-          stepDurationSeconds > 0n &&
-          onChainStep !== undefined
-        ) {
-          calls.push(
-            encodeFunctionData({
-              abi: FORUM_ABI,
-              functionName: "requireStep",
-              args: [onChainStep],
-            }),
-          );
+        //    the user last saw the UI state. Refetch the step immediately before
+        //    building the multicall to minimise the window for staleness.
+        if (stepDurationSeconds && stepDurationSeconds > 0n) {
+          const { data: freshStep } = await refetchStep();
+          if (freshStep !== undefined) {
+            calls.push(
+              encodeFunctionData({
+                abi: FORUM_ABI,
+                functionName: "requireStep",
+                args: [freshStep],
+              }),
+            );
+          }
         }
 
         // 2. addStatement calls for staged new statements
@@ -780,7 +793,7 @@ export const UserVoteProvider: FC<{
     state,
     writeContractAsync,
     forumContractAddress,
-    onChainStep,
+    refetchStep,
     dispatch,
     stepDurationSeconds,
   ]);
