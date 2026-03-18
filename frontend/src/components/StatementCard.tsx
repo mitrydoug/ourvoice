@@ -2,9 +2,7 @@ import { FC, useEffect } from "react";
 import { IconButton, Stack, Typography } from "@mui/material";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
-import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
-import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
-import LandscapeIcon from "@mui/icons-material/Landscape";
+
 import { useForumNavigate } from "../hooks/useForumNavigate";
 
 import { useUserVotes } from "../state/UserVotes";
@@ -222,42 +220,49 @@ export const StatementCard: FC<StatementCardProps> = ({
         {formatSupport(globalSupport)}
       </Typography>
 
-      <Stack direction="row" alignItems="center" spacing={0.25}>
+      <Stack direction="row" alignItems="baseline" spacing={0.25}>
+        <Typography
+          variant="body2"
+          sx={{ fontWeight: 300, color: "text.primary", textTransform: "uppercase", fontSize: "0.75rem", mr: 0.5 }}
+        >
+          Change
+        </Typography>
         {rankChange === null || rankChange === 0 ? (
           <Typography variant="body2" color="text.disabled">
             —
           </Typography>
         ) : rankChange > 0 ? (
-          <>
-            <ArrowUpwardIcon sx={{ fontSize: 16, color: "success.main" }} />
-            <Typography
-              variant="body2"
-              sx={{ fontWeight: 600, color: "success.main" }}
-            >
-              {rankChange}
-            </Typography>
-          </>
+          <Typography
+            variant="body2"
+            sx={{ fontWeight: 600, color: "success.main" }}
+          >
+            ▲{rankChange}
+          </Typography>
         ) : (
-          <>
-            <ArrowDownwardIcon sx={{ fontSize: 16, color: "error.main" }} />
-            <Typography
-              variant="body2"
-              sx={{ fontWeight: 600, color: "error.main" }}
-            >
-              {Math.abs(rankChange)}
-            </Typography>
-          </>
+          <Typography
+            variant="body2"
+            sx={{ fontWeight: 600, color: "error.main" }}
+          >
+            ▼{Math.abs(rankChange)}
+          </Typography>
         )}
       </Stack>
 
       {peakRank !== null && (
-        <Stack direction="row" alignItems="center" spacing={0.5}>
-          <LandscapeIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+        <Stack direction="row" alignItems="baseline" spacing={0.5}>
+          <Typography
+            variant="body2"
+            sx={{ fontWeight: 300, color: "text.primary", textTransform: "uppercase", fontSize: "0.75rem" }}
+          >
+            Peak
+          </Typography>
           <Typography variant="body2" color="text.secondary">
             {peakRank}
           </Typography>
         </Stack>
       )}
+
+      <Stack sx={{ flexGrow: 1 }} />
 
       {creditsAllocated > 0 && (
         <Stack direction="row" alignItems="center" spacing={0.5}>
@@ -275,8 +280,6 @@ export const StatementCard: FC<StatementCardProps> = ({
           />
         </Stack>
       )}
-
-      <Stack sx={{ flexGrow: 1 }} />
 
       {onToggleBookmark && (
         <IconButton
