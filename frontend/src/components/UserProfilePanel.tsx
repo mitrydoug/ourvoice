@@ -34,7 +34,7 @@ import { toAlpha2, toDemonym } from "../countryCodeMap";
 import { metamaskIcon, shortenAddress } from "../util";
 import AnimatedCounter from "./AnimatedCounter";
 import IndeterminateCheckBoxIcon from "@mui/icons-material/IndeterminateCheckBox";
-import useDelayedLoading from "@/hooks/useDelayedLoading";
+import useGracefulLoading from "@/hooks/useGracefulLoading";
 
 const shimmer = keyframes`
   0% { opacity: 0.6; }
@@ -81,7 +81,7 @@ const UserProfilePanel: React.FC = () => {
   const forum = FORUMS[forumName];
 
   const isStatusLoading = isVerifiedLoading || isRegistrationLoading;
-  const showSkeleton = useDelayedLoading(isStatusLoading);
+  const { showSkeleton } = useGracefulLoading(isStatusLoading);
 
   const avatar = useMemo(() => {
     if (address) return metamaskIcon(address);

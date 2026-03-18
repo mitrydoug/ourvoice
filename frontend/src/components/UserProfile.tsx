@@ -22,7 +22,7 @@ import { useCreditAllocation } from "@/hooks/useCreditAllocation";
 import { useUserRegistration } from "@/hooks/useUserRegistration";
 import { toAlpha2 } from "../countryCodeMap";
 import useNickname from "@/hooks/useNickname";
-import useDelayedLoading from "@/hooks/useDelayedLoading";
+import useGracefulLoading from "@/hooks/useGracefulLoading";
 
 // ── SVG Donut Chart ──────────────────────────────────────────────────────────
 
@@ -199,7 +199,8 @@ const UserProfile: FC = () => {
     ]
     : [];
 
-  const showSkeleton = useDelayedLoading(isReconnecting);
+  const { isLoading: isLoadingReconnect, showSkeleton } =
+    useGracefulLoading(isReconnecting);
 
   if (showSkeleton) {
     return (
@@ -214,6 +215,10 @@ const UserProfile: FC = () => {
         </Box>
       </Box>
     );
+  }
+
+  if (isLoadingReconnect) {
+    return null;
   }
 
   if (!address) return <Navigate to="/" replace />;

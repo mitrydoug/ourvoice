@@ -9,7 +9,7 @@ import { StatementListSkeleton } from "./StatementCardSkeleton";
 import useIsMobile from "@/hooks/useIsMobile";
 import useLocalStorageSet from "@/hooks/useLocalStorageSet";
 import useBlockSync from "@/hooks/useBlockSync";
-import useDelayedLoading from "@/hooks/useDelayedLoading";
+import useGracefulLoading from "@/hooks/useGracefulLoading";
 
 const MyStatements: FC = () => {
   const userVotes = useUserVotes();
@@ -44,10 +44,15 @@ const MyStatements: FC = () => {
     setPageIndex((prev) => prev + 1);
   }, [PAGE_SIZE]);
 
-  const showSkeleton = useDelayedLoading(isVerifiedLoading);
+  const { isLoading: isLoadingVerification, showSkeleton } =
+    useGracefulLoading(isVerifiedLoading);
 
   if (showSkeleton) {
     return <StatementListSkeleton />;
+  }
+
+  if (isLoadingVerification) {
+    return null;
   }
 
   if (!isUserVerified) {

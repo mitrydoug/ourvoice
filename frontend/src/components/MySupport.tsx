@@ -9,7 +9,7 @@ import { Navigate } from "react-router-dom";
 import useIsMobile from "@/hooks/useIsMobile";
 import useBlockSync from "@/hooks/useBlockSync";
 import useLocalStorageSet from "@/hooks/useLocalStorageSet";
-import useDelayedLoading from "@/hooks/useDelayedLoading";
+import useGracefulLoading from "@/hooks/useGracefulLoading";
 
 const MySupport: FC = () => {
   const { isUserVerified, isVerifiedLoading, state: userVoteState } = useUserVotes();
@@ -73,12 +73,16 @@ const MySupport: FC = () => {
     setPageIndex((prev) => prev + 1);
   }, [PAGE_SIZE]);
 
-  const showSkeleton = useDelayedLoading(
+  const { isLoading: isLoadingState, showSkeleton } = useGracefulLoading(
     isVerifiedLoading || (isUserVerified && !userVoteState?.onChain),
   );
 
   if (showSkeleton) {
     return <StatementListSkeleton />;
+  }
+
+  if (isLoadingState) {
+    return null;
   }
 
   if (!isUserVerified) {
