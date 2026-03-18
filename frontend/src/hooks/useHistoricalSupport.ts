@@ -3,10 +3,10 @@ import { useBlockNumber, usePublicClient } from "wagmi";
 import { useForum, FORUM_ABI } from "../state/Forum";
 
 /** Average Sepolia block time in seconds. */
-const AVG_BLOCK_TIME = 12;
+export const AVG_BLOCK_TIME = 12;
 
 /** Number of past periods to chart. */
-const PERIODS_BACK = 7;
+export const PERIODS_BACK = 7;
 
 /**
  * Duration of one chart period in seconds.
@@ -16,7 +16,7 @@ const PERIODS_BACK = 7;
  *
  * Controlled by the `VITE_CHART_PERIOD_SECONDS` env var.
  */
-const PERIOD_SECONDS = Number(
+export const PERIOD_SECONDS = Number(
   import.meta.env.VITE_CHART_PERIOD_SECONDS ?? "86400",
 );
 const PERIOD_MS = PERIOD_SECONDS * 1000;

@@ -38,8 +38,15 @@ import AnimatedCounter from "./AnimatedCounter";
 import StatementCardShell from "./StatementCardShell";
 import { useBlockNumber, useReadContract } from "wagmi";
 import { useForum, FORUM_ABI } from "../state/Forum";
+import {
+  AVG_BLOCK_TIME,
+  PERIODS_BACK,
+  PERIOD_SECONDS,
+} from "../hooks/useHistoricalSupport";
 
-const LOOK_BACK_BLOCKS = BigInt(1);
+const LOOK_BACK_BLOCKS = BigInt(
+  Math.floor((PERIODS_BACK * PERIOD_SECONDS) / AVG_BLOCK_TIME),
+);
 
 interface Statement {
   id: bigint;
