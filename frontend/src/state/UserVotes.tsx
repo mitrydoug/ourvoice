@@ -57,19 +57,29 @@ export type CommitStatus =
 
 interface UserSupportState {
   onChain?: UserSupport;
+  /** Snapshot of onChain at freeze time. While set, getEffectiveSupport
+   *  reads from this instead of onChain so the UI stays consistent until
+   *  we confirm the chain has synced past the committed block. */
+  frozenOnChain?: UserSupport;
   staged?: StagedSupport;
   hasStagedChanges: boolean;
   hasEnoughCredits: boolean;
   commitStatus: CommitStatus;
   pendingTxHash?: `0x${string}`;
   confirmedBlockNumber?: bigint;
+  /** Block number of the most recent SYNC_ONCHAIN_STATE update. */
+  latestSyncBlockNumber?: bigint;
   /** Credit cost of the in-progress draft statement (before it is staged). */
   pendingDraftCost: number;
 }
 
 type SyncOnChainState = {
   type: "SYNC_ONCHAIN_STATE";
-  payload: { credits: bigint; statementSupport: StatementSupport[] };
+  payload: {
+    credits: bigint;
+    statementSupport: StatementSupport[];
+    blockNumber?: bigint;
+  };
 };
 
 type StageUserSupport = {
@@ -219,6 +229,30 @@ const clearStagedStorage = (key: string): void => {
   }
 };
 
+/**
+ * If both conditions are met — (a) we have a confirmed tx block number,
+ * and (b) the latest sync block is at or past that block — atomically
+ * clear the freeze, clear staged support, and transition to "confirmed".
+ */
+const tryUnfreeze = (s: UserSupportState): void => {
+  if (
+    s.frozenOnChain &&
+    s.confirmedBlockNumber !== undefined &&
+    s.latestSyncBlockNumber !== undefined &&
+    s.latestSyncBlockNumber >= s.confirmedBlockNumber &&
+    s.onChain
+  ) {
+    s.frozenOnChain = undefined;
+    s.staged = {
+      credits: s.onChain.credits,
+      supportAdjustments: new Map(),
+      stagedStatements: [],
+    };
+    s.commitStatus = "confirmed";
+    s.confirmedBlockNumber = undefined;
+  }
+};
+
 const reducer = (
   state: UserSupportState,
   action: UserSupportAction,
@@ -235,31 +269,23 @@ const reducer = (
         credits: Number(action.payload.credits),
         statementSupport: _supportMap,
       };
+      // Always update onChain (even while frozen — rendering reads
+      // from frozenOnChain instead, so this is invisible until unfreeze).
       newState.onChain = onChainState;
 
-      // If we're waiting for a confirmed block to be synced, check if this
-      // sync covers the block that confirmed our transaction.
-      if (
-        newState.commitStatus === "pending-confirmation" &&
-        newState.confirmedBlockNumber !== undefined
-      ) {
-        // The on-chain state now reflects (at least) the confirmed block.
-        // Clear staged support since the chain state includes our changes.
-        newState.staged = {
-          credits: onChainState.credits,
-          supportAdjustments: new Map(),
-          stagedStatements: [],
-        };
-        newState.commitStatus = "confirmed";
-        newState.pendingTxHash = undefined;
-        newState.confirmedBlockNumber = undefined;
-      } else if (!newState.staged) {
+      if (action.payload.blockNumber !== undefined) {
+        newState.latestSyncBlockNumber = action.payload.blockNumber;
+      }
+
+      if (!newState.staged) {
         newState.staged = {
           credits: onChainState.credits,
           supportAdjustments: new Map(),
           stagedStatements: [],
         };
       }
+
+      tryUnfreeze(newState);
       break;
     }
     case "STAGE_USER_SUPPORT": {
@@ -296,39 +322,33 @@ const reducer = (
     case "COMMIT_SUBMITTED": {
       newState.commitStatus = "pending-confirmation";
       newState.pendingTxHash = action.payload.txHash;
+      // Freeze: snapshot current on-chain state so rendering stays
+      // consistent while we wait for the tx to be included and synced.
+      newState.frozenOnChain = newState.onChain;
       break;
     }
     case "COMMIT_CONFIRMED": {
-      // Receipt arrived. The block-sync refetch usually delivers updated
-      // on-chain state before this effect runs, so SYNC_ONCHAIN_STATE may
-      // have already fired without clearing staged (because confirmedBlockNumber
-      // wasn't set yet). Transition immediately when on-chain state is present
-      // instead of waiting for the next sync cycle (one full block away).
-      if (newState.onChain) {
-        newState.staged = {
-          credits: newState.onChain.credits,
-          supportAdjustments: new Map(),
-          stagedStatements: [],
-        };
-        newState.commitStatus = "confirmed";
-        newState.pendingTxHash = undefined;
-        newState.confirmedBlockNumber = undefined;
-      } else {
-        // Fallback: store block number so the next SYNC_ONCHAIN_STATE
-        // can complete the transition.
-        newState.confirmedBlockNumber = action.payload.blockNumber;
-      }
+      // Store the confirmed block number. If latestSyncBlockNumber already
+      // covers this block, tryUnfreeze will atomically clear the freeze,
+      // clear staged, and set commitStatus to "confirmed".
+      // Otherwise we stay in "pending-confirmation" until the next
+      // SYNC_ONCHAIN_STATE brings us past this block.
+      newState.confirmedBlockNumber = action.payload.blockNumber;
+      newState.pendingTxHash = undefined;
+      tryUnfreeze(newState);
       break;
     }
     case "COMMIT_CANCELLED": {
       newState.commitStatus = "cancelled";
       newState.pendingTxHash = undefined;
+      newState.frozenOnChain = undefined;
       break;
     }
     case "COMMIT_ERROR": {
       newState.commitStatus = "error";
       newState.pendingTxHash = undefined;
       newState.confirmedBlockNumber = undefined;
+      newState.frozenOnChain = undefined;
       // Clear staged support so user re-syncs cleanly from chain
       newState.staged = {
         credits: newState.onChain ? newState.onChain.credits : 0,
@@ -338,6 +358,16 @@ const reducer = (
       break;
     }
     case "RESET_COMMIT_STATUS": {
+      // If the freeze hasn't resolved yet, clear it as a fallback to
+      // avoid lingering committed adjustments.
+      if (newState.frozenOnChain) {
+        newState.frozenOnChain = undefined;
+        newState.staged = {
+          credits: newState.onChain ? newState.onChain.credits : 0,
+          supportAdjustments: new Map(),
+          stagedStatements: [],
+        };
+      }
       newState.commitStatus = "idle";
       newState.pendingTxHash = undefined;
       newState.confirmedBlockNumber = undefined;
@@ -580,6 +610,9 @@ export const UserVoteProvider: FC<{
     isUserVerified,
   ]);
 
+  // Sync with blockchain on every new block
+  const { blockNumber: latestBlockNumber } = useBlockSync(refetch);
+
   useEffect(() => {
     // Load state from blockchain
     if (
@@ -591,10 +624,11 @@ export const UserVoteProvider: FC<{
         payload: {
           credits: onChainUserBalance,
           statementSupport: [...onChainUserStatementSupport],
+          blockNumber: latestBlockNumber,
         },
       });
     }
-  }, [onChainUserStatementSupport, onChainUserBalance]);
+  }, [onChainUserStatementSupport, onChainUserBalance, latestBlockNumber]);
 
   // ── Staged-support persistence ──────────────────────────────────────────
   const persistKey =
@@ -625,9 +659,6 @@ export const UserVoteProvider: FC<{
       saveStagedToStorage(persistKey, state.staged);
     }
   }, [persistKey, state.staged]);
-
-  // Sync with blockchain on every new block
-  useBlockSync(refetch);
 
   // Wait for transaction receipt once a tx hash is available
   const { data: txReceipt } = useWaitForTransactionReceipt({
@@ -660,12 +691,17 @@ export const UserVoteProvider: FC<{
         type: "COMMIT_CONFIRMED",
         payload: { blockNumber: txReceipt.blockNumber },
       });
+
+      // Nudge a block sync so SYNC_ONCHAIN_STATE fires with fresh data.
+      // The receipt callback does NOT read on-chain data itself.
+      refetch();
     }
   }, [
     txReceipt,
     state.commitStatus,
     state.confirmedBlockNumber,
     addAuthoredStatement,
+    refetch,
   ]);
 
   // Timeout: if commit is in-flight for more than 30 seconds, treat as error
@@ -802,23 +838,27 @@ export const UserVoteProvider: FC<{
     dispatch({ type: "RESET_COMMIT_STATUS" });
   }, [dispatch]);
 
+  // While frozen, rendering reads from the snapshot so the UI stays
+  // consistent until the sync catches up to the confirmed block.
+  const renderOnChain = state.frozenOnChain ?? state.onChain;
+
   // Helper function to get effective support (on-chain + adjustment)
   const getEffectiveSupport = useCallback(
     (statementId: number): number => {
       const onChainSupport =
-        state.onChain?.statementSupport.get(statementId) || 0;
+        renderOnChain?.statementSupport.get(statementId) || 0;
       const adjustment = state.staged?.supportAdjustments.get(statementId) || 0;
       return onChainSupport + adjustment;
     },
-    [state.onChain, state.staged],
+    [renderOnChain, state.staged],
   );
 
   // Helper function to get on-chain support (without adjustments)
   const getOnChainSupport = useCallback(
     (statementId: number): number => {
-      return state.onChain?.statementSupport.get(statementId) || 0;
+      return renderOnChain?.statementSupport.get(statementId) || 0;
     },
-    [state.onChain],
+    [renderOnChain],
   );
 
   // Helper function to check if a statement has a pending adjustment
