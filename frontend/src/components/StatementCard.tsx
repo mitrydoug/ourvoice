@@ -1,4 +1,4 @@
-import { FC, useEffect } from "react";
+import { FC } from "react";
 import { IconButton, Stack, Typography } from "@mui/material";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
@@ -119,21 +119,17 @@ export const StatementCard: FC<StatementCardProps> = ({
   // Watch for new blocks
   const { data: blockNumber } = useBlockNumber({ watch: true });
 
-  const { data: historicalData, refetch: refetchHistorical } = useReadContract({
+  const { data: historicalData } = useReadContract({
     address: forumContractAddress,
     abi: FORUM_ABI,
     functionName: "getStatementsById",
     args: [[statement.id]],
     blockNumber: blockNumber ? blockNumber - LOOK_BACK_BLOCKS : undefined,
-    query: { enabled: !!blockNumber },
+    query: {
+      enabled: !!blockNumber,
+      placeholderData: (prev) => prev,
+    },
   });
-
-  // Sync historical data query on each new block
-  useEffect(() => {
-    if (blockNumber) {
-      void refetchHistorical();
-    }
-  }, [blockNumber, refetchHistorical]);
 
   const statementOneWeekAgo = historicalData
     ? (historicalData[0] as Statement)
