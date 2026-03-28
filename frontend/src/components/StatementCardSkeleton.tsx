@@ -12,7 +12,7 @@ const StatementCardSkeleton: FC = () => (
       <Stack
         alignItems="center"
         justifyContent="center"
-        sx={{ width: 48, minWidth: 48, flexShrink: 0 }}
+        sx={{ width: 72, minWidth: 72, flexShrink: 0 }}
       >
         <Skeleton variant="circular" width={36} height={36} />
       </Stack>

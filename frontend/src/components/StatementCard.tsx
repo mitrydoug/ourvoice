@@ -1,5 +1,5 @@
 import { FC } from "react";
-import { IconButton, Stack, Typography } from "@mui/material";
+import { IconButton, Stack, Tooltip, Typography } from "@mui/material";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 
@@ -177,17 +177,32 @@ export const StatementCard: FC<StatementCardProps> = ({
 
   const leftSlot =
     currentRank !== null ? (
-      <Typography
-        variant="h4"
-        sx={{
-          fontWeight: 700,
-          fontSize: rankFontSize(currentRank),
-          lineHeight: 1.1,
-          color: rankColor(currentRank) ?? "text.primary",
-        }}
-      >
-        {currentRank}
-      </Typography>
+      <Stack alignItems="center" spacing={0.75}>
+        {/* Rank number */}
+        <Typography
+          variant="h4"
+          sx={{
+            fontWeight: 700,
+            fontSize: rankFontSize(currentRank),
+            lineHeight: 1.1,
+            color: rankColor(currentRank) ?? "text.primary",
+          }}
+        >
+          {currentRank}
+        </Typography>
+        {/* Total support */}
+        <Typography
+          variant="body2"
+          sx={{
+            fontWeight: 500,
+            color: "text.secondary",
+            fontSize: "1rem",
+            lineHeight: 1,
+          }}
+        >
+          {formatSupport(globalSupport)}
+        </Typography>
+      </Stack>
     ) : (
       <Typography
         variant="caption"
@@ -209,72 +224,50 @@ export const StatementCard: FC<StatementCardProps> = ({
 
   const statsSlot = (
     <Stack direction="row" alignItems="center" spacing={2} sx={{ mt: 0.5 }}>
-      <Typography
-        variant="body2"
-        sx={{ fontWeight: 600, color: "primary.main" }}
-      >
-        {formatSupport(globalSupport)}
-      </Typography>
-
-      <Stack direction="row" alignItems="baseline" spacing={0.25}>
-        <Typography
-          variant="body2"
-          sx={{ fontWeight: 300, color: "text.primary", textTransform: "uppercase", fontSize: "0.75rem", mr: 0.5 }}
+      {rankChange !== null && rankChange !== 0 && (
+        <Tooltip
+          title={`Recently moved ${rankChange > 0 ? "up" : "down"} ${Math.abs(rankChange)} ${Math.abs(rankChange) === 1 ? "rank" : "ranks"}`}
+          arrow
         >
-          Change
-        </Typography>
-        {rankChange === null || rankChange === 0 ? (
-          <Typography variant="body2" color="text.disabled">
-            —
-          </Typography>
-        ) : rankChange > 0 ? (
           <Typography
             variant="body2"
-            sx={{ fontWeight: 600, color: "success.main" }}
+            sx={{ fontWeight: 600, color: rankChange > 0 ? "success.main" : "error.main" }}
           >
-            ▲{rankChange}
+            {rankChange > 0 ? "▲" : "▼"}{Math.abs(rankChange)}
           </Typography>
-        ) : (
-          <Typography
-            variant="body2"
-            sx={{ fontWeight: 600, color: "error.main" }}
-          >
-            ▼{Math.abs(rankChange)}
-          </Typography>
-        )}
-      </Stack>
+        </Tooltip>
+      )}
 
       {peakRank !== null && (
-        <Stack direction="row" alignItems="baseline" spacing={0.5}>
-          <Typography
-            variant="body2"
-            sx={{ fontWeight: 300, color: "text.primary", textTransform: "uppercase", fontSize: "0.75rem" }}
-          >
-            Peak
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {peakRank}
-          </Typography>
-        </Stack>
+        <Tooltip title={`Peak rank: #${peakRank}`} arrow>
+          <Stack direction="row" alignItems="center" spacing={0.25}>
+            <Typography sx={{ fontSize: 14, lineHeight: 1 }}>🏆</Typography>
+            <Typography variant="body2" color="text.secondary">
+              {peakRank}
+            </Typography>
+          </Stack>
+        </Tooltip>
       )}
 
       <Stack sx={{ flexGrow: 1 }} />
 
       {creditsAllocated > 0 && (
-        <Stack direction="row" alignItems="center" spacing={0.5}>
-          <CoinIcon size={16} />
-          <AnimatedCounter
-            value={creditsAllocated}
-            typographyProps={{
-              variant: "body2",
-              fontWeight: 600,
-              sx: {
-                fontVariantNumeric: "tabular-nums",
-                color: "text.secondary",
-              },
-            }}
-          />
-        </Stack>
+        <Tooltip title={`Your support of ${userSupport} costs ${creditsAllocated} credits`} arrow>
+          <Stack direction="row" alignItems="center" spacing={0.5}>
+            <CoinIcon size={16} />
+            <AnimatedCounter
+              value={creditsAllocated}
+              typographyProps={{
+                variant: "body2",
+                fontWeight: 600,
+                sx: {
+                  fontVariantNumeric: "tabular-nums",
+                  color: "text.secondary",
+                },
+              }}
+            />
+          </Stack>
+        </Tooltip>
       )}
 
       {onToggleBookmark && (

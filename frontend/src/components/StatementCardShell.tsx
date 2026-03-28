@@ -53,7 +53,7 @@ const StatementCardShell: FC<StatementCardShellProps> = ({
         <Stack
           alignItems="center"
           justifyContent="center"
-          sx={{ width: 48, minWidth: 48, flexShrink: 0 }}
+          sx={{ width: 72, minWidth: 72, flexShrink: 0 }}
         >
           {leftSlot}
         </Stack>
