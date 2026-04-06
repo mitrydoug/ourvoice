@@ -9,6 +9,7 @@ import React, {
 } from "react";
 import {
   useAccount,
+  usePublicClient,
   useReadContract,
   useWaitForTransactionReceipt,
   useWriteContract,
@@ -17,7 +18,6 @@ import {
   encodeFunctionData,
   parseEventLogs,
   BaseError,
-  ContractFunctionRevertedError,
 } from "viem";
 import { FORUM_ABI, useForum } from "./Forum";
 import useBlockSync from "@/hooks/useBlockSync";
@@ -52,7 +52,6 @@ export type CommitStatus =
   | "pending-confirmation"
   | "confirmed"
   | "cancelled"
-  | "stale-step"
   | "error";
 
 interface UserSupportState {
@@ -132,9 +131,6 @@ type UpdateStagedInitialSupport = {
   payload: { tempId: string; newSupport: number };
 };
 
-type CommitStaleStep = {
-  type: "COMMIT_STALE_STEP";
-};
 
 type SetPendingDraftCost = {
   type: "SET_PENDING_DRAFT_COST";
@@ -162,7 +158,6 @@ type UserSupportAction =
   | StageStatement
   | UnstageStatement
   | UpdateStagedInitialSupport
-  | CommitStaleStep
   | SetPendingDraftCost
   | RestoreStaged;
 
@@ -417,12 +412,6 @@ const reducer = (
       };
       break;
     }
-    case "COMMIT_STALE_STEP": {
-      newState.commitStatus = "stale-step";
-      newState.pendingTxHash = undefined;
-      newState.confirmedBlockNumber = undefined;
-      break;
-    }
     case "SET_PENDING_DRAFT_COST": {
       newState.pendingDraftCost = action.payload.cost;
       break;
@@ -528,28 +517,12 @@ export const UserVoteProvider: FC<{
   });
   const { writeContractAsync } = useWriteContract();
   const { address } = useAccount();
+  const publicClient = usePublicClient();
   const {
     forumContractAddress,
     chainFingerprint,
     name: forumName,
   } = useForum();
-
-  // Read stepDurationSeconds for requireStep guard
-  const { data: stepDurationSeconds } = useReadContract({
-    address: forumContractAddress,
-    abi: FORUM_ABI,
-    functionName: "stepDurationSeconds",
-    query: { enabled: !!forumContractAddress },
-  });
-
-  // Read the current decay step from the chain, refreshed on every block.
-  const { refetch: refetchStep } = useReadContract({
-    address: forumContractAddress,
-    abi: FORUM_ABI,
-    functionName: "getCurrentStep",
-    args: [],
-    query: { enabled: !!forumContractAddress },
-  });
 
   // Track authored statements in localStorage for "My Statements"
   const { add: addAuthoredStatement } =
@@ -601,12 +574,10 @@ export const UserVoteProvider: FC<{
       void refetchSupport();
       void refetchBalance();
     }
-    void refetchStep();
   }, [
     refetchIsMember,
     refetchSupport,
     refetchBalance,
-    refetchStep,
     isUserVerified,
   ]);
 
@@ -711,8 +682,7 @@ export const UserVoteProvider: FC<{
       state.commitStatus !== "idle" &&
       state.commitStatus !== "confirmed" &&
       state.commitStatus !== "cancelled" &&
-      state.commitStatus !== "error" &&
-      state.commitStatus !== "stale-step"
+      state.commitStatus !== "error"
     ) {
       commitTimeoutRef.current = setTimeout(() => {
         dispatch({ type: "COMMIT_ERROR" });
@@ -732,7 +702,7 @@ export const UserVoteProvider: FC<{
   }, [state.commitStatus]);
 
   const commitChanges = useCallback(async () => {
-    if (state.hasStagedChanges && state.hasEnoughCredits && state.staged) {
+    if (state.hasStagedChanges && state.hasEnoughCredits && state.staged && publicClient) {
       const hasSupportAdjustments = state.staged.supportAdjustments.size > 0;
 
       dispatch({ type: "BEGIN_COMMIT" });
@@ -741,23 +711,7 @@ export const UserVoteProvider: FC<{
         // Build the list of encoded calls for multicall
         const calls: `0x${string}`[] = [];
 
-        // 1. requireStep guard — ensures the decay step hasn't changed since
-        //    the user last saw the UI state. Refetch the step immediately before
-        //    building the multicall to minimise the window for staleness.
-        if (stepDurationSeconds && stepDurationSeconds > 0n) {
-          const { data: freshStep } = await refetchStep();
-          if (freshStep !== undefined) {
-            calls.push(
-              encodeFunctionData({
-                abi: FORUM_ABI,
-                functionName: "requireStep",
-                args: [freshStep],
-              }),
-            );
-          }
-        }
-
-        // 2. addStatement calls for staged new statements
+        // 1. addStatement calls for staged new statements
         for (const stmt of state.staged.stagedStatements) {
           calls.push(
             encodeFunctionData({
@@ -768,7 +722,7 @@ export const UserVoteProvider: FC<{
           );
         }
 
-        // 3. adjustSupport call for support adjustments on existing statements
+        // 2. adjustSupport call for support adjustments on existing statements
         if (hasSupportAdjustments) {
           const supportAdjustments: { statementId: bigint; value: bigint }[] =
             [];
@@ -791,11 +745,24 @@ export const UserVoteProvider: FC<{
         // Use multicall to batch everything in a single transaction.
         // Authored statement IDs are extracted from the receipt logs in
         // the COMMIT_CONFIRMED effect, avoiding prediction race conditions.
+        //
+        // Decay calculations inside Multicall's delegatecall have
+        // variable gas cost depending on block.timestamp at execution
+        // time (which may differ from estimation time).  Adding a 20%
+        // buffer prevents intermittent out-of-gas FailedCall reverts.
+        const gasEstimate = await publicClient.estimateContractGas({
+          address: forumContractAddress,
+          abi: FORUM_ABI,
+          functionName: "multicall",
+          args: [calls],
+          account: address,
+        });
         const txHash = await writeContractAsync({
           address: forumContractAddress,
           abi: FORUM_ABI,
           functionName: "multicall",
           args: [calls],
+          gas: (gasEstimate * 120n) / 100n,
         });
 
         dispatch({ type: "COMMIT_SUBMITTED", payload: { txHash } });
@@ -805,21 +772,6 @@ export const UserVoteProvider: FC<{
             dispatch({ type: "COMMIT_CANCELLED" });
             return;
           }
-
-          const revert = err.walk(
-            (e) => e instanceof ContractFunctionRevertedError,
-          ) as ContractFunctionRevertedError | null;
-
-          if (revert && revert.data?.errorName === "StaleStep") {
-            dispatch({ type: "COMMIT_STALE_STEP" });
-            return;
-          }
-        }
-
-        const errStr = JSON.stringify(err, Object.getOwnPropertyNames(err));
-        if (errStr.includes("0x595d8517") || errStr.includes("StaleStep")) {
-          dispatch({ type: "COMMIT_STALE_STEP" });
-          return;
         }
 
         dispatch({ type: "COMMIT_ERROR" });
@@ -829,9 +781,9 @@ export const UserVoteProvider: FC<{
     state,
     writeContractAsync,
     forumContractAddress,
-    refetchStep,
+    publicClient,
+    address,
     dispatch,
-    stepDurationSeconds,
   ]);
 
   const resetCommitStatus = useCallback(() => {
