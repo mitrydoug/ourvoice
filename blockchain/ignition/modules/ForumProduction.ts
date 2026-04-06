@@ -28,6 +28,7 @@ export function createForumProductionModule(
   maxStatementLength: number,
   userCreditAllowancePerStep: number,
   userStartingCredits: number,
+  minAdjustmentIntervalSeconds: number,
 ) {
   return buildModule("ForumProductionModule", (m) => {
     const verifierAddress = m.getParameter<string>("verifierAddress");
@@ -52,6 +53,7 @@ export function createForumProductionModule(
       stepDurationSeconds, engagementWindowSeconds,
       maxRankedStatements, minStatementSupportToRank,
       maxStatementLength, userCreditAllowancePerStep, userStartingCredits,
+      minAdjustmentIntervalSeconds,
     );
 
     return { registry, ...forums };

@@ -20,7 +20,8 @@ contract ForumHarness is Forum {
         uint _maxStatementLength,
         uint _userCreditAllowancePerStep,
         uint _userStartingCredits,
-        int _minStatementSupportToRank
+        int _minStatementSupportToRank,
+        uint _minAdjustmentIntervalSeconds
     )
         Forum(
             _ourVoiceRegistry,
@@ -31,7 +32,8 @@ contract ForumHarness is Forum {
             _maxStatementLength,
             _userCreditAllowancePerStep,
             _userStartingCredits,
-            _minStatementSupportToRank
+            _minStatementSupportToRank,
+            _minAdjustmentIntervalSeconds
         )
     {}
 
@@ -56,15 +58,35 @@ contract ForumHarness is Forum {
 }
 
 contract ForumTest is Test {
-    uint MOCK_TEST_TIMESTAMP = 1767572846;
-
+    uint MOCK_TEST_TIMESTAMP = 1767572100;
+    uint STEP_DURATION_SECONDS = 900; // 15 minutes
     MockOurVoiceRegistry mockRegistry;
     ForumHarness forum;
 
     function setUp() public {
+        // Warp to the start of a step
         vm.warp(MOCK_TEST_TIMESTAMP);
+
         mockRegistry = new MockOurVoiceRegistry();
-        forum = new ForumHarness(mockRegistry, "", 3, 10, 60, 120, 25, 1000, 2);
+        forum = new ForumHarness(
+            mockRegistry,
+            "",
+            3,
+            STEP_DURATION_SECONDS,
+            60,
+            120,
+            25,
+            1000,
+            2,
+            12
+        );
+    }
+
+    /// @dev Advance block.timestamp by minAdjustmentIntervalSeconds to simulate
+    ///      the next block. With stepDurationSeconds=900 and interval=12, this
+    ///      never crosses a step boundary unless called 75+ times.
+    function _nextBlock() internal {
+        vm.warp(block.timestamp + forum.minAdjustmentIntervalSeconds());
     }
 
     modifier registeredMember() {
@@ -245,6 +267,7 @@ contract ForumTest is Test {
         assertEq(_getStatementById(1).rank, 1, "Statement B should be rank 1");
 
         // Add more support to Statement B to overtake Statement A
+        _nextBlock();
         _addStatementSupport(1, 2); // Now has 4 support total
 
         // Verify rankings changed
@@ -276,6 +299,7 @@ contract ForumTest is Test {
         _addStatementSupport(1, 3); // Rank 1
 
         // Add support to B but not enough to overtake A
+        _nextBlock();
         _addStatementSupport(1, 1); // Now has 4 support total, still less than A
 
         // Verify rankings didn't change
@@ -301,6 +325,7 @@ contract ForumTest is Test {
         _addStatementSupport(2, 3); // Rank 2
 
         // Remove support from Statement A
+        _nextBlock();
         _addStatementSupport(0, -3); // Now has 2 support
 
         // A should now be rank 2
@@ -332,6 +357,7 @@ contract ForumTest is Test {
         assertEq(forum.rankedCount(), 1, "Ranked count should be 1");
 
         // Remove support down to 1 (below ranking threshold of 2)
+        _nextBlock();
         _addStatementSupport(0, -2);
 
         Forum.Statement memory statement = _getStatementById(0);
@@ -350,6 +376,7 @@ contract ForumTest is Test {
         _addStatementSupport(1, 3); // Rank 1
 
         // Remove some support from A but it still has more than B
+        _nextBlock();
         _addStatementSupport(0, -4); // Now has 6 support
 
         assertEq(
@@ -379,9 +406,7 @@ contract ForumTest is Test {
     {
         forum.addStatement("Test statement", 0);
         uint initialBalance = forum.getUserBalance();
-
-        _addStatementSupport(0, 3); // Cost should be 6 (triangular number)
-
+        _addStatementSupport(0, 3);
         uint newBalance = forum.getUserBalance();
         assertEq(
             newBalance,
@@ -396,14 +421,16 @@ contract ForumTest is Test {
     {
         forum.addStatement("Test statement", 0);
         _addStatementSupport(0, 5); // Cost: 15
-        uint balanceAfterAdding = forum.getUserBalance();
 
-        _addStatementSupport(0, -2); // Refund cost of going from 5 to 3: 15 - 6 = 9
+        uint balanceBeforeRemoval = forum.getUserBalance();
+
+        _nextBlock();
+        _addStatementSupport(0, -2); // Refund cost of going from 5 to 3 = 15 - 6 = 9
 
         uint finalBalance = forum.getUserBalance();
         assertEq(
             finalBalance,
-            balanceAfterAdding + 9,
+            balanceBeforeRemoval + 9,
             "Balance should increase by 9 when removing 2 units from 5"
         );
     }
@@ -415,19 +442,15 @@ contract ForumTest is Test {
         forum.addStatement("Test statement", 0);
 
         // Spend most of the balance
-        uint currentBalance = forum.getUserBalance();
-        _addStatementSupport(0, 44); // Cost: 990
+        _addStatementSupport(0, 44); // Cost: 990, balance: 1000 - 990 = 10
 
-        currentBalance = forum.getUserBalance();
         // Try to add more support than balance allows
+        // Going from 44 to 54 costs triangular(54) - triangular(44) = 1485 - 990 = 495
+        _nextBlock();
         vm.expectRevert(
-            abi.encodeWithSelector(
-                Forum.InsufficientCredits.selector,
-                currentBalance,
-                495
-            )
+            abi.encodeWithSelector(Forum.InsufficientCredits.selector, 10, 495)
         );
-        _addStatementSupport(0, 10); // Would cost 1485 - 990 = 495, but only ~60 credits left
+        _addStatementSupport(0, 10);
     }
 
     function testCostIsTriangularNumber() external view {
@@ -496,27 +519,31 @@ contract ForumTest is Test {
         // triangular(n+1) - triangular(n) = (n+1)(n+2)/2 - n(n+1)/2 = (n+1)
 
         uint initialBalance = forum.getUserBalance();
-        _addStatementSupport(0, 1); // Marginal cost: 1
+
+        // 0 → 1: marginal cost = 1
+        _addStatementSupport(0, 1);
         assertEq(
             forum.getUserBalance(),
             initialBalance - 1,
             "First unit should cost 1"
         );
 
-        uint balance2 = forum.getUserBalance();
-        _addStatementSupport(0, 1); // Marginal cost: 2
+        // 1 → 2: marginal cost = 2, total cost = 3
+        _nextBlock();
+        _addStatementSupport(0, 1);
         assertEq(
             forum.getUserBalance(),
-            balance2 - 2,
-            "Second unit should cost 2"
+            initialBalance - 3,
+            "Second unit should bring total cost to 3"
         );
 
-        uint balance3 = forum.getUserBalance();
-        _addStatementSupport(0, 1); // Marginal cost: 3
+        // 2 → 3: marginal cost = 3, total cost = 6
+        _nextBlock();
+        _addStatementSupport(0, 1);
         assertEq(
             forum.getUserBalance(),
-            balance3 - 3,
-            "Third unit should cost 3"
+            initialBalance - 6,
+            "Third unit should bring total cost to 6"
         );
     }
 
@@ -744,7 +771,7 @@ contract ForumTest is Test {
             "Balance should decrease by 55"
         );
 
-        // Advance time to cause support decay
+        // Advance time to cause support decay (42 steps = 1 half-life)
         vm.warp(vm.getBlockTimestamp() + 42 * forum.stepDurationSeconds());
 
         // User's support has decayed to ~5, which costs 15 instead of 55
@@ -759,7 +786,7 @@ contract ForumTest is Test {
         assertEq(
             finalBalance,
             balanceAfterSupport + 15 + expectedTimeAllowance,
-            "Balance should increase by decayed support cost plus time allowance"
+            "Balance should account for decayed support cost and time allowance"
         );
     }
 
@@ -867,18 +894,14 @@ contract ForumTest is Test {
     // ======================================================================
 
     function testNewItemsAreAddedToFirstEmptySlot() external registeredMember {
-        // Create multiple statements
-        forum.addStatement("Statement A", 0);
-        forum.addStatement("Statement B", 0);
-        forum.addStatement("Statement C", 0);
+        // Create statements with initial support
+        forum.addStatement("Statement A", 10);
+        forum.addStatement("Statement B", 10);
+        forum.addStatement("Statement C", 10);
         forum.addStatement("Statement D", 0);
 
-        // Support statements A, B, and C
-        _addStatementSupport(0, 10);
-        _addStatementSupport(1, 10);
-        _addStatementSupport(2, 10);
-
         // Remove all support from B (creating an empty slot)
+        _nextBlock();
         _addStatementSupport(1, -10);
 
         // Now add support to statement D
@@ -934,19 +957,12 @@ contract ForumTest is Test {
         external
         registeredMember
     {
-        // Create 5 statements: A, B, C, D, E
-        forum.addStatement("Statement A", 0);
-        forum.addStatement("Statement B", 0);
-        forum.addStatement("Statement C", 0);
-        forum.addStatement("Statement D", 0);
-        forum.addStatement("Statement E", 0);
-
-        // Support all 5 statements - array will be [A, B, C, D, E]
-        _addStatementSupport(0, 10);
-        _addStatementSupport(1, 10);
-        _addStatementSupport(2, 10);
-        _addStatementSupport(3, 10);
-        _addStatementSupport(4, 10);
+        // Create 5 statements with initial support
+        forum.addStatement("Statement A", 10);
+        forum.addStatement("Statement B", 10);
+        forum.addStatement("Statement C", 10);
+        forum.addStatement("Statement D", 10);
+        forum.addStatement("Statement E", 10);
 
         // Verify we have 5 statements
         Forum.StatementSupport[] memory userSupport = forum
@@ -963,6 +979,7 @@ contract ForumTest is Test {
         assertEq(initialLength, 5, "Initial raw array length should be 5");
 
         // Remove support from B (creating one empty slot at index 1)
+        _nextBlock();
         _addStatementSupport(1, -10);
 
         // Remove support from C (creating second empty slot at index 2)
@@ -980,7 +997,6 @@ contract ForumTest is Test {
         );
 
         // Now add support to a new statement F
-        // F fills the first empty slot; no further compaction occurs
         forum.addStatement("Statement F", 0);
         _addStatementSupport(5, 5);
 
@@ -1057,6 +1073,7 @@ contract ForumTest is Test {
         );
 
         // Give B more support so it overtakes A
+        _nextBlock();
         _addStatementSupport(1, 4); // B now has 7, overtakes A (5)
 
         assertEq(_getStatementById(1).rank, 0, "B should now be rank 0");
@@ -1079,6 +1096,7 @@ contract ForumTest is Test {
         assertEq(_getStatementById(0).peakRank, 0, "A peakRank should be 0");
 
         // Give B more support so it overtakes A → A drops to rank 1
+        _nextBlock();
         _addStatementSupport(1, 4); // B=7, A=5
 
         assertEq(_getStatementById(0).rank, 1, "A should now be rank 1");
@@ -1128,6 +1146,7 @@ contract ForumTest is Test {
         assertEq(_getStatementById(2).peakRank, 2, "C peakRank should be 2");
 
         // Remove support from A so it drops below both B and C
+        _nextBlock();
         _addStatementSupport(0, -5); // A now has 1 support → unranked or rank 2
 
         // B and C should have moved up. B→0, C→1
@@ -1175,6 +1194,7 @@ contract ForumTest is Test {
         emit Forum.StatementRankChanged(0, 0, 1);
         vm.expectEmit(true, false, false, true);
         emit Forum.StatementRankChanged(1, 1, 0);
+        _nextBlock();
         _addStatementSupport(1, 4); // B now has 7 > A's 5
     }
 
@@ -1214,6 +1234,7 @@ contract ForumTest is Test {
         // Push B's support negative to trigger maintenance eviction
         vm.expectEmit(true, false, false, true);
         emit Forum.StatementRankChanged(1, 1, -1);
+        _nextBlock();
         _addStatementSupport(1, -4); // B support goes to -1
     }
 
@@ -1229,6 +1250,7 @@ contract ForumTest is Test {
         // Adding more support to A doesn't change its rank (still 0)
         // We record logs and check no StatementRankChanged was emitted for id 0
         vm.recordLogs();
+        _nextBlock();
         _addStatementSupport(0, 1);
 
         Vm.Log[] memory logs = vm.getRecordedLogs();
@@ -1265,6 +1287,7 @@ contract ForumTest is Test {
         assertEq(forum.rankedCount(), 3, "All three should be ranked");
 
         // Drop A's support to 1 (below minStatementSupportToRank = 2)
+        _nextBlock();
         _addStatementSupport(0, -5);
 
         Forum.Statement memory sA = _getStatementById(0);
@@ -1295,6 +1318,7 @@ contract ForumTest is Test {
         _addStatementSupport(2, 3); // Rank 2
 
         // Drop B's support below threshold
+        _nextBlock();
         _addStatementSupport(1, -3); // B now has 1 support
 
         Forum.Statement memory sB = _getStatementById(1);

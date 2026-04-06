@@ -18,6 +18,7 @@ import type {
  * @param maxStatementLength         - Maximum byte length of a statement.
  * @param userCreditAllowancePerStep - Credits granted per step.
  * @param userStartingCredits        - Credits for newly registered users.
+ * @param minAdjustmentIntervalSeconds - Minimum seconds between support adjustments per user+statement.
  * @returns A record mapping each forum name to its deployed Forum contract Future.
  */
 export function deployForums(
@@ -31,6 +32,7 @@ export function deployForums(
   maxStatementLength: number,
   userCreditAllowancePerStep: number,
   userStartingCredits: number,
+  minAdjustmentIntervalSeconds: number,
 ): {
   forums: Record<string, NamedArtifactContractDeploymentFuture<"Forum">>;
 } {
@@ -49,6 +51,7 @@ export function deployForums(
           userCreditAllowancePerStep,
           userStartingCredits,
           minStatementSupportToRank,
+          minAdjustmentIntervalSeconds,
         ],
         { id: `Forum_${forum}` },
       ),

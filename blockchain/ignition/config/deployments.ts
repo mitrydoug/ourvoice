@@ -16,6 +16,7 @@ type MockedDeploymentConfig = {
   maxStatementLength: number;
   userCreditAllowancePerStep: number;
   userStartingCredits: number;
+  minAdjustmentIntervalSeconds: number;
 };
 
 type ProductionDeploymentConfig = {
@@ -28,6 +29,7 @@ type ProductionDeploymentConfig = {
   maxStatementLength: number;
   userCreditAllowancePerStep: number;
   userStartingCredits: number;
+  minAdjustmentIntervalSeconds: number;
   parametersFile: string;
 };
 
@@ -45,6 +47,7 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
     maxStatementLength: 120,
     userCreditAllowancePerStep: 25,
     userStartingCredits: 1000,
+    minAdjustmentIntervalSeconds: 12,
   },
 
   /** Docker Compose Hardhat node with mock data. */
@@ -58,6 +61,7 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
     maxStatementLength: 120,
     userCreditAllowancePerStep: 25,
     userStartingCredits: 1000,
+    minAdjustmentIntervalSeconds: 12,
   },
 
   /** Local native Hardhat node with mock data. */
@@ -71,6 +75,7 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
     maxStatementLength: 120,
     userCreditAllowancePerStep: 25,
     userStartingCredits: 1000,
+    minAdjustmentIntervalSeconds: 12,
   },
 
   /** Local native Hardhat node forking Sepolia with real ZKPassport verifier. */
@@ -84,6 +89,7 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
     maxStatementLength: 120,
     userCreditAllowancePerStep: 25,
     userStartingCredits: 1000,
+    minAdjustmentIntervalSeconds: 12,
     parametersFile: "local-fork-strict.json",
   },
 
@@ -98,6 +104,7 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
     maxStatementLength: 120,
     userCreditAllowancePerStep: 25,
     userStartingCredits: 1000,
+    minAdjustmentIntervalSeconds: 12,
     parametersFile: "local-fork-strict.json",
   },
 
@@ -112,6 +119,7 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
     maxStatementLength: 120,
     userCreditAllowancePerStep: 25,
     userStartingCredits: 1000,
+    minAdjustmentIntervalSeconds: 12,
     parametersFile: "local-fork.json",
   },
 
@@ -126,6 +134,7 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
     maxStatementLength: 120,
     userCreditAllowancePerStep: 25,
     userStartingCredits: 1000,
+    minAdjustmentIntervalSeconds: 12,
     parametersFile: "sepolia.json",
   },
 };

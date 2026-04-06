@@ -17,6 +17,7 @@ contract Forum is Multicall {
     error InsufficientCredits(uint available, int required);
     error TimestampOrderInvalid(uint fromTimestamp, uint toTimestamp);
     error StaleStep(uint expected, uint actual);
+    error DuplicateAdjustment(uint statementId);
 
     // Maximum length (in bytes) of a statement
     uint public immutable maxStatementLength;
@@ -32,6 +33,8 @@ contract Forum is Multicall {
     uint public immutable stepDurationSeconds;
     // Minimum seconds between StatementEngaged events for the same statement
     uint public immutable engagementWindowSeconds;
+    // Minimum seconds between support adjustments for the same user+statement
+    uint public immutable minAdjustmentIntervalSeconds;
 
     AOurVoiceRegistry public ourVoiceRegistry;
 
@@ -109,7 +112,8 @@ contract Forum is Multicall {
         uint _maxStatementLength,
         uint _userCreditAllowancePerStep,
         uint _userStartingCredits,
-        int _minStatementSupportToRank
+        int _minStatementSupportToRank,
+        uint _minAdjustmentIntervalSeconds
     ) {
         ourVoiceRegistry = _ourVoiceRegistry;
         nationality = _nationality;
@@ -120,6 +124,7 @@ contract Forum is Multicall {
         userCreditAllowancePerStep = _userCreditAllowancePerStep;
         userStartingCredits = _userStartingCredits;
         minStatementSupportToRank = _minStatementSupportToRank;
+        minAdjustmentIntervalSeconds = _minAdjustmentIntervalSeconds;
     }
 
     function _resolveStatement(
@@ -554,6 +559,13 @@ contract Forum is Multicall {
             Support storage _currentUserSupport = userSupportMap[_userId][
                 _adjustment.statementId
             ];
+
+            // Prevent rapid-fire adjustments to the same statement
+            if (
+                block.timestamp - _currentUserSupport.lastUpdated <
+                minAdjustmentIntervalSeconds
+            ) revert DuplicateAdjustment(_adjustment.statementId);
+
             _updateSupportToBeCurrent(_currentStatementSupport);
             _updateSupportToBeCurrent(_currentUserSupport);
 

@@ -35,6 +35,7 @@ async function main() {
       config.forums, config.stepDurationSeconds, config.engagementWindowSeconds,
       config.maxRankedStatements, config.minStatementSupportToRank,
       config.maxStatementLength, config.userCreditAllowancePerStep, config.userStartingCredits,
+      config.minAdjustmentIntervalSeconds,
     );
     const deployResult = await ignition.deploy(module);
     ({ registry, ...forums } = deployResult);
@@ -43,6 +44,7 @@ async function main() {
       config.forums, config.stepDurationSeconds, config.engagementWindowSeconds,
       config.maxRankedStatements, config.minStatementSupportToRank,
       config.maxStatementLength, config.userCreditAllowancePerStep, config.userStartingCredits,
+      config.minAdjustmentIntervalSeconds,
     );
     const parametersPath = path.resolve(
       import.meta.dirname,
