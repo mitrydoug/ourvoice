@@ -143,12 +143,12 @@ const MOCK_SUPPORT: MockSupport[] = [
  */
 export function createForumMockedModule(
   forumNames: string[],
-  stepDurationSeconds: number,
+  creditAllowanceIntervalSeconds: number,
   engagementWindowSeconds: number,
   maxRankedStatements: number,
   minStatementSupportToRank: number,
   maxStatementLength: number,
-  userCreditAllowancePerStep: number,
+  userCreditAllowancePerInterval: number,
   userStartingCredits: number,
   minAdjustmentIntervalSeconds: number,
 ) {
@@ -178,9 +178,9 @@ export function createForumMockedModule(
 
     const { forums } = deployForums(
       m, mockedZKRegistry, forumNames,
-      stepDurationSeconds, engagementWindowSeconds,
+      creditAllowanceIntervalSeconds, engagementWindowSeconds,
       maxRankedStatements, minStatementSupportToRank,
-      maxStatementLength, userCreditAllowancePerStep, userStartingCredits,
+      maxStatementLength, userCreditAllowancePerInterval, userStartingCredits,
       minAdjustmentIntervalSeconds,
     );
 

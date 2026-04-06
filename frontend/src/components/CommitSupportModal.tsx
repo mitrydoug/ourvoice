@@ -53,7 +53,7 @@ const CommitSupportModal: FC<CommitSupportModalProps> = ({
       commitStatus === "cancelled" ||
       commitStatus === "error" ||
       commitStatus === "confirmed" ||
-      commitStatus === "stale-step"
+      commitStatus === "error"
     ) {
       onReset();
     }
@@ -103,19 +103,7 @@ const CommitSupportModal: FC<CommitSupportModalProps> = ({
           </Stack>
         )}
 
-        {commitStatus === "stale-step" && (
-          <Stack spacing={2} alignItems="center">
-            <ErrorOutlineIcon
-              sx={{ fontSize: "3rem", color: "warning.main" }}
-            />
-            <Typography variant="body1">
-              Support values have shifted since you last reviewed.
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Please review your changes and try again.
-            </Typography>
-          </Stack>
-        )}
+
       </Box>
     </Modal>
   );

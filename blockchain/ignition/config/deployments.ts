@@ -9,12 +9,12 @@
 type MockedDeploymentConfig = {
   mode: "mocked";
   forums: string[];
-  stepDurationSeconds: number;
+  creditAllowanceIntervalSeconds: number;
   engagementWindowSeconds: number;
   maxRankedStatements: number;
   minStatementSupportToRank: number;
   maxStatementLength: number;
-  userCreditAllowancePerStep: number;
+  userCreditAllowancePerInterval: number;
   userStartingCredits: number;
   minAdjustmentIntervalSeconds: number;
 };
@@ -22,12 +22,12 @@ type MockedDeploymentConfig = {
 type ProductionDeploymentConfig = {
   mode: "production";
   forums: string[];
-  stepDurationSeconds: number;
+  creditAllowanceIntervalSeconds: number;
   engagementWindowSeconds: number;
   maxRankedStatements: number;
   minStatementSupportToRank: number;
   maxStatementLength: number;
-  userCreditAllowancePerStep: number;
+  userCreditAllowancePerInterval: number;
   userStartingCredits: number;
   minAdjustmentIntervalSeconds: number;
   parametersFile: string;
@@ -40,12 +40,12 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
   default: {
     mode: "mocked",
     forums: ["global", "USA", "CAN"],
-    stepDurationSeconds: 60,
+    creditAllowanceIntervalSeconds: 60,
     engagementWindowSeconds: 300,
     maxRankedStatements: 10,
     minStatementSupportToRank: 3,
     maxStatementLength: 120,
-    userCreditAllowancePerStep: 25,
+    userCreditAllowancePerInterval: 25,
     userStartingCredits: 1000,
     minAdjustmentIntervalSeconds: 12,
   },
@@ -54,12 +54,12 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
   compose_hardhat: {
     mode: "mocked",
     forums: ["global", "USA", "CAN"],
-    stepDurationSeconds: 60,
+    creditAllowanceIntervalSeconds: 60,
     engagementWindowSeconds: 300,
     maxRankedStatements: 10,
     minStatementSupportToRank: 3,
     maxStatementLength: 120,
-    userCreditAllowancePerStep: 25,
+    userCreditAllowancePerInterval: 25,
     userStartingCredits: 1000,
     minAdjustmentIntervalSeconds: 12,
   },
@@ -68,12 +68,12 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
   localhost: {
     mode: "mocked",
     forums: ["global", "USA", "CAN"],
-    stepDurationSeconds: 60,
+    creditAllowanceIntervalSeconds: 60,
     engagementWindowSeconds: 300,
     maxRankedStatements: 10,
     minStatementSupportToRank: 3,
     maxStatementLength: 120,
-    userCreditAllowancePerStep: 25,
+    userCreditAllowancePerInterval: 25,
     userStartingCredits: 1000,
     minAdjustmentIntervalSeconds: 12,
   },
@@ -82,12 +82,12 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
   localhost_forked: {
     mode: "production",
     forums: ["global", "USA", "CAN"],
-    stepDurationSeconds: 60,
+    creditAllowanceIntervalSeconds: 60,
     engagementWindowSeconds: 300,
     maxRankedStatements: 10,
     minStatementSupportToRank: 3,
     maxStatementLength: 120,
-    userCreditAllowancePerStep: 25,
+    userCreditAllowancePerInterval: 25,
     userStartingCredits: 1000,
     minAdjustmentIntervalSeconds: 12,
     parametersFile: "local-fork-strict.json",
@@ -97,12 +97,12 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
   compose_hardhat_forked: {
     mode: "production",
     forums: ["global", "USA", "CAN"],
-    stepDurationSeconds: 60,
+    creditAllowanceIntervalSeconds: 60,
     engagementWindowSeconds: 300,
     maxRankedStatements: 10,
     minStatementSupportToRank: 3,
     maxStatementLength: 120,
-    userCreditAllowancePerStep: 25,
+    userCreditAllowancePerInterval: 25,
     userStartingCredits: 1000,
     minAdjustmentIntervalSeconds: 12,
     parametersFile: "local-fork-strict.json",
@@ -112,12 +112,12 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
   local_sepolia_fork: {
     mode: "production",
     forums: ["global", "USA", "CAN"],
-    stepDurationSeconds: 60,
+    creditAllowanceIntervalSeconds: 60,
     engagementWindowSeconds: 300,
     maxRankedStatements: 10,
     minStatementSupportToRank: 3,
     maxStatementLength: 120,
-    userCreditAllowancePerStep: 25,
+    userCreditAllowancePerInterval: 25,
     userStartingCredits: 1000,
     minAdjustmentIntervalSeconds: 12,
     parametersFile: "local-fork.json",
@@ -127,12 +127,12 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
   sepolia: {
     mode: "production",
     forums: ["global", "USA", "CAN"],
-    stepDurationSeconds: 14400,
+    creditAllowanceIntervalSeconds: 14400,
     engagementWindowSeconds: 86400,
     maxRankedStatements: 1000,
     minStatementSupportToRank: 10,
     maxStatementLength: 120,
-    userCreditAllowancePerStep: 25,
+    userCreditAllowancePerInterval: 25,
     userStartingCredits: 1000,
     minAdjustmentIntervalSeconds: 12,
     parametersFile: "sepolia.json",

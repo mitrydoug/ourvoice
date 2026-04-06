@@ -21,12 +21,12 @@ import { deployForums } from "./helpers/deployForums.js";
  */
 export function createForumProductionModule(
   forumNames: string[],
-  stepDurationSeconds: number,
+  creditAllowanceIntervalSeconds: number,
   engagementWindowSeconds: number,
   maxRankedStatements: number,
   minStatementSupportToRank: number,
   maxStatementLength: number,
-  userCreditAllowancePerStep: number,
+  userCreditAllowancePerInterval: number,
   userStartingCredits: number,
   minAdjustmentIntervalSeconds: number,
 ) {
@@ -50,9 +50,9 @@ export function createForumProductionModule(
 
     const { forums } = deployForums(
       m, registry, forumNames,
-      stepDurationSeconds, engagementWindowSeconds,
+      creditAllowanceIntervalSeconds, engagementWindowSeconds,
       maxRankedStatements, minStatementSupportToRank,
-      maxStatementLength, userCreditAllowancePerStep, userStartingCredits,
+      maxStatementLength, userCreditAllowancePerInterval, userStartingCredits,
       minAdjustmentIntervalSeconds,
     );
 

@@ -16,21 +16,20 @@ contract Forum is Multicall {
     error UserNotRegistered(address user);
     error InsufficientCredits(uint available, int required);
     error TimestampOrderInvalid(uint fromTimestamp, uint toTimestamp);
-    error StaleStep(uint expected, uint actual);
     error DuplicateAdjustment(uint statementId);
 
     // Maximum length (in bytes) of a statement
     uint public immutable maxStatementLength;
-    // Amount of credits a user is credited each "step"
-    uint public immutable userCreditAllowancePerStep;
+    // Amount of credits a user is credited each credit allowance interval
+    uint public immutable userCreditAllowancePerInterval;
     // Starting credits for a new user
     uint public immutable userStartingCredits;
     // Minimum support required for a statement to be ranked
     int public immutable minStatementSupportToRank;
     // We only track this many statements for ranking purposes
     uint public immutable maxRankedStatements;
-    // Duration of a single decay/credit step in seconds
-    uint public immutable stepDurationSeconds;
+    // Duration of a single credit allowance interval in seconds
+    uint public immutable creditAllowanceIntervalSeconds;
     // Minimum seconds between StatementEngaged events for the same statement
     uint public immutable engagementWindowSeconds;
     // Minimum seconds between support adjustments for the same user+statement
@@ -107,10 +106,10 @@ contract Forum is Multicall {
         AOurVoiceRegistry _ourVoiceRegistry,
         string memory _nationality,
         uint _maxRankedStatements,
-        uint _stepDurationSeconds,
+        uint _creditAllowanceIntervalSeconds,
         uint _engagementWindowSeconds,
         uint _maxStatementLength,
-        uint _userCreditAllowancePerStep,
+        uint _userCreditAllowancePerInterval,
         uint _userStartingCredits,
         int _minStatementSupportToRank,
         uint _minAdjustmentIntervalSeconds
@@ -118,10 +117,10 @@ contract Forum is Multicall {
         ourVoiceRegistry = _ourVoiceRegistry;
         nationality = _nationality;
         maxRankedStatements = _maxRankedStatements;
-        stepDurationSeconds = _stepDurationSeconds;
+        creditAllowanceIntervalSeconds = _creditAllowanceIntervalSeconds;
         engagementWindowSeconds = _engagementWindowSeconds;
         maxStatementLength = _maxStatementLength;
-        userCreditAllowancePerStep = _userCreditAllowancePerStep;
+        userCreditAllowancePerInterval = _userCreditAllowancePerInterval;
         userStartingCredits = _userStartingCredits;
         minStatementSupportToRank = _minStatementSupportToRank;
         minAdjustmentIntervalSeconds = _minAdjustmentIntervalSeconds;
@@ -412,36 +411,24 @@ contract Forum is Multicall {
     }
 
     // ======================================================================
-    // Step calculation and decay
+    // Decay and credit allowance
     // ======================================================================
-
-    function _elapsedStepsBetweenTimestamps(
-        uint fromTimestamp,
-        uint toTimestamp
-    ) internal view returns (uint) {
-        if (fromTimestamp > toTimestamp)
-            revert TimestampOrderInvalid(fromTimestamp, toTimestamp);
-        return
-            (toTimestamp / stepDurationSeconds) -
-            (fromTimestamp / stepDurationSeconds);
-    }
 
     function _decayValue(
         int startValue,
         uint fromTimestamp,
         uint toTimestamp
-    ) internal view returns (int) {
-        uint elapsedSteps = _elapsedStepsBetweenTimestamps(
-            fromTimestamp,
-            toTimestamp
-        );
+    ) internal pure returns (int) {
+        if (fromTimestamp > toTimestamp)
+            revert TimestampOrderInvalid(fromTimestamp, toTimestamp);
 
-        if (startValue == 0 || elapsedSteps == 0) {
+        uint elapsedSeconds = toTimestamp - fromTimestamp;
+
+        if (startValue == 0 || elapsedSeconds == 0) {
             return startValue;
         }
 
-        return
-            DecayUtils.approxDecayHalvingEvery42Steps(startValue, elapsedSteps);
+        return DecayUtils.approxDecay(startValue, elapsedSeconds);
     }
 
     function _getCurrentUserBalance(
@@ -454,11 +441,11 @@ contract Forum is Multicall {
                 .registrationTimestamp;
         }
 
-        uint _elapsedSteps = _elapsedStepsBetweenTimestamps(
-            _balance.lastUpdated,
-            block.timestamp
-        );
-        return _balance.credits + (_elapsedSteps * userCreditAllowancePerStep);
+        uint elapsedSeconds = block.timestamp - _balance.lastUpdated;
+        uint elapsedIntervals = elapsedSeconds / creditAllowanceIntervalSeconds;
+        return
+            _balance.credits +
+            (elapsedIntervals * userCreditAllowancePerInterval);
     }
 
     function _updateUserBalanceToBeCurrent(
@@ -601,21 +588,4 @@ contract Forum is Multicall {
             int(_userBalance.credits) - _totalCostChange
         );
     }
-
-    /// @notice Returns the current decay step index (block.timestamp / stepDurationSeconds).
-    /// @dev Read this on-chain immediately before building a multicall with requireStep
-    ///      to avoid StaleStep reverts caused by frontend clock skew.
-    function getCurrentStep() external view returns (uint) {
-        return block.timestamp / stepDurationSeconds;
-    }
-
-    /// @notice Reverts if the current decay step does not match the expected value.
-    /// @dev Intended for use via multicall to guard against decay drift.
-    function requireStep(uint _expectedStep) external view {
-        uint actualStep = block.timestamp / stepDurationSeconds;
-        if (actualStep != _expectedStep)
-            revert StaleStep(_expectedStep, actualStep);
-    }
-
-    fallback() external {}
 }

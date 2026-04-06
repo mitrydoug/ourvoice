@@ -32,18 +32,18 @@ async function main() {
 
   if (config.mode === "mocked") {
     const module = createForumMockedModule(
-      config.forums, config.stepDurationSeconds, config.engagementWindowSeconds,
+      config.forums, config.creditAllowanceIntervalSeconds, config.engagementWindowSeconds,
       config.maxRankedStatements, config.minStatementSupportToRank,
-      config.maxStatementLength, config.userCreditAllowancePerStep, config.userStartingCredits,
+      config.maxStatementLength, config.userCreditAllowancePerInterval, config.userStartingCredits,
       config.minAdjustmentIntervalSeconds,
     );
     const deployResult = await ignition.deploy(module);
     ({ registry, ...forums } = deployResult);
   } else {
     const module = createForumProductionModule(
-      config.forums, config.stepDurationSeconds, config.engagementWindowSeconds,
+      config.forums, config.creditAllowanceIntervalSeconds, config.engagementWindowSeconds,
       config.maxRankedStatements, config.minStatementSupportToRank,
-      config.maxStatementLength, config.userCreditAllowancePerStep, config.userStartingCredits,
+      config.maxStatementLength, config.userCreditAllowancePerInterval, config.userStartingCredits,
       config.minAdjustmentIntervalSeconds,
     );
     const parametersPath = path.resolve(

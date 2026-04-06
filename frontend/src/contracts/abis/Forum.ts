@@ -21,7 +21,7 @@ export default [
       },
       {
         "internalType": "uint256",
-        "name": "_stepDurationSeconds",
+        "name": "_creditAllowanceIntervalSeconds",
         "type": "uint256"
       },
       {
@@ -36,7 +36,7 @@ export default [
       },
       {
         "internalType": "uint256",
-        "name": "_userCreditAllowancePerStep",
+        "name": "_userCreditAllowancePerInterval",
         "type": "uint256"
       },
       {
@@ -117,22 +117,7 @@ export default [
     "name": "RankOutOfBounds",
     "type": "error"
   },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "expected",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "actual",
-        "type": "uint256"
-      }
-    ],
-    "name": "StaleStep",
-    "type": "error"
-  },
+
   {
     "inputs": [
       {
@@ -621,32 +606,7 @@ export default [
     "stateMutability": "view",
     "type": "function"
   },
-  {
-    "inputs": [],
-    "name": "getCurrentStep",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_expectedStep",
-        "type": "uint256"
-      }
-    ],
-    "name": "requireStep",
-    "outputs": [],
-    "stateMutability": "view",
-    "type": "function"
-  },
+
   {
     "inputs": [],
     "name": "statementCount",
@@ -742,7 +702,7 @@ export default [
   },
   {
     "inputs": [],
-    "name": "stepDurationSeconds",
+    "name": "creditAllowanceIntervalSeconds",
     "outputs": [
       {
         "internalType": "uint256",
@@ -755,7 +715,7 @@ export default [
   },
   {
     "inputs": [],
-    "name": "userCreditAllowancePerStep",
+    "name": "userCreditAllowancePerInterval",
     "outputs": [
       {
         "internalType": "uint256",

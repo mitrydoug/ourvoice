@@ -15,10 +15,10 @@ contract ForumHarness is Forum {
         AOurVoiceRegistry _ourVoiceRegistry,
         string memory _nationality,
         uint _maxRankedStatements,
-        uint _stepDurationSeconds,
+        uint _creditAllowanceIntervalSeconds,
         uint _engagementWindowSeconds,
         uint _maxStatementLength,
-        uint _userCreditAllowancePerStep,
+        uint _userCreditAllowancePerInterval,
         uint _userStartingCredits,
         int _minStatementSupportToRank,
         uint _minAdjustmentIntervalSeconds
@@ -27,10 +27,10 @@ contract ForumHarness is Forum {
             _ourVoiceRegistry,
             _nationality,
             _maxRankedStatements,
-            _stepDurationSeconds,
+            _creditAllowanceIntervalSeconds,
             _engagementWindowSeconds,
             _maxStatementLength,
-            _userCreditAllowancePerStep,
+            _userCreditAllowancePerInterval,
             _userStartingCredits,
             _minStatementSupportToRank,
             _minAdjustmentIntervalSeconds
@@ -48,23 +48,16 @@ contract ForumHarness is Forum {
     ) external view returns (uint[] memory) {
         return _userSupportedStatements[userId];
     }
-
-    function exposed_elapsedStepsBetweenTimestamps(
-        uint fromTimestamp,
-        uint toTimestamp
-    ) external view returns (uint) {
-        return _elapsedStepsBetweenTimestamps(fromTimestamp, toTimestamp);
-    }
 }
 
 contract ForumTest is Test {
-    uint MOCK_TEST_TIMESTAMP = 1767572100;
-    uint STEP_DURATION_SECONDS = 900; // 15 minutes
+    uint constant MOCK_TEST_TIMESTAMP = 1767572100;
+    uint constant CREDIT_ALLOWANCE_INTERVAL_SECONDS = 60;
+    uint constant HALF_LIFE = 604800; // 1 week in seconds
     MockOurVoiceRegistry mockRegistry;
     ForumHarness forum;
 
     function setUp() public {
-        // Warp to the start of a step
         vm.warp(MOCK_TEST_TIMESTAMP);
 
         mockRegistry = new MockOurVoiceRegistry();
@@ -72,7 +65,7 @@ contract ForumTest is Test {
             mockRegistry,
             "",
             3,
-            STEP_DURATION_SECONDS,
+            CREDIT_ALLOWANCE_INTERVAL_SECONDS,
             60,
             120,
             25,
@@ -82,9 +75,8 @@ contract ForumTest is Test {
         );
     }
 
-    /// @dev Advance block.timestamp by minAdjustmentIntervalSeconds to simulate
-    ///      the next block. With stepDurationSeconds=900 and interval=12, this
-    ///      never crosses a step boundary unless called 75+ times.
+    /// @dev Advance block.timestamp by minAdjustmentIntervalSeconds to avoid
+    ///      DuplicateAdjustment reverts when adjusting the same statement.
     function _nextBlock() internal {
         vm.warp(block.timestamp + forum.minAdjustmentIntervalSeconds());
     }
@@ -129,49 +121,6 @@ contract ForumTest is Test {
         );
     }
 
-    function testElapsedStepsBetweenTimestamps(
-        uint64 _arbitraryTimestamp
-    ) external view {
-        uint stepDuration = forum.stepDurationSeconds();
-
-        assertEq(
-            forum.exposed_elapsedStepsBetweenTimestamps(
-                _arbitraryTimestamp,
-                _arbitraryTimestamp
-            ),
-            0,
-            "elapsed steps between arbitrary timestamp and itself should be 0"
-        );
-        assertEq(
-            forum.exposed_elapsedStepsBetweenTimestamps(
-                _arbitraryTimestamp,
-                _arbitraryTimestamp + stepDuration
-            ),
-            1,
-            "elapsed steps between arbitrary timestamps differing by step duration should be 1"
-        );
-
-        uint256 _stepStart = (_arbitraryTimestamp -
-            (_arbitraryTimestamp % stepDuration));
-
-        assertEq(
-            forum.exposed_elapsedStepsBetweenTimestamps(
-                _stepStart,
-                _arbitraryTimestamp
-            ),
-            0,
-            "elapsed steps between arbitrary timestamp and its step start should be 0"
-        );
-        assertEq(
-            forum.exposed_elapsedStepsBetweenTimestamps(
-                _arbitraryTimestamp,
-                _stepStart + stepDuration
-            ),
-            1,
-            "elapsed steps between arbitrary timestamp and the next step start should be 1"
-        );
-    }
-
     function testInitialUserBalance() external registeredMember {
         uint balance = forum.getUserBalance();
         assertEq(
@@ -183,19 +132,23 @@ contract ForumTest is Test {
 
     function testUserBalanceAllowance() external registeredMember {
         uint initialBalance = forum.getUserBalance();
-        vm.warp(vm.getBlockTimestamp() + forum.stepDurationSeconds());
+        vm.warp(
+            vm.getBlockTimestamp() + forum.creditAllowanceIntervalSeconds()
+        );
         uint newBalance = forum.getUserBalance();
         assertEq(
             newBalance,
             initialBalance + 25,
-            "User balance should increase by 25 credits after one step"
+            "User balance should increase by 25 credits after one interval"
         );
-        vm.warp(vm.getBlockTimestamp() + 5 * forum.stepDurationSeconds());
+        vm.warp(
+            vm.getBlockTimestamp() + 5 * forum.creditAllowanceIntervalSeconds()
+        );
         newBalance = forum.getUserBalance();
         assertEq(
             newBalance,
             initialBalance + 150,
-            "User balance should increase by 150 credits after 6 steps (1 day if step is 4 hours)"
+            "User balance should increase by 150 credits after 6 intervals"
         );
     }
 
@@ -602,32 +555,38 @@ contract ForumTest is Test {
         int supportBefore = _getStatementById(0).support;
         assertEq(supportBefore, 10, "Initial support should be 100");
 
-        // Advance by 4 steps
-        vm.warp(vm.getBlockTimestamp() + 4 * forum.stepDurationSeconds());
+        // Advance by 1 half-life (604800 seconds = 1 week)
+        vm.warp(vm.getBlockTimestamp() + HALF_LIFE);
 
-        int supportAfter4Steps = _getStatementById(0).support;
-        assertEq(supportAfter4Steps, 9, "Support should decay over time");
+        int supportAfterHalfLife = _getStatementById(0).support;
+        assertEq(
+            supportAfterHalfLife,
+            5,
+            "Support should halve after 1 half-life"
+        );
 
-        // Advance another 96 steps
-        vm.warp(vm.getBlockTimestamp() + 96 * forum.stepDurationSeconds());
+        // Advance another half-life (2 total)
+        vm.warp(vm.getBlockTimestamp() + HALF_LIFE);
 
-        int supportAfter100Steps = _getStatementById(0).support;
-        assertEq(supportAfter100Steps, 2, "Support should decay over time");
+        int supportAfterTwoHalfLives = _getStatementById(0).support;
+        assertEq(
+            supportAfterTwoHalfLives,
+            2,
+            "Support should quarter after 2 half-lives"
+        );
     }
 
     function testAdjustingSupportAccountsForDecay() external registeredMember {
         forum.addStatement("Test statement", 0);
         _addStatementSupport(0, 10);
 
-        // Advance time to cause decay
-        vm.warp(vm.getBlockTimestamp() + 10 * forum.stepDurationSeconds());
+        // Advance by 1 half-life so support decays from 10 to 5
+        vm.warp(vm.getBlockTimestamp() + HALF_LIFE);
 
-        // The statement's support has decayed, but adding more should work correctly
         int supportBeforeAdjustment = _getStatementById(0).support;
         _addStatementSupport(0, 5);
 
         int finalSupport = _getStatementById(0).support;
-        // Final support should be approximately decayed value + 5
         assertEq(
             finalSupport,
             supportBeforeAdjustment + 5,
@@ -653,10 +612,10 @@ contract ForumTest is Test {
             "Statement B should initially be rank 1"
         );
 
-        // Wait 2x42 steps for significant decay
+        // Wait 1 half-life for decay
         // A = 20 -> 10
         // B = 10 -> 5
-        vm.warp(vm.getBlockTimestamp() + 42 * forum.stepDurationSeconds());
+        vm.warp(vm.getBlockTimestamp() + HALF_LIFE);
 
         // Trigger ranking update by adjusting support on B
         _addStatementSupport(1, 6);
@@ -690,8 +649,8 @@ contract ForumTest is Test {
         );
         assertEq(userSupport[0].support, 10, "User support should be 10");
 
-        // Advance time by 4 steps
-        vm.warp(vm.getBlockTimestamp() + 4 * forum.stepDurationSeconds());
+        // Advance time by 1 half-life
+        vm.warp(vm.getBlockTimestamp() + HALF_LIFE);
 
         // Check user's support after decay
         userSupport = forum.getUserStatementSupport();
@@ -702,12 +661,12 @@ contract ForumTest is Test {
         );
         assertEq(
             userSupport[0].support,
-            9,
-            "User support should have decayed to 9"
+            5,
+            "User support should have decayed to 5"
         );
 
-        // Advance time by another 96 steps
-        vm.warp(vm.getBlockTimestamp() + 96 * forum.stepDurationSeconds());
+        // Advance time by another half-life (2 total)
+        vm.warp(vm.getBlockTimestamp() + HALF_LIFE);
 
         // Check user's support after decay
         userSupport = forum.getUserStatementSupport();
@@ -736,9 +695,8 @@ contract ForumTest is Test {
         _addStatementSupport(1, 10);
 
         // Advance time so support=1 decays to 0, while support=10 survives.
-        // Halving every 42 steps: support=1 → 0 after ~42 steps, but
-        // support=10 → ~5 after 42 steps, still nonzero.
-        vm.warp(vm.getBlockTimestamp() + 84 * forum.stepDurationSeconds());
+        // 1 half-life: support=1 → 0 (1>>1=0), support=10 → 5.
+        vm.warp(vm.getBlockTimestamp() + HALF_LIFE);
 
         // This call previously reverted due to an out-of-bounds array write.
         Forum.StatementSupport[] memory userSupport = forum
@@ -771,17 +729,18 @@ contract ForumTest is Test {
             "Balance should decrease by 55"
         );
 
-        // Advance time to cause support decay (42 steps = 1 half-life)
-        vm.warp(vm.getBlockTimestamp() + 42 * forum.stepDurationSeconds());
+        // Advance time to cause support decay (1 half-life)
+        vm.warp(vm.getBlockTimestamp() + HALF_LIFE);
 
-        // User's support has decayed to ~5, which costs 15 instead of 55
+        // User's support has decayed to 5, which costs 15 instead of 55
         // When they remove all support, they should get back only the cost of current support
-        _addStatementSupport(0, -5); // Current support is ~5, removing it should refund ~15
+        _addStatementSupport(0, -5); // Current support is 5, removing it should refund 15
 
         uint finalBalance = forum.getUserBalance();
-        // The refund should be approximately 15 (cost of ~5 support)
-        // Plus the time-based allowance
-        uint expectedTimeAllowance = 42 * 25;
+        // The refund should be 15 (cost of 5 support)
+        // Plus the time-based allowance: 604800 / 60 = 10080 intervals * 25 credits
+        uint expectedTimeAllowance = (HALF_LIFE /
+            CREDIT_ALLOWANCE_INTERVAL_SECONDS) * 25;
 
         assertEq(
             finalBalance,
@@ -808,9 +767,9 @@ contract ForumTest is Test {
         assertEq(userSupport[0].statementId, 0, "Statement ID should be 0");
         assertEq(userSupport[0].support, 10, "User support should be 10");
 
-        // Wait long enough for support to decay to 0 (168 steps = 4 half-lives)
+        // Wait long enough for support to decay to 0 (4 half-lives)
         // 10 -> 5 -> 2 -> 1 -> 0
-        vm.warp(vm.getBlockTimestamp() + 168 * forum.stepDurationSeconds());
+        vm.warp(vm.getBlockTimestamp() + HALF_LIFE * 4);
 
         // Check that the statement is no longer in user's support list
         userSupport = forum.getUserStatementSupport();
@@ -1461,49 +1420,96 @@ contract ForumTest is Test {
         _addStatementSupport(0, 1);
     }
 
-    function testRequireStepSucceedsOnCorrectStep() external registeredMember {
-        uint expectedStep = block.timestamp / forum.stepDurationSeconds();
-        // Should not revert
-        forum.requireStep(expectedStep);
+    // ======================================================================
+    // Multicall tests (reproducing frontend flow)
+    // ======================================================================
+
+    function testMulticallAdjustSupport() external registeredMember {
+        // Step 1: Create a statement directly
+        forum.addStatement("Test statement", 1);
+        _nextBlock();
+
+        // Step 2: Adjust support via multicall (exactly how the frontend does it)
+        Forum.SupportAdjustment[]
+            memory adjustments = new Forum.SupportAdjustment[](1);
+        adjustments[0] = Forum.SupportAdjustment({statementId: 0, value: 1});
+
+        bytes[] memory calls = new bytes[](1);
+        calls[0] = abi.encodeCall(Forum.adjustSupport, (adjustments));
+
+        forum.multicall(calls);
+
+        // Verify the support was applied
+        Forum.Statement memory stmt = _getStatementById(0);
+        assertTrue(stmt.support > 1, "Support should have increased");
     }
 
-    function testRequireStepRevertsOnWrongStep() external registeredMember {
-        uint expectedStep = block.timestamp / forum.stepDurationSeconds();
-        uint wrongStep = expectedStep + 1;
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                Forum.StaleStep.selector,
-                wrongStep,
-                expectedStep
-            )
-        );
-        forum.requireStep(wrongStep);
-    }
-
-    function testRequireStepChangesAfterTimeAdvance()
+    function testMulticallAddStatementThenAdjustSupport()
         external
         registeredMember
     {
-        uint stepDuration = forum.stepDurationSeconds();
-        uint stepBefore = block.timestamp / stepDuration;
+        // When the frontend commits both a new statement and support
+        // adjustments in the same multicall, the adjustSupport targets
+        // EXISTING statements, not the just-created one (which would
+        // hit DuplicateAdjustment because lastUpdated == block.timestamp).
+        forum.addStatement("Pre-existing statement", 1);
+        _nextBlock();
 
-        // Advance time by one full step
-        vm.warp(block.timestamp + stepDuration);
+        bytes[] memory calls = new bytes[](2);
 
-        uint stepAfter = block.timestamp / stepDuration;
-        assertEq(stepAfter, stepBefore + 1, "Step should have advanced by 1");
-
-        // Old step should now revert
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                Forum.StaleStep.selector,
-                stepBefore,
-                stepAfter
-            )
+        // Call 1: addStatement (new statement)
+        calls[0] = abi.encodeCall(
+            Forum.addStatement,
+            ("Multicall statement", 0)
         );
-        forum.requireStep(stepBefore);
 
-        // New step should succeed
-        forum.requireStep(stepAfter);
+        // Call 2: adjustSupport on statement 0 (the pre-existing one)
+        Forum.SupportAdjustment[]
+            memory adjustments = new Forum.SupportAdjustment[](1);
+        adjustments[0] = Forum.SupportAdjustment({statementId: 0, value: 1});
+        calls[1] = abi.encodeCall(Forum.adjustSupport, (adjustments));
+
+        forum.multicall(calls);
+
+        Forum.Statement memory stmt = _getStatementById(0);
+        assertTrue(stmt.support > 0, "Support should be positive");
+    }
+
+    function testMulticallAdjustSupportAfterDelay() external registeredMember {
+        // Create statement and wait significant time before adjusting
+        // via multicall — tests the decay path with large elapsedSeconds
+        forum.addStatement("Decay test", 5);
+
+        // Wait 1 hour
+        vm.warp(block.timestamp + 3600);
+
+        Forum.SupportAdjustment[]
+            memory adjustments = new Forum.SupportAdjustment[](1);
+        adjustments[0] = Forum.SupportAdjustment({statementId: 0, value: 1});
+
+        bytes[] memory calls = new bytes[](1);
+        calls[0] = abi.encodeCall(Forum.adjustSupport, (adjustments));
+
+        forum.multicall(calls);
+    }
+
+    function testMulticallAdjustSupportAfterLongDelay()
+        external
+        registeredMember
+    {
+        // Create statement and wait a very long time
+        forum.addStatement("Long decay test", 5);
+
+        // Wait 30 days
+        vm.warp(block.timestamp + 30 days);
+
+        Forum.SupportAdjustment[]
+            memory adjustments = new Forum.SupportAdjustment[](1);
+        adjustments[0] = Forum.SupportAdjustment({statementId: 0, value: 1});
+
+        bytes[] memory calls = new bytes[](1);
+        calls[0] = abi.encodeCall(Forum.adjustSupport, (adjustments));
+
+        forum.multicall(calls);
     }
 }

@@ -11,12 +11,12 @@ import type {
  * @param registry                   - A Future resolving to the OurVoiceRegistry (or mock) contract.
  * @param forumNames                 - The list of forum identifiers to deploy (e.g. ["global", "USA"]).
  *                                     "global" is special-cased to pass an empty nationality string.
- * @param stepDurationSeconds        - The duration (in seconds) of a single decay/credit step.
+ * @param creditAllowanceIntervalSeconds - Duration (in seconds) of a single credit allowance interval.
  * @param engagementWindowSeconds    - Minimum seconds between StatementEngaged events per statement.
  * @param maxRankedStatements        - Maximum number of ranked statements per forum.
  * @param minStatementSupportToRank  - Minimum support value for a statement to enter rankings.
  * @param maxStatementLength         - Maximum byte length of a statement.
- * @param userCreditAllowancePerStep - Credits granted per step.
+ * @param userCreditAllowancePerInterval - Credits granted per interval.
  * @param userStartingCredits        - Credits for newly registered users.
  * @param minAdjustmentIntervalSeconds - Minimum seconds between support adjustments per user+statement.
  * @returns A record mapping each forum name to its deployed Forum contract Future.
@@ -25,12 +25,12 @@ export function deployForums(
   m: IgnitionModuleBuilder,
   registry: ContractFuture<string>,
   forumNames: string[],
-  stepDurationSeconds: number,
+  creditAllowanceIntervalSeconds: number,
   engagementWindowSeconds: number,
   maxRankedStatements: number,
   minStatementSupportToRank: number,
   maxStatementLength: number,
-  userCreditAllowancePerStep: number,
+  userCreditAllowancePerInterval: number,
   userStartingCredits: number,
   minAdjustmentIntervalSeconds: number,
 ): {
@@ -45,10 +45,10 @@ export function deployForums(
           registry,
           forum === "global" ? "" : forum,
           maxRankedStatements,
-          stepDurationSeconds,
+          creditAllowanceIntervalSeconds,
           engagementWindowSeconds,
           maxStatementLength,
-          userCreditAllowancePerStep,
+          userCreditAllowancePerInterval,
           userStartingCredits,
           minStatementSupportToRank,
           minAdjustmentIntervalSeconds,
