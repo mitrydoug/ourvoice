@@ -1,9 +1,12 @@
 import { useMemo } from "react";
 import { useUserVotes } from "../state/UserVotes";
+import { useForum } from "../state/Forum";
+import { partsToCredits } from "../util";
 
-/** Triangle number cost for a given support level */
-const creditCost = (support: number): number => {
-  return (support * (support + 1)) / 2;
+/** Quadratic cost for a given support level in credit parts (matches on-chain formula). */
+const creditCost = (support: number, creditMultiplier: number): number => {
+  const abs = Math.abs(support);
+  return (abs * (abs + creditMultiplier)) / (2 * creditMultiplier);
 };
 
 export interface CreditAllocation {
@@ -25,6 +28,7 @@ export interface CreditAllocation {
  */
 export const useCreditAllocation = (): CreditAllocation | null => {
   const userVotes = useUserVotes();
+  const { creditMultiplier } = useForum();
 
   return useMemo(() => {
     if (
@@ -40,7 +44,7 @@ export const useCreditAllocation = (): CreditAllocation | null => {
     // Total on-chain cost (committed credits)
     let totalOnChainCost = 0;
     for (const [, support] of onChain.statementSupport) {
-      totalOnChainCost += creditCost(support);
+      totalOnChainCost += creditCost(support, creditMultiplier);
     }
 
     // Pending adjustment impact
@@ -51,8 +55,8 @@ export const useCreditAllocation = (): CreditAllocation | null => {
       const onChainSupport = onChain.statementSupport.get(statementId) || 0;
       const effectiveSupport = onChainSupport + adjustment;
 
-      const onChainC = creditCost(onChainSupport);
-      const effectiveC = creditCost(effectiveSupport);
+      const onChainC = creditCost(onChainSupport, creditMultiplier);
+      const effectiveC = creditCost(effectiveSupport, creditMultiplier);
 
       if (adjustment < 0) {
         totalDecreaseCost += onChainC - effectiveC;
@@ -64,7 +68,7 @@ export const useCreditAllocation = (): CreditAllocation | null => {
     // Include cost for staged new statements
     for (const stmt of staged.stagedStatements) {
       if (stmt.initialSupport !== 0) {
-        totalIncreaseCost += creditCost(stmt.initialSupport);
+        totalIncreaseCost += creditCost(stmt.initialSupport, creditMultiplier);
       }
     }
 
@@ -77,6 +81,11 @@ export const useCreditAllocation = (): CreditAllocation | null => {
     const unallocated = onChain.credits - totalIncreaseCost;
     const total = allocated + stagedAmount + unallocated;
 
-    return { allocated, staged: stagedAmount, unallocated, total };
-  }, [userVotes]);
+    return {
+      allocated: partsToCredits(allocated, creditMultiplier),
+      staged: partsToCredits(stagedAmount, creditMultiplier),
+      unallocated: partsToCredits(unallocated, creditMultiplier),
+      total: partsToCredits(total, creditMultiplier),
+    };
+  }, [userVotes, creditMultiplier]);
 };

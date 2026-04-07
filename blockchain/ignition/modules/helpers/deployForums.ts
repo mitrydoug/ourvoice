@@ -19,6 +19,7 @@ import type {
  * @param userCreditAllowancePerInterval - Credits granted per interval.
  * @param userStartingCredits        - Credits for newly registered users.
  * @param minAdjustmentIntervalSeconds - Minimum seconds between support adjustments per user+statement.
+ * @param creditMultiplier            - Credit multiplier (e.g. 10^6 for microcredits).
  * @returns A record mapping each forum name to its deployed Forum contract Future.
  */
 export function deployForums(
@@ -33,6 +34,7 @@ export function deployForums(
   userCreditAllowancePerInterval: number,
   userStartingCredits: number,
   minAdjustmentIntervalSeconds: number,
+  creditMultiplier: number,
 ): {
   forums: Record<string, NamedArtifactContractDeploymentFuture<"Forum">>;
 } {
@@ -52,6 +54,7 @@ export function deployForums(
           userStartingCredits,
           minStatementSupportToRank,
           minAdjustmentIntervalSeconds,
+          creditMultiplier,
         ],
         { id: `Forum_${forum}` },
       ),

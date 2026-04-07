@@ -3,8 +3,10 @@ import { IconButton, Stack, Typography } from "@mui/material";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
 import { StagedStatement } from "../state/UserVotes";
+import { useForum } from "../state/Forum";
 import VoteToggle from "./VoteToggle";
 import StatementCardShell from "./StatementCardShell";
+import { partsToCredits, creditsToParts } from "../util";
 
 interface StagedStatementCardProps {
   staged: StagedStatement;
@@ -17,6 +19,7 @@ const StagedStatementCard: FC<StagedStatementCardProps> = ({
   onUnstage,
   onUpdateSupport,
 }) => {
+  const { creditMultiplier } = useForum();
   const leftSlot = (
     <Typography
       variant="caption"
@@ -51,10 +54,10 @@ const StagedStatementCard: FC<StagedStatementCardProps> = ({
 
   const voteControls = onUpdateSupport ? (
     <VoteToggle
-      userSupport={staged.initialSupport}
+      userSupport={partsToCredits(staged.initialSupport, creditMultiplier)}
       uncommittedSupport={true}
-      onUserVoteChange={(newSupport) =>
-        onUpdateSupport(staged.tempId, newSupport)
+      onUserVoteChange={(newCreditSupport) =>
+        onUpdateSupport(staged.tempId, creditsToParts(newCreditSupport, creditMultiplier))
       }
       direction="vertical"
     />

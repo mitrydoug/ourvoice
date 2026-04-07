@@ -6,6 +6,9 @@ import "./StringUtils.sol";
 import "./DecayUtils.sol";
 import "@openzeppelin/contracts/utils/Multicall.sol";
 
+// All credit values are denominated in fractional parts (e.g. microcredits).
+// The creditMultiplier parameter defines the number of parts per whole credit.
+
 contract Forum is Multicall {
     // Custom errors
     error NotMember();
@@ -34,6 +37,8 @@ contract Forum is Multicall {
     uint public immutable engagementWindowSeconds;
     // Minimum seconds between support adjustments for the same user+statement
     uint public immutable minAdjustmentIntervalSeconds;
+    // Credit multiplier (e.g. 10^6 for microcredits)
+    uint public immutable creditMultiplier;
 
     AOurVoiceRegistry public ourVoiceRegistry;
 
@@ -112,7 +117,8 @@ contract Forum is Multicall {
         uint _userCreditAllowancePerInterval,
         uint _userStartingCredits,
         int _minStatementSupportToRank,
-        uint _minAdjustmentIntervalSeconds
+        uint _minAdjustmentIntervalSeconds,
+        uint _creditMultiplier
     ) {
         ourVoiceRegistry = _ourVoiceRegistry;
         nationality = _nationality;
@@ -124,6 +130,7 @@ contract Forum is Multicall {
         userStartingCredits = _userStartingCredits;
         minStatementSupportToRank = _minStatementSupportToRank;
         minAdjustmentIntervalSeconds = _minAdjustmentIntervalSeconds;
+        creditMultiplier = _creditMultiplier;
     }
 
     function _resolveStatement(
@@ -471,11 +478,13 @@ contract Forum is Multicall {
         _support.lastUpdated = block.timestamp;
     }
 
-    function _costOfUserSupport(int _userSupport) internal pure returns (uint) {
+    function _costOfUserSupport(int _userSupport) internal view returns (uint) {
         uint absSupport = uint(
             _userSupport >= 0 ? _userSupport : -_userSupport
         );
-        return (absSupport * (absSupport + 1)) / 2;
+        return
+            (absSupport * (absSupport + creditMultiplier)) /
+            (2 * creditMultiplier);
     }
 
     function _updateUserSupportedStatements(

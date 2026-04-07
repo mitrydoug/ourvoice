@@ -161,14 +161,16 @@ type UserSupportAction =
   | SetPendingDraftCost
   | RestoreStaged;
 
-// Triangle number: triangle(x) = x*(x+1)/2
-const triangle = (x: number): number => (x * (x + 1)) / 2;
+// Quadratic cost for a given support level (in credit parts).
+// Matches the on-chain formula: s*(s+M)/(2*M) where M = creditMultiplier.
+const triangle = (x: number, creditMultiplier: number): number =>
+  (Math.abs(x) * (Math.abs(x) + creditMultiplier)) / (2 * creditMultiplier);
 
-// Cost of changing support from `fromSupport` to `toSupport` is
-// triangle(|toSupport|) - triangle(|fromSupport|). A positive result means
-// credits are spent; a negative result means credits are refunded.
-const adjustmentCost = (fromSupport: number, toSupport: number): number => {
-  return triangle(Math.abs(toSupport)) - triangle(Math.abs(fromSupport));
+// Cost of changing support from `fromSupport` to `toSupport` (both in
+// credit parts). A positive result means credits are spent; a negative
+// result means credits are refunded.
+const adjustmentCost = (fromSupport: number, toSupport: number, creditMultiplier: number): number => {
+  return triangle(toSupport, creditMultiplier) - triangle(fromSupport, creditMultiplier);
 };
 
 // ── localStorage helpers for staged-support persistence ──────────────────────
@@ -250,7 +252,7 @@ const tryUnfreeze = (s: UserSupportState): void => {
 
 const reducer = (
   state: UserSupportState,
-  action: UserSupportAction,
+  action: UserSupportAction & { creditMultiplier: number },
 ): UserSupportState => {
   let newState = { ...state };
 
@@ -435,11 +437,11 @@ const reducer = (
       const onChainSupport =
         newState.onChain.statementSupport.get(statementId) || 0;
       const newSupport = onChainSupport + adjustment;
-      totalAdjustmentCost += adjustmentCost(onChainSupport, newSupport);
+      totalAdjustmentCost += adjustmentCost(onChainSupport, newSupport, action.creditMultiplier);
     }
     // Include cost for staged new statements
     for (const stmt of newState.staged.stagedStatements) {
-      totalAdjustmentCost += adjustmentCost(0, stmt.initialSupport);
+      totalAdjustmentCost += adjustmentCost(0, stmt.initialSupport, action.creditMultiplier);
     }
     // Include cost of the in-progress draft (before it is staged)
     totalAdjustmentCost += newState.pendingDraftCost;
@@ -507,7 +509,7 @@ export const UserVoteContext = createContext<
 export const UserVoteProvider: FC<{
   children: React.ReactNode;
 }> = ({ children }) => {
-  const [state, dispatch] = useReducer(reducer, {
+  const [state, rawDispatch] = useReducer(reducer, {
     onChain: undefined,
     staged: undefined,
     hasStagedChanges: false,
@@ -522,7 +524,15 @@ export const UserVoteProvider: FC<{
     forumContractAddress,
     chainFingerprint,
     name: forumName,
+    creditMultiplier,
   } = useForum();
+
+  // Wrap dispatch to inject creditMultiplier into every action
+  const dispatch = useCallback(
+    (action: UserSupportAction) =>
+      rawDispatch({ ...action, creditMultiplier }),
+    [creditMultiplier],
+  );
 
   // Track authored statements in localStorage for "My Statements"
   const { add: addAuthoredStatement } =

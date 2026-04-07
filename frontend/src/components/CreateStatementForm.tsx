@@ -3,8 +3,10 @@ import { Box, Button, Card, InputBase, Stack, Typography } from "@mui/material";
 import { useForumNavigate } from "../hooks/useForumNavigate";
 
 import { useUserVotes } from "../state/UserVotes";
+import { useForum } from "../state/Forum";
 import VoteToggle from "./VoteToggle";
 import SimilarStatements from "./SimilarStatements";
+import { creditsToParts } from "../util";
 
 const MAX_STATEMENT_LENGTH = 280;
 
@@ -15,6 +17,7 @@ const CreateStatementForm: FC = () => {
 
   const { isUserVerified, stageStatement, setPendingDraftCost } =
     useUserVotes();
+  const { creditMultiplier } = useForum();
 
   // ── Handlers ───────────────────────────────────────────────────────────
   const updateText = useCallback((textVal: string) => {
@@ -23,9 +26,10 @@ const CreateStatementForm: FC = () => {
     }
   }, []);
 
-  // Keep the credit bar in sync with the draft's initial support
+  // Keep the credit bar in sync with the draft's initial support (cost in credit parts)
+  const draftSupportParts = creditsToParts(Math.abs(initialSupport), creditMultiplier);
   const draftCreditCost =
-    (Math.abs(initialSupport) * (Math.abs(initialSupport) + 1)) / 2;
+    (draftSupportParts * (draftSupportParts + creditMultiplier)) / (2 * creditMultiplier);
   useEffect(() => {
     setPendingDraftCost(draftCreditCost);
     return () => setPendingDraftCost(0);
@@ -34,7 +38,7 @@ const CreateStatementForm: FC = () => {
   const handleCreate = useCallback(() => {
     if (text.length > 0 && isUserVerified && stageStatement) {
       setPendingDraftCost(0);
-      stageStatement(text, initialSupport);
+      stageStatement(text, creditsToParts(initialSupport, creditMultiplier));
       void navigate("/my-statements");
     }
   }, [

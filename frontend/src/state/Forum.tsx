@@ -7,8 +7,8 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import { usePublicClient } from "wagmi";
-import { FORUMS } from "../contracts";
+import { usePublicClient, useReadContract } from "wagmi";
+import { FORUMS, FORUM_ABI } from "../contracts";
 import { FORUMS as FORUM_DATA } from "../components/ChooseForumModal";
 export { FORUM_ABI } from "../contracts";
 
@@ -100,6 +100,11 @@ type ForumContextValue = {
    * has been fetched. localStorage reads/writes should be gated on this.
    */
   chainFingerprint: string | undefined;
+  /**
+   * The credit multiplier for this forum (1 display-credit = creditMultiplier
+   * credit parts on-chain). Read from the contract; defaults to 1 until loaded.
+   */
+  creditMultiplier: number;
 };
 
 export const ForumContext = createContext<ForumContextValue | undefined>(
@@ -114,6 +119,14 @@ export const ForumProvider: FC<{ children: React.ReactNode }> = ({
   });
   const address = useMemo(() => FORUMS[forumName], [forumName]);
   const publicClient = usePublicClient();
+
+  const { data: rawCreditMultiplier } = useReadContract({
+    address,
+    abi: FORUM_ABI,
+    functionName: "creditMultiplier",
+    query: { staleTime: Infinity },
+  });
+  const creditMultiplier = rawCreditMultiplier ? Number(rawCreditMultiplier) : 1;
 
   // Fingerprint derived from the genesis block hash — unique per chain
   // instance. Changes whenever the chain is reset (docker compose down -v).
@@ -177,6 +190,7 @@ export const ForumProvider: FC<{ children: React.ReactNode }> = ({
         setForum,
         syncFromSlug,
         chainFingerprint,
+        creditMultiplier,
       }}
     >
       {children}

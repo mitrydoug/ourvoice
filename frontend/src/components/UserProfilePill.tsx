@@ -22,7 +22,7 @@ import { useForum } from "../state/Forum";
 import { FORUMS } from "./ChooseForumModal";
 import { useUserRegistration } from "@/hooks/useUserRegistration";
 import { toAlpha2, toDemonym } from "../countryCodeMap";
-import { metamaskIcon, shortenAddress } from "../util";
+import { metamaskIcon, shortenAddress, partsToCredits } from "../util";
 import AnimatedCounter from "./AnimatedCounter";
 import IndeterminateCheckBoxIcon from "@mui/icons-material/IndeterminateCheckBox";
 
@@ -66,7 +66,7 @@ const UserProfilePanel: React.FC = () => {
   const userVotes = useUserVotes();
   const { isUserVerified } = userVotes;
   const { nationality, isRegistered } = useUserRegistration();
-  const { name: forumName } = useForum();
+  const { name: forumName, creditMultiplier } = useForum();
   const forum = FORUMS[forumName];
 
   const avatar = useMemo(() => {
@@ -77,17 +77,17 @@ const UserProfilePanel: React.FC = () => {
   const alpha2 = nationality ? toAlpha2(nationality) : null;
 
   const credits = isUserVerified
-    ? (userVotes.state?.staged?.credits ?? 0)
+    ? partsToCredits(userVotes.state?.staged?.credits ?? 0, creditMultiplier)
     : null;
   const hasStagedChanges = isUserVerified
     ? (userVotes.state?.hasStagedChanges ?? false)
     : false;
   const commitBusy = isUserVerified
     ? userVotes.state?.commitStatus !== undefined &&
-      userVotes.state?.commitStatus !== "idle"
+    userVotes.state?.commitStatus !== "idle"
     : false;
-  const commitChanges = isUserVerified ? userVotes.commitChanges : () => {};
-  const resetChanges = isUserVerified ? userVotes.resetChanges : () => {};
+  const commitChanges = isUserVerified ? userVotes.commitChanges : () => { };
+  const resetChanges = isUserVerified ? userVotes.resetChanges : () => { };
   const hasEnoughCredits = isUserVerified
     ? (userVotes.state?.hasEnoughCredits ?? true)
     : true;
@@ -273,8 +273,8 @@ const UserProfilePanel: React.FC = () => {
                   letterSpacing: "0.05em",
                   ...(hasStagedChanges && !commitBusy
                     ? {
-                        animation: `${shimmer} 1.5s ease-in-out infinite`,
-                      }
+                      animation: `${shimmer} 1.5s ease-in-out infinite`,
+                    }
                     : {}),
                 }}
               >

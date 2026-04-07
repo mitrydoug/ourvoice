@@ -21,7 +21,8 @@ contract ForumHarness is Forum {
         uint _userCreditAllowancePerInterval,
         uint _userStartingCredits,
         int _minStatementSupportToRank,
-        uint _minAdjustmentIntervalSeconds
+        uint _minAdjustmentIntervalSeconds,
+        uint _creditMultiplier
     )
         Forum(
             _ourVoiceRegistry,
@@ -33,13 +34,14 @@ contract ForumHarness is Forum {
             _userCreditAllowancePerInterval,
             _userStartingCredits,
             _minStatementSupportToRank,
-            _minAdjustmentIntervalSeconds
+            _minAdjustmentIntervalSeconds,
+            _creditMultiplier
         )
     {}
 
     function exposed_costOfUserSupport(
         int _userSupport
-    ) external pure returns (uint) {
+    ) external view returns (uint) {
         return _costOfUserSupport(_userSupport);
     }
 
@@ -71,7 +73,8 @@ contract ForumTest is Test {
             25,
             1000,
             2,
-            12
+            12,
+            1
         );
     }
 

@@ -17,6 +17,7 @@ type MockedDeploymentConfig = {
   userCreditAllowancePerInterval: number;
   userStartingCredits: number;
   minAdjustmentIntervalSeconds: number;
+  creditMultiplier: number;
 };
 
 type ProductionDeploymentConfig = {
@@ -30,10 +31,14 @@ type ProductionDeploymentConfig = {
   userCreditAllowancePerInterval: number;
   userStartingCredits: number;
   minAdjustmentIntervalSeconds: number;
+  creditMultiplier: number;
   parametersFile: string;
 };
 
 export type DeploymentConfig = MockedDeploymentConfig | ProductionDeploymentConfig;
+
+/** 1 credit = 10^6 microcredits. All credit values use this unit on-chain. */
+export const CRED_MULT = 1_000_000;
 
 const deploymentConfigs: Record<string, DeploymentConfig> = {
   /** Local development on a fresh Hardhat node with mock data. */
@@ -43,11 +48,12 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
     creditAllowanceIntervalSeconds: 60,
     engagementWindowSeconds: 300,
     maxRankedStatements: 10,
-    minStatementSupportToRank: 3,
+    minStatementSupportToRank: 3 * CRED_MULT,
     maxStatementLength: 120,
-    userCreditAllowancePerInterval: 25,
-    userStartingCredits: 1000,
+    userCreditAllowancePerInterval: 25 * CRED_MULT,
+    userStartingCredits: 1000 * CRED_MULT,
     minAdjustmentIntervalSeconds: 12,
+    creditMultiplier: CRED_MULT,
   },
 
   /** Docker Compose Hardhat node with mock data. */
@@ -57,11 +63,12 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
     creditAllowanceIntervalSeconds: 60,
     engagementWindowSeconds: 300,
     maxRankedStatements: 10,
-    minStatementSupportToRank: 3,
+    minStatementSupportToRank: 3 * CRED_MULT,
     maxStatementLength: 120,
-    userCreditAllowancePerInterval: 25,
-    userStartingCredits: 1000,
+    userCreditAllowancePerInterval: 25 * CRED_MULT,
+    userStartingCredits: 1000 * CRED_MULT,
     minAdjustmentIntervalSeconds: 12,
+    creditMultiplier: CRED_MULT,
   },
 
   /** Local native Hardhat node with mock data. */
@@ -71,11 +78,12 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
     creditAllowanceIntervalSeconds: 60,
     engagementWindowSeconds: 300,
     maxRankedStatements: 10,
-    minStatementSupportToRank: 3,
+    minStatementSupportToRank: 3 * CRED_MULT,
     maxStatementLength: 120,
-    userCreditAllowancePerInterval: 25,
-    userStartingCredits: 1000,
+    userCreditAllowancePerInterval: 25 * CRED_MULT,
+    userStartingCredits: 1000 * CRED_MULT,
     minAdjustmentIntervalSeconds: 12,
+    creditMultiplier: CRED_MULT,
   },
 
   /** Local native Hardhat node forking Sepolia with real ZKPassport verifier. */
@@ -85,11 +93,12 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
     creditAllowanceIntervalSeconds: 60,
     engagementWindowSeconds: 300,
     maxRankedStatements: 10,
-    minStatementSupportToRank: 3,
+    minStatementSupportToRank: 3 * CRED_MULT,
     maxStatementLength: 120,
-    userCreditAllowancePerInterval: 25,
-    userStartingCredits: 1000,
+    userCreditAllowancePerInterval: 25 * CRED_MULT,
+    userStartingCredits: 1000 * CRED_MULT,
     minAdjustmentIntervalSeconds: 12,
+    creditMultiplier: CRED_MULT,
     parametersFile: "local-fork-strict.json",
   },
 
@@ -100,11 +109,12 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
     creditAllowanceIntervalSeconds: 60,
     engagementWindowSeconds: 300,
     maxRankedStatements: 10,
-    minStatementSupportToRank: 3,
+    minStatementSupportToRank: 3 * CRED_MULT,
     maxStatementLength: 120,
-    userCreditAllowancePerInterval: 25,
-    userStartingCredits: 1000,
+    userCreditAllowancePerInterval: 25 * CRED_MULT,
+    userStartingCredits: 1000 * CRED_MULT,
     minAdjustmentIntervalSeconds: 12,
+    creditMultiplier: CRED_MULT,
     parametersFile: "local-fork-strict.json",
   },
 
@@ -115,11 +125,12 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
     creditAllowanceIntervalSeconds: 60,
     engagementWindowSeconds: 300,
     maxRankedStatements: 10,
-    minStatementSupportToRank: 3,
+    minStatementSupportToRank: 3 * CRED_MULT,
     maxStatementLength: 120,
-    userCreditAllowancePerInterval: 25,
-    userStartingCredits: 1000,
+    userCreditAllowancePerInterval: 25 * CRED_MULT,
+    userStartingCredits: 1000 * CRED_MULT,
     minAdjustmentIntervalSeconds: 12,
+    creditMultiplier: CRED_MULT,
     parametersFile: "local-fork.json",
   },
 
@@ -130,11 +141,12 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
     creditAllowanceIntervalSeconds: 14400,
     engagementWindowSeconds: 86400,
     maxRankedStatements: 1000,
-    minStatementSupportToRank: 10,
+    minStatementSupportToRank: 10 * CRED_MULT,
     maxStatementLength: 120,
-    userCreditAllowancePerInterval: 25,
-    userStartingCredits: 1000,
+    userCreditAllowancePerInterval: 25 * CRED_MULT,
+    userStartingCredits: 1000 * CRED_MULT,
     minAdjustmentIntervalSeconds: 12,
+    creditMultiplier: CRED_MULT,
     parametersFile: "sepolia.json",
   },
 };

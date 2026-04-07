@@ -31,7 +31,7 @@ import { useForum } from "../state/Forum";
 import { FORUMS } from "./ChooseForumModal";
 import { useUserRegistration } from "@/hooks/useUserRegistration";
 import { toAlpha2, toDemonym } from "../countryCodeMap";
-import { metamaskIcon, shortenAddress } from "../util";
+import { metamaskIcon, shortenAddress, partsToCredits } from "../util";
 import AnimatedCounter from "./AnimatedCounter";
 import IndeterminateCheckBoxIcon from "@mui/icons-material/IndeterminateCheckBox";
 import useGracefulLoading from "@/hooks/useGracefulLoading";
@@ -77,7 +77,7 @@ const UserProfilePanel: React.FC = () => {
   const { isUserVerified, isVerifiedLoading } = userVotes;
   const { nationality, isRegistered, isLoading: isRegistrationLoading } =
     useUserRegistration();
-  const { name: forumName } = useForum();
+  const { name: forumName, creditMultiplier } = useForum();
   const forum = FORUMS[forumName];
 
   const isStatusLoading = isVerifiedLoading || isRegistrationLoading;
@@ -91,7 +91,7 @@ const UserProfilePanel: React.FC = () => {
   const alpha2 = nationality ? toAlpha2(nationality) : null;
 
   const credits = isUserVerified
-    ? (userVotes.state?.staged?.credits ?? 0)
+    ? partsToCredits(userVotes.state?.staged?.credits ?? 0, creditMultiplier)
     : null;
   const hasStagedChanges = isUserVerified
     ? (userVotes.state?.hasStagedChanges ?? false)

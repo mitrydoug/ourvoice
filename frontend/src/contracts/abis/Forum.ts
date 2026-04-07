@@ -48,6 +48,16 @@ export default [
         "internalType": "int256",
         "name": "_minStatementSupportToRank",
         "type": "int256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_minAdjustmentIntervalSeconds",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_creditMultiplier",
+        "type": "uint256"
       }
     ],
     "stateMutability": "nonpayable",
@@ -703,6 +713,19 @@ export default [
   {
     "inputs": [],
     "name": "creditAllowanceIntervalSeconds",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "creditMultiplier",
     "outputs": [
       {
         "internalType": "uint256",
