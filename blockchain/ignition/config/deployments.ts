@@ -19,6 +19,7 @@ type MockedDeploymentConfig = {
   minAdjustmentIntervalSeconds: number;
   creditMultiplier: number;
   refundPenaltyBps: number;
+  decaySpeedupFactor: number;
 };
 
 type ProductionDeploymentConfig = {
@@ -34,6 +35,7 @@ type ProductionDeploymentConfig = {
   minAdjustmentIntervalSeconds: number;
   creditMultiplier: number;
   refundPenaltyBps: number;
+  decaySpeedupFactor: number;
   parametersFile: string;
 };
 
@@ -57,6 +59,7 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
     minAdjustmentIntervalSeconds: 12,
     creditMultiplier: CRED_MULT,
     refundPenaltyBps: 2000,
+    decaySpeedupFactor: 2016,
   },
 
   /** Docker Compose Hardhat node with mock data. */
@@ -73,6 +76,7 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
     minAdjustmentIntervalSeconds: 12,
     creditMultiplier: CRED_MULT,
     refundPenaltyBps: 2000,
+    decaySpeedupFactor: 2016,
   },
 
   /** Local native Hardhat node with mock data. */
@@ -89,6 +93,7 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
     minAdjustmentIntervalSeconds: 12,
     creditMultiplier: CRED_MULT,
     refundPenaltyBps: 2000,
+    decaySpeedupFactor: 2016,
   },
 
   /** Local native Hardhat node forking Sepolia with real ZKPassport verifier. */
@@ -105,6 +110,7 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
     minAdjustmentIntervalSeconds: 12,
     creditMultiplier: CRED_MULT,
     refundPenaltyBps: 2000,
+    decaySpeedupFactor: 2016,
     parametersFile: "local-fork-strict.json",
   },
 
@@ -122,6 +128,7 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
     minAdjustmentIntervalSeconds: 12,
     creditMultiplier: CRED_MULT,
     refundPenaltyBps: 2000,
+    decaySpeedupFactor: 2016,
     parametersFile: "local-fork-strict.json",
   },
 
@@ -139,6 +146,7 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
     minAdjustmentIntervalSeconds: 12,
     creditMultiplier: CRED_MULT,
     refundPenaltyBps: 2000,
+    decaySpeedupFactor: 2016,
     parametersFile: "local-fork.json",
   },
 
@@ -156,6 +164,7 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
     minAdjustmentIntervalSeconds: 12,
     creditMultiplier: CRED_MULT,
     refundPenaltyBps: 2000,
+    decaySpeedupFactor: 1,
     parametersFile: "sepolia.json",
   },
 };

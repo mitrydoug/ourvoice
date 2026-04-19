@@ -21,6 +21,7 @@ import type {
  * @param minAdjustmentIntervalSeconds - Minimum seconds between support adjustments per user+statement.
  * @param creditMultiplier            - Credit multiplier (e.g. 10^6 for microcredits).
  * @param refundPenaltyBps            - Refund penalty in basis points (e.g. 2000 = 20%).
+ * @param decaySpeedupFactor          - Multiplier to accelerate decay for testing (1 = normal).
  * @returns A record mapping each forum name to its deployed Forum contract Future.
  */
 export function deployForums(
@@ -37,6 +38,7 @@ export function deployForums(
   minAdjustmentIntervalSeconds: number,
   creditMultiplier: number,
   refundPenaltyBps: number,
+  decaySpeedupFactor: number,
 ): {
   forums: Record<string, NamedArtifactContractDeploymentFuture<"Forum">>;
 } {
@@ -59,6 +61,7 @@ export function deployForums(
             minAdjustmentIntervalSeconds,
             creditMultiplier,
             refundPenaltyBps,
+            decaySpeedupFactor,
           },
         ],
         { id: `Forum_${forum}` },

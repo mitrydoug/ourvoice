@@ -41,6 +41,8 @@ contract Forum is Multicall {
     uint public immutable creditMultiplier;
     // Refund penalty in basis points (e.g. 2000 = 20%)
     uint public immutable refundPenaltyBps;
+    // Multiplier to speed up decay for testing (1 = normal, 2016 = 5-min half-life)
+    uint public immutable decaySpeedupFactor;
 
     AOurVoiceRegistry public ourVoiceRegistry;
 
@@ -55,6 +57,7 @@ contract Forum is Multicall {
         uint minAdjustmentIntervalSeconds;
         uint creditMultiplier;
         uint refundPenaltyBps;
+        uint decaySpeedupFactor;
     }
 
     struct SupportAdjustment {
@@ -139,6 +142,9 @@ contract Forum is Multicall {
         minAdjustmentIntervalSeconds = _config.minAdjustmentIntervalSeconds;
         creditMultiplier = _config.creditMultiplier;
         refundPenaltyBps = _config.refundPenaltyBps;
+        decaySpeedupFactor = _config.decaySpeedupFactor > 0
+            ? _config.decaySpeedupFactor
+            : 1;
     }
 
     function _resolveStatement(
@@ -433,11 +439,12 @@ contract Forum is Multicall {
         int startValue,
         uint fromTimestamp,
         uint toTimestamp
-    ) internal pure returns (int) {
+    ) internal view returns (int) {
         if (fromTimestamp > toTimestamp)
             revert TimestampOrderInvalid(fromTimestamp, toTimestamp);
 
-        uint elapsedSeconds = toTimestamp - fromTimestamp;
+        uint elapsedSeconds = (toTimestamp - fromTimestamp) *
+            decaySpeedupFactor;
 
         if (startValue == 0 || elapsedSeconds == 0) {
             return startValue;

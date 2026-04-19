@@ -38,6 +38,7 @@ async function main() {
       config.minAdjustmentIntervalSeconds,
       config.creditMultiplier,
       config.refundPenaltyBps,
+      config.decaySpeedupFactor,
     );
     const deployResult = await ignition.deploy(module);
     ({ registry, ...forums } = deployResult);
@@ -49,6 +50,7 @@ async function main() {
       config.minAdjustmentIntervalSeconds,
       config.creditMultiplier,
       config.refundPenaltyBps,
+      config.decaySpeedupFactor,
     );
     const parametersPath = path.resolve(
       import.meta.dirname,

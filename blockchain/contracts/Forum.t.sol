@@ -54,7 +54,8 @@ contract ForumTest is Test {
                 minStatementSupportToRank: 2,
                 minAdjustmentIntervalSeconds: 12,
                 creditMultiplier: 1,
-                refundPenaltyBps: 0
+                refundPenaltyBps: 0,
+                decaySpeedupFactor: 1
             })
         );
     }
@@ -1525,7 +1526,8 @@ contract ForumRefundPenaltyTest is Test {
                 minStatementSupportToRank: 2,
                 minAdjustmentIntervalSeconds: 12,
                 creditMultiplier: 1,
-                refundPenaltyBps: 2000
+                refundPenaltyBps: 2000,
+                decaySpeedupFactor: 1
             })
         );
     }
