@@ -10,6 +10,7 @@ import useIsMobile from "@/hooks/useIsMobile";
 import useBlockSync from "@/hooks/useBlockSync";
 import useLocalStorageSet from "@/hooks/useLocalStorageSet";
 import useGracefulLoading from "@/hooks/useGracefulLoading";
+import { useCreditConversion } from "@/hooks/useCreditConversion";
 
 const MySupport: FC = () => {
   const { isUserVerified, isVerifiedLoading, state: userVoteState } = useUserVotes();
@@ -17,46 +18,22 @@ const MySupport: FC = () => {
   const isMobile = useIsMobile();
   const { has: isBookmarked, toggle: toggleBookmark } =
     useLocalStorageSet("bookmarks");
+  const { toCredits } = useCreditConversion();
 
   const PAGE_SIZE = isMobile ? 10 : 20;
 
   const [displayCount, setDisplayCount] = useState(PAGE_SIZE);
   const [pageIndex, setPageIndex] = useState(0);
 
-  // Combine on-chain support with pending adjustments to get all supported statement IDs
+  // Get statement IDs where the user has non-zero on-chain support (in credits).
   const statementIds = useMemo(() => {
-    const supportMap = new Map<number, number>();
-
-    // Add all on-chain support entries
-    for (const [
-      id,
-      support,
-    ] of userVoteState?.onChain?.statementSupport?.entries() || []) {
-      supportMap.set(id, support);
-    }
-
-    // Apply adjustments from staged state
-    for (const [
-      id,
-      adjustment,
-    ] of userVoteState?.staged?.supportAdjustments?.entries() || []) {
-      const currentSupport = supportMap.get(id) || 0;
-      supportMap.set(id, currentSupport + adjustment);
-    }
-
-    // Filter to only statements with positive effective support, sort by
-    // committed (on-chain) support so cards don't jump while staging changes.
-    return Array.from(supportMap.entries())
-      .filter(([, support]) => support > 0)
-      .sort((e1, e2) => {
-        const onChain1 =
-          userVoteState?.onChain?.statementSupport?.get(e1[0]) || 0;
-        const onChain2 =
-          userVoteState?.onChain?.statementSupport?.get(e2[0]) || 0;
-        return onChain2 - onChain1;
-      })
-      .map((e) => BigInt(e[0]));
-  }, [userVoteState]);
+    return Array.from(
+      userVoteState?.onChain?.statementSupport?.entries() || [],
+    )
+      .filter(([, support]) => toCredits(support) !== 0)
+      .sort(([, a], [, b]) => b - a)
+      .map(([id]) => BigInt(id));
+  }, [userVoteState, toCredits]);
 
   const result = useReadContract({
     address: forumContractAddress,

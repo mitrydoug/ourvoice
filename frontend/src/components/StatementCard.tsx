@@ -36,7 +36,7 @@ import AnimatedCounter from "./AnimatedCounter";
 import StatementCardShell from "./StatementCardShell";
 import { useBlockNumber, useReadContract } from "wagmi";
 import { useForum, FORUM_ABI } from "../state/Forum";
-import { partsToCredits, creditsToParts } from "../util";
+import { useCreditConversion } from "../hooks/useCreditConversion";
 import {
   AVG_BLOCK_TIME,
   PERIODS_BACK,
@@ -115,7 +115,8 @@ export const StatementCard: FC<StatementCardProps> = ({
     getOnChainSupport,
     hasAdjustment,
   } = useUserVotes();
-  const { forumContractAddress, creditMultiplier } = useForum();
+  const { forumContractAddress } = useForum();
+  const { toCredits, toParts } = useCreditConversion();
 
   // Watch for new blocks
   const { data: blockNumber } = useBlockNumber({ watch: true });
@@ -151,7 +152,7 @@ export const StatementCard: FC<StatementCardProps> = ({
   const userSupportParts = isUserVerified
     ? getEffectiveSupport(Number(statement.id))
     : 0;
-  const userSupport = partsToCredits(userSupportParts, creditMultiplier);
+  const userSupport = toCredits(userSupportParts);
   const hasUncommittedSupport = isUserVerified
     ? hasAdjustment(Number(statement.id))
     : false;
@@ -159,13 +160,13 @@ export const StatementCard: FC<StatementCardProps> = ({
   const handleSupportChange = (newCreditSupport: number) => {
     if (!isUserVerified) return;
     const onChainParts = getOnChainSupport(Number(statement.id));
-    const onChainCredits = partsToCredits(onChainParts, creditMultiplier);
+    const onChainCredits = toCredits(onChainParts);
     let partsAdjustment: number;
     if (newCreditSupport === 0) {
       // Snap to exactly zero to avoid sub-credit residue from decay
       partsAdjustment = -onChainParts;
     } else {
-      partsAdjustment = creditsToParts(newCreditSupport - onChainCredits, creditMultiplier);
+      partsAdjustment = toParts(newCreditSupport - onChainCredits);
     }
     dispatch({
       type: "STAGE_USER_SUPPORT",
@@ -179,7 +180,7 @@ export const StatementCard: FC<StatementCardProps> = ({
   const peakRank =
     statement.peakRank >= 0n ? Number(statement.peakRank) + 1 : null;
 
-  const globalSupport = partsToCredits(Number(statement.support), creditMultiplier);
+  const globalSupport = toCredits(Number(statement.support));
 
   /** Credits allocated = triangular number of |support| */
   const creditsAllocated =
