@@ -39,8 +39,23 @@ contract Forum is Multicall {
     uint public immutable minAdjustmentIntervalSeconds;
     // Credit multiplier (e.g. 10^6 for microcredits)
     uint public immutable creditMultiplier;
+    // Refund penalty in basis points (e.g. 2000 = 20%)
+    uint public immutable refundPenaltyBps;
 
     AOurVoiceRegistry public ourVoiceRegistry;
+
+    struct ForumConfig {
+        uint maxRankedStatements;
+        uint creditAllowanceIntervalSeconds;
+        uint engagementWindowSeconds;
+        uint maxStatementLength;
+        uint userCreditAllowancePerInterval;
+        uint userStartingCredits;
+        int minStatementSupportToRank;
+        uint minAdjustmentIntervalSeconds;
+        uint creditMultiplier;
+        uint refundPenaltyBps;
+    }
 
     struct SupportAdjustment {
         uint statementId;
@@ -110,27 +125,20 @@ contract Forum is Multicall {
     constructor(
         AOurVoiceRegistry _ourVoiceRegistry,
         string memory _nationality,
-        uint _maxRankedStatements,
-        uint _creditAllowanceIntervalSeconds,
-        uint _engagementWindowSeconds,
-        uint _maxStatementLength,
-        uint _userCreditAllowancePerInterval,
-        uint _userStartingCredits,
-        int _minStatementSupportToRank,
-        uint _minAdjustmentIntervalSeconds,
-        uint _creditMultiplier
+        ForumConfig memory _config
     ) {
         ourVoiceRegistry = _ourVoiceRegistry;
         nationality = _nationality;
-        maxRankedStatements = _maxRankedStatements;
-        creditAllowanceIntervalSeconds = _creditAllowanceIntervalSeconds;
-        engagementWindowSeconds = _engagementWindowSeconds;
-        maxStatementLength = _maxStatementLength;
-        userCreditAllowancePerInterval = _userCreditAllowancePerInterval;
-        userStartingCredits = _userStartingCredits;
-        minStatementSupportToRank = _minStatementSupportToRank;
-        minAdjustmentIntervalSeconds = _minAdjustmentIntervalSeconds;
-        creditMultiplier = _creditMultiplier;
+        maxRankedStatements = _config.maxRankedStatements;
+        creditAllowanceIntervalSeconds = _config.creditAllowanceIntervalSeconds;
+        engagementWindowSeconds = _config.engagementWindowSeconds;
+        maxStatementLength = _config.maxStatementLength;
+        userCreditAllowancePerInterval = _config.userCreditAllowancePerInterval;
+        userStartingCredits = _config.userStartingCredits;
+        minStatementSupportToRank = _config.minStatementSupportToRank;
+        minAdjustmentIntervalSeconds = _config.minAdjustmentIntervalSeconds;
+        creditMultiplier = _config.creditMultiplier;
+        refundPenaltyBps = _config.refundPenaltyBps;
     }
 
     function _resolveStatement(
@@ -589,6 +597,13 @@ contract Forum is Multicall {
                     .lastEngagementEventTimestamp = block.timestamp;
                 emit StatementEngaged(_adjustment.statementId);
             }
+        }
+
+        // Apply refund penalty when net cost change is negative (user receives credits back)
+        if (_totalCostChange < 0) {
+            uint _refund = uint(-_totalCostChange);
+            uint _penalty = (_refund * refundPenaltyBps) / 10000;
+            _totalCostChange = -int(_refund - _penalty);
         }
 
         if (int(_userBalance.credits) < _totalCostChange)

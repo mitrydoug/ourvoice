@@ -20,6 +20,7 @@ import type {
  * @param userStartingCredits        - Credits for newly registered users.
  * @param minAdjustmentIntervalSeconds - Minimum seconds between support adjustments per user+statement.
  * @param creditMultiplier            - Credit multiplier (e.g. 10^6 for microcredits).
+ * @param refundPenaltyBps            - Refund penalty in basis points (e.g. 2000 = 20%).
  * @returns A record mapping each forum name to its deployed Forum contract Future.
  */
 export function deployForums(
@@ -35,6 +36,7 @@ export function deployForums(
   userStartingCredits: number,
   minAdjustmentIntervalSeconds: number,
   creditMultiplier: number,
+  refundPenaltyBps: number,
 ): {
   forums: Record<string, NamedArtifactContractDeploymentFuture<"Forum">>;
 } {
@@ -46,15 +48,18 @@ export function deployForums(
         [
           registry,
           forum === "global" ? "" : forum,
-          maxRankedStatements,
-          creditAllowanceIntervalSeconds,
-          engagementWindowSeconds,
-          maxStatementLength,
-          userCreditAllowancePerInterval,
-          userStartingCredits,
-          minStatementSupportToRank,
-          minAdjustmentIntervalSeconds,
-          creditMultiplier,
+          {
+            maxRankedStatements,
+            creditAllowanceIntervalSeconds,
+            engagementWindowSeconds,
+            maxStatementLength,
+            userCreditAllowancePerInterval,
+            userStartingCredits,
+            minStatementSupportToRank,
+            minAdjustmentIntervalSeconds,
+            creditMultiplier,
+            refundPenaltyBps,
+          },
         ],
         { id: `Forum_${forum}` },
       ),

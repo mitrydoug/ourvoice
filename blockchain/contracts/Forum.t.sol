@@ -14,30 +14,8 @@ contract ForumHarness is Forum {
     constructor(
         AOurVoiceRegistry _ourVoiceRegistry,
         string memory _nationality,
-        uint _maxRankedStatements,
-        uint _creditAllowanceIntervalSeconds,
-        uint _engagementWindowSeconds,
-        uint _maxStatementLength,
-        uint _userCreditAllowancePerInterval,
-        uint _userStartingCredits,
-        int _minStatementSupportToRank,
-        uint _minAdjustmentIntervalSeconds,
-        uint _creditMultiplier
-    )
-        Forum(
-            _ourVoiceRegistry,
-            _nationality,
-            _maxRankedStatements,
-            _creditAllowanceIntervalSeconds,
-            _engagementWindowSeconds,
-            _maxStatementLength,
-            _userCreditAllowancePerInterval,
-            _userStartingCredits,
-            _minStatementSupportToRank,
-            _minAdjustmentIntervalSeconds,
-            _creditMultiplier
-        )
-    {}
+        Forum.ForumConfig memory _config
+    ) Forum(_ourVoiceRegistry, _nationality, _config) {}
 
     function exposed_costOfUserSupport(
         int _userSupport
@@ -66,15 +44,18 @@ contract ForumTest is Test {
         forum = new ForumHarness(
             mockRegistry,
             "",
-            3,
-            CREDIT_ALLOWANCE_INTERVAL_SECONDS,
-            60,
-            120,
-            25,
-            1000,
-            2,
-            12,
-            1
+            Forum.ForumConfig({
+                maxRankedStatements: 3,
+                creditAllowanceIntervalSeconds: CREDIT_ALLOWANCE_INTERVAL_SECONDS,
+                engagementWindowSeconds: 60,
+                maxStatementLength: 120,
+                userCreditAllowancePerInterval: 25,
+                userStartingCredits: 1000,
+                minStatementSupportToRank: 2,
+                minAdjustmentIntervalSeconds: 12,
+                creditMultiplier: 1,
+                refundPenaltyBps: 0
+            })
         );
     }
 
@@ -1514,5 +1495,169 @@ contract ForumTest is Test {
         calls[0] = abi.encodeCall(Forum.adjustSupport, (adjustments));
 
         forum.multicall(calls);
+    }
+}
+
+// ======================================================================
+// Separate test contract for refund penalty behaviour
+// ======================================================================
+
+contract ForumRefundPenaltyTest is Test {
+    uint constant MOCK_TEST_TIMESTAMP = 1767572100;
+    uint constant CREDIT_ALLOWANCE_INTERVAL_SECONDS = 60;
+    uint constant HALF_LIFE = 604800;
+    MockOurVoiceRegistry mockRegistry;
+    ForumHarness forum;
+
+    function setUp() public {
+        vm.warp(MOCK_TEST_TIMESTAMP);
+        mockRegistry = new MockOurVoiceRegistry();
+        forum = new ForumHarness(
+            mockRegistry,
+            "",
+            Forum.ForumConfig({
+                maxRankedStatements: 3,
+                creditAllowanceIntervalSeconds: CREDIT_ALLOWANCE_INTERVAL_SECONDS,
+                engagementWindowSeconds: 60,
+                maxStatementLength: 120,
+                userCreditAllowancePerInterval: 25,
+                userStartingCredits: 1000,
+                minStatementSupportToRank: 2,
+                minAdjustmentIntervalSeconds: 12,
+                creditMultiplier: 1,
+                refundPenaltyBps: 2000
+            })
+        );
+    }
+
+    function _nextBlock() internal {
+        vm.warp(block.timestamp + forum.minAdjustmentIntervalSeconds());
+    }
+
+    modifier registeredMember() {
+        mockRegistry.register("");
+        _;
+    }
+
+    function _addStatementSupport(uint _statementId, int _value) internal {
+        Forum.SupportAdjustment[]
+            memory adjustments = new Forum.SupportAdjustment[](1);
+        adjustments[0] = Forum.SupportAdjustment({
+            statementId: _statementId,
+            value: _value
+        });
+        forum.adjustSupport(adjustments);
+    }
+
+    function testRefundPenaltyBpsIsSet() external view {
+        assertEq(
+            forum.refundPenaltyBps(),
+            2000,
+            "refundPenaltyBps should be 2000"
+        );
+    }
+
+    function testRefundPenaltyAppliedOnWithdrawal() external registeredMember {
+        forum.addStatement("Test statement", 0);
+        _addStatementSupport(0, 5); // Cost: 15, balance: 1000 - 15 = 985
+
+        uint balanceBeforeRemoval = forum.getUserBalance();
+
+        _nextBlock();
+        _addStatementSupport(0, -2); // Reducing from 5 to 3: refund = 15 - 6 = 9
+
+        uint finalBalance = forum.getUserBalance();
+        // With 20% penalty: refund = 9, penalty = 1 (floor(9 * 2000 / 10000)), net refund = 8
+        // Note: 9 * 2000 / 10000 = 1.8 → truncated to 1
+        assertEq(
+            finalBalance,
+            balanceBeforeRemoval + 8,
+            "Refund should be 8 after 20% penalty on 9 (penalty=1 truncated)"
+        );
+    }
+
+    function testNoPenaltyWhenAddingSupport() external registeredMember {
+        forum.addStatement("Test statement", 0);
+        uint initialBalance = forum.getUserBalance();
+
+        _addStatementSupport(0, 3); // Cost: 6
+
+        uint finalBalance = forum.getUserBalance();
+        assertEq(
+            finalBalance,
+            initialBalance - 6,
+            "Adding support should cost full amount with no penalty"
+        );
+    }
+
+    function testNoPenaltyOnNetZeroReallocation() external registeredMember {
+        forum.addStatement("Statement A", 0);
+        forum.addStatement("Statement B", 0);
+        // Add support to A: cost(3) = 6
+        _addStatementSupport(0, 3);
+
+        uint balanceBeforeReallocation = forum.getUserBalance();
+
+        // Reallocate: reduce A from 3 to 0 (refund 6), increase B from 0 to 3 (cost 6)
+        // Net cost change = 0, so no penalty
+        _nextBlock();
+        Forum.SupportAdjustment[]
+            memory adjustments = new Forum.SupportAdjustment[](2);
+        adjustments[0] = Forum.SupportAdjustment({statementId: 0, value: -3});
+        adjustments[1] = Forum.SupportAdjustment({statementId: 1, value: 3});
+        forum.adjustSupport(adjustments);
+
+        uint finalBalance = forum.getUserBalance();
+        assertEq(
+            finalBalance,
+            balanceBeforeReallocation,
+            "Net-zero reallocation should incur no penalty"
+        );
+    }
+
+    function testPenaltyOnlyOnNetRefund() external registeredMember {
+        forum.addStatement("Statement A", 0);
+        forum.addStatement("Statement B", 0);
+        // A: cost(20) = 20*21/2 = 210
+        _addStatementSupport(0, 20);
+        // B: cost(10) = 10*11/2 = 55
+        _addStatementSupport(1, 10);
+
+        uint balanceBefore = forum.getUserBalance();
+
+        _nextBlock();
+        // Reduce A from 20 to 0 (refund 210), increase B from 10 to 15 (cost 120 - 55 = 65)
+        // Net cost change = 65 - 210 = -145 (refund of 145)
+        // Penalty = 145 * 2000 / 10000 = 29 (exact, no rounding). Net refund = 116
+        Forum.SupportAdjustment[]
+            memory adjustments = new Forum.SupportAdjustment[](2);
+        adjustments[0] = Forum.SupportAdjustment({statementId: 0, value: -20});
+        adjustments[1] = Forum.SupportAdjustment({statementId: 1, value: 5});
+        forum.adjustSupport(adjustments);
+
+        uint finalBalance = forum.getUserBalance();
+        assertEq(
+            finalBalance,
+            balanceBefore + 116,
+            "Should receive net refund of 116 after 20% penalty on 145"
+        );
+    }
+
+    function testFullWithdrawalPenalty() external registeredMember {
+        forum.addStatement("Test statement", 0);
+        _addStatementSupport(0, 10); // Cost: 55, balance: 1000 - 55 = 945
+
+        uint balanceBefore = forum.getUserBalance();
+
+        _nextBlock();
+        _addStatementSupport(0, -10); // Full withdrawal, refund 55
+
+        uint finalBalance = forum.getUserBalance();
+        // Penalty = floor(55 * 2000 / 10000) = 11. Net refund = 44
+        assertEq(
+            finalBalance,
+            balanceBefore + 44,
+            "Full withdrawal should refund 44 after 20% penalty on 55"
+        );
     }
 }

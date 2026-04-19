@@ -37,6 +37,7 @@ async function main() {
       config.maxStatementLength, config.userCreditAllowancePerInterval, config.userStartingCredits,
       config.minAdjustmentIntervalSeconds,
       config.creditMultiplier,
+      config.refundPenaltyBps,
     );
     const deployResult = await ignition.deploy(module);
     ({ registry, ...forums } = deployResult);
@@ -47,6 +48,7 @@ async function main() {
       config.maxStatementLength, config.userCreditAllowancePerInterval, config.userStartingCredits,
       config.minAdjustmentIntervalSeconds,
       config.creditMultiplier,
+      config.refundPenaltyBps,
     );
     const parametersPath = path.resolve(
       import.meta.dirname,

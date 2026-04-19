@@ -153,6 +153,7 @@ export function createForumMockedModule(
   userStartingCredits: number,
   minAdjustmentIntervalSeconds: number,
   creditMultiplier: number,
+  refundPenaltyBps: number,
 ) {
   return buildModule("ForumMockedRegistryModule", (m) => {
     const address1 = m.getAccount(0);
@@ -185,6 +186,7 @@ export function createForumMockedModule(
       maxStatementLength, userCreditAllowancePerInterval, userStartingCredits,
       minAdjustmentIntervalSeconds,
       creditMultiplier,
+      refundPenaltyBps,
     );
 
     // Track statement futures per forum so support calls can depend on them

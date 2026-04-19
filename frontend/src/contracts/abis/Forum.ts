@@ -15,49 +15,61 @@ export default [
         "type": "string"
       },
       {
-        "internalType": "uint256",
-        "name": "_maxRankedStatements",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_creditAllowanceIntervalSeconds",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_engagementWindowSeconds",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_maxStatementLength",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_userCreditAllowancePerInterval",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_userStartingCredits",
-        "type": "uint256"
-      },
-      {
-        "internalType": "int256",
-        "name": "_minStatementSupportToRank",
-        "type": "int256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_minAdjustmentIntervalSeconds",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_creditMultiplier",
-        "type": "uint256"
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "maxRankedStatements",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "creditAllowanceIntervalSeconds",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "engagementWindowSeconds",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "maxStatementLength",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "userCreditAllowancePerInterval",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "userStartingCredits",
+            "type": "uint256"
+          },
+          {
+            "internalType": "int256",
+            "name": "minStatementSupportToRank",
+            "type": "int256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minAdjustmentIntervalSeconds",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "creditMultiplier",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "refundPenaltyBps",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct Forum.ForumConfig",
+        "name": "_config",
+        "type": "tuple"
       }
     ],
     "stateMutability": "nonpayable",
@@ -72,6 +84,17 @@ export default [
       }
     ],
     "name": "AddressEmptyCode",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "statementId",
+        "type": "uint256"
+      }
+    ],
+    "name": "DuplicateAdjustment",
     "type": "error"
   },
   {
@@ -127,7 +150,6 @@ export default [
     "name": "RankOutOfBounds",
     "type": "error"
   },
-
   {
     "inputs": [
       {
@@ -245,10 +267,6 @@ export default [
     "type": "event"
   },
   {
-    "stateMutability": "nonpayable",
-    "type": "fallback"
-  },
-  {
     "inputs": [
       {
         "internalType": "string",
@@ -295,6 +313,32 @@ export default [
     "name": "adjustSupport",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "creditAllowanceIntervalSeconds",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "creditMultiplier",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -547,6 +591,19 @@ export default [
   },
   {
     "inputs": [],
+    "name": "minAdjustmentIntervalSeconds",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "minStatementSupportToRank",
     "outputs": [
       {
@@ -616,7 +673,19 @@ export default [
     "stateMutability": "view",
     "type": "function"
   },
-
+  {
+    "inputs": [],
+    "name": "refundPenaltyBps",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
   {
     "inputs": [],
     "name": "statementCount",
@@ -704,32 +773,6 @@ export default [
       {
         "internalType": "uint256",
         "name": "lastEngagementEventTimestamp",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "creditAllowanceIntervalSeconds",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "creditMultiplier",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],

@@ -18,6 +18,7 @@ type MockedDeploymentConfig = {
   userStartingCredits: number;
   minAdjustmentIntervalSeconds: number;
   creditMultiplier: number;
+  refundPenaltyBps: number;
 };
 
 type ProductionDeploymentConfig = {
@@ -32,6 +33,7 @@ type ProductionDeploymentConfig = {
   userStartingCredits: number;
   minAdjustmentIntervalSeconds: number;
   creditMultiplier: number;
+  refundPenaltyBps: number;
   parametersFile: string;
 };
 
@@ -54,6 +56,7 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
     userStartingCredits: 1000 * CRED_MULT,
     minAdjustmentIntervalSeconds: 12,
     creditMultiplier: CRED_MULT,
+    refundPenaltyBps: 2000,
   },
 
   /** Docker Compose Hardhat node with mock data. */
@@ -69,6 +72,7 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
     userStartingCredits: 1000 * CRED_MULT,
     minAdjustmentIntervalSeconds: 12,
     creditMultiplier: CRED_MULT,
+    refundPenaltyBps: 2000,
   },
 
   /** Local native Hardhat node with mock data. */
@@ -84,6 +88,7 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
     userStartingCredits: 1000 * CRED_MULT,
     minAdjustmentIntervalSeconds: 12,
     creditMultiplier: CRED_MULT,
+    refundPenaltyBps: 2000,
   },
 
   /** Local native Hardhat node forking Sepolia with real ZKPassport verifier. */
@@ -99,6 +104,7 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
     userStartingCredits: 1000 * CRED_MULT,
     minAdjustmentIntervalSeconds: 12,
     creditMultiplier: CRED_MULT,
+    refundPenaltyBps: 2000,
     parametersFile: "local-fork-strict.json",
   },
 
@@ -115,6 +121,7 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
     userStartingCredits: 1000 * CRED_MULT,
     minAdjustmentIntervalSeconds: 12,
     creditMultiplier: CRED_MULT,
+    refundPenaltyBps: 2000,
     parametersFile: "local-fork-strict.json",
   },
 
@@ -131,6 +138,7 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
     userStartingCredits: 1000 * CRED_MULT,
     minAdjustmentIntervalSeconds: 12,
     creditMultiplier: CRED_MULT,
+    refundPenaltyBps: 2000,
     parametersFile: "local-fork.json",
   },
 
@@ -147,6 +155,7 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
     userStartingCredits: 1000 * CRED_MULT,
     minAdjustmentIntervalSeconds: 12,
     creditMultiplier: CRED_MULT,
+    refundPenaltyBps: 2000,
     parametersFile: "sepolia.json",
   },
 };

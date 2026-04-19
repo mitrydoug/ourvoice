@@ -30,6 +30,7 @@ export function createForumProductionModule(
   userStartingCredits: number,
   minAdjustmentIntervalSeconds: number,
   creditMultiplier: number,
+  refundPenaltyBps: number,
 ) {
   return buildModule("ForumProductionModule", (m) => {
     const verifierAddress = m.getParameter<string>("verifierAddress");
@@ -56,6 +57,7 @@ export function createForumProductionModule(
       maxStatementLength, userCreditAllowancePerInterval, userStartingCredits,
       minAdjustmentIntervalSeconds,
       creditMultiplier,
+      refundPenaltyBps,
     );
 
     return { registry, ...forums };
