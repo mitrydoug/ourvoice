@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useBlockNumber, usePublicClient } from "wagmi";
 import { useForum, FORUM_ABI } from "../state/Forum";
+import { partsToCredits } from "../util";
 
 /** Average Sepolia block time in seconds. */
 export const AVG_BLOCK_TIME = 12;
@@ -50,7 +51,7 @@ export function useHistoricalSupport(statementId: bigint): {
   isLoading: boolean;
 } {
   const publicClient = usePublicClient();
-  const { forumContractAddress } = useForum();
+  const { forumContractAddress, creditMultiplier } = useForum();
   const { data: currentBlockNumber } = useBlockNumber();
 
   const [dataPoints, setDataPoints] = useState<SupportDataPoint[]>([]);
@@ -148,7 +149,7 @@ export function useHistoricalSupport(statementId: bigint): {
               support: bigint;
             }[];
             const support =
-              statements.length > 0 ? Number(statements[0].support) : 0;
+              statements.length > 0 ? partsToCredits(Number(statements[0].support), creditMultiplier) : 0;
             return { timestamp, support, label };
           } catch {
             // Statement may not exist at this block — skip
@@ -178,7 +179,7 @@ export function useHistoricalSupport(statementId: bigint): {
         if (!cancelled && liveStatements.length > 0) {
           points.push({
             timestamp: nowMs,
-            support: Number(liveStatements[0].support),
+            support: partsToCredits(Number(liveStatements[0].support), creditMultiplier),
             label: "Now",
           });
         }
@@ -201,6 +202,7 @@ export function useHistoricalSupport(statementId: bigint): {
     publicClient,
     currentBlockNumber,
     forumContractAddress,
+    creditMultiplier,
     statementId,
     targets,
   ]);
