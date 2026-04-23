@@ -21,6 +21,7 @@ import json
 import logging
 import re
 import time
+from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
 from importlib.resources import files
 from typing import Any
@@ -152,6 +153,34 @@ def _ensure_index(client: meilisearch.Client) -> None:
 
 # Pattern for relative time deltas: e.g. "30d", "24h", "90m"
 _DELTA_RE = re.compile(r"^(\d+)([dhm])$", re.IGNORECASE)
+
+
+def normalize_forum_contract_address(address: str) -> str:
+    """Return a checksum-normalized forum contract address."""
+    return AsyncWeb3.to_checksum_address(address.strip())
+
+
+def parse_forum_contract_addresses(values: str | Sequence[str]) -> list[str]:
+    """Parse one or more forum contract addresses from CLI/env inputs."""
+    raw_values = [values] if isinstance(values, str) else list(values)
+    addresses: list[str] = []
+    seen: set[str] = set()
+    for raw_value in raw_values:
+        for candidate in re.split(r"[\s,]+", raw_value.strip()):
+            if not candidate:
+                continue
+            normalized = normalize_forum_contract_address(candidate)
+            address_key = normalized.lower()
+            if address_key in seen:
+                continue
+            seen.add(address_key)
+            addresses.append(normalized)
+    return addresses
+
+
+def _statement_document_id(forum_contract_address: str, statement_id: int) -> str:
+    """Build a document ID that remains unique across multiple forums."""
+    return f"{forum_contract_address.lower()}:{statement_id}"
 
 
 def _parse_backfill_param(value: str) -> int | datetime | None:
@@ -307,9 +336,10 @@ async def _backfill(
         return
 
     logger.info(
-        "Backfill: scanning blocks %d → %d for StatementAdded/StatementEngaged events…",
+        "Backfill: scanning blocks %d → %d for contract %s…",
         from_block,
         latest_block,
+        forum_contract_address,
     )
 
     total_added = 0
@@ -334,7 +364,7 @@ async def _backfill(
 
             docs = [
                 {
-                    "id": str(log.args.id),
+                    "id": _statement_document_id(forum_contract_address, log.args.id),
                     "statementId": log.args.id,
                     "statementText": log.args.statement,
                     "forumAddress": forum_contract_address,
@@ -352,20 +382,90 @@ async def _backfill(
         )
         if engaged_logs:
             # Resolve block timestamps for each engagement event.
-            engagement_updates = await _engagement_docs(w3, engaged_logs)
+            engagement_updates = await _engagement_docs(
+                w3,
+                engaged_logs,
+                forum_contract_address,
+            )
             index.update_documents(engagement_updates)
             total_engaged += len(engagement_updates)
 
         cursor = end + 1
 
     logger.info(
-        "Backfill complete: indexed %d statement(s), %d engagement(s)",
+        "Backfill complete for contract %s: indexed %d statement(s), %d engagement(s)",
+        forum_contract_address,
         total_added,
         total_engaged,
     )
 
 
-async def _engagement_docs(w3: AsyncWeb3, logs: list[Any]) -> list[dict[str, Any]]:
+async def _index_forum_block(
+    contract: Any,
+    index: Any,
+    forum_contract_address: str,
+    block_number: int,
+    block_timestamp: int,
+) -> None:
+    """Index all tracked events for one forum contract in a single block."""
+    added_logs, engaged_logs = await asyncio.gather(
+        contract.events.StatementAdded().get_logs(
+            from_block=block_number,
+            to_block=block_number,
+        ),
+        contract.events.StatementEngaged().get_logs(
+            from_block=block_number,
+            to_block=block_number,
+        ),
+    )
+
+    if added_logs:
+        docs = [
+            {
+                "id": _statement_document_id(
+                    forum_contract_address,
+                    log.args.id,
+                ),
+                "statementId": log.args.id,
+                "statementText": log.args.statement,
+                "forumAddress": forum_contract_address,
+                "lastEngagement": block_timestamp,
+            }
+            for log in added_logs
+        ]
+        index.add_documents(docs)
+        logger.info(
+            "Indexed %d statement(s) from contract %s in block #%s",
+            len(docs),
+            forum_contract_address,
+            block_number,
+        )
+
+    if engaged_logs:
+        engagement_docs = [
+            {
+                "id": _statement_document_id(
+                    forum_contract_address,
+                    log.args.statementId,
+                ),
+                "lastEngagement": block_timestamp,
+            }
+            for log in engaged_logs
+        ]
+        index.update_documents(engagement_docs)
+        logger.info(
+            "Updated engagement for %d statement(s) from contract %s in block #%s",
+            len(engagement_docs),
+            forum_contract_address,
+            block_number,
+        )
+
+
+async def _engagement_docs(
+    w3: AsyncWeb3,
+    logs: list[Any],
+    forum_contract_address: str,
+) -> list[dict[str, Any]]:
     """Build Meilisearch partial-update documents for engagement events.
 
     Each document sets ``lastEngagement`` to the block timestamp (unix seconds).
@@ -387,7 +487,13 @@ async def _engagement_docs(w3: AsyncWeb3, logs: list[Any]) -> list[dict[str, Any
         if sid not in latest or ts > latest[sid]:
             latest[sid] = ts
 
-    return [{"id": str(sid), "lastEngagement": ts} for sid, ts in latest.items()]
+    return [
+        {
+            "id": _statement_document_id(forum_contract_address, sid),
+            "lastEngagement": ts,
+        }
+        for sid, ts in latest.items()
+    ]
 
 
 async def _eviction_loop(
@@ -412,15 +518,14 @@ async def _eviction_loop(
             logger.exception("Eviction sweep failed")
 
 
-async def run_indexer(
+async def run_indexers(
     meili_client: meilisearch.Client,
-    forum_contract_address: str,
+    forum_contract_addresses: Sequence[str],
     ethereum_node_url: str,
     backfill_from: str = "",
     eviction_max_age_seconds: int = DEFAULT_EVICTION_MAX_AGE_SECONDS,
 ) -> None:
-    """Subscribe to new blocks and index ``StatementAdded`` /
-    ``StatementEngaged`` events.
+    """Subscribe to new blocks and index tracked events for multiple forums.
 
     If *backfill_from* is set, historical events are indexed first before
     switching to live monitoring.  See module docstring for accepted formats.
@@ -431,13 +536,19 @@ async def run_indexer(
     This coroutine runs indefinitely.  It is safe to cancel via
     ``task.cancel()``.
     """
+    normalized_forum_contract_addresses = parse_forum_contract_addresses(
+        forum_contract_addresses
+    )
+    if not normalized_forum_contract_addresses:
+        raise ValueError("At least one forum contract address is required")
+
     forum_abi = _load_forum_abi()
     _ensure_index(meili_client)
     index = meili_client.index(STATEMENTS_INDEX)
 
     logger.info(
-        "Starting indexer for contract %s via %s (eviction TTL=%ds)",
-        forum_contract_address,
+        "Starting indexer for %d contract(s) via %s (eviction TTL=%ds)",
+        len(normalized_forum_contract_addresses),
         ethereum_node_url,
         eviction_max_age_seconds,
     )
@@ -451,17 +562,29 @@ async def run_indexer(
         while True:
             try:
                 async with AsyncWeb3(WebSocketProvider(ethereum_node_url)) as w3:
-                    contract = w3.eth.contract(
-                        address=forum_contract_address, abi=forum_abi
-                    )
+                    contracts = [
+                        (
+                            forum_contract_address,
+                            w3.eth.contract(
+                                address=forum_contract_address,
+                                abi=forum_abi,
+                            ),
+                        )
+                        for forum_contract_address in normalized_forum_contract_addresses
+                    ]
 
                     # ── One-time backfill ──────────────────────────────
                     if not backfill_done and backfill_from:
                         start_block = await _resolve_start_block(w3, backfill_from)
                         if start_block is not None:
-                            await _backfill(
-                                w3, contract, index, start_block, forum_contract_address
-                            )
+                            for forum_contract_address, contract in contracts:
+                                await _backfill(
+                                    w3,
+                                    contract,
+                                    index,
+                                    start_block,
+                                    forum_contract_address,
+                                )
                         backfill_done = True
 
                     # ── Live subscription ─────────────────────────────
@@ -474,48 +597,18 @@ async def run_indexer(
                         block_timestamp: int = int(block.get("timestamp", 0))
                         logger.debug("Block #%s mined", block_number)
 
-                        # --- StatementAdded ---
-                        added_logs = await contract.events.StatementAdded().get_logs(
-                            from_block=block_number
-                        )
-                        if added_logs:
-                            docs = [
-                                {
-                                    "id": str(log.args.id),
-                                    "statementId": log.args.id,
-                                    "statementText": log.args.statement,
-                                    "forumAddress": forum_contract_address,
-                                    "lastEngagement": block_timestamp,
-                                }
-                                for log in added_logs
-                            ]
-                            index.add_documents(docs)
-                            logger.info(
-                                "Indexed %d statement(s) from block #%s",
-                                len(docs),
-                                block_number,
-                            )
-
-                        # --- StatementEngaged ---
-                        engaged_logs = (
-                            await contract.events.StatementEngaged().get_logs(
-                                from_block=block_number
+                        await asyncio.gather(
+                            *(
+                                _index_forum_block(
+                                    contract,
+                                    index,
+                                    forum_contract_address,
+                                    block_number,
+                                    block_timestamp,
+                                )
+                                for forum_contract_address, contract in contracts
                             )
                         )
-                        if engaged_logs:
-                            engagement_docs = [
-                                {
-                                    "id": str(log.args.statementId),
-                                    "lastEngagement": block_timestamp,
-                                }
-                                for log in engaged_logs
-                            ]
-                            index.update_documents(engagement_docs)
-                            logger.info(
-                                "Updated engagement for %d statement(s) in block #%s",
-                                len(engagement_docs),
-                                block_number,
-                            )
             except asyncio.CancelledError:
                 raise
             except Exception:

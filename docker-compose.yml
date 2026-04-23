@@ -24,7 +24,7 @@ services:
     environment:
       - MEILI_URL=http://meilisearch:7700
       - MEILI_API_KEY=dev-master-key
-      - FORUM_CONTRACT_ADDRESS=${FORUM_CONTRACT_ADDRESS}
+      - FORUM_CONTRACT_ADDRESSES=${FORUM_CONTRACT_ADDRESSES:-}
       - BACKFILL_FROM=${BACKFILL_FROM:-all}
       - CORS_ORIGINS=*
     ports:
