@@ -72,4 +72,14 @@ contract DecayUtilsTest is Test {
             "negative value should decay towards zero"
         );
     }
+
+    function test_singleSecondDecay() external pure {
+        int _initialValue = 10; // A small value to easily observe decay over 1 second
+        int _decayedValue = DecayUtils.approxDecay(_initialValue, 1);
+        assertLt(
+            _decayedValue,
+            _initialValue,
+            "decayed value should be less than initial value after 1 second"
+        );
+    }
 }

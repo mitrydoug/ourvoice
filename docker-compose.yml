@@ -32,4 +32,4 @@ services:
     depends_on:
       meilisearch:
         condition: service_healthy
-    command: sh -c " python -m venv .venv || true && . .venv/bin/activate && python -m pip install uv && python -m uv pip sync requirements.txt && uvicorn ourvoice.combined:app --host 0.0.0.0 --port 8000 --app-dir src"
+    command: sh -c "if [ -z \"$${FORUM_CONTRACT_ADDRESSES:-}\" ] && [ -f .generated/deployment.env ]; then set -a && . .generated/deployment.env && set +a; fi && python -m venv .venv || true && . .venv/bin/activate && python -m pip install uv && python -m uv pip sync requirements.txt && uvicorn ourvoice.combined:app --host 0.0.0.0 --port 8000 --app-dir src"

@@ -34,7 +34,7 @@ interface UseSearchResult {
  */
 export function useSearch(
   query: string,
-  forumAddress?: string,
+  forumAddress: string,
   { updateUrl = false }: { updateUrl?: boolean } = {},
 ): UseSearchResult {
   const [hits, setHits] = useState<SearchHit[]>([]);
@@ -58,10 +58,8 @@ export function useSearch(
 
       const params = new URLSearchParams({
         statement_text: trimmed,
+        forum_address: forumAddress,
       });
-      if (forumAddress) {
-        params.set("forum_address", forumAddress);
-      }
 
       fetch(`${SEARCH_URL}/search?${params.toString()}`)
         .then((res) => res.json())

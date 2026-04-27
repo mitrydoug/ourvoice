@@ -40,9 +40,14 @@ from ourvoice.indexer import (
 from ourvoice.search_service.api import create_api
 
 logging.basicConfig(
-    level=os.getenv("LOG_LEVEL", "INFO").upper(),
+    level="INFO",
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
+# Allow fine-grained control over ourvoice package logging without enabling
+# DEBUG output from third-party libraries (web3, websockets, urllib3, etc.).
+# Set LOG_LEVEL=DEBUG to see detailed ourvoice-internal logs only.
+_our_log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+logging.getLogger("ourvoice").setLevel(_our_log_level)
 logger = logging.getLogger(__name__)
 
 MEILI_URL = os.getenv("MEILI_URL", "http://localhost:7700")

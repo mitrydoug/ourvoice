@@ -53,20 +53,56 @@ def _load_forum_abi() -> list[dict[str, Any]]:
     return json.loads(abi_path.read_text())["abi"]
 
 
+def _wait_task(index_or_client: Any, task_info: Any, description: str) -> None:
+    """Block until a Meilisearch task completes and log failures.
+
+    Meilisearch operations (add_documents, update_documents,
+    update_filterable_attributes, etc.) are enqueued as async server-side
+    tasks and return a TaskInfo immediately.  Without waiting, the caller
+    has no way to know whether the operation actually succeeded.
+
+    Accepts either a ``meilisearch.Client`` or a ``meilisearch.Index``;
+    both expose ``wait_for_task``.
+    """
+    result = index_or_client.wait_for_task(task_info.task_uid)
+    if result.status != "succeeded":
+        logger.error(
+            "Meilisearch task failed [%s]: status=%s error=%s",
+            description,
+            result.status,
+            getattr(result, "error", None),
+        )
+    else:
+        logger.debug("Meilisearch task succeeded [%s]", description)
+
+
 def _ensure_index(client: meilisearch.Client) -> None:
     """Create the statements index if it doesn't exist and configure searchable
     attributes."""
     try:
         client.get_index(STATEMENTS_INDEX)
     except meilisearch.errors.MeilisearchApiError:
-        client.create_index(STATEMENTS_INDEX, {"primaryKey": "id"})
+        task = client.create_index(STATEMENTS_INDEX, {"primaryKey": "id"})
+        _wait_task(client, task, "create_index")
 
     # Ensure searchable/filterable attributes are configured.
-    client.index(STATEMENTS_INDEX).update_searchable_attributes(["statementText"])
-    client.index(STATEMENTS_INDEX).update_filterable_attributes(
-        ["statementId", "lastEngagement", "forumAddress"]
+    _wait_task(
+        client,
+        client.index(STATEMENTS_INDEX).update_searchable_attributes(["statementText"]),
+        "update_searchable_attributes",
     )
-    client.index(STATEMENTS_INDEX).update_sortable_attributes(["lastEngagement"])
+    _wait_task(
+        client,
+        client.index(STATEMENTS_INDEX).update_filterable_attributes(
+            ["statementId", "lastEngagement", "forumAddress"]
+        ),
+        "update_filterable_attributes",
+    )
+    _wait_task(
+        client,
+        client.index(STATEMENTS_INDEX).update_sortable_attributes(["lastEngagement"]),
+        "update_sortable_attributes",
+    )
 
     # Configure stop words so common filler words don't dilute relevance
     # when users search with full sentences (e.g. "similar statements" flow).
@@ -180,7 +216,7 @@ def parse_forum_contract_addresses(values: str | Sequence[str]) -> list[str]:
 
 def _statement_document_id(forum_contract_address: str, statement_id: int) -> str:
     """Build a document ID that remains unique across multiple forums."""
-    return f"{forum_contract_address.lower()}:{statement_id}"
+    return f"{forum_contract_address.lower()}-{statement_id}"
 
 
 def _parse_backfill_param(value: str) -> int | datetime | None:
@@ -372,7 +408,16 @@ async def _backfill(
                 }
                 for log in added_logs
             ]
-            index.add_documents(docs)
+            logger.debug(
+                "[backfill] add_documents(%s):\n%s",
+                forum_contract_address,
+                json.dumps(docs, indent=2),
+            )
+            _wait_task(
+                index,
+                index.add_documents(docs),
+                f"backfill add_documents({forum_contract_address})",
+            )
             total_added += len(docs)
 
         # --- StatementEngaged events ---
@@ -387,7 +432,16 @@ async def _backfill(
                 engaged_logs,
                 forum_contract_address,
             )
-            index.update_documents(engagement_updates)
+            logger.debug(
+                "[backfill] update_documents(%s):\n%s",
+                forum_contract_address,
+                json.dumps(engagement_updates, indent=2),
+            )
+            _wait_task(
+                index,
+                index.update_documents(engagement_updates),
+                f"backfill update_documents({forum_contract_address})",
+            )
             total_engaged += len(engagement_updates)
 
         cursor = end + 1
@@ -433,7 +487,17 @@ async def _index_forum_block(
             }
             for log in added_logs
         ]
-        index.add_documents(docs)
+        logger.debug(
+            "[live] add_documents(%s) block #%s:\n%s",
+            forum_contract_address,
+            block_number,
+            json.dumps(docs, indent=2),
+        )
+        _wait_task(
+            index,
+            index.add_documents(docs),
+            f"live add_documents({forum_contract_address} block #{block_number})",
+        )
         logger.info(
             "Indexed %d statement(s) from contract %s in block #%s",
             len(docs),
@@ -452,7 +516,17 @@ async def _index_forum_block(
             }
             for log in engaged_logs
         ]
-        index.update_documents(engagement_docs)
+        logger.debug(
+            "[live] update_documents(%s) block #%s:\n%s",
+            forum_contract_address,
+            block_number,
+            json.dumps(engagement_docs, indent=2),
+        )
+        _wait_task(
+            index,
+            index.update_documents(engagement_docs),
+            f"live update_documents({forum_contract_address} block #{block_number})",
+        )
         logger.info(
             "Updated engagement for %d statement(s) from contract %s in block #%s",
             len(engagement_docs),
@@ -508,7 +582,7 @@ async def _eviction_loop(
         await asyncio.sleep(_EVICTION_INTERVAL_SECONDS)
         try:
             cutoff = int(time.time()) - eviction_max_age_seconds
-            result = index.delete_documents_by_filter(f"lastEngagement < {cutoff}")
+            result = index.delete_documents(filter=f"lastEngagement < {cutoff}")
             logger.info(
                 "Eviction sweep: submitted task %s (cutoff ts=%d)",
                 result.task_uid,

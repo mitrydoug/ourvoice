@@ -76,6 +76,10 @@ This starts:
 - Meilisearch on port 7700
 - Combined backend (indexer + API) on port 8000
 
+The deploy step writes `backend/.generated/deployment.env`, and the backend
+automatically sources that file to discover the deployed forum contract
+addresses.
+
 ## Self-Hosting on Railway
 
 See the [Deploy to Railway](#deploy-to-railway) section in the root README, or use the button below:
