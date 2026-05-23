@@ -303,6 +303,11 @@ export default [
             "internalType": "int256",
             "name": "value",
             "type": "int256"
+          },
+          {
+            "internalType": "enum Forum.SupportAdjustmentType",
+            "name": "adjustmentType",
+            "type": "uint8"
           }
         ],
         "internalType": "struct Forum.SupportAdjustment[]",

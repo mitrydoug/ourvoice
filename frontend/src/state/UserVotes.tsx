@@ -734,13 +734,17 @@ export const UserVoteProvider: FC<{
 
         // 2. adjustSupport call for support adjustments on existing statements
         if (hasSupportAdjustments) {
-          const supportAdjustments: { statementId: bigint; value: bigint }[] =
-            [];
+          const supportAdjustments: {
+            statementId: bigint;
+            value: bigint;
+            adjustmentType: number;
+          }[] = [];
           for (const [statementId, adjustment] of state.staged
             .supportAdjustments) {
             supportAdjustments.push({
               statementId: BigInt(statementId),
               value: BigInt(adjustment),
+              adjustmentType: 0,
             });
           }
           calls.push(

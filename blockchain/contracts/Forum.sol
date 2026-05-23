@@ -60,9 +60,15 @@ contract Forum is Multicall {
         uint decaySpeedupFactor;
     }
 
+    enum SupportAdjustmentType {
+        Delta,
+        SetTo
+    }
+
     struct SupportAdjustment {
         uint statementId;
         int value;
+        SupportAdjustmentType adjustmentType;
     }
 
     struct StatementSupport {
@@ -509,8 +515,12 @@ contract Forum is Multicall {
         int _firstEmptySlot = -1;
         int _secondEmptySlot = -1;
         int _lastOccupiedSlot = -1;
+        bool _statementAlreadyTracked = false;
         for (uint i = 0; i < _userSupportedStatements[_userId].length; i++) {
             uint _currStatementId = _userSupportedStatements[_userId][i];
+            if (_currStatementId == _statementId) {
+                _statementAlreadyTracked = true;
+            }
             if (
                 _getCurrentSupportValue(
                     userSupportMap[_userId][_currStatementId]
@@ -526,13 +536,18 @@ contract Forum is Multicall {
             }
         }
 
-        if (_firstEmptySlot == -1) {
-            // no empty slots, just append
-            _userSupportedStatements[_userId].push(_statementId);
-        } else {
-            _userSupportedStatements[_userId][
-                uint(_firstEmptySlot)
-            ] = _statementId;
+        if (
+            !_statementAlreadyTracked &&
+            _getCurrentSupportValue(userSupportMap[_userId][_statementId]) != 0
+        ) {
+            if (_firstEmptySlot == -1) {
+                // no empty slots, just append
+                _userSupportedStatements[_userId].push(_statementId);
+            } else {
+                _userSupportedStatements[_userId][
+                    uint(_firstEmptySlot)
+                ] = _statementId;
+            }
         }
 
         if (
@@ -580,14 +595,19 @@ contract Forum is Multicall {
             _updateSupportToBeCurrent(_currentStatementSupport);
             _updateSupportToBeCurrent(_currentUserSupport);
 
-            uint _oldCost = _costOfUserSupport(_currentUserSupport.value);
-            uint _newCost = _costOfUserSupport(
-                _currentUserSupport.value + _adjustment.value
-            );
+            int _oldSupport = _currentUserSupport.value;
+            int _newSupport = _adjustment.adjustmentType ==
+                SupportAdjustmentType.SetTo
+                ? _adjustment.value
+                : _oldSupport + _adjustment.value;
+            int _supportChange = _newSupport - _oldSupport;
+
+            uint _oldCost = _costOfUserSupport(_oldSupport);
+            uint _newCost = _costOfUserSupport(_newSupport);
             _totalCostChange += int(_newCost) - int(_oldCost);
 
-            _currentStatementSupport.value += _adjustment.value;
-            _currentUserSupport.value += _adjustment.value;
+            _currentStatementSupport.value += _supportChange;
+            _currentUserSupport.value = _newSupport;
 
             _updateUserSupportedStatements(_userId, _adjustment.statementId);
 

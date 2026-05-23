@@ -82,13 +82,41 @@ contract ForumTest is Test {
         return statements[0];
     }
 
+    function _deltaSupportAdjustment(
+        uint _statementId,
+        int _value
+    ) internal pure returns (Forum.SupportAdjustment memory) {
+        return
+            Forum.SupportAdjustment({
+                statementId: _statementId,
+                value: _value,
+                adjustmentType: Forum.SupportAdjustmentType.Delta
+            });
+    }
+
+    function _setToSupportAdjustment(
+        uint _statementId,
+        int _value
+    ) internal pure returns (Forum.SupportAdjustment memory) {
+        return
+            Forum.SupportAdjustment({
+                statementId: _statementId,
+                value: _value,
+                adjustmentType: Forum.SupportAdjustmentType.SetTo
+            });
+    }
+
     function _addStatementSupport(uint _statementId, int _value) internal {
         Forum.SupportAdjustment[]
             memory adjustments = new Forum.SupportAdjustment[](1);
-        adjustments[0] = Forum.SupportAdjustment({
-            statementId: _statementId,
-            value: _value
-        });
+        adjustments[0] = _deltaSupportAdjustment(_statementId, _value);
+        forum.adjustSupport(adjustments);
+    }
+
+    function _setStatementSupport(uint _statementId, int _value) internal {
+        Forum.SupportAdjustment[]
+            memory adjustments = new Forum.SupportAdjustment[](1);
+        adjustments[0] = _setToSupportAdjustment(_statementId, _value);
         forum.adjustSupport(adjustments);
     }
 
@@ -161,6 +189,101 @@ contract ForumTest is Test {
 
         Forum.Statement memory statement = _getStatementById(0);
         assertEq(statement.support, 1, "Support should be incremented to 1");
+    }
+
+    function testSetToSupportAdjustmentSetsExactSupport()
+        external
+        registeredMember
+    {
+        forum.addStatement("SetTo statement", 0);
+        _addStatementSupport(0, 5); // Cost: 15
+
+        _nextBlock();
+        _setStatementSupport(0, 2); // New cost: 3, refund: 12
+
+        Forum.Statement memory statement = _getStatementById(0);
+        assertEq(statement.support, 2, "Support should be set to 2");
+        assertEq(
+            forum.getUserBalance(),
+            997,
+            "Balance should reflect the target support cost"
+        );
+    }
+
+    function testSetToZeroClearsSupportInBatch() external registeredMember {
+        forum.addStatement("Statement A", 0);
+        forum.addStatement("Statement B", 0);
+        _addStatementSupport(0, 5); // Cost: 15
+        _addStatementSupport(1, 1); // Cost: 1
+
+        _nextBlock();
+        Forum.SupportAdjustment[]
+            memory adjustments = new Forum.SupportAdjustment[](2);
+        adjustments[0] = _setToSupportAdjustment(0, 0); // Refund: 15
+        adjustments[1] = _deltaSupportAdjustment(1, 2); // Additional cost: 5
+        forum.adjustSupport(adjustments);
+
+        assertEq(_getStatementById(0).support, 0, "Statement A is cleared");
+        assertEq(_getStatementById(1).support, 3, "Statement B is updated");
+        assertEq(
+            forum.getUserBalance(),
+            994,
+            "Net batch refund should be applied across SetTo and Delta"
+        );
+
+        Forum.StatementSupport[] memory userSupport = forum
+            .getUserStatementSupport();
+        assertEq(userSupport.length, 1, "Cleared support should be hidden");
+        assertEq(userSupport[0].statementId, 1, "Statement B should remain");
+    }
+
+    function testSetToZeroClearsFractionalSupportParts()
+        external
+        registeredMember
+    {
+        ForumHarness fractionalForum = new ForumHarness(
+            mockRegistry,
+            "",
+            Forum.ForumConfig({
+                maxRankedStatements: 3,
+                creditAllowanceIntervalSeconds: CREDIT_ALLOWANCE_INTERVAL_SECONDS,
+                engagementWindowSeconds: 60,
+                maxStatementLength: 120,
+                userCreditAllowancePerInterval: 25 * 100,
+                userStartingCredits: 1000 * 100,
+                minStatementSupportToRank: 2 * 100,
+                minAdjustmentIntervalSeconds: 12,
+                creditMultiplier: 100,
+                refundPenaltyBps: 0,
+                decaySpeedupFactor: 1
+            })
+        );
+
+        fractionalForum.addStatement("Fractional support", 1);
+        vm.warp(
+            block.timestamp + fractionalForum.minAdjustmentIntervalSeconds()
+        );
+
+        Forum.SupportAdjustment[]
+            memory adjustments = new Forum.SupportAdjustment[](1);
+        adjustments[0] = _setToSupportAdjustment(0, 0);
+        fractionalForum.adjustSupport(adjustments);
+
+        uint[] memory statementIds = new uint[](1);
+        statementIds[0] = 0;
+        Forum.Statement[] memory statements = fractionalForum.getStatementsById(
+            statementIds
+        );
+        assertEq(
+            statements[0].support,
+            0,
+            "Fractional support part should clear exactly"
+        );
+        assertEq(
+            fractionalForum.getUserStatementSupport().length,
+            0,
+            "No fractional support should remain visible"
+        );
     }
 
     // ======================================================================
@@ -498,9 +621,9 @@ contract ForumTest is Test {
         // Adjust support for multiple statements at once
         Forum.SupportAdjustment[]
             memory adjustments = new Forum.SupportAdjustment[](3);
-        adjustments[0] = Forum.SupportAdjustment({statementId: 0, value: 3});
-        adjustments[1] = Forum.SupportAdjustment({statementId: 1, value: 5});
-        adjustments[2] = Forum.SupportAdjustment({statementId: 2, value: 2});
+        adjustments[0] = _deltaSupportAdjustment(0, 3);
+        adjustments[1] = _deltaSupportAdjustment(1, 5);
+        adjustments[2] = _deltaSupportAdjustment(2, 2);
         forum.adjustSupport(adjustments);
 
         // Total cost should be 6 + 15 + 3 = 24
@@ -777,9 +900,9 @@ contract ForumTest is Test {
         // Add support to fill up the ranking (maxRankedStatements = 3)
         Forum.SupportAdjustment[]
             memory adjustments = new Forum.SupportAdjustment[](3);
-        adjustments[0] = Forum.SupportAdjustment({statementId: 0, value: 5});
-        adjustments[1] = Forum.SupportAdjustment({statementId: 1, value: 4});
-        adjustments[2] = Forum.SupportAdjustment({statementId: 2, value: 3});
+        adjustments[0] = _deltaSupportAdjustment(0, 5);
+        adjustments[1] = _deltaSupportAdjustment(1, 4);
+        adjustments[2] = _deltaSupportAdjustment(2, 3);
         forum.adjustSupport(adjustments);
 
         // Verify we have 3 ranked statements
@@ -1417,7 +1540,7 @@ contract ForumTest is Test {
         // Step 2: Adjust support via multicall (exactly how the frontend does it)
         Forum.SupportAdjustment[]
             memory adjustments = new Forum.SupportAdjustment[](1);
-        adjustments[0] = Forum.SupportAdjustment({statementId: 0, value: 1});
+        adjustments[0] = _deltaSupportAdjustment(0, 1);
 
         bytes[] memory calls = new bytes[](1);
         calls[0] = abi.encodeCall(Forum.adjustSupport, (adjustments));
@@ -1451,7 +1574,7 @@ contract ForumTest is Test {
         // Call 2: adjustSupport on statement 0 (the pre-existing one)
         Forum.SupportAdjustment[]
             memory adjustments = new Forum.SupportAdjustment[](1);
-        adjustments[0] = Forum.SupportAdjustment({statementId: 0, value: 1});
+        adjustments[0] = _deltaSupportAdjustment(0, 1);
         calls[1] = abi.encodeCall(Forum.adjustSupport, (adjustments));
 
         forum.multicall(calls);
@@ -1470,7 +1593,7 @@ contract ForumTest is Test {
 
         Forum.SupportAdjustment[]
             memory adjustments = new Forum.SupportAdjustment[](1);
-        adjustments[0] = Forum.SupportAdjustment({statementId: 0, value: 1});
+        adjustments[0] = _deltaSupportAdjustment(0, 1);
 
         bytes[] memory calls = new bytes[](1);
         calls[0] = abi.encodeCall(Forum.adjustSupport, (adjustments));
@@ -1490,7 +1613,7 @@ contract ForumTest is Test {
 
         Forum.SupportAdjustment[]
             memory adjustments = new Forum.SupportAdjustment[](1);
-        adjustments[0] = Forum.SupportAdjustment({statementId: 0, value: 1});
+        adjustments[0] = _deltaSupportAdjustment(0, 1);
 
         bytes[] memory calls = new bytes[](1);
         calls[0] = abi.encodeCall(Forum.adjustSupport, (adjustments));
@@ -1541,13 +1664,22 @@ contract ForumRefundPenaltyTest is Test {
         _;
     }
 
+    function _deltaSupportAdjustment(
+        uint _statementId,
+        int _value
+    ) internal pure returns (Forum.SupportAdjustment memory) {
+        return
+            Forum.SupportAdjustment({
+                statementId: _statementId,
+                value: _value,
+                adjustmentType: Forum.SupportAdjustmentType.Delta
+            });
+    }
+
     function _addStatementSupport(uint _statementId, int _value) internal {
         Forum.SupportAdjustment[]
             memory adjustments = new Forum.SupportAdjustment[](1);
-        adjustments[0] = Forum.SupportAdjustment({
-            statementId: _statementId,
-            value: _value
-        });
+        adjustments[0] = _deltaSupportAdjustment(_statementId, _value);
         forum.adjustSupport(adjustments);
     }
 
@@ -1605,8 +1737,8 @@ contract ForumRefundPenaltyTest is Test {
         _nextBlock();
         Forum.SupportAdjustment[]
             memory adjustments = new Forum.SupportAdjustment[](2);
-        adjustments[0] = Forum.SupportAdjustment({statementId: 0, value: -3});
-        adjustments[1] = Forum.SupportAdjustment({statementId: 1, value: 3});
+        adjustments[0] = _deltaSupportAdjustment(0, -3);
+        adjustments[1] = _deltaSupportAdjustment(1, 3);
         forum.adjustSupport(adjustments);
 
         uint finalBalance = forum.getUserBalance();
@@ -1633,8 +1765,8 @@ contract ForumRefundPenaltyTest is Test {
         // Penalty = 145 * 2000 / 10000 = 29 (exact, no rounding). Net refund = 116
         Forum.SupportAdjustment[]
             memory adjustments = new Forum.SupportAdjustment[](2);
-        adjustments[0] = Forum.SupportAdjustment({statementId: 0, value: -20});
-        adjustments[1] = Forum.SupportAdjustment({statementId: 1, value: 5});
+        adjustments[0] = _deltaSupportAdjustment(0, -20);
+        adjustments[1] = _deltaSupportAdjustment(1, 5);
         forum.adjustSupport(adjustments);
 
         uint finalBalance = forum.getUserBalance();
