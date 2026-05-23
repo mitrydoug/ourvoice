@@ -52,8 +52,7 @@ const CommitSupportModal: FC<CommitSupportModalProps> = ({
     if (
       commitStatus === "cancelled" ||
       commitStatus === "error" ||
-      commitStatus === "confirmed" ||
-      commitStatus === "error"
+      commitStatus === "confirmed"
     ) {
       onReset();
     }

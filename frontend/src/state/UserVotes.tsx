@@ -612,7 +612,7 @@ export const UserVoteProvider: FC<{
         },
       });
     }
-  }, [onChainUserStatementSupport, onChainUserBalance, latestBlockNumber]);
+  }, [onChainUserStatementSupport, onChainUserBalance, latestBlockNumber, dispatch]);
 
   // ── Staged-support persistence ──────────────────────────────────────────
   const persistKey =
@@ -686,6 +686,7 @@ export const UserVoteProvider: FC<{
     state.confirmedBlockNumber,
     addAuthoredStatement,
     refetch,
+    dispatch,
   ]);
 
   // Timeout: if commit is in-flight for more than 30 seconds, treat as error
@@ -712,7 +713,7 @@ export const UserVoteProvider: FC<{
         commitTimeoutRef.current = null;
       }
     };
-  }, [state.commitStatus]);
+  }, [state.commitStatus, dispatch]);
 
   const commitChanges = useCallback(async () => {
     if (

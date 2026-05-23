@@ -49,6 +49,7 @@ const CreateStatementForm: FC = () => {
     text,
     initialSupport,
     isUserVerified,
+    creditMultiplier,
     stageStatement,
     setPendingDraftCost,
     navigate,
