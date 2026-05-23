@@ -11,26 +11,34 @@ import type {
  * @param registry                   - A Future resolving to the OurVoiceRegistry (or mock) contract.
  * @param forumNames                 - The list of forum identifiers to deploy (e.g. ["global", "USA"]).
  *                                     "global" is special-cased to pass an empty nationality string.
- * @param stepDurationSeconds        - The duration (in seconds) of a single decay/credit step.
+ * @param creditAllowanceIntervalSeconds - Duration (in seconds) of a single credit allowance interval.
  * @param engagementWindowSeconds    - Minimum seconds between StatementEngaged events per statement.
  * @param maxRankedStatements        - Maximum number of ranked statements per forum.
  * @param minStatementSupportToRank  - Minimum support value for a statement to enter rankings.
  * @param maxStatementLength         - Maximum byte length of a statement.
- * @param userCreditAllowancePerStep - Credits granted per step.
+ * @param userCreditAllowancePerInterval - Credits granted per interval.
  * @param userStartingCredits        - Credits for newly registered users.
+ * @param minAdjustmentIntervalSeconds - Minimum seconds between support adjustments per user+statement.
+ * @param creditMultiplier            - Credit multiplier (e.g. 10^6 for microcredits).
+ * @param refundPenaltyBps            - Refund penalty in basis points (e.g. 2000 = 20%).
+ * @param decaySpeedupFactor          - Multiplier to accelerate decay for testing (1 = normal).
  * @returns A record mapping each forum name to its deployed Forum contract Future.
  */
 export function deployForums(
   m: IgnitionModuleBuilder,
   registry: ContractFuture<string>,
   forumNames: string[],
-  stepDurationSeconds: number,
+  creditAllowanceIntervalSeconds: number,
   engagementWindowSeconds: number,
   maxRankedStatements: number,
   minStatementSupportToRank: number,
   maxStatementLength: number,
-  userCreditAllowancePerStep: number,
+  userCreditAllowancePerInterval: number,
   userStartingCredits: number,
+  minAdjustmentIntervalSeconds: number,
+  creditMultiplier: number,
+  refundPenaltyBps: number,
+  decaySpeedupFactor: number,
 ): {
   forums: Record<string, NamedArtifactContractDeploymentFuture<"Forum">>;
 } {
@@ -42,13 +50,19 @@ export function deployForums(
         [
           registry,
           forum === "global" ? "" : forum,
-          maxRankedStatements,
-          stepDurationSeconds,
-          engagementWindowSeconds,
-          maxStatementLength,
-          userCreditAllowancePerStep,
-          userStartingCredits,
-          minStatementSupportToRank,
+          {
+            maxRankedStatements,
+            creditAllowanceIntervalSeconds,
+            engagementWindowSeconds,
+            maxStatementLength,
+            userCreditAllowancePerInterval,
+            userStartingCredits,
+            minStatementSupportToRank,
+            minAdjustmentIntervalSeconds,
+            creditMultiplier,
+            refundPenaltyBps,
+            decaySpeedupFactor,
+          },
         ],
         { id: `Forum_${forum}` },
       ),

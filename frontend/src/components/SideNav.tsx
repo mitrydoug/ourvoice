@@ -54,7 +54,7 @@ const SideNav: FC = () => {
   const navigate = useForumNavigate();
   const rawNavigate = useNavigate();
   const theme = useTheme();
-  const { isUserVerified } = useUserVotes();
+  const { isUserVerified, isVerifiedLoading } = useUserVotes();
   const { name: forumName, setForum } = useForum();
   const forumPath = useForumPath();
 
@@ -103,32 +103,32 @@ const SideNav: FC = () => {
         </Box>
 
         <List disablePadding>
-          {NAV_ITEMS.filter((item) => !item.memberOnly || isUserVerified).map(
-            (item) => {
-              const isActive =
-                item.href !== "#" && location.pathname === forumPath(item.href);
+          {NAV_ITEMS.filter(
+            (item) => !item.memberOnly || isUserVerified || isVerifiedLoading,
+          ).map((item) => {
+            const isActive =
+              item.href !== "#" && location.pathname === forumPath(item.href);
 
-              return (
-                <ListItemButton
-                  key={item.label}
-                  selected={isActive}
-                  onClick={() => {
-                    if (item.href !== "#") void navigate(item.href);
+            return (
+              <ListItemButton
+                key={item.label}
+                selected={isActive}
+                onClick={() => {
+                  if (item.href !== "#") void navigate(item.href);
+                }}
+                disabled={item.href === "#"}
+                sx={{ borderRadius: 2, mb: 0.5 }}
+              >
+                <ListItemIcon sx={{ minWidth: 40 }}>{item.icon}</ListItemIcon>
+                <ListItemText
+                  primary={item.label}
+                  slotProps={{
+                    primary: { fontWeight: isActive ? 600 : 400 },
                   }}
-                  disabled={item.href === "#"}
-                  sx={{ borderRadius: 2, mb: 0.5 }}
-                >
-                  <ListItemIcon sx={{ minWidth: 40 }}>{item.icon}</ListItemIcon>
-                  <ListItemText
-                    primary={item.label}
-                    slotProps={{
-                      primary: { fontWeight: isActive ? 600 : 400 },
-                    }}
-                  />
-                </ListItemButton>
-              );
-            },
-          )}
+                />
+              </ListItemButton>
+            );
+          })}
         </List>
 
         <Box sx={{ px: 1, mt: 2 }}>

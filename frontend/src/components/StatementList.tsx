@@ -9,7 +9,9 @@ import {
 } from "@mui/material";
 import StatementCard from "./StatementCard";
 import StagedStatementCard from "./StagedStatementCard";
+import { StatementListSkeleton } from "./StatementCardSkeleton";
 import { useUserVotes } from "../state/UserVotes";
+import useGracefulLoading from "@/hooks/useGracefulLoading";
 
 type StatementListProps = {
   statements: Statement[];
@@ -82,6 +84,14 @@ const StatementList: FC<StatementListProps> = ({
   const hasStagedStatements =
     showStagedStatements && stagedStatements && stagedStatements.length > 0;
 
+  // Initial load: show skeleton cards after a grace period
+  const isInitialLoad = isLoading && statements.length === 0 && pageIndex === 0;
+  const { showSkeleton: showInitialSkeleton } =
+    useGracefulLoading(isInitialLoad);
+  if (showInitialSkeleton && !hasStagedStatements) {
+    return <StatementListSkeleton />;
+  }
+
   if (!isLoading && statements.length === 0 && !hasStagedStatements) {
     return (
       <Box
@@ -135,7 +145,7 @@ const StatementList: FC<StatementListProps> = ({
           minHeight: "20px",
         }}
       >
-        {isLoading && (
+        {isLoading && !isInitialLoad && (
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <CircularProgress size={16} />
             <Typography variant="body2" color="text.secondary">

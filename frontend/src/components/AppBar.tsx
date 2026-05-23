@@ -17,7 +17,6 @@ import useIsMobile from "@/hooks/useIsMobile";
 import useNickname from "@/hooks/useNickname";
 import { useTheme } from "@mui/material/styles";
 import { ProfileDrawer } from "./UserProfileMenu";
-import CommitSupportModal from "./CommitSupportModal";
 import { useSearchQuery } from "@/state/Search";
 import SearchField from "./SearchField";
 import { useForumNavigate, useForumPath } from "../hooks/useForumNavigate";
@@ -99,11 +98,8 @@ export default function MenuAppBar() {
   const {
     isUserVerified,
     commitChanges,
-    resetCommitStatus,
     state: userVoteState,
   } = useUserVotes();
-
-  console.log("userVoteState", userVoteState);
 
   return (
     <>
@@ -246,12 +242,6 @@ export default function MenuAppBar() {
           void rawNavigate(`/${slug}`);
         }}
       />
-      {userVoteState && resetCommitStatus && (
-        <CommitSupportModal
-          commitStatus={userVoteState.commitStatus}
-          onReset={resetCommitStatus}
-        />
-      )}
     </>
   );
 }

@@ -3,6 +3,7 @@
 Run with:
     python -m ourvoice.main \
         --forum-contract-address 0x... \
+        --forum-contract-address 0x... \
         --ethereum-node-url ws://... \
         --meili-url http://... \
         --meili-api-key ...
@@ -13,7 +14,11 @@ import asyncio
 
 import meilisearch
 
-from ourvoice.indexer import run_indexer, DEFAULT_EVICTION_MAX_AGE_SECONDS
+from ourvoice.indexer import (
+    DEFAULT_EVICTION_MAX_AGE_SECONDS,
+    parse_forum_contract_addresses,
+    run_indexers,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -21,8 +26,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--forum-contract-address",
         type=str,
+        action="append",
         required=True,
-        help="Address of the Forum contract",
+        help=(
+            "Address of a Forum contract. Repeat the flag or pass a comma-separated "
+            "list to index multiple forums."
+        ),
     )
     parser.add_argument(
         "--ethereum-node-url",
@@ -67,10 +76,13 @@ def parse_args() -> argparse.Namespace:
 
 async def main() -> None:
     args = parse_args()
+    forum_contract_addresses = parse_forum_contract_addresses(
+        args.forum_contract_address
+    )
     meili_client = meilisearch.Client(args.meili_url, args.meili_api_key)
-    await run_indexer(
+    await run_indexers(
         meili_client=meili_client,
-        forum_contract_address=args.forum_contract_address,
+        forum_contract_addresses=forum_contract_addresses,
         ethereum_node_url=args.ethereum_node_url,
         backfill_from=args.backfill_from,
         eviction_max_age_seconds=args.eviction_max_age_seconds,

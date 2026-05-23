@@ -6,6 +6,9 @@ import "./StringUtils.sol";
 import "./DecayUtils.sol";
 import "@openzeppelin/contracts/utils/Multicall.sol";
 
+// All credit values are denominated in fractional parts (e.g. microcredits).
+// The creditMultiplier parameter defines the number of parts per whole credit.
+
 contract Forum is Multicall {
     // Custom errors
     error NotMember();
@@ -16,28 +19,56 @@ contract Forum is Multicall {
     error UserNotRegistered(address user);
     error InsufficientCredits(uint available, int required);
     error TimestampOrderInvalid(uint fromTimestamp, uint toTimestamp);
-    error StaleStep(uint expected, uint actual);
+    error DuplicateAdjustment(uint statementId);
 
     // Maximum length (in bytes) of a statement
     uint public immutable maxStatementLength;
-    // Amount of credits a user is credited each "step"
-    uint public immutable userCreditAllowancePerStep;
+    // Amount of credits a user is credited each credit allowance interval
+    uint public immutable userCreditAllowancePerInterval;
     // Starting credits for a new user
     uint public immutable userStartingCredits;
     // Minimum support required for a statement to be ranked
     int public immutable minStatementSupportToRank;
     // We only track this many statements for ranking purposes
     uint public immutable maxRankedStatements;
-    // Duration of a single decay/credit step in seconds
-    uint public immutable stepDurationSeconds;
+    // Duration of a single credit allowance interval in seconds
+    uint public immutable creditAllowanceIntervalSeconds;
     // Minimum seconds between StatementEngaged events for the same statement
     uint public immutable engagementWindowSeconds;
+    // Minimum seconds between support adjustments for the same user+statement
+    uint public immutable minAdjustmentIntervalSeconds;
+    // Credit multiplier (e.g. 10^6 for microcredits)
+    uint public immutable creditMultiplier;
+    // Refund penalty in basis points (e.g. 2000 = 20%)
+    uint public immutable refundPenaltyBps;
+    // Multiplier to speed up decay for testing (1 = normal, 2016 = 5-min half-life)
+    uint public immutable decaySpeedupFactor;
 
     AOurVoiceRegistry public ourVoiceRegistry;
+
+    struct ForumConfig {
+        uint maxRankedStatements;
+        uint creditAllowanceIntervalSeconds;
+        uint engagementWindowSeconds;
+        uint maxStatementLength;
+        uint userCreditAllowancePerInterval;
+        uint userStartingCredits;
+        int minStatementSupportToRank;
+        uint minAdjustmentIntervalSeconds;
+        uint creditMultiplier;
+        uint refundPenaltyBps;
+        uint decaySpeedupFactor;
+    }
+
+    enum SupportAdjustmentType {
+        Delta,
+        SetTo
+    }
 
     struct SupportAdjustment {
         uint statementId;
         int value;
+        SupportAdjustmentType adjustmentType;
     }
 
     struct StatementSupport {
@@ -103,23 +134,23 @@ contract Forum is Multicall {
     constructor(
         AOurVoiceRegistry _ourVoiceRegistry,
         string memory _nationality,
-        uint _maxRankedStatements,
-        uint _stepDurationSeconds,
-        uint _engagementWindowSeconds,
-        uint _maxStatementLength,
-        uint _userCreditAllowancePerStep,
-        uint _userStartingCredits,
-        int _minStatementSupportToRank
+        ForumConfig memory _config
     ) {
         ourVoiceRegistry = _ourVoiceRegistry;
         nationality = _nationality;
-        maxRankedStatements = _maxRankedStatements;
-        stepDurationSeconds = _stepDurationSeconds;
-        engagementWindowSeconds = _engagementWindowSeconds;
-        maxStatementLength = _maxStatementLength;
-        userCreditAllowancePerStep = _userCreditAllowancePerStep;
-        userStartingCredits = _userStartingCredits;
-        minStatementSupportToRank = _minStatementSupportToRank;
+        maxRankedStatements = _config.maxRankedStatements;
+        creditAllowanceIntervalSeconds = _config.creditAllowanceIntervalSeconds;
+        engagementWindowSeconds = _config.engagementWindowSeconds;
+        maxStatementLength = _config.maxStatementLength;
+        userCreditAllowancePerInterval = _config.userCreditAllowancePerInterval;
+        userStartingCredits = _config.userStartingCredits;
+        minStatementSupportToRank = _config.minStatementSupportToRank;
+        minAdjustmentIntervalSeconds = _config.minAdjustmentIntervalSeconds;
+        creditMultiplier = _config.creditMultiplier;
+        refundPenaltyBps = _config.refundPenaltyBps;
+        decaySpeedupFactor = _config.decaySpeedupFactor > 0
+            ? _config.decaySpeedupFactor
+            : 1;
     }
 
     function _resolveStatement(
@@ -391,12 +422,13 @@ contract Forum is Multicall {
         StatementSupport[] memory supportedStatements = new StatementSupport[](
             _numSupported
         );
+        uint j = 0;
         for (uint i = 0; i < _userSupportedStatements[userId].length; i++) {
             uint statementId = _userSupportedStatements[userId][i];
             Support storage support = userSupportMap[userId][statementId];
             int currentSupport = _getCurrentSupportValue(support);
             if (currentSupport != 0) {
-                supportedStatements[i] = StatementSupport({
+                supportedStatements[j++] = StatementSupport({
                     statementId: statementId,
                     support: currentSupport
                 });
@@ -406,36 +438,25 @@ contract Forum is Multicall {
     }
 
     // ======================================================================
-    // Step calculation and decay
+    // Decay and credit allowance
     // ======================================================================
-
-    function _elapsedStepsBetweenTimestamps(
-        uint fromTimestamp,
-        uint toTimestamp
-    ) internal view returns (uint) {
-        if (fromTimestamp > toTimestamp)
-            revert TimestampOrderInvalid(fromTimestamp, toTimestamp);
-        return
-            (toTimestamp / stepDurationSeconds) -
-            (fromTimestamp / stepDurationSeconds);
-    }
 
     function _decayValue(
         int startValue,
         uint fromTimestamp,
         uint toTimestamp
     ) internal view returns (int) {
-        uint elapsedSteps = _elapsedStepsBetweenTimestamps(
-            fromTimestamp,
-            toTimestamp
-        );
+        if (fromTimestamp > toTimestamp)
+            revert TimestampOrderInvalid(fromTimestamp, toTimestamp);
 
-        if (startValue == 0 || elapsedSteps == 0) {
+        uint elapsedSeconds = (toTimestamp - fromTimestamp) *
+            decaySpeedupFactor;
+
+        if (startValue == 0 || elapsedSeconds == 0) {
             return startValue;
         }
 
-        return
-            DecayUtils.approxDecayHalvingEvery42Steps(startValue, elapsedSteps);
+        return DecayUtils.approxDecay(startValue, elapsedSeconds);
     }
 
     function _getCurrentUserBalance(
@@ -448,11 +469,11 @@ contract Forum is Multicall {
                 .registrationTimestamp;
         }
 
-        uint _elapsedSteps = _elapsedStepsBetweenTimestamps(
-            _balance.lastUpdated,
-            block.timestamp
-        );
-        return _balance.credits + (_elapsedSteps * userCreditAllowancePerStep);
+        uint elapsedSeconds = block.timestamp - _balance.lastUpdated;
+        uint elapsedIntervals = elapsedSeconds / creditAllowanceIntervalSeconds;
+        return
+            _balance.credits +
+            (elapsedIntervals * userCreditAllowancePerInterval);
     }
 
     function _updateUserBalanceToBeCurrent(
@@ -478,11 +499,13 @@ contract Forum is Multicall {
         _support.lastUpdated = block.timestamp;
     }
 
-    function _costOfUserSupport(int _userSupport) internal pure returns (uint) {
+    function _costOfUserSupport(int _userSupport) internal view returns (uint) {
         uint absSupport = uint(
             _userSupport >= 0 ? _userSupport : -_userSupport
         );
-        return (absSupport * (absSupport + 1)) / 2;
+        return
+            (absSupport * (absSupport + creditMultiplier)) /
+            (2 * creditMultiplier);
     }
 
     function _updateUserSupportedStatements(
@@ -492,8 +515,12 @@ contract Forum is Multicall {
         int _firstEmptySlot = -1;
         int _secondEmptySlot = -1;
         int _lastOccupiedSlot = -1;
+        bool _statementAlreadyTracked = false;
         for (uint i = 0; i < _userSupportedStatements[_userId].length; i++) {
             uint _currStatementId = _userSupportedStatements[_userId][i];
+            if (_currStatementId == _statementId) {
+                _statementAlreadyTracked = true;
+            }
             if (
                 _getCurrentSupportValue(
                     userSupportMap[_userId][_currStatementId]
@@ -509,13 +536,18 @@ contract Forum is Multicall {
             }
         }
 
-        if (_firstEmptySlot == -1) {
-            // no empty slots, just append
-            _userSupportedStatements[_userId].push(_statementId);
-        } else {
-            _userSupportedStatements[_userId][
-                uint(_firstEmptySlot)
-            ] = _statementId;
+        if (
+            !_statementAlreadyTracked &&
+            _getCurrentSupportValue(userSupportMap[_userId][_statementId]) != 0
+        ) {
+            if (_firstEmptySlot == -1) {
+                // no empty slots, just append
+                _userSupportedStatements[_userId].push(_statementId);
+            } else {
+                _userSupportedStatements[_userId][
+                    uint(_firstEmptySlot)
+                ] = _statementId;
+            }
         }
 
         if (
@@ -553,17 +585,29 @@ contract Forum is Multicall {
             Support storage _currentUserSupport = userSupportMap[_userId][
                 _adjustment.statementId
             ];
+
+            // Prevent rapid-fire adjustments to the same statement
+            if (
+                block.timestamp - _currentUserSupport.lastUpdated <
+                minAdjustmentIntervalSeconds
+            ) revert DuplicateAdjustment(_adjustment.statementId);
+
             _updateSupportToBeCurrent(_currentStatementSupport);
             _updateSupportToBeCurrent(_currentUserSupport);
 
-            uint _oldCost = _costOfUserSupport(_currentUserSupport.value);
-            uint _newCost = _costOfUserSupport(
-                _currentUserSupport.value + _adjustment.value
-            );
+            int _oldSupport = _currentUserSupport.value;
+            int _newSupport = _adjustment.adjustmentType ==
+                SupportAdjustmentType.SetTo
+                ? _adjustment.value
+                : _oldSupport + _adjustment.value;
+            int _supportChange = _newSupport - _oldSupport;
+
+            uint _oldCost = _costOfUserSupport(_oldSupport);
+            uint _newCost = _costOfUserSupport(_newSupport);
             _totalCostChange += int(_newCost) - int(_oldCost);
 
-            _currentStatementSupport.value += _adjustment.value;
-            _currentUserSupport.value += _adjustment.value;
+            _currentStatementSupport.value += _supportChange;
+            _currentUserSupport.value = _newSupport;
 
             _updateUserSupportedStatements(_userId, _adjustment.statementId);
 
@@ -582,27 +626,17 @@ contract Forum is Multicall {
             }
         }
 
+        // Apply refund penalty when net cost change is negative (user receives credits back)
+        if (_totalCostChange < 0) {
+            uint _refund = uint(-_totalCostChange);
+            uint _penalty = (_refund * refundPenaltyBps) / 10000;
+            _totalCostChange = -int(_refund - _penalty);
+        }
+
         if (int(_userBalance.credits) < _totalCostChange)
             revert InsufficientCredits(_userBalance.credits, _totalCostChange);
         _userBalance.credits = uint(
             int(_userBalance.credits) - _totalCostChange
         );
     }
-
-    /// @notice Returns the current decay step index (block.timestamp / stepDurationSeconds).
-    /// @dev Read this on-chain immediately before building a multicall with requireStep
-    ///      to avoid StaleStep reverts caused by frontend clock skew.
-    function getCurrentStep() external view returns (uint) {
-        return block.timestamp / stepDurationSeconds;
-    }
-
-    /// @notice Reverts if the current decay step does not match the expected value.
-    /// @dev Intended for use via multicall to guard against decay drift.
-    function requireStep(uint _expectedStep) external view {
-        uint actualStep = block.timestamp / stepDurationSeconds;
-        if (actualStep != _expectedStep)
-            revert StaleStep(_expectedStep, actualStep);
-    }
-
-    fallback() external {}
 }

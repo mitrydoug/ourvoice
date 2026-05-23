@@ -69,6 +69,4 @@ contract OurVoiceRegistry is AOurVoiceRegistry {
 
         return _registerHelper(uniqueIdentifier, disclosedData.nationality);
     }
-
-    fallback() external {}
 }

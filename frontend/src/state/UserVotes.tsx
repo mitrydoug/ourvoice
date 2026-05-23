@@ -9,16 +9,12 @@ import React, {
 } from "react";
 import {
   useAccount,
+  usePublicClient,
   useReadContract,
   useWaitForTransactionReceipt,
   useWriteContract,
 } from "wagmi";
-import {
-  encodeFunctionData,
-  parseEventLogs,
-  BaseError,
-  ContractFunctionRevertedError,
-} from "viem";
+import { encodeFunctionData, parseEventLogs, BaseError } from "viem";
 import { FORUM_ABI, useForum } from "./Forum";
 import useBlockSync from "@/hooks/useBlockSync";
 import useLocalStorageSet from "@/hooks/useLocalStorageSet";
@@ -52,24 +48,33 @@ export type CommitStatus =
   | "pending-confirmation"
   | "confirmed"
   | "cancelled"
-  | "stale-step"
   | "error";
 
 interface UserSupportState {
   onChain?: UserSupport;
+  /** Snapshot of onChain at freeze time. While set, getEffectiveSupport
+   *  reads from this instead of onChain so the UI stays consistent until
+   *  we confirm the chain has synced past the committed block. */
+  frozenOnChain?: UserSupport;
   staged?: StagedSupport;
   hasStagedChanges: boolean;
   hasEnoughCredits: boolean;
   commitStatus: CommitStatus;
   pendingTxHash?: `0x${string}`;
   confirmedBlockNumber?: bigint;
+  /** Block number of the most recent SYNC_ONCHAIN_STATE update. */
+  latestSyncBlockNumber?: bigint;
   /** Credit cost of the in-progress draft statement (before it is staged). */
   pendingDraftCost: number;
 }
 
 type SyncOnChainState = {
   type: "SYNC_ONCHAIN_STATE";
-  payload: { credits: bigint; statementSupport: StatementSupport[] };
+  payload: {
+    credits: bigint;
+    statementSupport: StatementSupport[];
+    blockNumber?: bigint;
+  };
 };
 
 type StageUserSupport = {
@@ -122,10 +127,6 @@ type UpdateStagedInitialSupport = {
   payload: { tempId: string; newSupport: number };
 };
 
-type CommitStaleStep = {
-  type: "COMMIT_STALE_STEP";
-};
-
 type SetPendingDraftCost = {
   type: "SET_PENDING_DRAFT_COST";
   payload: { cost: number };
@@ -152,18 +153,26 @@ type UserSupportAction =
   | StageStatement
   | UnstageStatement
   | UpdateStagedInitialSupport
-  | CommitStaleStep
   | SetPendingDraftCost
   | RestoreStaged;
 
-// Triangle number: triangle(x) = x*(x+1)/2
-const triangle = (x: number): number => (x * (x + 1)) / 2;
+// Quadratic cost for a given support level (in credit parts).
+// Matches the on-chain formula: s*(s+M)/(2*M) where M = creditMultiplier.
+const triangle = (x: number, creditMultiplier: number): number =>
+  (Math.abs(x) * (Math.abs(x) + creditMultiplier)) / (2 * creditMultiplier);
 
-// Cost of changing support from `fromSupport` to `toSupport` is
-// triangle(|toSupport|) - triangle(|fromSupport|). A positive result means
-// credits are spent; a negative result means credits are refunded.
-const adjustmentCost = (fromSupport: number, toSupport: number): number => {
-  return triangle(Math.abs(toSupport)) - triangle(Math.abs(fromSupport));
+// Cost of changing support from `fromSupport` to `toSupport` (both in
+// credit parts). A positive result means credits are spent; a negative
+// result means credits are refunded.
+const adjustmentCost = (
+  fromSupport: number,
+  toSupport: number,
+  creditMultiplier: number,
+): number => {
+  return (
+    triangle(toSupport, creditMultiplier) -
+    triangle(fromSupport, creditMultiplier)
+  );
 };
 
 // ── localStorage helpers for staged-support persistence ──────────────────────
@@ -176,9 +185,8 @@ interface PersistedStaged {
 const stagedStorageKey = (
   chainFingerprint: string,
   forumName: string,
-  address: string,
-): string =>
-  `symvolia:staged:${chainFingerprint}:${forumName}:${address.toLowerCase()}`;
+  addrKey: string,
+): string => `symvolia:staged:${chainFingerprint}:${forumName}:${addrKey}`;
 
 const saveStagedToStorage = (key: string, staged: StagedSupport): void => {
   try {
@@ -219,9 +227,33 @@ const clearStagedStorage = (key: string): void => {
   }
 };
 
+/**
+ * If both conditions are met — (a) we have a confirmed tx block number,
+ * and (b) the latest sync block is at or past that block — atomically
+ * clear the freeze, clear staged support, and transition to "confirmed".
+ */
+const tryUnfreeze = (s: UserSupportState): void => {
+  if (
+    s.frozenOnChain &&
+    s.confirmedBlockNumber !== undefined &&
+    s.latestSyncBlockNumber !== undefined &&
+    s.latestSyncBlockNumber >= s.confirmedBlockNumber &&
+    s.onChain
+  ) {
+    s.frozenOnChain = undefined;
+    s.staged = {
+      credits: s.onChain.credits,
+      supportAdjustments: new Map(),
+      stagedStatements: [],
+    };
+    s.commitStatus = "confirmed";
+    s.confirmedBlockNumber = undefined;
+  }
+};
+
 const reducer = (
   state: UserSupportState,
-  action: UserSupportAction,
+  action: UserSupportAction & { creditMultiplier: number },
 ): UserSupportState => {
   let newState = { ...state };
 
@@ -235,31 +267,23 @@ const reducer = (
         credits: Number(action.payload.credits),
         statementSupport: _supportMap,
       };
+      // Always update onChain (even while frozen — rendering reads
+      // from frozenOnChain instead, so this is invisible until unfreeze).
       newState.onChain = onChainState;
 
-      // If we're waiting for a confirmed block to be synced, check if this
-      // sync covers the block that confirmed our transaction.
-      if (
-        newState.commitStatus === "pending-confirmation" &&
-        newState.confirmedBlockNumber !== undefined
-      ) {
-        // The on-chain state now reflects (at least) the confirmed block.
-        // Clear staged support since the chain state includes our changes.
-        newState.staged = {
-          credits: onChainState.credits,
-          supportAdjustments: new Map(),
-          stagedStatements: [],
-        };
-        newState.commitStatus = "confirmed";
-        newState.pendingTxHash = undefined;
-        newState.confirmedBlockNumber = undefined;
-      } else if (!newState.staged) {
+      if (action.payload.blockNumber !== undefined) {
+        newState.latestSyncBlockNumber = action.payload.blockNumber;
+      }
+
+      if (!newState.staged) {
         newState.staged = {
           credits: onChainState.credits,
           supportAdjustments: new Map(),
           stagedStatements: [],
         };
       }
+
+      tryUnfreeze(newState);
       break;
     }
     case "STAGE_USER_SUPPORT": {
@@ -296,24 +320,33 @@ const reducer = (
     case "COMMIT_SUBMITTED": {
       newState.commitStatus = "pending-confirmation";
       newState.pendingTxHash = action.payload.txHash;
+      // Freeze: snapshot current on-chain state so rendering stays
+      // consistent while we wait for the tx to be included and synced.
+      newState.frozenOnChain = newState.onChain;
       break;
     }
     case "COMMIT_CONFIRMED": {
-      // Receipt arrived — store the block number. If SYNC_ONCHAIN_STATE
-      // already covered this block we transition immediately; otherwise we
-      // wait for the next sync to pick it up (handled in SYNC_ONCHAIN_STATE).
+      // Store the confirmed block number. If latestSyncBlockNumber already
+      // covers this block, tryUnfreeze will atomically clear the freeze,
+      // clear staged, and set commitStatus to "confirmed".
+      // Otherwise we stay in "pending-confirmation" until the next
+      // SYNC_ONCHAIN_STATE brings us past this block.
       newState.confirmedBlockNumber = action.payload.blockNumber;
+      newState.pendingTxHash = undefined;
+      tryUnfreeze(newState);
       break;
     }
     case "COMMIT_CANCELLED": {
       newState.commitStatus = "cancelled";
       newState.pendingTxHash = undefined;
+      newState.frozenOnChain = undefined;
       break;
     }
     case "COMMIT_ERROR": {
       newState.commitStatus = "error";
       newState.pendingTxHash = undefined;
       newState.confirmedBlockNumber = undefined;
+      newState.frozenOnChain = undefined;
       // Clear staged support so user re-syncs cleanly from chain
       newState.staged = {
         credits: newState.onChain ? newState.onChain.credits : 0,
@@ -323,6 +356,16 @@ const reducer = (
       break;
     }
     case "RESET_COMMIT_STATUS": {
+      // If the freeze hasn't resolved yet, clear it as a fallback to
+      // avoid lingering committed adjustments.
+      if (newState.frozenOnChain) {
+        newState.frozenOnChain = undefined;
+        newState.staged = {
+          credits: newState.onChain ? newState.onChain.credits : 0,
+          supportAdjustments: new Map(),
+          stagedStatements: [],
+        };
+      }
       newState.commitStatus = "idle";
       newState.pendingTxHash = undefined;
       newState.confirmedBlockNumber = undefined;
@@ -372,12 +415,6 @@ const reducer = (
       };
       break;
     }
-    case "COMMIT_STALE_STEP": {
-      newState.commitStatus = "stale-step";
-      newState.pendingTxHash = undefined;
-      newState.confirmedBlockNumber = undefined;
-      break;
-    }
     case "SET_PENDING_DRAFT_COST": {
       newState.pendingDraftCost = action.payload.cost;
       break;
@@ -401,11 +438,19 @@ const reducer = (
       const onChainSupport =
         newState.onChain.statementSupport.get(statementId) || 0;
       const newSupport = onChainSupport + adjustment;
-      totalAdjustmentCost += adjustmentCost(onChainSupport, newSupport);
+      totalAdjustmentCost += adjustmentCost(
+        onChainSupport,
+        newSupport,
+        action.creditMultiplier,
+      );
     }
     // Include cost for staged new statements
     for (const stmt of newState.staged.stagedStatements) {
-      totalAdjustmentCost += adjustmentCost(0, stmt.initialSupport);
+      totalAdjustmentCost += adjustmentCost(
+        0,
+        stmt.initialSupport,
+        action.creditMultiplier,
+      );
     }
     // Include cost of the in-progress draft (before it is staged)
     totalAdjustmentCost += newState.pendingDraftCost;
@@ -434,6 +479,7 @@ const reducer = (
 
 type UserNotVerifiedContextValue = {
   isUserVerified: false;
+  isVerifiedLoading: boolean;
   state: undefined;
   dispatch: undefined;
   commitChanges: undefined;
@@ -450,6 +496,7 @@ type UserNotVerifiedContextValue = {
 
 type UserSupportContextValue = {
   isUserVerified: true;
+  isVerifiedLoading: boolean;
   state: UserSupportState;
   dispatch: React.Dispatch<UserSupportAction>;
   commitChanges: () => void | Promise<void>;
@@ -471,7 +518,7 @@ export const UserVoteContext = createContext<
 export const UserVoteProvider: FC<{
   children: React.ReactNode;
 }> = ({ children }) => {
-  const [state, dispatch] = useReducer(reducer, {
+  const [state, rawDispatch] = useReducer(reducer, {
     onChain: undefined,
     staged: undefined,
     hasStagedChanges: false,
@@ -481,34 +528,29 @@ export const UserVoteProvider: FC<{
   });
   const { writeContractAsync } = useWriteContract();
   const { address } = useAccount();
+  const publicClient = usePublicClient();
   const {
     forumContractAddress,
     chainFingerprint,
     name: forumName,
+    creditMultiplier,
   } = useForum();
 
-  // Read stepDurationSeconds for requireStep guard
-  const { data: stepDurationSeconds } = useReadContract({
-    address: forumContractAddress,
-    abi: FORUM_ABI,
-    functionName: "stepDurationSeconds",
-    query: { enabled: !!forumContractAddress },
-  });
-
-  // Read the current decay step from the chain, refreshed on every block.
-  const { data: onChainStep, refetch: refetchStep } = useReadContract({
-    address: forumContractAddress,
-    abi: FORUM_ABI,
-    functionName: "getCurrentStep",
-    args: [],
-    query: { enabled: !!forumContractAddress },
-  });
+  // Wrap dispatch to inject creditMultiplier into every action
+  const dispatch = useCallback(
+    (action: UserSupportAction) => rawDispatch({ ...action, creditMultiplier }),
+    [creditMultiplier],
+  );
 
   // Track authored statements in localStorage for "My Statements"
   const { add: addAuthoredStatement } =
     useLocalStorageSet("authoredStatements");
 
-  const { data: isUserVerified, refetch: refetchIsMember } = useReadContract({
+  const {
+    data: isUserVerified,
+    refetch: refetchIsMember,
+    isLoading: isVerifiedLoading,
+  } = useReadContract({
     address: forumContractAddress,
     abi: FORUM_ABI,
     account: address,
@@ -550,14 +592,10 @@ export const UserVoteProvider: FC<{
       void refetchSupport();
       void refetchBalance();
     }
-    void refetchStep();
-  }, [
-    refetchIsMember,
-    refetchSupport,
-    refetchBalance,
-    refetchStep,
-    isUserVerified,
-  ]);
+  }, [refetchIsMember, refetchSupport, refetchBalance, isUserVerified]);
+
+  // Sync with blockchain on every new block
+  const { blockNumber: latestBlockNumber } = useBlockSync(refetch);
 
   useEffect(() => {
     // Load state from blockchain
@@ -570,15 +608,21 @@ export const UserVoteProvider: FC<{
         payload: {
           credits: onChainUserBalance,
           statementSupport: [...onChainUserStatementSupport],
+          blockNumber: latestBlockNumber,
         },
       });
     }
-  }, [onChainUserStatementSupport, onChainUserBalance]);
+  }, [
+    onChainUserStatementSupport,
+    onChainUserBalance,
+    latestBlockNumber,
+    dispatch,
+  ]);
 
   // ── Staged-support persistence ──────────────────────────────────────────
   const persistKey =
     chainFingerprint && address
-      ? stagedStorageKey(chainFingerprint, forumName, address)
+      ? stagedStorageKey(chainFingerprint, forumName, address.slice(0, 10))
       : undefined;
   const restoredKeyRef = useRef<string | undefined>(undefined);
   useEffect(() => {
@@ -604,9 +648,6 @@ export const UserVoteProvider: FC<{
       saveStagedToStorage(persistKey, state.staged);
     }
   }, [persistKey, state.staged]);
-
-  // Sync with blockchain on every new block
-  useBlockSync(refetch);
 
   // Wait for transaction receipt once a tx hash is available
   const { data: txReceipt } = useWaitForTransactionReceipt({
@@ -639,12 +680,18 @@ export const UserVoteProvider: FC<{
         type: "COMMIT_CONFIRMED",
         payload: { blockNumber: txReceipt.blockNumber },
       });
+
+      // Nudge a block sync so SYNC_ONCHAIN_STATE fires with fresh data.
+      // The receipt callback does NOT read on-chain data itself.
+      refetch();
     }
   }, [
     txReceipt,
     state.commitStatus,
     state.confirmedBlockNumber,
     addAuthoredStatement,
+    refetch,
+    dispatch,
   ]);
 
   // Timeout: if commit is in-flight for more than 30 seconds, treat as error
@@ -654,8 +701,7 @@ export const UserVoteProvider: FC<{
       state.commitStatus !== "idle" &&
       state.commitStatus !== "confirmed" &&
       state.commitStatus !== "cancelled" &&
-      state.commitStatus !== "error" &&
-      state.commitStatus !== "stale-step"
+      state.commitStatus !== "error"
     ) {
       commitTimeoutRef.current = setTimeout(() => {
         dispatch({ type: "COMMIT_ERROR" });
@@ -672,10 +718,15 @@ export const UserVoteProvider: FC<{
         commitTimeoutRef.current = null;
       }
     };
-  }, [state.commitStatus]);
+  }, [state.commitStatus, dispatch]);
 
   const commitChanges = useCallback(async () => {
-    if (state.hasStagedChanges && state.hasEnoughCredits && state.staged) {
+    if (
+      state.hasStagedChanges &&
+      state.hasEnoughCredits &&
+      state.staged &&
+      publicClient
+    ) {
       const hasSupportAdjustments = state.staged.supportAdjustments.size > 0;
 
       dispatch({ type: "BEGIN_COMMIT" });
@@ -684,25 +735,7 @@ export const UserVoteProvider: FC<{
         // Build the list of encoded calls for multicall
         const calls: `0x${string}`[] = [];
 
-        // 1. requireStep guard — ensures the decay step hasn't changed since
-        //    the user last saw the UI state. Uses the same last-block value that
-        //    drives all on-chain reads, so any mismatch surfaces as a StaleStep
-        //    that the user can resolve by retrying.
-        if (
-          stepDurationSeconds &&
-          stepDurationSeconds > 0n &&
-          onChainStep !== undefined
-        ) {
-          calls.push(
-            encodeFunctionData({
-              abi: FORUM_ABI,
-              functionName: "requireStep",
-              args: [onChainStep],
-            }),
-          );
-        }
-
-        // 2. addStatement calls for staged new statements
+        // 1. addStatement calls for staged new statements
         for (const stmt of state.staged.stagedStatements) {
           calls.push(
             encodeFunctionData({
@@ -713,15 +746,19 @@ export const UserVoteProvider: FC<{
           );
         }
 
-        // 3. adjustSupport call for support adjustments on existing statements
+        // 2. adjustSupport call for support adjustments on existing statements
         if (hasSupportAdjustments) {
-          const supportAdjustments: { statementId: bigint; value: bigint }[] =
-            [];
+          const supportAdjustments: {
+            statementId: bigint;
+            value: bigint;
+            adjustmentType: number;
+          }[] = [];
           for (const [statementId, adjustment] of state.staged
             .supportAdjustments) {
             supportAdjustments.push({
               statementId: BigInt(statementId),
               value: BigInt(adjustment),
+              adjustmentType: 0,
             });
           }
           calls.push(
@@ -736,11 +773,24 @@ export const UserVoteProvider: FC<{
         // Use multicall to batch everything in a single transaction.
         // Authored statement IDs are extracted from the receipt logs in
         // the COMMIT_CONFIRMED effect, avoiding prediction race conditions.
+        //
+        // Decay calculations inside Multicall's delegatecall have
+        // variable gas cost depending on block.timestamp at execution
+        // time (which may differ from estimation time).  Adding a 20%
+        // buffer prevents intermittent out-of-gas FailedCall reverts.
+        const gasEstimate = await publicClient.estimateContractGas({
+          address: forumContractAddress,
+          abi: FORUM_ABI,
+          functionName: "multicall",
+          args: [calls],
+          account: address,
+        });
         const txHash = await writeContractAsync({
           address: forumContractAddress,
           abi: FORUM_ABI,
           functionName: "multicall",
           args: [calls],
+          gas: (gasEstimate * 120n) / 100n,
         });
 
         dispatch({ type: "COMMIT_SUBMITTED", payload: { txHash } });
@@ -750,21 +800,6 @@ export const UserVoteProvider: FC<{
             dispatch({ type: "COMMIT_CANCELLED" });
             return;
           }
-
-          const revert = err.walk(
-            (e) => e instanceof ContractFunctionRevertedError,
-          ) as ContractFunctionRevertedError | null;
-
-          if (revert && revert.data?.errorName === "StaleStep") {
-            dispatch({ type: "COMMIT_STALE_STEP" });
-            return;
-          }
-        }
-
-        const errStr = JSON.stringify(err, Object.getOwnPropertyNames(err));
-        if (errStr.includes("0x595d8517") || errStr.includes("StaleStep")) {
-          dispatch({ type: "COMMIT_STALE_STEP" });
-          return;
         }
 
         dispatch({ type: "COMMIT_ERROR" });
@@ -774,32 +809,36 @@ export const UserVoteProvider: FC<{
     state,
     writeContractAsync,
     forumContractAddress,
-    onChainStep,
+    publicClient,
+    address,
     dispatch,
-    stepDurationSeconds,
   ]);
 
   const resetCommitStatus = useCallback(() => {
     dispatch({ type: "RESET_COMMIT_STATUS" });
   }, [dispatch]);
 
+  // While frozen, rendering reads from the snapshot so the UI stays
+  // consistent until the sync catches up to the confirmed block.
+  const renderOnChain = state.frozenOnChain ?? state.onChain;
+
   // Helper function to get effective support (on-chain + adjustment)
   const getEffectiveSupport = useCallback(
     (statementId: number): number => {
       const onChainSupport =
-        state.onChain?.statementSupport.get(statementId) || 0;
+        renderOnChain?.statementSupport.get(statementId) || 0;
       const adjustment = state.staged?.supportAdjustments.get(statementId) || 0;
       return onChainSupport + adjustment;
     },
-    [state.onChain, state.staged],
+    [renderOnChain, state.staged],
   );
 
   // Helper function to get on-chain support (without adjustments)
   const getOnChainSupport = useCallback(
     (statementId: number): number => {
-      return state.onChain?.statementSupport.get(statementId) || 0;
+      return renderOnChain?.statementSupport.get(statementId) || 0;
     },
-    [state.onChain],
+    [renderOnChain],
   );
 
   // Helper function to check if a statement has a pending adjustment
@@ -853,11 +892,16 @@ export const UserVoteProvider: FC<{
     dispatch({ type: "CLEAR_STAGED_SUPPORT" });
   }, [dispatch]);
 
+  // Verification is still loading if the query is in-flight OR the wallet
+  // address hasn't resolved yet (the query won't even start without it).
+  const isVerifiedStillLoading = !!address && isVerifiedLoading;
+
   if (isUserVerified) {
     return (
       <UserVoteContext.Provider
         value={{
           isUserVerified: isUserVerified,
+          isVerifiedLoading: !state.onChain,
           state,
           dispatch,
           commitChanges,
@@ -880,6 +924,7 @@ export const UserVoteProvider: FC<{
       <UserVoteContext.Provider
         value={{
           isUserVerified: !!isUserVerified,
+          isVerifiedLoading: isVerifiedStillLoading,
           state: undefined,
           dispatch: undefined,
           commitChanges: undefined,

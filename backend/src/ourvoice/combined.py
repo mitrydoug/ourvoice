@@ -8,7 +8,7 @@ Run with:
 Required env vars:
     MEILI_URL            — Meilisearch URL  (default: http://localhost:7700)
     MEILI_API_KEY        — Meilisearch API key (default: empty)
-    FORUM_CONTRACT_ADDRESS — Forum contract address (required)
+    FORUM_CONTRACT_ADDRESSES — Comma-separated forum contract addresses
     ETHEREUM_NODE_URL    — WebSocket RPC URL (required)
 
 Optional env vars:
@@ -32,19 +32,28 @@ import meilisearch
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from ourvoice.indexer import run_indexer, DEFAULT_EVICTION_MAX_AGE_SECONDS
+from ourvoice.indexer import (
+    DEFAULT_EVICTION_MAX_AGE_SECONDS,
+    parse_forum_contract_addresses,
+    run_indexers,
+)
 from ourvoice.search_service.api import create_api
 
 logging.basicConfig(
-    level=os.getenv("LOG_LEVEL", "INFO").upper(),
+    level="INFO",
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
+# Allow fine-grained control over ourvoice package logging without enabling
+# DEBUG output from third-party libraries (web3, websockets, urllib3, etc.).
+# Set LOG_LEVEL=DEBUG to see detailed ourvoice-internal logs only.
+_our_log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+logging.getLogger("ourvoice").setLevel(_our_log_level)
 logger = logging.getLogger(__name__)
 
 MEILI_URL = os.getenv("MEILI_URL", "http://localhost:7700")
 MEILI_API_KEY = os.getenv("MEILI_API_KEY", "")
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "")
-FORUM_CONTRACT_ADDRESS = os.environ.get("FORUM_CONTRACT_ADDRESS", "")
+FORUM_CONTRACT_ADDRESSES = os.environ.get("FORUM_CONTRACT_ADDRESSES", "")
 ETHEREUM_NODE_URL = os.environ.get("ETHEREUM_NODE_URL", "")
 BACKFILL_FROM = os.environ.get("BACKFILL_FROM", "")
 EVICTION_MAX_AGE_SECONDS = int(
@@ -55,18 +64,19 @@ EVICTION_MAX_AGE_SECONDS = int(
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Start the indexer as a background task while the API is running."""
-    if not FORUM_CONTRACT_ADDRESS or not ETHEREUM_NODE_URL:
+    forum_contract_addresses = parse_forum_contract_addresses(FORUM_CONTRACT_ADDRESSES)
+    if not forum_contract_addresses or not ETHEREUM_NODE_URL:
         logger.warning(
-            "FORUM_CONTRACT_ADDRESS or ETHEREUM_NODE_URL not set — "
+            "FORUM_CONTRACT_ADDRESSES or ETHEREUM_NODE_URL not set — "
             "indexer will NOT start.  Search API is still available."
         )
         yield
         return
 
     task = asyncio.create_task(
-        run_indexer(
+        run_indexers(
             meili_client=app.state.meili_client,
-            forum_contract_address=FORUM_CONTRACT_ADDRESS,
+            forum_contract_addresses=forum_contract_addresses,
             ethereum_node_url=ETHEREUM_NODE_URL,
             backfill_from=BACKFILL_FROM,
             eviction_max_age_seconds=EVICTION_MAX_AGE_SECONDS,

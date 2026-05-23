@@ -7,8 +7,8 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import { usePublicClient } from "wagmi";
-import { FORUMS } from "../contracts";
+import { usePublicClient, useReadContract } from "wagmi";
+import { FORUMS, FORUM_ABI } from "../contracts";
 import { FORUMS as FORUM_DATA } from "../components/ChooseForumModal";
 export { FORUM_ABI } from "../contracts";
 
@@ -29,23 +29,23 @@ export const slugToForum = (slug: string): string | undefined => {
   return entry?.[0];
 };
 
-const FORUM_STORAGE_KEY = "ourvoice:selectedForum";
+const FORUM_STORAGE_KEY = "symvolia:selectedForum";
 
 /**
  * Keys that must survive a chain-fingerprint sweep because they are either
  * chain-agnostic (selected forum) or already scoped by address (nickname).
  */
-const SWEEP_EXEMPT_PREFIXES = ["ourvoice:selectedForum", "ourvoice:nickname:"];
+const SWEEP_EXEMPT_PREFIXES = ["symvolia:selectedForum", "symvolia:nickname:"];
 
 /**
- * Remove all `ourvoice:*` localStorage keys that do not belong to the
+ * Remove all `symvolia:*` localStorage keys that do not belong to the
  * current chain deployment (identified by `fingerprint`).
  */
 const sweepStaleKeys = (fingerprint: string) => {
   try {
     const keys = Object.keys(localStorage).filter(
       (k) =>
-        k.startsWith("ourvoice:") &&
+        k.startsWith("symvolia:") &&
         !SWEEP_EXEMPT_PREFIXES.some((p) => k.startsWith(p)) &&
         !k.includes(fingerprint),
     );
@@ -100,6 +100,11 @@ type ForumContextValue = {
    * has been fetched. localStorage reads/writes should be gated on this.
    */
   chainFingerprint: string | undefined;
+  /**
+   * The credit multiplier for this forum (1 display-credit = creditMultiplier
+   * credit parts on-chain). Read from the contract; defaults to 1 until loaded.
+   */
+  creditMultiplier: number;
 };
 
 export const ForumContext = createContext<ForumContextValue | undefined>(
@@ -114,6 +119,16 @@ export const ForumProvider: FC<{ children: React.ReactNode }> = ({
   });
   const address = useMemo(() => FORUMS[forumName], [forumName]);
   const publicClient = usePublicClient();
+
+  const { data: rawCreditMultiplier } = useReadContract({
+    address,
+    abi: FORUM_ABI,
+    functionName: "creditMultiplier",
+    query: { staleTime: Infinity },
+  });
+  const creditMultiplier = rawCreditMultiplier
+    ? Number(rawCreditMultiplier)
+    : 1;
 
   // Fingerprint derived from the genesis block hash — unique per chain
   // instance. Changes whenever the chain is reset (docker compose down -v).
@@ -177,6 +192,7 @@ export const ForumProvider: FC<{ children: React.ReactNode }> = ({
         setForum,
         syncFromSlug,
         chainFingerprint,
+        creditMultiplier,
       }}
     >
       {children}

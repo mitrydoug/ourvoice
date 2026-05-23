@@ -7,6 +7,7 @@ import {
   Box,
   Button,
   IconButton,
+  Skeleton,
   Stack,
   TextField,
   Tooltip,
@@ -21,6 +22,7 @@ import { useCreditAllocation } from "@/hooks/useCreditAllocation";
 import { useUserRegistration } from "@/hooks/useUserRegistration";
 import { toAlpha2 } from "../countryCodeMap";
 import useNickname from "@/hooks/useNickname";
+import useGracefulLoading from "@/hooks/useGracefulLoading";
 
 // ── SVG Donut Chart ──────────────────────────────────────────────────────────
 
@@ -150,7 +152,7 @@ const DonutLegend: FC<{ segments: DonutSegment[] }> = ({ segments }) => (
 // ── Main Profile Component ───────────────────────────────────────────────────
 
 const UserProfile: FC = () => {
-  const { address } = useAccount();
+  const { address, isReconnecting } = useAccount();
   const navigate = useNavigate();
   const theme = useTheme();
   const { isUserVerified } = useUserVotes();
@@ -196,6 +198,28 @@ const UserProfile: FC = () => {
         },
       ]
     : [];
+
+  const { isLoading: isLoadingReconnect, showSkeleton } =
+    useGracefulLoading(isReconnecting);
+
+  if (showSkeleton) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center" }}>
+        <Box sx={{ width: "100%", maxWidth: 480, py: { xs: 2, sm: 4 } }}>
+          <Stack spacing={3} alignItems="center">
+            <Skeleton variant="circular" width={80} height={80} />
+            <Skeleton variant="text" width={160} height={32} />
+            <Skeleton variant="rounded" width={180} height={180} />
+            <Skeleton variant="rounded" width="100%" height={120} />
+          </Stack>
+        </Box>
+      </Box>
+    );
+  }
+
+  if (isLoadingReconnect) {
+    return null;
+  }
 
   if (!address) return <Navigate to="/" replace />;
 

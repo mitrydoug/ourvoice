@@ -11,6 +11,4 @@ contract MockOurVoiceRegistry is AOurVoiceRegistry {
         bytes32 userId = keccak256(abi.encode(msg.sender));
         return _registerHelper(userId, nationality);
     }
-
-    fallback() external {}
 }

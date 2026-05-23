@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useBlockNumber, usePublicClient } from "wagmi";
 import { useForum, FORUM_ABI } from "../state/Forum";
+import { useCreditConversion } from "./useCreditConversion";
 
 /** Average Sepolia block time in seconds. */
-const AVG_BLOCK_TIME = 12;
+export const AVG_BLOCK_TIME = 12;
 
 /** Number of past periods to chart. */
-const PERIODS_BACK = 7;
+export const PERIODS_BACK = 7;
 
 /**
  * Duration of one chart period in seconds.
@@ -16,7 +17,7 @@ const PERIODS_BACK = 7;
  *
  * Controlled by the `VITE_CHART_PERIOD_SECONDS` env var.
  */
-const PERIOD_SECONDS = Number(
+export const PERIOD_SECONDS = Number(
   import.meta.env.VITE_CHART_PERIOD_SECONDS ?? "86400",
 );
 const PERIOD_MS = PERIOD_SECONDS * 1000;
@@ -51,6 +52,7 @@ export function useHistoricalSupport(statementId: bigint): {
 } {
   const publicClient = usePublicClient();
   const { forumContractAddress } = useForum();
+  const { toCredits } = useCreditConversion();
   const { data: currentBlockNumber } = useBlockNumber();
 
   const [dataPoints, setDataPoints] = useState<SupportDataPoint[]>([]);
@@ -148,7 +150,9 @@ export function useHistoricalSupport(statementId: bigint): {
               support: bigint;
             }[];
             const support =
-              statements.length > 0 ? Number(statements[0].support) : 0;
+              statements.length > 0
+                ? toCredits(Number(statements[0].support))
+                : 0;
             return { timestamp, support, label };
           } catch {
             // Statement may not exist at this block — skip
@@ -178,7 +182,7 @@ export function useHistoricalSupport(statementId: bigint): {
         if (!cancelled && liveStatements.length > 0) {
           points.push({
             timestamp: nowMs,
-            support: Number(liveStatements[0].support),
+            support: toCredits(Number(liveStatements[0].support)),
             label: "Now",
           });
         }
@@ -201,6 +205,7 @@ export function useHistoricalSupport(statementId: bigint): {
     publicClient,
     currentBlockNumber,
     forumContractAddress,
+    toCredits,
     statementId,
     targets,
   ]);

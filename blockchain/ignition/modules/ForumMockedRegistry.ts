@@ -1,5 +1,6 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import { deployForums } from "./helpers/deployForums.js";
+import { CRED_MULT } from "../config/deployments.js";
 
 type MockStatement = {
   addrIndex: number;
@@ -22,63 +23,63 @@ const MOCK_STATEMENTS: MockStatement[] = [
     addrIndex: 0,
     forum: "USA",
     content: "Access to high-quality medical care is a human right.",
-    initialSupport: 10,
+    initialSupport: 10 * CRED_MULT,
   },
   {
     addrIndex: 0,
     forum: "USA",
     content: "We need to consider and prevent the potential downsides of AI.",
-    initialSupport: 10,
+    initialSupport: 10 * CRED_MULT,
   },
   {
     addrIndex: 0,
     forum: "USA",
     content: "Loneliness is an epidemic. Touch grass, find a friend.",
-    initialSupport: 10,
+    initialSupport: 10 * CRED_MULT,
   },
   {
     addrIndex: 0,
     forum: "USA",
     content: "We're better together.",
-    initialSupport: 10,
+    initialSupport: 10 * CRED_MULT,
   },
   {
     addrIndex: 0,
     forum: "USA",
     content: "I want something to believe in.",
-    initialSupport: 10,
+    initialSupport: 10 * CRED_MULT,
   },
   {
     addrIndex: 0,
     forum: "USA",
     content: "Nothing heals like a good chocolate chip cookie!",
-    initialSupport: 10,
+    initialSupport: 10 * CRED_MULT,
   },
   {
     addrIndex: 0,
     forum: "USA",
     content: "We're in the longest government shutdown in our history.",
-    initialSupport: 10,
+    initialSupport: 10 * CRED_MULT,
   },
   {
     addrIndex: 0,
     forum: "USA",
     content: "All work and now play makes Hannah and sad girl",
-    initialSupport: 10,
+    initialSupport: 10 * CRED_MULT,
   },
   {
     addrIndex: 0,
     forum: "USA",
     content:
       "We should continue providing SNAP benefits despite the government shutdown",
-    initialSupport: 10,
+    initialSupport: 10 * CRED_MULT,
   },
   {
     addrIndex: 0,
     forum: "USA",
     content:
       "There should be a minimum of 4 weeks PTO for primary care givers.",
-    initialSupport: 10,
+    initialSupport: 10 * CRED_MULT,
   },
   { addrIndex: 0, forum: "global", content: "Gazan's deserve to not starve." },
   {
@@ -91,19 +92,19 @@ const MOCK_STATEMENTS: MockStatement[] = [
     addrIndex: 1,
     forum: "CAN",
     content: "Universal healthcare is something to be proud of.",
-    initialSupport: 10,
+    initialSupport: 10 * CRED_MULT,
   },
   {
     addrIndex: 1,
     forum: "CAN",
     content: "We need more affordable housing in our cities.",
-    initialSupport: 10,
+    initialSupport: 10 * CRED_MULT,
   },
   {
     addrIndex: 1,
     forum: "CAN",
     content: "Reconciliation with Indigenous peoples must be a priority.",
-    initialSupport: 10,
+    initialSupport: 10 * CRED_MULT,
   },
 ];
 
@@ -126,12 +127,12 @@ const MOCK_STATEMENTS: MockStatement[] = [
  */
 const MOCK_SUPPORT: MockSupport[] = [
   // ── global forum: support from users other than the author ──
-  { addrIndex: 1, forum: "global", statementIndex: 0, value: 10 },
-  { addrIndex: 2, forum: "global", statementIndex: 0, value: 10 },
-  { addrIndex: 0, forum: "global", statementIndex: 1, value: 10 },
-  { addrIndex: 2, forum: "global", statementIndex: 1, value: 10 },
-  { addrIndex: 0, forum: "global", statementIndex: 2, value: 10 },
-  { addrIndex: 1, forum: "global", statementIndex: 2, value: 10 },
+  { addrIndex: 1, forum: "global", statementIndex: 0, value: 10 * CRED_MULT },
+  { addrIndex: 2, forum: "global", statementIndex: 0, value: 10 * CRED_MULT },
+  { addrIndex: 0, forum: "global", statementIndex: 1, value: 10 * CRED_MULT },
+  { addrIndex: 2, forum: "global", statementIndex: 1, value: 10 * CRED_MULT },
+  { addrIndex: 0, forum: "global", statementIndex: 2, value: 10 * CRED_MULT },
+  { addrIndex: 1, forum: "global", statementIndex: 2, value: 10 * CRED_MULT },
 ];
 
 /**
@@ -143,13 +144,17 @@ const MOCK_SUPPORT: MockSupport[] = [
  */
 export function createForumMockedModule(
   forumNames: string[],
-  stepDurationSeconds: number,
+  creditAllowanceIntervalSeconds: number,
   engagementWindowSeconds: number,
   maxRankedStatements: number,
   minStatementSupportToRank: number,
   maxStatementLength: number,
-  userCreditAllowancePerStep: number,
+  userCreditAllowancePerInterval: number,
   userStartingCredits: number,
+  minAdjustmentIntervalSeconds: number,
+  creditMultiplier: number,
+  refundPenaltyBps: number,
+  decaySpeedupFactor: number,
 ) {
   return buildModule("ForumMockedRegistryModule", (m) => {
     const address1 = m.getAccount(0);
@@ -177,9 +182,13 @@ export function createForumMockedModule(
 
     const { forums } = deployForums(
       m, mockedZKRegistry, forumNames,
-      stepDurationSeconds, engagementWindowSeconds,
+      creditAllowanceIntervalSeconds, engagementWindowSeconds,
       maxRankedStatements, minStatementSupportToRank,
-      maxStatementLength, userCreditAllowancePerStep, userStartingCredits,
+      maxStatementLength, userCreditAllowancePerInterval, userStartingCredits,
+      minAdjustmentIntervalSeconds,
+      creditMultiplier,
+      refundPenaltyBps,
+      decaySpeedupFactor,
     );
 
     // Track statement futures per forum so support calls can depend on them

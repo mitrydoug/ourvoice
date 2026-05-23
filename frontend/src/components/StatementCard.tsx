@@ -1,10 +1,8 @@
-import { FC, useEffect } from "react";
-import { IconButton, Stack, Typography } from "@mui/material";
+import { FC } from "react";
+import { IconButton, Stack, Tooltip, Typography } from "@mui/material";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
-import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
-import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
-import LandscapeIcon from "@mui/icons-material/Landscape";
+
 import { useForumNavigate } from "../hooks/useForumNavigate";
 
 import { useUserVotes } from "../state/UserVotes";
@@ -38,8 +36,16 @@ import AnimatedCounter from "./AnimatedCounter";
 import StatementCardShell from "./StatementCardShell";
 import { useBlockNumber, useReadContract } from "wagmi";
 import { useForum, FORUM_ABI } from "../state/Forum";
+import { useCreditConversion } from "../hooks/useCreditConversion";
+import {
+  AVG_BLOCK_TIME,
+  PERIODS_BACK,
+  PERIOD_SECONDS,
+} from "../hooks/useHistoricalSupport";
 
-const LOOK_BACK_BLOCKS = BigInt(1);
+const LOOK_BACK_BLOCKS = BigInt(
+  Math.floor((PERIODS_BACK * PERIOD_SECONDS) / AVG_BLOCK_TIME),
+);
 
 interface Statement {
   id: bigint;
@@ -110,25 +116,22 @@ export const StatementCard: FC<StatementCardProps> = ({
     hasAdjustment,
   } = useUserVotes();
   const { forumContractAddress } = useForum();
+  const { toCredits, toParts } = useCreditConversion();
 
   // Watch for new blocks
   const { data: blockNumber } = useBlockNumber({ watch: true });
 
-  const { data: historicalData, refetch: refetchHistorical } = useReadContract({
+  const { data: historicalData } = useReadContract({
     address: forumContractAddress,
     abi: FORUM_ABI,
     functionName: "getStatementsById",
     args: [[statement.id]],
     blockNumber: blockNumber ? blockNumber - LOOK_BACK_BLOCKS : undefined,
-    query: { enabled: !!blockNumber },
+    query: {
+      enabled: !!blockNumber,
+      placeholderData: (prev) => prev,
+    },
   });
-
-  // Sync historical data query on each new block
-  useEffect(() => {
-    if (blockNumber) {
-      void refetchHistorical();
-    }
-  }, [blockNumber, refetchHistorical]);
 
   const statementOneWeekAgo = historicalData
     ? (historicalData[0] as Statement)
@@ -146,21 +149,30 @@ export const StatementCard: FC<StatementCardProps> = ({
       ? lastWeekRank - currentRank
       : null;
 
-  const userSupport = isUserVerified
+  const userSupportParts = isUserVerified
     ? getEffectiveSupport(Number(statement.id))
     : 0;
+  const userSupport = toCredits(userSupportParts);
   const hasUncommittedSupport = isUserVerified
     ? hasAdjustment(Number(statement.id))
     : false;
 
-  const handleSupportChange = (newSupport: number) => {
+  const handleSupportChange = (newCreditSupport: number) => {
     if (!isUserVerified) return;
-    const onChainSupport = getOnChainSupport(Number(statement.id));
+    const onChainParts = getOnChainSupport(Number(statement.id));
+    const onChainCredits = toCredits(onChainParts);
+    let partsAdjustment: number;
+    if (newCreditSupport === 0) {
+      // Snap to exactly zero to avoid sub-credit residue from decay
+      partsAdjustment = -onChainParts;
+    } else {
+      partsAdjustment = toParts(newCreditSupport - onChainCredits);
+    }
     dispatch({
       type: "STAGE_USER_SUPPORT",
       payload: {
         statementId: statement.id,
-        adjustment: newSupport - onChainSupport,
+        adjustment: partsAdjustment,
       },
     });
   };
@@ -168,7 +180,7 @@ export const StatementCard: FC<StatementCardProps> = ({
   const peakRank =
     statement.peakRank >= 0n ? Number(statement.peakRank) + 1 : null;
 
-  const globalSupport = Number(statement.support);
+  const globalSupport = toCredits(Number(statement.support));
 
   /** Credits allocated = triangular number of |support| */
   const creditsAllocated =
@@ -176,17 +188,32 @@ export const StatementCard: FC<StatementCardProps> = ({
 
   const leftSlot =
     currentRank !== null ? (
-      <Typography
-        variant="h4"
-        sx={{
-          fontWeight: 700,
-          fontSize: rankFontSize(currentRank),
-          lineHeight: 1.1,
-          color: rankColor(currentRank) ?? "text.primary",
-        }}
-      >
-        {currentRank}
-      </Typography>
+      <Stack alignItems="center" spacing={0.75}>
+        {/* Rank number */}
+        <Typography
+          variant="h4"
+          sx={{
+            fontWeight: 700,
+            fontSize: rankFontSize(currentRank),
+            lineHeight: 1.1,
+            color: rankColor(currentRank) ?? "text.primary",
+          }}
+        >
+          {currentRank}
+        </Typography>
+        {/* Total support */}
+        <Typography
+          variant="body2"
+          sx={{
+            fontWeight: 500,
+            color: "text.secondary",
+            fontSize: "1rem",
+            lineHeight: 1,
+          }}
+        >
+          {formatSupport(globalSupport)}
+        </Typography>
+      </Stack>
     ) : (
       <Typography
         variant="caption"
@@ -208,68 +235,58 @@ export const StatementCard: FC<StatementCardProps> = ({
 
   const statsSlot = (
     <Stack direction="row" alignItems="center" spacing={2} sx={{ mt: 0.5 }}>
-      <Typography
-        variant="body2"
-        sx={{ fontWeight: 600, color: "primary.main" }}
-      >
-        {formatSupport(globalSupport)}
-      </Typography>
-
-      <Stack direction="row" alignItems="center" spacing={0.25}>
-        {rankChange === null || rankChange === 0 ? (
-          <Typography variant="body2" color="text.disabled">
-            —
+      {rankChange !== null && rankChange !== 0 && (
+        <Tooltip
+          title={`Recently moved ${rankChange > 0 ? "up" : "down"} ${Math.abs(rankChange)} ${Math.abs(rankChange) === 1 ? "rank" : "ranks"}`}
+          arrow
+        >
+          <Typography
+            variant="body2"
+            sx={{
+              fontWeight: 600,
+              color: rankChange > 0 ? "success.main" : "error.main",
+            }}
+          >
+            {rankChange > 0 ? "▲" : "▼"}
+            {Math.abs(rankChange)}
           </Typography>
-        ) : rankChange > 0 ? (
-          <>
-            <ArrowUpwardIcon sx={{ fontSize: 16, color: "success.main" }} />
-            <Typography
-              variant="body2"
-              sx={{ fontWeight: 600, color: "success.main" }}
-            >
-              {rankChange}
-            </Typography>
-          </>
-        ) : (
-          <>
-            <ArrowDownwardIcon sx={{ fontSize: 16, color: "error.main" }} />
-            <Typography
-              variant="body2"
-              sx={{ fontWeight: 600, color: "error.main" }}
-            >
-              {Math.abs(rankChange)}
-            </Typography>
-          </>
-        )}
-      </Stack>
-
-      {peakRank !== null && (
-        <Stack direction="row" alignItems="center" spacing={0.5}>
-          <LandscapeIcon sx={{ fontSize: 18, color: "text.secondary" }} />
-          <Typography variant="body2" color="text.secondary">
-            {peakRank}
-          </Typography>
-        </Stack>
+        </Tooltip>
       )}
 
-      {creditsAllocated > 0 && (
-        <Stack direction="row" alignItems="center" spacing={0.5}>
-          <CoinIcon size={16} />
-          <AnimatedCounter
-            value={creditsAllocated}
-            typographyProps={{
-              variant: "body2",
-              fontWeight: 600,
-              sx: {
-                fontVariantNumeric: "tabular-nums",
-                color: "text.secondary",
-              },
-            }}
-          />
-        </Stack>
+      {peakRank !== null && (
+        <Tooltip title={`Peak rank: #${peakRank}`} arrow>
+          <Stack direction="row" alignItems="center" spacing={0.25}>
+            <Typography sx={{ fontSize: 14, lineHeight: 1 }}>🏆</Typography>
+            <Typography variant="body2" color="text.secondary">
+              {peakRank}
+            </Typography>
+          </Stack>
+        </Tooltip>
       )}
 
       <Stack sx={{ flexGrow: 1 }} />
+
+      {creditsAllocated > 0 && (
+        <Tooltip
+          title={`Your support of ${userSupport} costs ${creditsAllocated} credits`}
+          arrow
+        >
+          <Stack direction="row" alignItems="center" spacing={0.5}>
+            <CoinIcon size={16} />
+            <AnimatedCounter
+              value={creditsAllocated}
+              typographyProps={{
+                variant: "body2",
+                fontWeight: 600,
+                sx: {
+                  fontVariantNumeric: "tabular-nums",
+                  color: "text.secondary",
+                },
+              }}
+            />
+          </Stack>
+        </Tooltip>
+      )}
 
       {onToggleBookmark && (
         <IconButton

@@ -5,6 +5,7 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { StagedStatement } from "../state/UserVotes";
 import VoteToggle from "./VoteToggle";
 import StatementCardShell from "./StatementCardShell";
+import { useCreditConversion } from "../hooks/useCreditConversion";
 
 interface StagedStatementCardProps {
   staged: StagedStatement;
@@ -17,6 +18,7 @@ const StagedStatementCard: FC<StagedStatementCardProps> = ({
   onUnstage,
   onUpdateSupport,
 }) => {
+  const { toCredits, toParts } = useCreditConversion();
   const leftSlot = (
     <Typography
       variant="caption"
@@ -51,10 +53,10 @@ const StagedStatementCard: FC<StagedStatementCardProps> = ({
 
   const voteControls = onUpdateSupport ? (
     <VoteToggle
-      userSupport={staged.initialSupport}
+      userSupport={toCredits(staged.initialSupport)}
       uncommittedSupport={true}
-      onUserVoteChange={(newSupport) =>
-        onUpdateSupport(staged.tempId, newSupport)
+      onUserVoteChange={(newCreditSupport) =>
+        onUpdateSupport(staged.tempId, toParts(newCreditSupport))
       }
       direction="vertical"
     />

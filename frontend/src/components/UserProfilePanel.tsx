@@ -14,6 +14,7 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
+  Skeleton,
   Typography,
   keyframes,
 } from "@mui/material";
@@ -31,8 +32,10 @@ import { FORUMS } from "./ChooseForumModal";
 import { useUserRegistration } from "@/hooks/useUserRegistration";
 import { toAlpha2, toDemonym } from "../countryCodeMap";
 import { metamaskIcon, shortenAddress } from "../util";
+import { useCreditConversion } from "../hooks/useCreditConversion";
 import AnimatedCounter from "./AnimatedCounter";
 import IndeterminateCheckBoxIcon from "@mui/icons-material/IndeterminateCheckBox";
+import useGracefulLoading from "@/hooks/useGracefulLoading";
 
 const shimmer = keyframes`
   0% { opacity: 0.6; }
@@ -72,10 +75,18 @@ const UserProfilePanel: React.FC = () => {
   const rawNavigate = useNavigate();
   const [nickname] = useNickname();
   const userVotes = useUserVotes();
-  const { isUserVerified } = userVotes;
-  const { nationality, isRegistered } = useUserRegistration();
+  const { isUserVerified, isVerifiedLoading } = userVotes;
+  const {
+    nationality,
+    isRegistered,
+    isLoading: isRegistrationLoading,
+  } = useUserRegistration();
   const { name: forumName } = useForum();
+  const { toCredits } = useCreditConversion();
   const forum = FORUMS[forumName];
+
+  const isStatusLoading = isVerifiedLoading || isRegistrationLoading;
+  const { showSkeleton } = useGracefulLoading(isStatusLoading);
 
   const avatar = useMemo(() => {
     if (address) return metamaskIcon(address);
@@ -85,7 +96,7 @@ const UserProfilePanel: React.FC = () => {
   const alpha2 = nationality ? toAlpha2(nationality) : null;
 
   const credits = isUserVerified
-    ? (userVotes.state?.staged?.credits ?? 0)
+    ? toCredits(userVotes.state?.staged?.credits ?? 0)
     : null;
   const hasStagedChanges = isUserVerified
     ? (userVotes.state?.hasStagedChanges ?? false)
@@ -110,6 +121,32 @@ const UserProfilePanel: React.FC = () => {
   const isOverBudget = credits !== null && credits < 0;
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+
+  if (showSkeleton) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          borderRadius: 4,
+          bgcolor: "action.hover",
+          px: 2,
+          pt: 2,
+          pb: 1,
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+          <Skeleton variant="circular" width={36} height={36} />
+          <Box sx={{ flex: 1 }}>
+            <Skeleton variant="text" width="70%" height={24} />
+            <Skeleton variant="text" width="50%" height={18} />
+          </Box>
+        </Box>
+        <Divider sx={{ my: 1.5 }} />
+        <Skeleton variant="rounded" width="100%" height={36} />
+      </Box>
+    );
+  }
 
   return (
     <>
@@ -140,7 +177,10 @@ const UserProfilePanel: React.FC = () => {
             </Typography>
 
             {/* Verified / Not Verified status */}
-            {!isRegistered && (
+            {isStatusLoading && (
+              <Skeleton variant="text" width={80} height={18} />
+            )}
+            {!isStatusLoading && !isRegistered && (
               <Box
                 sx={{
                   display: "flex",
@@ -156,7 +196,7 @@ const UserProfilePanel: React.FC = () => {
                 </Typography>
               </Box>
             )}
-            {isRegistered && (
+            {!isStatusLoading && isRegistered && (
               <Box
                 sx={{
                   display: "flex",
@@ -194,7 +234,7 @@ const UserProfilePanel: React.FC = () => {
         </Box>
 
         {/* Credits / Join In section */}
-        {!isRegistered && (
+        {!isStatusLoading && !isRegistered && (
           <>
             <Divider sx={{ my: 1.5 }} />
             <Button
@@ -211,19 +251,22 @@ const UserProfilePanel: React.FC = () => {
             </Button>
           </>
         )}
-        {isRegistered && !isUserVerified && forum?.countryCode && (
-          <>
-            <Divider sx={{ my: 1.5 }} />
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{ textAlign: "center" }}
-            >
-              Only {toDemonym(forum.countryCode) ?? forum.label} citizens can
-              participate in this Forum.
-            </Typography>
-          </>
-        )}
+        {!isStatusLoading &&
+          isRegistered &&
+          !isUserVerified &&
+          forum?.countryCode && (
+            <>
+              <Divider sx={{ my: 1.5 }} />
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ textAlign: "center" }}
+              >
+                Only {toDemonym(forum.countryCode) ?? forum.label} citizens can
+                participate in this Forum.
+              </Typography>
+            </>
+          )}
         {credits !== null && (
           <>
             <Divider sx={{ my: 1.5 }} />

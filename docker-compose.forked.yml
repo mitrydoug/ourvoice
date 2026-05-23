@@ -27,6 +27,7 @@ services:
     volumes:
       - ./blockchain:/app
       - ./frontend:/frontend
+      - ./backend:/backend
     depends_on:
       hardhat:
         condition: service_healthy

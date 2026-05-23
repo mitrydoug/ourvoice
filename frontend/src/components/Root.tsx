@@ -12,6 +12,7 @@ import SearchField from "./SearchField";
 import UserProfilePanel from "./UserProfilePanel";
 import useIsMobile from "@/hooks/useIsMobile";
 import { useUserVotes } from "../state/UserVotes";
+import CommitSupportModal from "./CommitSupportModal";
 import { useAccount } from "wagmi";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { SearchProvider, useSearchQuery } from "@/state/Search";
@@ -210,11 +211,18 @@ const MobileLayout: FC = () => {
 
 const Root: FC = () => {
   const isMobile = useIsMobile();
+  const { state: userVoteState, resetCommitStatus } = useUserVotes();
   useForumSlugSync();
 
   return (
     <SearchProvider>
       {isMobile ? <MobileLayout /> : <DesktopLayout />}
+      {userVoteState && resetCommitStatus && (
+        <CommitSupportModal
+          commitStatus={userVoteState.commitStatus}
+          onReset={resetCommitStatus}
+        />
+      )}
     </SearchProvider>
   );
 };

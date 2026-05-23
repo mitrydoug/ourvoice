@@ -23,6 +23,7 @@ import { FORUMS } from "./ChooseForumModal";
 import { useUserRegistration } from "@/hooks/useUserRegistration";
 import { toAlpha2, toDemonym } from "../countryCodeMap";
 import { metamaskIcon, shortenAddress } from "../util";
+import { useCreditConversion } from "../hooks/useCreditConversion";
 import AnimatedCounter from "./AnimatedCounter";
 import IndeterminateCheckBoxIcon from "@mui/icons-material/IndeterminateCheckBox";
 
@@ -67,6 +68,7 @@ const UserProfilePanel: React.FC = () => {
   const { isUserVerified } = userVotes;
   const { nationality, isRegistered } = useUserRegistration();
   const { name: forumName } = useForum();
+  const { toCredits } = useCreditConversion();
   const forum = FORUMS[forumName];
 
   const avatar = useMemo(() => {
@@ -77,7 +79,7 @@ const UserProfilePanel: React.FC = () => {
   const alpha2 = nationality ? toAlpha2(nationality) : null;
 
   const credits = isUserVerified
-    ? (userVotes.state?.staged?.credits ?? 0)
+    ? toCredits(userVotes.state?.staged?.credits ?? 0)
     : null;
   const hasStagedChanges = isUserVerified
     ? (userVotes.state?.hasStagedChanges ?? false)

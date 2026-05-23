@@ -9,81 +9,108 @@
 type MockedDeploymentConfig = {
   mode: "mocked";
   forums: string[];
-  stepDurationSeconds: number;
+  creditAllowanceIntervalSeconds: number;
   engagementWindowSeconds: number;
   maxRankedStatements: number;
   minStatementSupportToRank: number;
   maxStatementLength: number;
-  userCreditAllowancePerStep: number;
+  userCreditAllowancePerInterval: number;
   userStartingCredits: number;
+  minAdjustmentIntervalSeconds: number;
+  creditMultiplier: number;
+  refundPenaltyBps: number;
+  decaySpeedupFactor: number;
 };
 
 type ProductionDeploymentConfig = {
   mode: "production";
   forums: string[];
-  stepDurationSeconds: number;
+  creditAllowanceIntervalSeconds: number;
   engagementWindowSeconds: number;
   maxRankedStatements: number;
   minStatementSupportToRank: number;
   maxStatementLength: number;
-  userCreditAllowancePerStep: number;
+  userCreditAllowancePerInterval: number;
   userStartingCredits: number;
+  minAdjustmentIntervalSeconds: number;
+  creditMultiplier: number;
+  refundPenaltyBps: number;
+  decaySpeedupFactor: number;
   parametersFile: string;
 };
 
 export type DeploymentConfig = MockedDeploymentConfig | ProductionDeploymentConfig;
+
+/** 1 credit = 10^6 microcredits. All credit values use this unit on-chain. */
+export const CRED_MULT = 1_000_000;
 
 const deploymentConfigs: Record<string, DeploymentConfig> = {
   /** Local development on a fresh Hardhat node with mock data. */
   default: {
     mode: "mocked",
     forums: ["global", "USA", "CAN"],
-    stepDurationSeconds: 60,
+    creditAllowanceIntervalSeconds: 60,
     engagementWindowSeconds: 300,
     maxRankedStatements: 10,
-    minStatementSupportToRank: 3,
+    minStatementSupportToRank: 3 * CRED_MULT,
     maxStatementLength: 120,
-    userCreditAllowancePerStep: 25,
-    userStartingCredits: 1000,
+    userCreditAllowancePerInterval: 25 * CRED_MULT,
+    userStartingCredits: 1000 * CRED_MULT,
+    minAdjustmentIntervalSeconds: 12,
+    creditMultiplier: CRED_MULT,
+    refundPenaltyBps: 2000,
+    decaySpeedupFactor: 2016,
   },
 
   /** Docker Compose Hardhat node with mock data. */
   compose_hardhat: {
     mode: "mocked",
     forums: ["global", "USA", "CAN"],
-    stepDurationSeconds: 60,
+    creditAllowanceIntervalSeconds: 60,
     engagementWindowSeconds: 300,
     maxRankedStatements: 10,
-    minStatementSupportToRank: 3,
+    minStatementSupportToRank: 3 * CRED_MULT,
     maxStatementLength: 120,
-    userCreditAllowancePerStep: 25,
-    userStartingCredits: 1000,
+    userCreditAllowancePerInterval: 25 * CRED_MULT,
+    userStartingCredits: 1000 * CRED_MULT,
+    minAdjustmentIntervalSeconds: 12,
+    creditMultiplier: CRED_MULT,
+    refundPenaltyBps: 2000,
+    decaySpeedupFactor: 2016,
   },
 
   /** Local native Hardhat node with mock data. */
   localhost: {
     mode: "mocked",
     forums: ["global", "USA", "CAN"],
-    stepDurationSeconds: 60,
+    creditAllowanceIntervalSeconds: 60,
     engagementWindowSeconds: 300,
     maxRankedStatements: 10,
-    minStatementSupportToRank: 3,
+    minStatementSupportToRank: 3 * CRED_MULT,
     maxStatementLength: 120,
-    userCreditAllowancePerStep: 25,
-    userStartingCredits: 1000,
+    userCreditAllowancePerInterval: 25 * CRED_MULT,
+    userStartingCredits: 1000 * CRED_MULT,
+    minAdjustmentIntervalSeconds: 12,
+    creditMultiplier: CRED_MULT,
+    refundPenaltyBps: 2000,
+    decaySpeedupFactor: 2016,
   },
 
   /** Local native Hardhat node forking Sepolia with real ZKPassport verifier. */
   localhost_forked: {
     mode: "production",
     forums: ["global", "USA", "CAN"],
-    stepDurationSeconds: 60,
+    creditAllowanceIntervalSeconds: 60,
     engagementWindowSeconds: 300,
     maxRankedStatements: 10,
-    minStatementSupportToRank: 3,
+    minStatementSupportToRank: 3 * CRED_MULT,
     maxStatementLength: 120,
-    userCreditAllowancePerStep: 25,
-    userStartingCredits: 1000,
+    userCreditAllowancePerInterval: 25 * CRED_MULT,
+    userStartingCredits: 1000 * CRED_MULT,
+    minAdjustmentIntervalSeconds: 12,
+    creditMultiplier: CRED_MULT,
+    refundPenaltyBps: 2000,
+    decaySpeedupFactor: 2016,
     parametersFile: "local-fork-strict.json",
   },
 
@@ -91,13 +118,17 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
   compose_hardhat_forked: {
     mode: "production",
     forums: ["global", "USA", "CAN"],
-    stepDurationSeconds: 60,
+    creditAllowanceIntervalSeconds: 60,
     engagementWindowSeconds: 300,
     maxRankedStatements: 10,
-    minStatementSupportToRank: 3,
+    minStatementSupportToRank: 3 * CRED_MULT,
     maxStatementLength: 120,
-    userCreditAllowancePerStep: 25,
-    userStartingCredits: 1000,
+    userCreditAllowancePerInterval: 25 * CRED_MULT,
+    userStartingCredits: 1000 * CRED_MULT,
+    minAdjustmentIntervalSeconds: 12,
+    creditMultiplier: CRED_MULT,
+    refundPenaltyBps: 2000,
+    decaySpeedupFactor: 2016,
     parametersFile: "local-fork-strict.json",
   },
 
@@ -105,13 +136,17 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
   local_sepolia_fork: {
     mode: "production",
     forums: ["global", "USA", "CAN"],
-    stepDurationSeconds: 60,
+    creditAllowanceIntervalSeconds: 60,
     engagementWindowSeconds: 300,
     maxRankedStatements: 10,
-    minStatementSupportToRank: 3,
+    minStatementSupportToRank: 3 * CRED_MULT,
     maxStatementLength: 120,
-    userCreditAllowancePerStep: 25,
-    userStartingCredits: 1000,
+    userCreditAllowancePerInterval: 25 * CRED_MULT,
+    userStartingCredits: 1000 * CRED_MULT,
+    minAdjustmentIntervalSeconds: 12,
+    creditMultiplier: CRED_MULT,
+    refundPenaltyBps: 2000,
+    decaySpeedupFactor: 2016,
     parametersFile: "local-fork.json",
   },
 
@@ -119,13 +154,17 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
   sepolia: {
     mode: "production",
     forums: ["global", "USA", "CAN"],
-    stepDurationSeconds: 14400,
+    creditAllowanceIntervalSeconds: 14400,
     engagementWindowSeconds: 86400,
     maxRankedStatements: 1000,
-    minStatementSupportToRank: 10,
+    minStatementSupportToRank: 10 * CRED_MULT,
     maxStatementLength: 120,
-    userCreditAllowancePerStep: 25,
-    userStartingCredits: 1000,
+    userCreditAllowancePerInterval: 25 * CRED_MULT,
+    userStartingCredits: 1000 * CRED_MULT,
+    minAdjustmentIntervalSeconds: 12,
+    creditMultiplier: CRED_MULT,
+    refundPenaltyBps: 2000,
+    decaySpeedupFactor: 1,
     parametersFile: "sepolia.json",
   },
 };
