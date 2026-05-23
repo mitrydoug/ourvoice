@@ -1,12 +1,16 @@
 import jazzicon from "@metamask/jazzicon";
 
 /** Convert credit parts to display credits (rounded to nearest integer). */
-export const partsToCredits = (parts: number, creditMultiplier: number): number =>
-  Math.round(parts / creditMultiplier);
+export const partsToCredits = (
+  parts: number,
+  creditMultiplier: number,
+): number => Math.round(parts / creditMultiplier);
 
 /** Convert display credits to credit parts. */
-export const creditsToParts = (credits: number, creditMultiplier: number): number =>
-  credits * creditMultiplier;
+export const creditsToParts = (
+  credits: number,
+  creditMultiplier: number,
+): number => credits * creditMultiplier;
 
 /**
  * Truncate an Ethereum address to `0x1a2B…3c4D` format.

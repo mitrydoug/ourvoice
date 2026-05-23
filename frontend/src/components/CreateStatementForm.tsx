@@ -27,9 +27,13 @@ const CreateStatementForm: FC = () => {
   }, []);
 
   // Keep the credit bar in sync with the draft's initial support (cost in credit parts)
-  const draftSupportParts = creditsToParts(Math.abs(initialSupport), creditMultiplier);
+  const draftSupportParts = creditsToParts(
+    Math.abs(initialSupport),
+    creditMultiplier,
+  );
   const draftCreditCost =
-    (draftSupportParts * (draftSupportParts + creditMultiplier)) / (2 * creditMultiplier);
+    (draftSupportParts * (draftSupportParts + creditMultiplier)) /
+    (2 * creditMultiplier);
   useEffect(() => {
     setPendingDraftCost(draftCreditCost);
     return () => setPendingDraftCost(0);

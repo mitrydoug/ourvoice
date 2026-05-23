@@ -76,8 +76,11 @@ const UserProfilePanel: React.FC = () => {
   const [nickname] = useNickname();
   const userVotes = useUserVotes();
   const { isUserVerified, isVerifiedLoading } = userVotes;
-  const { nationality, isRegistered, isLoading: isRegistrationLoading } =
-    useUserRegistration();
+  const {
+    nationality,
+    isRegistered,
+    isLoading: isRegistrationLoading,
+  } = useUserRegistration();
   const { name: forumName } = useForum();
   const { toCredits } = useCreditConversion();
   const forum = FORUMS[forumName];
@@ -100,10 +103,10 @@ const UserProfilePanel: React.FC = () => {
     : false;
   const commitBusy = isUserVerified
     ? userVotes.state?.commitStatus !== undefined &&
-    userVotes.state?.commitStatus !== "idle"
+      userVotes.state?.commitStatus !== "idle"
     : false;
-  const commitChanges = isUserVerified ? userVotes.commitChanges : () => { };
-  const resetChanges = isUserVerified ? userVotes.resetChanges : () => { };
+  const commitChanges = isUserVerified ? userVotes.commitChanges : () => {};
+  const resetChanges = isUserVerified ? userVotes.resetChanges : () => {};
   const hasEnoughCredits = isUserVerified
     ? (userVotes.state?.hasEnoughCredits ?? true)
     : true;
@@ -248,19 +251,22 @@ const UserProfilePanel: React.FC = () => {
             </Button>
           </>
         )}
-        {!isStatusLoading && isRegistered && !isUserVerified && forum?.countryCode && (
-          <>
-            <Divider sx={{ my: 1.5 }} />
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{ textAlign: "center" }}
-            >
-              Only {toDemonym(forum.countryCode) ?? forum.label} citizens can
-              participate in this Forum.
-            </Typography>
-          </>
-        )}
+        {!isStatusLoading &&
+          isRegistered &&
+          !isUserVerified &&
+          forum?.countryCode && (
+            <>
+              <Divider sx={{ my: 1.5 }} />
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ textAlign: "center" }}
+              >
+                Only {toDemonym(forum.countryCode) ?? forum.label} citizens can
+                participate in this Forum.
+              </Typography>
+            </>
+          )}
         {credits !== null && (
           <>
             <Divider sx={{ my: 1.5 }} />
@@ -317,8 +323,8 @@ const UserProfilePanel: React.FC = () => {
                   letterSpacing: "0.05em",
                   ...(hasStagedChanges && !commitBusy
                     ? {
-                      animation: `${shimmer} 1.5s ease-in-out infinite`,
-                    }
+                        animation: `${shimmer} 1.5s ease-in-out infinite`,
+                      }
                     : {}),
                 }}
               >

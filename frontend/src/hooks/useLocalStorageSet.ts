@@ -12,9 +12,7 @@ const LS_SET_SYNC_EVENT = "symvolia:ls-set-sync";
 
 /** Notify every subscriber in this tab that a key changed. */
 const emitSync = (key: string) => {
-  window.dispatchEvent(
-    new CustomEvent(LS_SET_SYNC_EVENT, { detail: key }),
-  );
+  window.dispatchEvent(new CustomEvent(LS_SET_SYNC_EVENT, { detail: key }));
 };
 
 /** Read a Set<number> from localStorage (returns empty set on any error). */

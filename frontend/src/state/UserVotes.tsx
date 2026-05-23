@@ -14,11 +14,7 @@ import {
   useWaitForTransactionReceipt,
   useWriteContract,
 } from "wagmi";
-import {
-  encodeFunctionData,
-  parseEventLogs,
-  BaseError,
-} from "viem";
+import { encodeFunctionData, parseEventLogs, BaseError } from "viem";
 import { FORUM_ABI, useForum } from "./Forum";
 import useBlockSync from "@/hooks/useBlockSync";
 import useLocalStorageSet from "@/hooks/useLocalStorageSet";
@@ -131,7 +127,6 @@ type UpdateStagedInitialSupport = {
   payload: { tempId: string; newSupport: number };
 };
 
-
 type SetPendingDraftCost = {
   type: "SET_PENDING_DRAFT_COST";
   payload: { cost: number };
@@ -169,8 +164,15 @@ const triangle = (x: number, creditMultiplier: number): number =>
 // Cost of changing support from `fromSupport` to `toSupport` (both in
 // credit parts). A positive result means credits are spent; a negative
 // result means credits are refunded.
-const adjustmentCost = (fromSupport: number, toSupport: number, creditMultiplier: number): number => {
-  return triangle(toSupport, creditMultiplier) - triangle(fromSupport, creditMultiplier);
+const adjustmentCost = (
+  fromSupport: number,
+  toSupport: number,
+  creditMultiplier: number,
+): number => {
+  return (
+    triangle(toSupport, creditMultiplier) -
+    triangle(fromSupport, creditMultiplier)
+  );
 };
 
 // ── localStorage helpers for staged-support persistence ──────────────────────
@@ -184,8 +186,7 @@ const stagedStorageKey = (
   chainFingerprint: string,
   forumName: string,
   addrKey: string,
-): string =>
-  `symvolia:staged:${chainFingerprint}:${forumName}:${addrKey}`;
+): string => `symvolia:staged:${chainFingerprint}:${forumName}:${addrKey}`;
 
 const saveStagedToStorage = (key: string, staged: StagedSupport): void => {
   try {
@@ -437,11 +438,19 @@ const reducer = (
       const onChainSupport =
         newState.onChain.statementSupport.get(statementId) || 0;
       const newSupport = onChainSupport + adjustment;
-      totalAdjustmentCost += adjustmentCost(onChainSupport, newSupport, action.creditMultiplier);
+      totalAdjustmentCost += adjustmentCost(
+        onChainSupport,
+        newSupport,
+        action.creditMultiplier,
+      );
     }
     // Include cost for staged new statements
     for (const stmt of newState.staged.stagedStatements) {
-      totalAdjustmentCost += adjustmentCost(0, stmt.initialSupport, action.creditMultiplier);
+      totalAdjustmentCost += adjustmentCost(
+        0,
+        stmt.initialSupport,
+        action.creditMultiplier,
+      );
     }
     // Include cost of the in-progress draft (before it is staged)
     totalAdjustmentCost += newState.pendingDraftCost;
@@ -457,9 +466,9 @@ const reducer = (
     ...newState,
     staged: newState.staged
       ? {
-        ...newState.staged,
-        credits: stagedCredits,
-      }
+          ...newState.staged,
+          credits: stagedCredits,
+        }
       : undefined,
     hasStagedChanges,
     hasEnoughCredits: stagedCredits >= 0,
@@ -529,8 +538,7 @@ export const UserVoteProvider: FC<{
 
   // Wrap dispatch to inject creditMultiplier into every action
   const dispatch = useCallback(
-    (action: UserSupportAction) =>
-      rawDispatch({ ...action, creditMultiplier }),
+    (action: UserSupportAction) => rawDispatch({ ...action, creditMultiplier }),
     [creditMultiplier],
   );
 
@@ -584,12 +592,7 @@ export const UserVoteProvider: FC<{
       void refetchSupport();
       void refetchBalance();
     }
-  }, [
-    refetchIsMember,
-    refetchSupport,
-    refetchBalance,
-    isUserVerified,
-  ]);
+  }, [refetchIsMember, refetchSupport, refetchBalance, isUserVerified]);
 
   // Sync with blockchain on every new block
   const { blockNumber: latestBlockNumber } = useBlockSync(refetch);
@@ -712,7 +715,12 @@ export const UserVoteProvider: FC<{
   }, [state.commitStatus]);
 
   const commitChanges = useCallback(async () => {
-    if (state.hasStagedChanges && state.hasEnoughCredits && state.staged && publicClient) {
+    if (
+      state.hasStagedChanges &&
+      state.hasEnoughCredits &&
+      state.staged &&
+      publicClient
+    ) {
       const hasSupportAdjustments = state.staged.supportAdjustments.size > 0;
 
       dispatch({ type: "BEGIN_COMMIT" });

@@ -242,9 +242,13 @@ export const StatementCard: FC<StatementCardProps> = ({
         >
           <Typography
             variant="body2"
-            sx={{ fontWeight: 600, color: rankChange > 0 ? "success.main" : "error.main" }}
+            sx={{
+              fontWeight: 600,
+              color: rankChange > 0 ? "success.main" : "error.main",
+            }}
           >
-            {rankChange > 0 ? "▲" : "▼"}{Math.abs(rankChange)}
+            {rankChange > 0 ? "▲" : "▼"}
+            {Math.abs(rankChange)}
           </Typography>
         </Tooltip>
       )}
@@ -263,7 +267,10 @@ export const StatementCard: FC<StatementCardProps> = ({
       <Stack sx={{ flexGrow: 1 }} />
 
       {creditsAllocated > 0 && (
-        <Tooltip title={`Your support of ${userSupport} costs ${creditsAllocated} credits`} arrow>
+        <Tooltip
+          title={`Your support of ${userSupport} costs ${creditsAllocated} credits`}
+          arrow
+        >
           <Stack direction="row" alignItems="center" spacing={0.5}>
             <CoinIcon size={16} />
             <AnimatedCounter

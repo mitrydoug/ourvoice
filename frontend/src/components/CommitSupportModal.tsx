@@ -102,8 +102,6 @@ const CommitSupportModal: FC<CommitSupportModalProps> = ({
             <Typography variant="body1">Something went wrong</Typography>
           </Stack>
         )}
-
-
       </Box>
     </Modal>
   );

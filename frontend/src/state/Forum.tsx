@@ -126,7 +126,9 @@ export const ForumProvider: FC<{ children: React.ReactNode }> = ({
     functionName: "creditMultiplier",
     query: { staleTime: Infinity },
   });
-  const creditMultiplier = rawCreditMultiplier ? Number(rawCreditMultiplier) : 1;
+  const creditMultiplier = rawCreditMultiplier
+    ? Number(rawCreditMultiplier)
+    : 1;
 
   // Fingerprint derived from the genesis block hash — unique per chain
   // instance. Changes whenever the chain is reset (docker compose down -v).

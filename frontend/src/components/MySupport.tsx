@@ -13,7 +13,11 @@ import useGracefulLoading from "@/hooks/useGracefulLoading";
 import { useCreditConversion } from "@/hooks/useCreditConversion";
 
 const MySupport: FC = () => {
-  const { isUserVerified, isVerifiedLoading, state: userVoteState } = useUserVotes();
+  const {
+    isUserVerified,
+    isVerifiedLoading,
+    state: userVoteState,
+  } = useUserVotes();
   const { forumContractAddress } = useForum();
   const isMobile = useIsMobile();
   const { has: isBookmarked, toggle: toggleBookmark } =
@@ -27,9 +31,7 @@ const MySupport: FC = () => {
 
   // Get statement IDs where the user has non-zero on-chain support (in credits).
   const statementIds = useMemo(() => {
-    return Array.from(
-      userVoteState?.onChain?.statementSupport?.entries() || [],
-    )
+    return Array.from(userVoteState?.onChain?.statementSupport?.entries() || [])
       .filter(([, support]) => toCredits(support) !== 0)
       .sort(([, a], [, b]) => b - a)
       .map(([id]) => BigInt(id));

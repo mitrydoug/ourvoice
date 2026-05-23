@@ -86,10 +86,10 @@ const UserProfilePanel: React.FC = () => {
     : false;
   const commitBusy = isUserVerified
     ? userVotes.state?.commitStatus !== undefined &&
-    userVotes.state?.commitStatus !== "idle"
+      userVotes.state?.commitStatus !== "idle"
     : false;
-  const commitChanges = isUserVerified ? userVotes.commitChanges : () => { };
-  const resetChanges = isUserVerified ? userVotes.resetChanges : () => { };
+  const commitChanges = isUserVerified ? userVotes.commitChanges : () => {};
+  const resetChanges = isUserVerified ? userVotes.resetChanges : () => {};
   const hasEnoughCredits = isUserVerified
     ? (userVotes.state?.hasEnoughCredits ?? true)
     : true;
@@ -275,8 +275,8 @@ const UserProfilePanel: React.FC = () => {
                   letterSpacing: "0.05em",
                   ...(hasStagedChanges && !commitBusy
                     ? {
-                      animation: `${shimmer} 1.5s ease-in-out infinite`,
-                    }
+                        animation: `${shimmer} 1.5s ease-in-out infinite`,
+                      }
                     : {}),
                 }}
               >

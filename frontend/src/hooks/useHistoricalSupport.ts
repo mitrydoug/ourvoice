@@ -150,7 +150,9 @@ export function useHistoricalSupport(statementId: bigint): {
               support: bigint;
             }[];
             const support =
-              statements.length > 0 ? toCredits(Number(statements[0].support)) : 0;
+              statements.length > 0
+                ? toCredits(Number(statements[0].support))
+                : 0;
             return { timestamp, support, label };
           } catch {
             // Statement may not exist at this block — skip

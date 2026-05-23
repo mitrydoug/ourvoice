@@ -105,32 +105,30 @@ const SideNav: FC = () => {
         <List disablePadding>
           {NAV_ITEMS.filter(
             (item) => !item.memberOnly || isUserVerified || isVerifiedLoading,
-          ).map(
-            (item) => {
-              const isActive =
-                item.href !== "#" && location.pathname === forumPath(item.href);
+          ).map((item) => {
+            const isActive =
+              item.href !== "#" && location.pathname === forumPath(item.href);
 
-              return (
-                <ListItemButton
-                  key={item.label}
-                  selected={isActive}
-                  onClick={() => {
-                    if (item.href !== "#") void navigate(item.href);
+            return (
+              <ListItemButton
+                key={item.label}
+                selected={isActive}
+                onClick={() => {
+                  if (item.href !== "#") void navigate(item.href);
+                }}
+                disabled={item.href === "#"}
+                sx={{ borderRadius: 2, mb: 0.5 }}
+              >
+                <ListItemIcon sx={{ minWidth: 40 }}>{item.icon}</ListItemIcon>
+                <ListItemText
+                  primary={item.label}
+                  slotProps={{
+                    primary: { fontWeight: isActive ? 600 : 400 },
                   }}
-                  disabled={item.href === "#"}
-                  sx={{ borderRadius: 2, mb: 0.5 }}
-                >
-                  <ListItemIcon sx={{ minWidth: 40 }}>{item.icon}</ListItemIcon>
-                  <ListItemText
-                    primary={item.label}
-                    slotProps={{
-                      primary: { fontWeight: isActive ? 600 : 400 },
-                    }}
-                  />
-                </ListItemButton>
-              );
-            },
-          )}
+                />
+              </ListItemButton>
+            );
+          })}
         </List>
 
         <Box sx={{ px: 1, mt: 2 }}>
