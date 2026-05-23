@@ -34,6 +34,7 @@ contract ForumTest is Test {
     uint constant MOCK_TEST_TIMESTAMP = 1767572100;
     uint constant CREDIT_ALLOWANCE_INTERVAL_SECONDS = 60;
     uint constant HALF_LIFE = 604800; // 1 week in seconds
+    uint constant ONE_PERCENT_DECAY_SECONDS = 8770;
     MockOurVoiceRegistry mockRegistry;
     ForumHarness forum;
 
@@ -74,12 +75,17 @@ contract ForumTest is Test {
     function _getStatementById(
         uint _statementId
     ) internal view returns (Forum.Statement memory) {
-        uint[] memory statementIds = new uint[](1);
-        statementIds[0] = _statementId;
+        uint[] memory statementIds = _oneId(_statementId);
         Forum.Statement[] memory statements = forum.getStatementsById(
             statementIds
         );
         return statements[0];
+    }
+
+    function _oneId(uint _statementId) internal pure returns (uint[] memory) {
+        uint[] memory statementIds = new uint[](1);
+        statementIds[0] = _statementId;
+        return statementIds;
     }
 
     function _deltaSupportAdjustment(
@@ -373,6 +379,35 @@ contract ForumTest is Test {
             _getStatementById(1).rank,
             1,
             "Statement B should still be rank 1"
+        );
+    }
+
+    function testRankedStatementTiePreservesExistingOrder()
+        external
+        registeredMember
+    {
+        forum.addStatement("Statement A", 0);
+        forum.addStatement("Statement B", 0);
+        _setStatementSupport(0, 5); // A has 5 support, rank 0
+        _setStatementSupport(1, 3); // B has 3 support, rank 1
+
+        _nextBlock();
+        _setStatementSupport(1, 5); // B now matches A
+
+        assertEq(
+            _getStatementById(0).support,
+            _getStatementById(1).support,
+            "Statements should have equal support"
+        );
+        assertEq(
+            _getStatementById(0).rank,
+            0,
+            "Statement A should keep rank 0 on tie"
+        );
+        assertEq(
+            _getStatementById(1).rank,
+            1,
+            "Statement B should stay rank 1 on tie"
         );
     }
 
@@ -681,6 +716,59 @@ contract ForumTest is Test {
             supportAfterTwoHalfLives,
             2,
             "Support should quarter after 2 half-lives"
+        );
+    }
+
+    function testStatementFractionalSupportDecaysAfterOnePercentThreshold()
+        external
+        registeredMember
+    {
+        ForumHarness fractionalForum = new ForumHarness(
+            mockRegistry,
+            "",
+            Forum.ForumConfig({
+                maxRankedStatements: 3,
+                creditAllowanceIntervalSeconds: CREDIT_ALLOWANCE_INTERVAL_SECONDS,
+                engagementWindowSeconds: 60,
+                maxStatementLength: 120,
+                userCreditAllowancePerInterval: 25 * 100,
+                userStartingCredits: 1000 * 100,
+                minStatementSupportToRank: 2 * 100,
+                minAdjustmentIntervalSeconds: 12,
+                creditMultiplier: 100,
+                refundPenaltyBps: 0,
+                decaySpeedupFactor: 1
+            })
+        );
+
+        fractionalForum.addStatement("Fractional decay", 0);
+
+        Forum.SupportAdjustment[]
+            memory adjustments = new Forum.SupportAdjustment[](1);
+        adjustments[0] = _setToSupportAdjustment(0, 100);
+        fractionalForum.adjustSupport(adjustments);
+
+        int supportBefore = fractionalForum
+        .getStatementsById(_oneId(0))[0].support;
+        assertEq(
+            supportBefore,
+            100,
+            "Initial fractional support should be 100"
+        );
+
+        vm.warp(vm.getBlockTimestamp() + 1 hours);
+        assertEq(
+            fractionalForum.getStatementsById(_oneId(0))[0].support,
+            supportBefore,
+            "Fractional support should not visibly decay before the threshold"
+        );
+
+        vm.warp(MOCK_TEST_TIMESTAMP + ONE_PERCENT_DECAY_SECONDS);
+
+        assertEq(
+            fractionalForum.getStatementsById(_oneId(0))[0].support,
+            99,
+            "Fractional support should decay to 99 at the 1% threshold"
         );
     }
 
@@ -1561,6 +1649,11 @@ contract ForumTest is Test {
         // EXISTING statements, not the just-created one (which would
         // hit DuplicateAdjustment because lastUpdated == block.timestamp).
         forum.addStatement("Pre-existing statement", 1);
+        assertEq(
+            _getStatementById(0).support,
+            1,
+            "Pre-existing statement should start with 1 support"
+        );
         _nextBlock();
 
         bytes[] memory calls = new bytes[](2);
@@ -1580,16 +1673,30 @@ contract ForumTest is Test {
         forum.multicall(calls);
 
         Forum.Statement memory stmt = _getStatementById(0);
-        assertTrue(stmt.support > 0, "Support should be positive");
+        assertEq(
+            stmt.support,
+            2,
+            "Multicall adjustment should increase support from 1 to 2"
+        );
     }
 
     function testMulticallAdjustSupportAfterDelay() external registeredMember {
         // Create statement and wait significant time before adjusting
         // via multicall — tests the decay path with large elapsedSeconds
-        forum.addStatement("Decay test", 5);
+        forum.addStatement("Decay test", 44);
 
-        // Wait 1 hour
-        vm.warp(block.timestamp + 3600);
+        int initialSupport = _getStatementById(0).support;
+        assertEq(initialSupport, 44, "Initial support should be 44");
+
+        // Wait long enough for integer-rounded decay to be visible.
+        vm.warp(block.timestamp + 1 days);
+
+        int decayedSupport = _getStatementById(0).support;
+        assertLt(
+            decayedSupport,
+            initialSupport,
+            "Support should visibly decay before multicall adjustment"
+        );
 
         Forum.SupportAdjustment[]
             memory adjustments = new Forum.SupportAdjustment[](1);
@@ -1599,6 +1706,13 @@ contract ForumTest is Test {
         calls[0] = abi.encodeCall(Forum.adjustSupport, (adjustments));
 
         forum.multicall(calls);
+
+        int supportAfterMulticall = _getStatementById(0).support;
+        assertGt(
+            supportAfterMulticall,
+            decayedSupport,
+            "Multicall adjustment should increase decayed support"
+        );
     }
 
     function testMulticallAdjustSupportAfterLongDelay()
