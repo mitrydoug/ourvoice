@@ -612,7 +612,12 @@ export const UserVoteProvider: FC<{
         },
       });
     }
-  }, [onChainUserStatementSupport, onChainUserBalance, latestBlockNumber, dispatch]);
+  }, [
+    onChainUserStatementSupport,
+    onChainUserBalance,
+    latestBlockNumber,
+    dispatch,
+  ]);
 
   // ── Staged-support persistence ──────────────────────────────────────────
   const persistKey =
