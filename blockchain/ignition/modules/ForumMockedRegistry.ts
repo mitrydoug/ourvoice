@@ -214,6 +214,7 @@ export function createForumMockedModule(
             {
               statementId: BigInt(sup.statementIndex),
               value: BigInt(sup.value),
+              adjustmentType: 0,
             },
           ],
         ],
