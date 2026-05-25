@@ -34,13 +34,15 @@ uvicorn ourvoice.combined:app --host 0.0.0.0 --port 8000 --app-dir src
 
 **Environment variables:**
 
-| Variable                   | Required | Default                 | Description                              |
-| -------------------------- | -------- | ----------------------- | ---------------------------------------- |
-| `MEILI_URL`                | No       | `http://localhost:7700` | Meilisearch URL                          |
-| `MEILI_API_KEY`            | No       | (empty)                 | Meilisearch API key                      |
-| `FORUM_CONTRACT_ADDRESSES` | Yes      | —                       | Comma-separated forum contract addresses |
-| `ETHEREUM_NODE_URL`        | Yes      | —                       | WebSocket RPC URL                        |
-| `LOG_LEVEL`                | No       | `INFO`                  | Python logging level                     |
+| Variable                                | Required | Default                 | Description                                      |
+| --------------------------------------- | -------- | ----------------------- | ------------------------------------------------ |
+| `MEILI_URL`                             | No       | `http://localhost:7700` | Meilisearch URL                                  |
+| `MEILI_API_KEY`                         | No       | (empty)                 | Meilisearch API key                              |
+| `FORUM_CONTRACT_ADDRESSES`              | Yes      | —                       | Comma-separated forum contract addresses         |
+| `ETHEREUM_NODE_URL`                     | Yes      | —                       | WebSocket RPC URL                                |
+| `BACKFILL_FROM`                         | No       | (empty)                 | Initial indexing cursor; `all` indexes history   |
+| `LOG_LEVEL`                             | No       | `INFO`                  | Python logging level                             |
+| `WEB3_SUBSCRIPTION_RESPONSE_QUEUE_SIZE` | No       | `10000`                 | Web3 subscription buffer for bursty local chains |
 
 If you are upgrading an existing Meilisearch index from the older single-forum backend, run a full backfill or clear the `statements` index once so documents are recreated with forum-scoped IDs.
 

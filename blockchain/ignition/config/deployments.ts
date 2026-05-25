@@ -9,6 +9,7 @@
 type MockedDeploymentConfig = {
   mode: "mocked";
   forums: string[];
+  seedMockContent: boolean;
   creditAllowanceIntervalSeconds: number;
   engagementWindowSeconds: number;
   maxRankedStatements: number;
@@ -39,7 +40,9 @@ type ProductionDeploymentConfig = {
   parametersFile: string;
 };
 
-export type DeploymentConfig = MockedDeploymentConfig | ProductionDeploymentConfig;
+export type DeploymentConfig =
+  | MockedDeploymentConfig
+  | ProductionDeploymentConfig;
 
 /** 1 credit = 10^6 microcredits. All credit values use this unit on-chain. */
 export const CRED_MULT = 1_000_000;
@@ -49,6 +52,7 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
   default: {
     mode: "mocked",
     forums: ["global", "USA", "CAN"],
+    seedMockContent: true,
     creditAllowanceIntervalSeconds: 60,
     engagementWindowSeconds: 300,
     maxRankedStatements: 10,
@@ -66,6 +70,7 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
   compose_hardhat: {
     mode: "mocked",
     forums: ["global", "USA", "CAN"],
+    seedMockContent: true,
     creditAllowanceIntervalSeconds: 60,
     engagementWindowSeconds: 300,
     maxRankedStatements: 10,
@@ -83,6 +88,7 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
   localhost: {
     mode: "mocked",
     forums: ["global", "USA", "CAN"],
+    seedMockContent: true,
     creditAllowanceIntervalSeconds: 60,
     engagementWindowSeconds: 300,
     maxRankedStatements: 10,
@@ -94,6 +100,24 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
     creditMultiplier: CRED_MULT,
     refundPenaltyBps: 2000,
     decaySpeedupFactor: 2016,
+  },
+
+  /** Local native Hardhat node with mock registry and larger stress-test limits. */
+  localhost_stress: {
+    mode: "mocked",
+    forums: ["global", "USA", "CAN"],
+    seedMockContent: false,
+    creditAllowanceIntervalSeconds: 60,
+    engagementWindowSeconds: 300,
+    maxRankedStatements: 100,
+    minStatementSupportToRank: 3 * CRED_MULT,
+    maxStatementLength: 280,
+    userCreditAllowancePerInterval: 25 * CRED_MULT,
+    userStartingCredits: 1000 * CRED_MULT,
+    minAdjustmentIntervalSeconds: 12,
+    creditMultiplier: CRED_MULT,
+    refundPenaltyBps: 2000,
+    decaySpeedupFactor: 168,
   },
 
   /** Local native Hardhat node forking Sepolia with real ZKPassport verifier. */

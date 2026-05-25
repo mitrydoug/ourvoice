@@ -35,8 +35,8 @@ logger = logging.getLogger(__name__)
 # Meilisearch index name for statements.
 STATEMENTS_INDEX = "statements"
 
-# Maximum number of blocks to request per ``get_logs`` call during backfill.
-_BACKFILL_BATCH_SIZE = 1000
+# Maximum number of blocks to request per ``get_logs`` call during catch-up.
+_INDEX_RANGE_BATCH_SIZE = 1000
 
 # Default maximum age (in seconds) for documents without recent engagement.
 # Documents whose ``lastEngagement`` is older than this are periodically
@@ -45,6 +45,13 @@ DEFAULT_EVICTION_MAX_AGE_SECONDS = 7 * 24 * 60 * 60
 
 # How often (in seconds) the eviction sweep runs.
 _EVICTION_INTERVAL_SECONDS = 60 * 60  # 1 hour
+
+# Web3.py defaults this queue to 500. Local stress seeding can mine many blocks
+# faster than live indexing can drain one header at a time, so keep a larger
+# buffer and coalesce queued headers into block-range indexing work.
+DEFAULT_WEB3_SUBSCRIPTION_RESPONSE_QUEUE_SIZE = 10_000
+_LIVE_HEAD_DRAIN_LIMIT = 5_000
+_LIVE_IDLE_POLL_SECONDS = 2.0
 
 
 def _load_forum_abi() -> list[dict[str, Any]]:
@@ -353,186 +360,25 @@ async def _resolve_start_block(w3: AsyncWeb3, backfill_from: str) -> int | None:
     return block
 
 
-async def _backfill(
-    w3: AsyncWeb3,
-    contract: Any,
-    index: Any,
-    from_block: int,
-    forum_contract_address: str,
-) -> None:
-    """Fetch historical ``StatementAdded`` and ``StatementEngaged`` events and
-    index them."""
-    latest_block: int = (await w3.eth.get_block("latest"))["number"]
-    if from_block > latest_block:
-        logger.info(
-            "Backfill: start block %d > latest %d, nothing to do",
-            from_block,
-            latest_block,
-        )
-        return
+async def _latest_chain_block_number(w3: AsyncWeb3) -> int:
+    """Return the latest block number from the connected chain."""
+    return int((await w3.eth.get_block("latest"))["number"])
 
+
+async def _initial_index_cursor(w3: AsyncWeb3, backfill_from: str) -> int:
+    """Resolve the first block the indexer should scan."""
+    start_block = await _resolve_start_block(w3, backfill_from)
+    if start_block is not None:
+        logger.info("Initial index cursor resolved to block #%d", start_block)
+        return start_block
+
+    latest_block = await _latest_chain_block_number(w3)
+    cursor = latest_block + 1
     logger.info(
-        "Backfill: scanning blocks %d → %d for contract %s…",
-        from_block,
-        latest_block,
-        forum_contract_address,
+        "No backfill requested; live indexing will start at future block #%d",
+        cursor,
     )
-
-    total_added = 0
-    total_engaged = 0
-    cursor = from_block
-    while cursor <= latest_block:
-        end = min(cursor + _BACKFILL_BATCH_SIZE - 1, latest_block)
-
-        # --- StatementAdded events ---
-        added_logs = await contract.events.StatementAdded().get_logs(
-            from_block=cursor,
-            to_block=end,
-        )
-        if added_logs:
-            # Resolve block timestamps so each document gets a
-            # lastEngagement value (prevents premature eviction).
-            added_block_nums: set[int] = {log.blockNumber for log in added_logs}
-            added_block_ts: dict[int, int] = {}
-            for bn in added_block_nums:
-                blk = await w3.eth.get_block(bn)
-                added_block_ts[bn] = blk["timestamp"]
-
-            docs = [
-                {
-                    "id": _statement_document_id(forum_contract_address, log.args.id),
-                    "statementId": log.args.id,
-                    "statementText": log.args.statement,
-                    "forumAddress": forum_contract_address,
-                    "lastEngagement": added_block_ts[log.blockNumber],
-                }
-                for log in added_logs
-            ]
-            logger.debug(
-                "[backfill] add_documents(%s):\n%s",
-                forum_contract_address,
-                json.dumps(docs, indent=2),
-            )
-            _wait_task(
-                index,
-                index.add_documents(docs),
-                f"backfill add_documents({forum_contract_address})",
-            )
-            total_added += len(docs)
-
-        # --- StatementEngaged events ---
-        engaged_logs = await contract.events.StatementEngaged().get_logs(
-            from_block=cursor,
-            to_block=end,
-        )
-        if engaged_logs:
-            # Resolve block timestamps for each engagement event.
-            engagement_updates = await _engagement_docs(
-                w3,
-                engaged_logs,
-                forum_contract_address,
-            )
-            logger.debug(
-                "[backfill] update_documents(%s):\n%s",
-                forum_contract_address,
-                json.dumps(engagement_updates, indent=2),
-            )
-            _wait_task(
-                index,
-                index.update_documents(engagement_updates),
-                f"backfill update_documents({forum_contract_address})",
-            )
-            total_engaged += len(engagement_updates)
-
-        cursor = end + 1
-
-    logger.info(
-        "Backfill complete for contract %s: indexed %d statement(s), %d engagement(s)",
-        forum_contract_address,
-        total_added,
-        total_engaged,
-    )
-
-
-async def _index_forum_block(
-    contract: Any,
-    index: Any,
-    forum_contract_address: str,
-    block_number: int,
-    block_timestamp: int,
-) -> None:
-    """Index all tracked events for one forum contract in a single block."""
-    added_logs, engaged_logs = await asyncio.gather(
-        contract.events.StatementAdded().get_logs(
-            from_block=block_number,
-            to_block=block_number,
-        ),
-        contract.events.StatementEngaged().get_logs(
-            from_block=block_number,
-            to_block=block_number,
-        ),
-    )
-
-    if added_logs:
-        docs = [
-            {
-                "id": _statement_document_id(
-                    forum_contract_address,
-                    log.args.id,
-                ),
-                "statementId": log.args.id,
-                "statementText": log.args.statement,
-                "forumAddress": forum_contract_address,
-                "lastEngagement": block_timestamp,
-            }
-            for log in added_logs
-        ]
-        logger.debug(
-            "[live] add_documents(%s) block #%s:\n%s",
-            forum_contract_address,
-            block_number,
-            json.dumps(docs, indent=2),
-        )
-        _wait_task(
-            index,
-            index.add_documents(docs),
-            f"live add_documents({forum_contract_address} block #{block_number})",
-        )
-        logger.info(
-            "Indexed %d statement(s) from contract %s in block #%s",
-            len(docs),
-            forum_contract_address,
-            block_number,
-        )
-
-    if engaged_logs:
-        engagement_docs = [
-            {
-                "id": _statement_document_id(
-                    forum_contract_address,
-                    log.args.statementId,
-                ),
-                "lastEngagement": block_timestamp,
-            }
-            for log in engaged_logs
-        ]
-        logger.debug(
-            "[live] update_documents(%s) block #%s:\n%s",
-            forum_contract_address,
-            block_number,
-            json.dumps(engagement_docs, indent=2),
-        )
-        _wait_task(
-            index,
-            index.update_documents(engagement_docs),
-            f"live update_documents({forum_contract_address} block #{block_number})",
-        )
-        logger.info(
-            "Updated engagement for %d statement(s) from contract %s in block #%s",
-            len(engagement_docs),
-            forum_contract_address,
-            block_number,
-        )
+    return cursor
 
 
 async def _engagement_docs(
@@ -570,6 +416,240 @@ async def _engagement_docs(
     ]
 
 
+def _coerce_block_number(value: Any) -> int | None:
+    """Return an integer block number from Web3 subscription payload values."""
+    if value is None:
+        return None
+    if isinstance(value, str):
+        return int(value, 16 if value.startswith("0x") else 10)
+    return int(value)
+
+
+def _subscription_block_number(response: Any) -> int | None:
+    """Extract a block number from an ``eth_subscribe('newHeads')`` response."""
+    block = None
+    if isinstance(response, dict):
+        block = response.get("result")
+        if not isinstance(block, dict):
+            params = response.get("params")
+            if isinstance(params, dict):
+                block = params.get("result")
+
+    if not isinstance(block, dict):
+        return None
+    return _coerce_block_number(block.get("number"))
+
+
+def _subscription_response_queue(subscription_stream: Any) -> Any | None:
+    """Return the Web3 provider's raw subscription response queue, if present."""
+    try:
+        return (
+            subscription_stream.provider._request_processor._subscription_response_queue
+        )
+    except AttributeError:
+        return None
+
+
+def _latest_subscription_block_number(
+    subscription_stream: Any,
+    first_response: Any | None = None,
+) -> int | None:
+    """Drain currently queued block headers without blocking.
+
+    ``process_subscriptions()`` can skip internal responses before yielding a
+    block header, so using ``anext()`` as a drain can block the indexer. This
+    function reads already-buffered raw subscription responses directly and only
+    uses them to coalesce the newest block number.
+    """
+    latest_block_number = (
+        _subscription_block_number(first_response)
+        if first_response is not None
+        else None
+    )
+    queue = _subscription_response_queue(subscription_stream)
+    if queue is None:
+        return latest_block_number
+
+    drained = 0
+
+    while drained < _LIVE_HEAD_DRAIN_LIMIT:
+        try:
+            response = queue.get_nowait()
+        except asyncio.QueueEmpty:
+            break
+
+        if isinstance(response, Exception):
+            raise response
+
+        block_number = _subscription_block_number(response)
+        if block_number is not None:
+            latest_block_number = block_number
+        else:
+            logger.debug("Drained non-block subscription response: %r", response)
+        drained += 1
+
+    listen_event = getattr(subscription_stream.provider, "_listen_event", None)
+    if listen_event is not None and not listen_event.is_set():
+        listen_event.set()
+
+    if drained:
+        logger.debug(
+            "Coalesced %d queued subscription response(s); newest block #%s",
+            drained,
+            latest_block_number,
+        )
+
+    return latest_block_number
+
+
+async def _block_timestamps(w3: AsyncWeb3, block_numbers: set[int]) -> dict[int, int]:
+    """Fetch unix timestamps for a set of block numbers."""
+    timestamps: dict[int, int] = {}
+    for block_number in block_numbers:
+        block = await w3.eth.get_block(block_number)
+        timestamps[block_number] = int(block["timestamp"])
+    return timestamps
+
+
+async def _index_forum_block_range(
+    w3: AsyncWeb3,
+    contract: Any,
+    index: Any,
+    forum_contract_address: str,
+    from_block: int,
+    to_block: int,
+) -> None:
+    """Index tracked events for one forum contract across a block range."""
+    added_logs, engaged_logs = await asyncio.gather(
+        contract.events.StatementAdded().get_logs(
+            from_block=from_block,
+            to_block=to_block,
+        ),
+        contract.events.StatementEngaged().get_logs(
+            from_block=from_block,
+            to_block=to_block,
+        ),
+    )
+
+    range_label = (
+        f"block #{from_block}"
+        if from_block == to_block
+        else f"blocks #{from_block}-{to_block}"
+    )
+
+    if added_logs:
+        added_block_timestamps = await _block_timestamps(
+            w3,
+            {log.blockNumber for log in added_logs},
+        )
+        docs = [
+            {
+                "id": _statement_document_id(
+                    forum_contract_address,
+                    log.args.id,
+                ),
+                "statementId": log.args.id,
+                "statementText": log.args.statement,
+                "forumAddress": forum_contract_address,
+                "lastEngagement": added_block_timestamps[log.blockNumber],
+            }
+            for log in added_logs
+        ]
+        logger.debug(
+            "[live] add_documents(%s) %s:\n%s",
+            forum_contract_address,
+            range_label,
+            json.dumps(docs, indent=2),
+        )
+        _wait_task(
+            index,
+            index.add_documents(docs),
+            f"live add_documents({forum_contract_address} {range_label})",
+        )
+        logger.info(
+            "Indexed %d statement(s) from contract %s in %s",
+            len(docs),
+            forum_contract_address,
+            range_label,
+        )
+
+    if engaged_logs:
+        engagement_docs = await _engagement_docs(
+            w3,
+            engaged_logs,
+            forum_contract_address,
+        )
+        logger.debug(
+            "[live] update_documents(%s) %s:\n%s",
+            forum_contract_address,
+            range_label,
+            json.dumps(engagement_docs, indent=2),
+        )
+        _wait_task(
+            index,
+            index.update_documents(engagement_docs),
+            f"live update_documents({forum_contract_address} {range_label})",
+        )
+        logger.debug(
+            "Updated engagement for %d statement(s) from contract %s in %s",
+            len(engagement_docs),
+            forum_contract_address,
+            range_label,
+        )
+
+
+async def _index_missing_blocks(
+    w3: AsyncWeb3,
+    contracts: Sequence[tuple[str, Any]],
+    index: Any,
+    cursor: int,
+    target_block: int,
+    subscription_stream: Any | None = None,
+) -> int:
+    """Index all missing blocks from ``cursor`` through ``target_block``.
+
+    Returns the next block that still needs indexing. If a subscription stream
+    is available, queued block headers are coalesced between batches so catch-up
+    and live indexing share one cursor and the Web3 queue is drained regularly.
+    """
+    if cursor > target_block:
+        logger.debug(
+            "No missing blocks to index (cursor=%d, target=%d)",
+            cursor,
+            target_block,
+        )
+        return cursor
+
+    while cursor <= target_block:
+        batch_end = min(cursor + _INDEX_RANGE_BATCH_SIZE - 1, target_block)
+        logger.debug("Scanning blocks %d → %d", cursor, batch_end)
+
+        await asyncio.gather(
+            *(
+                _index_forum_block_range(
+                    w3,
+                    contract,
+                    index,
+                    forum_contract_address,
+                    cursor,
+                    batch_end,
+                )
+                for forum_contract_address, contract in contracts
+            )
+        )
+        cursor = batch_end + 1
+        if subscription_stream is not None:
+            queued_block = _latest_subscription_block_number(subscription_stream)
+            if queued_block is not None and queued_block > target_block:
+                target_block = queued_block
+
+        latest_chain_block = await _latest_chain_block_number(w3)
+        if latest_chain_block > target_block:
+            target_block = latest_chain_block
+
+    return cursor
+
+
 async def _eviction_loop(
     index: Any,
     eviction_max_age_seconds: int,
@@ -598,11 +678,14 @@ async def run_indexers(
     ethereum_node_url: str,
     backfill_from: str = "",
     eviction_max_age_seconds: int = DEFAULT_EVICTION_MAX_AGE_SECONDS,
+    web3_subscription_response_queue_size: int = (
+        DEFAULT_WEB3_SUBSCRIPTION_RESPONSE_QUEUE_SIZE
+    ),
 ) -> None:
     """Subscribe to new blocks and index tracked events for multiple forums.
 
-    If *backfill_from* is set, historical events are indexed first before
-    switching to live monitoring.  See module docstring for accepted formats.
+    ``backfill_from`` selects the initial block cursor. The same range-indexing
+    loop handles historical catch-up and live block headers.
 
     Documents whose ``lastEngagement`` is older than
     *eviction_max_age_seconds* are periodically removed from the index.
@@ -621,21 +704,30 @@ async def run_indexers(
     index = meili_client.index(STATEMENTS_INDEX)
 
     logger.info(
-        "Starting indexer for %d contract(s) via %s (eviction TTL=%ds)",
+        "Starting indexer for %d contract(s) via %s "
+        "(eviction TTL=%ds, web3 subscription queue=%d)",
         len(normalized_forum_contract_addresses),
         ethereum_node_url,
         eviction_max_age_seconds,
+        web3_subscription_response_queue_size,
     )
 
     # Start the eviction background loop.
     eviction_task = asyncio.create_task(_eviction_loop(index, eviction_max_age_seconds))
 
-    backfill_done = False
+    next_block_to_index: int | None = None
 
     try:
         while True:
             try:
-                async with AsyncWeb3(WebSocketProvider(ethereum_node_url)) as w3:
+                async with AsyncWeb3(
+                    WebSocketProvider(
+                        ethereum_node_url,
+                        subscription_response_queue_size=(
+                            web3_subscription_response_queue_size
+                        ),
+                    )
+                ) as w3:
                     contracts = [
                         (
                             forum_contract_address,
@@ -647,42 +739,60 @@ async def run_indexers(
                         for forum_contract_address in normalized_forum_contract_addresses
                     ]
 
-                    # ── One-time backfill ──────────────────────────────
-                    if not backfill_done and backfill_from:
-                        start_block = await _resolve_start_block(w3, backfill_from)
-                        if start_block is not None:
-                            for forum_contract_address, contract in contracts:
-                                await _backfill(
-                                    w3,
-                                    contract,
-                                    index,
-                                    start_block,
-                                    forum_contract_address,
-                                )
-                        backfill_done = True
-
-                    # ── Live subscription ─────────────────────────────
+                    # Subscribe before catch-up so blocks mined during the
+                    # initial range scan are queued and share the same cursor.
                     await w3.eth.subscribe("newHeads")
                     logger.info("Subscribed to new block headers")
+                    subscription_stream = w3.socket.process_subscriptions()
 
-                    async for response in w3.socket.process_subscriptions():
-                        block = response["result"]
-                        block_number = block["number"]
-                        block_timestamp: int = int(block.get("timestamp", 0))
-                        logger.debug("Block #%s mined", block_number)
-
-                        await asyncio.gather(
-                            *(
-                                _index_forum_block(
-                                    contract,
-                                    index,
-                                    forum_contract_address,
-                                    block_number,
-                                    block_timestamp,
-                                )
-                                for forum_contract_address, contract in contracts
-                            )
+                    if next_block_to_index is None:
+                        next_block_to_index = await _initial_index_cursor(
+                            w3,
+                            backfill_from,
                         )
+                    else:
+                        logger.info(
+                            "Resuming index cursor at block #%d",
+                            next_block_to_index,
+                        )
+
+                    latest_block = await _latest_chain_block_number(w3)
+                    logger.info(
+                        "Initial catch-up target is block #%d (cursor #%d)",
+                        latest_block,
+                        next_block_to_index,
+                    )
+                    next_block_to_index = await _index_missing_blocks(
+                        w3,
+                        contracts,
+                        index,
+                        next_block_to_index,
+                        latest_block,
+                        subscription_stream,
+                    )
+
+                    while True:
+                        queued_block = _latest_subscription_block_number(
+                            subscription_stream
+                        )
+                        latest_block = await _latest_chain_block_number(w3)
+                        target_block = max(
+                            latest_block,
+                            queued_block if queued_block is not None else latest_block,
+                        )
+
+                        if next_block_to_index <= target_block:
+                            next_block_to_index = await _index_missing_blocks(
+                                w3,
+                                contracts,
+                                index,
+                                next_block_to_index,
+                                target_block,
+                                subscription_stream,
+                            )
+                            continue
+
+                        await asyncio.sleep(_LIVE_IDLE_POLL_SECONDS)
             except asyncio.CancelledError:
                 raise
             except Exception:

@@ -26,6 +26,11 @@ local-mocked: ## Start local dev env with mocked registry
 	docker compose -f docker-compose.yml up -d --force-recreate meilisearch
 	overmind start -f Procfile.local-mocked
 
+.PHONY: local-stress-test
+local-stress-test: ## Start local dev env with mocked registry and stress-test fixture data
+	docker compose -f docker-compose.yml up -d --force-recreate meilisearch
+	overmind start -f Procfile.local-stress-test
+
 .PHONY: local-forked
 local-forked: ## Start local dev env with Sepolia fork (needs SEPOLIA_RPC_URL in .env.local)
 	set -a && [ -f .env.local ] && . ./.env.local; \

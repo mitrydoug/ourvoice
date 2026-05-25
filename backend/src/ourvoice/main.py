@@ -16,6 +16,7 @@ import meilisearch
 
 from ourvoice.indexer import (
     DEFAULT_EVICTION_MAX_AGE_SECONDS,
+    DEFAULT_WEB3_SUBSCRIPTION_RESPONSE_QUEUE_SIZE,
     parse_forum_contract_addresses,
     run_indexers,
 )
@@ -56,9 +57,10 @@ def parse_args() -> argparse.Namespace:
         type=str,
         default="",
         help=(
-            "Backfill historical events before switching to live mode. "
+            "Initial block cursor for historical catch-up. "
             "Accepts: ISO datetime (2025-01-01), relative delta (30d, 24h), "
-            "explicit block number (block:12345), or 'all' for full history."
+            "explicit block number (block:12345), or 'all' for full history. "
+            "Empty indexes future blocks only."
         ),
     )
     parser.add_argument(
@@ -69,6 +71,16 @@ def parse_args() -> argparse.Namespace:
             "Maximum age (in seconds) for indexed documents without recent "
             "engagement.  Documents older than this are periodically evicted. "
             f"Default: {DEFAULT_EVICTION_MAX_AGE_SECONDS} (7 days)."
+        ),
+    )
+    parser.add_argument(
+        "--web3-subscription-response-queue-size",
+        type=int,
+        default=DEFAULT_WEB3_SUBSCRIPTION_RESPONSE_QUEUE_SIZE,
+        help=(
+            "Maximum queued Web3 subscription messages before the provider "
+            "raises QueueFull. Default: "
+            f"{DEFAULT_WEB3_SUBSCRIPTION_RESPONSE_QUEUE_SIZE}."
         ),
     )
     return parser.parse_args()
@@ -86,6 +98,7 @@ async def main() -> None:
         ethereum_node_url=args.ethereum_node_url,
         backfill_from=args.backfill_from,
         eviction_max_age_seconds=args.eviction_max_age_seconds,
+        web3_subscription_response_queue_size=args.web3_subscription_response_queue_size,
     )
 
 

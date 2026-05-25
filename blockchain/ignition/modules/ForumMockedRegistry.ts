@@ -137,8 +137,8 @@ const MOCK_SUPPORT: MockSupport[] = [
 
 /**
  * Creates a mocked Ignition module that deploys a MockOurVoiceRegistry
- * (allowing unverified user registration), a set of Forum contracts, and
- * seeds fixture data (mock user registrations and statements).
+ * (allowing unverified user registration), a set of Forum contracts, and stable
+ * mock user registrations. Demo statements/support can be seeded optionally.
  *
  * Intended for local development on a fresh Hardhat network.
  */
@@ -155,13 +155,30 @@ export function createForumMockedModule(
   creditMultiplier: number,
   refundPenaltyBps: number,
   decaySpeedupFactor: number,
+  seedMockContent = true,
 ) {
   return buildModule("ForumMockedRegistryModule", (m) => {
+    const mockedZKRegistry = m.contract("MockOurVoiceRegistry");
     const address1 = m.getAccount(0);
     const address2 = m.getAccount(1);
     const address3 = m.getAccount(2);
 
-    const mockedZKRegistry = m.contract("MockOurVoiceRegistry");
+    const { forums } = deployForums(
+      m,
+      mockedZKRegistry,
+      forumNames,
+      creditAllowanceIntervalSeconds,
+      engagementWindowSeconds,
+      maxRankedStatements,
+      minStatementSupportToRank,
+      maxStatementLength,
+      userCreditAllowancePerInterval,
+      userStartingCredits,
+      minAdjustmentIntervalSeconds,
+      creditMultiplier,
+      refundPenaltyBps,
+      decaySpeedupFactor,
+    );
 
     m.call(mockedZKRegistry, "register", ["USA"], {
       from: address1,
@@ -180,52 +197,48 @@ export function createForumMockedModule(
       id: "register4",
     });
 
-    const { forums } = deployForums(
-      m, mockedZKRegistry, forumNames,
-      creditAllowanceIntervalSeconds, engagementWindowSeconds,
-      maxRankedStatements, minStatementSupportToRank,
-      maxStatementLength, userCreditAllowancePerInterval, userStartingCredits,
-      minAdjustmentIntervalSeconds,
-      creditMultiplier,
-      refundPenaltyBps,
-      decaySpeedupFactor,
-    );
-
-    // Track statement futures per forum so support calls can depend on them
-    const statementFutures: Record<string, ReturnType<typeof m.call>[]> = {};
-    MOCK_STATEMENTS.forEach((stmt, idx) => {
-      const fromAddress = m.getAccount(stmt.addrIndex);
-      const future = m.call(forums[stmt.forum], "addStatement", [stmt.content, BigInt(stmt.initialSupport ?? 0)], {
-        id: `addMockStatement${idx}`,
-        from: fromAddress,
+    if (seedMockContent) {
+      // Track statement futures per forum so support calls can depend on them
+      const statementFutures: Record<string, ReturnType<typeof m.call>[]> = {};
+      MOCK_STATEMENTS.forEach((stmt, idx) => {
+        const fromAddress = m.getAccount(stmt.addrIndex);
+        const future = m.call(
+          forums[stmt.forum],
+          "addStatement",
+          [stmt.content, BigInt(stmt.initialSupport ?? 0)],
+          {
+            id: `addMockStatement${idx}`,
+            from: fromAddress,
+          },
+        );
+        if (!statementFutures[stmt.forum]) statementFutures[stmt.forum] = [];
+        statementFutures[stmt.forum].push(future);
       });
-      if (!statementFutures[stmt.forum]) statementFutures[stmt.forum] = [];
-      statementFutures[stmt.forum].push(future);
-    });
 
-    // Add mock support so statements cross the ranking threshold
-    MOCK_SUPPORT.forEach((sup, idx) => {
-      const fromAddress = m.getAccount(sup.addrIndex);
-      m.call(
-        forums[sup.forum],
-        "adjustSupport",
-        [
+      // Add mock support so statements cross the ranking threshold
+      MOCK_SUPPORT.forEach((sup, idx) => {
+        const fromAddress = m.getAccount(sup.addrIndex);
+        m.call(
+          forums[sup.forum],
+          "adjustSupport",
           [
-            {
-              statementId: BigInt(sup.statementIndex),
-              value: BigInt(sup.value),
-              adjustmentType: 0,
-            },
+            [
+              {
+                statementId: BigInt(sup.statementIndex),
+                value: BigInt(sup.value),
+                adjustmentType: 0,
+              },
+            ],
           ],
-        ],
-        {
-          id: `addMockSupport${idx}`,
-          from: fromAddress,
-          // Wait for all statements in this forum to be added first
-          after: statementFutures[sup.forum] ?? [],
-        },
-      );
-    });
+          {
+            id: `addMockSupport${idx}`,
+            from: fromAddress,
+            // Wait for all statements in this forum to be added first
+            after: statementFutures[sup.forum] ?? [],
+          },
+        );
+      });
+    }
 
     return { registry: mockedZKRegistry, ...forums };
   });
