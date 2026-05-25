@@ -12,14 +12,17 @@ Required env vars:
     ETHEREUM_NODE_URL    — WebSocket RPC URL (required)
 
 Optional env vars:
-    BACKFILL_FROM        — Backfill historical events on startup.
+    BACKFILL_FROM        — Initial block cursor for historical catch-up.
                            Accepts: ISO datetime (2025-01-01), relative
                            delta (30d, 24h), block number (block:123),
-                           or 'all'.  Empty = no backfill.
+                           or 'all'.  Empty = future blocks only.
     EVICTION_MAX_AGE_SECONDS — Maximum age (in seconds) for indexed
                                documents without recent engagement.
                                Documents older than this are periodically
                                evicted.  Default: 604800 (7 days).
+    WEB3_SUBSCRIPTION_RESPONSE_QUEUE_SIZE — Web3.py subscription buffer size
+                                            for bursty local chains.
+                                            Default: 10000.
 """
 
 import asyncio
@@ -34,6 +37,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from ourvoice.indexer import (
     DEFAULT_EVICTION_MAX_AGE_SECONDS,
+    DEFAULT_WEB3_SUBSCRIPTION_RESPONSE_QUEUE_SIZE,
     parse_forum_contract_addresses,
     run_indexers,
 )
@@ -59,6 +63,12 @@ BACKFILL_FROM = os.environ.get("BACKFILL_FROM", "")
 EVICTION_MAX_AGE_SECONDS = int(
     os.environ.get("EVICTION_MAX_AGE_SECONDS", str(DEFAULT_EVICTION_MAX_AGE_SECONDS))
 )
+WEB3_SUBSCRIPTION_RESPONSE_QUEUE_SIZE = int(
+    os.environ.get(
+        "WEB3_SUBSCRIPTION_RESPONSE_QUEUE_SIZE",
+        str(DEFAULT_WEB3_SUBSCRIPTION_RESPONSE_QUEUE_SIZE),
+    )
+)
 
 
 @asynccontextmanager
@@ -80,6 +90,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             ethereum_node_url=ETHEREUM_NODE_URL,
             backfill_from=BACKFILL_FROM,
             eviction_max_age_seconds=EVICTION_MAX_AGE_SECONDS,
+            web3_subscription_response_queue_size=WEB3_SUBSCRIPTION_RESPONSE_QUEUE_SIZE,
         )
     )
     logger.info("Indexer background task started")

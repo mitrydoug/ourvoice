@@ -24,6 +24,11 @@ rm -rf ignition/deployments/chain-31337
 npx hardhat clean
 npx hardhat compile
 npx hardhat run scripts/deploy.ts --network "${DEPLOY_NETWORK}"
+
+if [ "${STRESS_TEST:-0}" = "1" ]; then
+  echo "🌱 Seeding stress-test data (forum: ${STRESS_FORUM:-USA})…"
+  npx hardhat run scripts/seed-stress.ts --network "${DEPLOY_NETWORK}"
+fi
 cd ..
 
 # ── Start frontend dev server ────────────────────────────────────────────────

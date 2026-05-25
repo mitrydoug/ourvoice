@@ -27,26 +27,42 @@ async function main() {
   // timestamp of the pinned block, which can be far in the past.
   if ("networkHelpers" in connection) {
     const { networkHelpers } = connection;
-    await networkHelpers.time.increaseTo(Math.floor(Date.now() / 1000) + 1);
+    const currentTimestamp = await networkHelpers.time.latest();
+    const targetTimestamp = Math.floor(Date.now() / 1000) + 1;
+
+    if (currentTimestamp < targetTimestamp) {
+      await networkHelpers.time.increaseTo(targetTimestamp);
+    }
   }
 
   if (config.mode === "mocked") {
     const module = createForumMockedModule(
-      config.forums, config.creditAllowanceIntervalSeconds, config.engagementWindowSeconds,
-      config.maxRankedStatements, config.minStatementSupportToRank,
-      config.maxStatementLength, config.userCreditAllowancePerInterval, config.userStartingCredits,
+      config.forums,
+      config.creditAllowanceIntervalSeconds,
+      config.engagementWindowSeconds,
+      config.maxRankedStatements,
+      config.minStatementSupportToRank,
+      config.maxStatementLength,
+      config.userCreditAllowancePerInterval,
+      config.userStartingCredits,
       config.minAdjustmentIntervalSeconds,
       config.creditMultiplier,
       config.refundPenaltyBps,
       config.decaySpeedupFactor,
+      config.seedMockContent,
     );
     const deployResult = await ignition.deploy(module);
     ({ registry, ...forums } = deployResult);
   } else {
     const module = createForumProductionModule(
-      config.forums, config.creditAllowanceIntervalSeconds, config.engagementWindowSeconds,
-      config.maxRankedStatements, config.minStatementSupportToRank,
-      config.maxStatementLength, config.userCreditAllowancePerInterval, config.userStartingCredits,
+      config.forums,
+      config.creditAllowanceIntervalSeconds,
+      config.engagementWindowSeconds,
+      config.maxRankedStatements,
+      config.minStatementSupportToRank,
+      config.maxStatementLength,
+      config.userCreditAllowancePerInterval,
+      config.userStartingCredits,
       config.minAdjustmentIntervalSeconds,
       config.creditMultiplier,
       config.refundPenaltyBps,
@@ -111,7 +127,10 @@ async function main() {
   writeFileSync(outPath, networksModuleText);
   console.log(`Wrote frontend network config to ${outPath}`);
 
-  const backendGeneratedDir = path.resolve(import.meta.dirname, "../../backend/.generated");
+  const backendGeneratedDir = path.resolve(
+    import.meta.dirname,
+    "../../backend/.generated",
+  );
   mkdirSync(backendGeneratedDir, { recursive: true });
 
   const backendEnvText =

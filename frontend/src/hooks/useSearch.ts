@@ -2,7 +2,19 @@ import { useEffect, useRef, useState } from "react";
 import { writeQueryToHash } from "@/state/Search";
 
 /** Maximum number of search results to fetch from the backend. */
-export const SEARCH_RESULTS_LIMIT = 20;
+const configuredSearchResultsLimit = Number.parseInt(
+  import.meta.env.VITE_SEARCH_RESULTS_LIMIT ?? "20",
+  10,
+);
+
+if (
+  !Number.isFinite(configuredSearchResultsLimit) ||
+  configuredSearchResultsLimit <= 0
+) {
+  throw new Error("VITE_SEARCH_RESULTS_LIMIT must be a positive number");
+}
+
+export const SEARCH_RESULTS_LIMIT = configuredSearchResultsLimit;
 
 const SEARCH_URL = import.meta.env.VITE_SEARCH_URL ?? "http://localhost:8000";
 

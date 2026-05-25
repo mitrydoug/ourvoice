@@ -45,6 +45,10 @@ const config: HardhatUserConfig = {
       type: "http",
       url: "http://127.0.0.1:8545",
     },
+    localhost_stress: {
+      type: "http",
+      url: "http://127.0.0.1:8545",
+    },
     localhost_forked: {
       type: "http",
       url: "http://127.0.0.1:8545",
@@ -56,7 +60,7 @@ const config: HardhatUserConfig = {
     compose_hardhat_forked: {
       type: "http",
       url: "http://hardhat:8545",
-    }
+    },
   },
 };
 

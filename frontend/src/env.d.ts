@@ -23,6 +23,9 @@ interface ImportMetaEnv {
   /** Base URL for the search API. Defaults to http://localhost:8000 for local dev. */
   readonly VITE_SEARCH_URL?: string;
 
+  /** Maximum search/similar-statement results to fetch. Defaults to 20. */
+  readonly VITE_SEARCH_RESULTS_LIMIT?: string;
+
   /**
    * Duration of one chart period in seconds. The support chart shows 7
    * periods plus a live "Now" data point.
