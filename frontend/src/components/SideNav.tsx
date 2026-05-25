@@ -1,7 +1,6 @@
 import { FC, useState } from "react";
 import {
   Box,
-  Button,
   List,
   ListItemButton,
   ListItemIcon,
@@ -14,7 +13,6 @@ import FavoriteIcon from "@mui/icons-material/Favorite";
 import ArticleIcon from "@mui/icons-material/Article";
 import StarIcon from "@mui/icons-material/Star";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
-import CreateIcon from "@mui/icons-material/Create";
 import { useUserVotes } from "../state/UserVotes";
 import ChooseForumModal, { FORUMS } from "./ChooseForumModal";
 import ForumIcon from "./ForumIcon";
@@ -131,18 +129,6 @@ const SideNav: FC = () => {
           })}
         </List>
 
-        <Box sx={{ px: 1, mt: 2 }}>
-          <Button
-            fullWidth
-            size="medium"
-            startIcon={<CreateIcon />}
-            onClick={() => void navigate("/write")}
-            disabled={!isUserVerified}
-            sx={{ borderRadius: 100, py: 1 }}
-          >
-            Write
-          </Button>
-        </Box>
       </Box>
 
       <ChooseForumModal

@@ -22,6 +22,7 @@ import PersonIcon from "@mui/icons-material/Person";
 import LogoutIcon from "@mui/icons-material/Logout";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
+import CreateIcon from "@mui/icons-material/Create";
 import { useAccount, useDisconnect } from "wagmi";
 import { useNavigate } from "react-router-dom";
 import useNickname from "@/hooks/useNickname";
@@ -353,6 +354,22 @@ const UserProfilePanel: React.FC = () => {
                 Reset
               </Button>
             </Box>
+            <Button
+              variant="contained"
+              fullWidth
+              size="small"
+              startIcon={<CreateIcon />}
+              onClick={() => void navigate("/write")}
+              sx={{
+                borderRadius: 2,
+                fontWeight: 700,
+                letterSpacing: "0.05em",
+                mt: 1,
+                textTransform: "uppercase",
+              }}
+            >
+              Write
+            </Button>
           </>
         )}
 
