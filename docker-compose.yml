@@ -1,6 +1,6 @@
 services:
   meilisearch:
-    image: getmeili/meilisearch:v1.12
+    image: getmeili/meilisearch:v1.13
     ports:
       - "7700:7700"
     environment:
@@ -24,6 +24,9 @@ services:
     environment:
       - MEILI_URL=http://meilisearch:7700
       - MEILI_API_KEY=dev-master-key
+      - MEILI_SEMANTIC_SEARCH_ENABLED=${MEILI_SEMANTIC_SEARCH_ENABLED:-true}
+      - MEILI_SEMANTIC_EMBEDDER_NAME=${MEILI_SEMANTIC_EMBEDDER_NAME:-statement-text}
+      - MEILI_SEMANTIC_EMBEDDER_MODEL=${MEILI_SEMANTIC_EMBEDDER_MODEL:-sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2}
       - FORUM_CONTRACT_ADDRESSES=${FORUM_CONTRACT_ADDRESSES:-}
       - BACKFILL_FROM=${BACKFILL_FROM:-all}
       - CORS_ORIGINS=*

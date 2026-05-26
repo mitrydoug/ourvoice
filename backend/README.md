@@ -43,6 +43,10 @@ uvicorn ourvoice.combined:app --host 0.0.0.0 --port 8000 --app-dir src
 | `BACKFILL_FROM`                         | No       | (empty)                 | Initial indexing cursor; `all` indexes history   |
 | `LOG_LEVEL`                             | No       | `INFO`                  | Python logging level                             |
 | `WEB3_SUBSCRIPTION_RESPONSE_QUEUE_SIZE` | No       | `10000`                 | Web3 subscription buffer for bursty local chains |
+| `MEILI_SEMANTIC_SEARCH_ENABLED`         | No       | `false`                 | Configure Meilisearch `/similar` semantic search |
+| `MEILI_SEMANTIC_EMBEDDER_NAME`          | No       | `statement-text`        | Meilisearch embedder name for `/similar`         |
+| `MEILI_SEMANTIC_EMBEDDER_MODEL`         | No       | multilingual MiniLM     | Hugging Face model used by Meilisearch           |
+| `MEILI_TASK_TIMEOUT_MS`                 | No       | `300000`                | Max wait for Meilisearch setup/indexing tasks    |
 
 If you are upgrading an existing Meilisearch index from the older single-forum backend, run a full backfill or clear the `statements` index once so documents are recreated with forum-scoped IDs.
 
@@ -103,11 +107,25 @@ For **production scaling**, split into three services:
 
 ## API Endpoints
 
-| Method | Path      | Description                                                               |
-| ------ | --------- | ------------------------------------------------------------------------- |
-| GET    | `/`       | Redirects to `/docs` (Swagger UI)                                         |
-| GET    | `/health` | Health check                                                              |
-| GET    | `/search` | Forum-scoped full-text search (`?statement_text=...&forum_address=0x...`) |
+| Method | Path       | Description                                                               |
+| ------ | ---------- | ------------------------------------------------------------------------- |
+| GET    | `/`        | Redirects to `/docs` (Swagger UI)                                         |
+| GET    | `/health`  | Health check                                                              |
+| GET    | `/search`  | Forum-scoped full-text search (`?statement_text=...&forum_address=0x...`) |
+| GET    | `/similar` | Forum-scoped semantic similarity (`?statement_id=1&forum_address=0x...`)  |
+
+When `MEILI_SEMANTIC_SEARCH_ENABLED=true`, backend startup configures a local
+Hugging Face embedder in Meilisearch using
+`sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` by default.
+Meilisearch downloads the model artifacts on first use and generates/caches
+document embeddings itself; the Python backend does not call external AI APIs or
+compute vectors. Use persistent Meilisearch storage in deployed environments if
+you want to avoid re-downloading the model and regenerating embeddings after
+restarts.
+
+Local `make local-*` workflows enable semantic search by default in
+`scripts/local-backend.sh`. Set `MEILI_SEMANTIC_SEARCH_ENABLED=false` before
+starting the stack to skip local model setup.
 
 ## Dependencies
 

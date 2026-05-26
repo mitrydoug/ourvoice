@@ -23,6 +23,12 @@ Optional env vars:
     WEB3_SUBSCRIPTION_RESPONSE_QUEUE_SIZE — Web3.py subscription buffer size
                                             for bursty local chains.
                                             Default: 10000.
+    MEILI_SEMANTIC_SEARCH_ENABLED — Configure Meilisearch local embeddings and
+                                    enable /similar. Default: false.
+    MEILI_SEMANTIC_EMBEDDER_MODEL — Hugging Face model used by Meilisearch when
+                                    semantic search is enabled.
+    MEILI_TASK_TIMEOUT_MS — Max time to wait for Meilisearch setup/indexing
+                            tasks. Default: 300000.
 """
 
 import asyncio
@@ -38,6 +44,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from ourvoice.indexer import (
     DEFAULT_EVICTION_MAX_AGE_SECONDS,
     DEFAULT_WEB3_SUBSCRIPTION_RESPONSE_QUEUE_SIZE,
+    ensure_search_index,
     parse_forum_contract_addresses,
     run_indexers,
 )
@@ -74,6 +81,8 @@ WEB3_SUBSCRIPTION_RESPONSE_QUEUE_SIZE = int(
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Start the indexer as a background task while the API is running."""
+    ensure_search_index(app.state.meili_client)
+
     forum_contract_addresses = parse_forum_contract_addresses(FORUM_CONTRACT_ADDRESSES)
     if not forum_contract_addresses or not ETHEREUM_NODE_URL:
         logger.warning(
