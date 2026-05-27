@@ -18,6 +18,8 @@ interface SimilarStatementsProps {
   excludeId?: bigint;
   /** Statement whose effective support can be switched to a similar result. */
   switchSupportFromId?: bigint;
+  /** Keep the section heading and tabs pinned while scrolling results. */
+  stickyHeader?: boolean;
 }
 
 /**
@@ -28,6 +30,7 @@ const SimilarStatements: FC<SimilarStatementsProps> = ({
   query,
   excludeId,
   switchSupportFromId,
+  stickyHeader = false,
 }) => {
   const [sortTab, setSortTab] = useState<SortMode>("top");
   const { forumContractAddress } = useForum();
@@ -153,13 +156,43 @@ const SimilarStatements: FC<SimilarStatementsProps> = ({
   const isSimilarLoading = isSearchLoading || result.isLoading;
   const noSimilarResults = result.isError && !result.isLoading;
 
-  return (
-    <Box>
+  const header = (
+    <>
       <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
         Similar Statements
       </Typography>
 
-      <SortTabs value={sortTab} onChange={setSortTab} hasSearch={hasSearch} />
+      <SortTabs
+        value={sortTab}
+        onChange={setSortTab}
+        hasSearch={hasSearch}
+        sticky={!stickyHeader}
+        fullBleed={!stickyHeader}
+      />
+    </>
+  );
+
+  return (
+    <Box>
+      {stickyHeader ? (
+        <Box
+          sx={{
+            position: "sticky",
+            top: (theme) => theme.spacing(-2),
+            zIndex: 3,
+            bgcolor: "background.default",
+            mx: -3,
+            mt: -2,
+            px: 3,
+            pt: 2.5,
+            pb: 1,
+          }}
+        >
+          {header}
+        </Box>
+      ) : (
+        header
+      )}
 
       <Box sx={{ py: 0.5 }}>
         {isSimilarLoading && !noSimilarResults && hasSearch ? (

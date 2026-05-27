@@ -79,6 +79,7 @@ const StatementPage: FC = () => {
           query={statement.text}
           excludeId={statement.id}
           switchSupportFromId={statement.id}
+          stickyHeader
         />
       </Box>
     </Box>
