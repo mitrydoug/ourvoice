@@ -1,4 +1,4 @@
-import { FC, useMemo, useState } from "react";
+import { FC, useCallback, useMemo, useState } from "react";
 import { Box, CircularProgress, Stack, Typography } from "@mui/material";
 import { useReadContract } from "wagmi";
 
@@ -9,12 +9,17 @@ import useLocalStorageSet from "@/hooks/useLocalStorageSet";
 import SortTabs, { SortMode } from "./SortTabs";
 import StatementCard from "./StatementCard";
 import { Statement } from "../types";
+import { useUserVotes } from "../state/UserVotes";
 
 interface SimilarStatementsProps {
   /** Text to search for similar statements. */
   query: string;
   /** Optional statement ID to exclude from results (e.g. the statement itself). */
   excludeId?: bigint;
+  /** Statement whose effective support can be switched to a similar result. */
+  switchSupportFromId?: bigint;
+  /** Keep the section heading and tabs pinned while scrolling results. */
+  stickyHeader?: boolean;
 }
 
 /**
@@ -24,11 +29,42 @@ interface SimilarStatementsProps {
 const SimilarStatements: FC<SimilarStatementsProps> = ({
   query,
   excludeId,
+  switchSupportFromId,
+  stickyHeader = false,
 }) => {
   const [sortTab, setSortTab] = useState<SortMode>("top");
   const { forumContractAddress } = useForum();
+  const userVotes = useUserVotes();
   const { has: isBookmarked, toggle: toggleBookmark } =
     useLocalStorageSet("bookmarks");
+
+  const switchSourceSupport =
+    userVotes.isUserVerified && switchSupportFromId !== undefined
+      ? userVotes.getEffectiveSupport(Number(switchSupportFromId))
+      : 0;
+  const handleSwitchSupport = useCallback(
+    (targetStatementId: number) => {
+      if (!userVotes.isUserVerified || switchSupportFromId === undefined) {
+        return;
+      }
+      userVotes.switchSupport(Number(switchSupportFromId), targetStatementId);
+    },
+    [userVotes, switchSupportFromId],
+  );
+  const onSwitchSupport =
+    switchSourceSupport !== 0 ? handleSwitchSupport : undefined;
+
+  const canSwitchSupportTo = useCallback(
+    (targetStatementId: number) => {
+      if (!userVotes.isUserVerified || switchSourceSupport === 0) return false;
+      const targetSupport = userVotes.getEffectiveSupport(targetStatementId);
+      return (
+        targetSupport === 0 ||
+        Math.sign(targetSupport) === Math.sign(switchSourceSupport)
+      );
+    },
+    [userVotes, switchSourceSupport],
+  );
 
   const hasSearch = query.trim().length > 0;
   const { hits, isLoading: isSearchLoading } = useSearch(
@@ -120,13 +156,43 @@ const SimilarStatements: FC<SimilarStatementsProps> = ({
   const isSimilarLoading = isSearchLoading || result.isLoading;
   const noSimilarResults = result.isError && !result.isLoading;
 
-  return (
-    <Box>
+  const header = (
+    <>
       <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
         Similar Statements
       </Typography>
 
-      <SortTabs value={sortTab} onChange={setSortTab} hasSearch={hasSearch} />
+      <SortTabs
+        value={sortTab}
+        onChange={setSortTab}
+        hasSearch={hasSearch}
+        sticky={!stickyHeader}
+        fullBleed={!stickyHeader}
+      />
+    </>
+  );
+
+  return (
+    <Box>
+      {stickyHeader ? (
+        <Box
+          sx={{
+            position: "sticky",
+            top: (theme) => theme.spacing(-2),
+            zIndex: 3,
+            bgcolor: "background.default",
+            mx: -3,
+            mt: -2,
+            px: 3,
+            pt: 2.5,
+            pb: 1,
+          }}
+        >
+          {header}
+        </Box>
+      ) : (
+        header
+      )}
 
       <Box sx={{ py: 0.5 }}>
         {isSimilarLoading && !noSimilarResults && hasSearch ? (
@@ -144,6 +210,11 @@ const SimilarStatements: FC<SimilarStatementsProps> = ({
                 statement={stmt}
                 isBookmarked={isBookmarked(Number(stmt.id))}
                 onToggleBookmark={toggleBookmark}
+                onSwitchSupport={
+                  canSwitchSupportTo(Number(stmt.id))
+                    ? onSwitchSupport
+                    : undefined
+                }
               />
             ))}
           </Stack>

@@ -1,5 +1,5 @@
 import { FC, MouseEvent, ReactNode } from "react";
-import { Card, Stack, SxProps, Theme, Typography } from "@mui/material";
+import { Box, Card, Stack, SxProps, Theme, Typography } from "@mui/material";
 import useIsMobile from "@/hooks/useIsMobile";
 
 /** Prevent clicks inside interactive zones from bubbling to the card. */
@@ -24,6 +24,10 @@ interface StatementCardShellProps {
    * inline below the text on mobile, in the right column on desktop.
    */
   voteControls?: ReactNode;
+  /** Optional action aligned above the desktop vote column. */
+  rightTopSlot?: ReactNode;
+  /** Optional action aligned to the lower stats row and desktop vote column. */
+  rightStatsSlot?: ReactNode;
   /** Optional click handler for the entire card. */
   onClick?: () => void;
   sx?: SxProps<Theme>;
@@ -41,6 +45,8 @@ const StatementCardShell: FC<StatementCardShellProps> = ({
   text,
   statsSlot,
   voteControls,
+  rightTopSlot,
+  rightStatsSlot,
   onClick,
   sx,
 }) => {
@@ -70,21 +76,69 @@ const StatementCardShell: FC<StatementCardShellProps> = ({
 
           {/* Inline vote controls on mobile */}
           {isMobile && voteControls && (
-            <div onClick={stopPropagation}>{voteControls}</div>
+            <div onClick={stopPropagation}>
+              {rightTopSlot ? (
+                <Stack alignItems="center" spacing={0.5}>
+                  {rightTopSlot}
+                  {voteControls}
+                </Stack>
+              ) : (
+                voteControls
+              )}
+            </div>
           )}
 
-          <div onClick={stopPropagation}>{statsSlot}</div>
+          <div onClick={stopPropagation}>
+            {isMobile && rightStatsSlot ? (
+              <Stack direction="row" alignItems="center" spacing={1}>
+                <Box sx={{ flex: 1, minWidth: 0 }}>{statsSlot}</Box>
+                {rightStatsSlot}
+              </Stack>
+            ) : (
+              statsSlot
+            )}
+          </div>
         </Stack>
 
         {/* Right column: vertical vote controls on desktop */}
-        {!isMobile && voteControls && (
+        {!isMobile && (voteControls || rightTopSlot || rightStatsSlot) && (
           <Stack
             alignItems="center"
             justifyContent="center"
             onClick={stopPropagation}
-            sx={{ flexShrink: 0, ml: "auto" }}
+            sx={{
+              flexShrink: 0,
+              ml: "auto",
+              mr: 1,
+              alignSelf: "stretch",
+              position: "relative",
+            }}
           >
-            {voteControls}
+            <Stack alignItems="center" spacing={0.75}>
+              <Box
+                sx={{
+                  width: 32,
+                  height: 24,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {rightTopSlot}
+              </Box>
+              {voteControls}
+              <Box
+                sx={{
+                  width: 32,
+                  height: 24,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {rightStatsSlot}
+              </Box>
+            </Stack>
           </Stack>
         )}
       </Stack>

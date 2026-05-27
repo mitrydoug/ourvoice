@@ -74,8 +74,11 @@ const VoteToggle: FC<VoteToggleProps> = ({
     return (
       <Stack alignItems="center" spacing={0}>
         <ButtonBase
+          aria-label="Increase support"
           onClick={() => onUserVoteChange(userSupport + 1)}
           sx={{
+            width: 32,
+            height: 28,
             color: "text.secondary",
             "&:hover": { color: "success.main" },
           }}
@@ -93,8 +96,11 @@ const VoteToggle: FC<VoteToggleProps> = ({
           {userSupport}
         </Typography>
         <ButtonBase
+          aria-label="Decrease support"
           onClick={() => onUserVoteChange(userSupport - 1)}
           sx={{
+            width: 32,
+            height: 28,
             color: "text.secondary",
             "&:hover": { color: "error.main" },
           }}

@@ -1,6 +1,13 @@
 import { FC } from "react";
-import { IconButton, Stack, Typography } from "@mui/material";
+import {
+  ButtonBase,
+  IconButton,
+  Stack,
+  Tooltip,
+  Typography,
+} from "@mui/material";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import UTurnLeftIcon from "@mui/icons-material/UTurnLeft";
 
 import { StagedStatement } from "../state/UserVotes";
 import VoteToggle from "./VoteToggle";
@@ -19,6 +26,7 @@ const StagedStatementCard: FC<StagedStatementCardProps> = ({
   onUpdateSupport,
 }) => {
   const { toCredits, toParts } = useCreditConversion();
+  const initialSupportCredits = toCredits(staged.initialSupport);
   const leftSlot = (
     <Typography
       variant="caption"
@@ -53,7 +61,7 @@ const StagedStatementCard: FC<StagedStatementCardProps> = ({
 
   const voteControls = onUpdateSupport ? (
     <VoteToggle
-      userSupport={toCredits(staged.initialSupport)}
+      userSupport={initialSupportCredits}
       uncommittedSupport={true}
       onUserVoteChange={(newCreditSupport) =>
         onUpdateSupport(staged.tempId, toParts(newCreditSupport))
@@ -61,6 +69,23 @@ const StagedStatementCard: FC<StagedStatementCardProps> = ({
       direction="vertical"
     />
   ) : undefined;
+  const rightStatsSlot =
+    onUpdateSupport && initialSupportCredits !== 0 ? (
+      <Tooltip title="Clear support" arrow>
+        <ButtonBase
+          aria-label="Clear support"
+          onClick={() => onUpdateSupport(staged.tempId, 0)}
+          sx={{
+            width: 32,
+            height: 24,
+            color: "text.secondary",
+            "&:hover": { color: "text.primary" },
+          }}
+        >
+          <UTurnLeftIcon sx={{ fontSize: 21, transform: "rotate(90deg)" }} />
+        </ButtonBase>
+      </Tooltip>
+    ) : undefined;
 
   return (
     <StatementCardShell
@@ -68,6 +93,7 @@ const StagedStatementCard: FC<StagedStatementCardProps> = ({
       text={staged.text}
       statsSlot={statsSlot}
       voteControls={voteControls}
+      rightStatsSlot={rightStatsSlot}
       sx={{
         opacity: 0.85,
         borderLeft: "3.5px solid",

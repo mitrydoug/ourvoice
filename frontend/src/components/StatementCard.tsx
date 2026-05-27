@@ -1,11 +1,19 @@
 import { FC } from "react";
-import { IconButton, Stack, Tooltip, Typography } from "@mui/material";
+import {
+  ButtonBase,
+  IconButton,
+  Stack,
+  Tooltip,
+  Typography,
+} from "@mui/material";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
+import MergeIcon from "@mui/icons-material/Merge";
+import UTurnLeftIcon from "@mui/icons-material/UTurnLeft";
 
 import { useForumNavigate } from "../hooks/useForumNavigate";
 
-import { useUserVotes } from "../state/UserVotes";
+import { SupportAdjustmentType, useUserVotes } from "../state/UserVotes";
 
 // ── Coin icon SVG ────────────────────────────────────────────────────────────
 const CoinIcon = ({ size = 14 }: { size?: number }) => (
@@ -93,16 +101,30 @@ const rankColor = (rank: number): string | undefined => {
   return undefined;
 };
 
+const peakRankIcon = (rank: number): string => {
+  if (rank === 1) return "🏆";
+  if (rank === 2) return "🥈";
+  if (rank === 3) return "🥉";
+  return "⛰️";
+};
+
+const peakRankIconSize = (rank: number): number => {
+  if (rank === 2 || rank === 3) return 17;
+  return 14;
+};
+
 type StatementCardProps = {
   statement: Statement;
   isBookmarked?: boolean;
   onToggleBookmark?: (statementId: number) => void;
+  onSwitchSupport?: (statementId: number) => void;
 };
 
 export const StatementCard: FC<StatementCardProps> = ({
   statement,
   isBookmarked,
   onToggleBookmark,
+  onSwitchSupport,
 }) => {
   const navigate = useForumNavigate();
   const handleCardClick = () => {
@@ -115,7 +137,7 @@ export const StatementCard: FC<StatementCardProps> = ({
     getOnChainSupport,
     hasAdjustment,
   } = useUserVotes();
-  const { forumContractAddress } = useForum();
+  const { forumContractAddress, creditMultiplier } = useForum();
   const { toCredits, toParts } = useCreditConversion();
 
   // Watch for new blocks
@@ -161,18 +183,21 @@ export const StatementCard: FC<StatementCardProps> = ({
     if (!isUserVerified) return;
     const onChainParts = getOnChainSupport(Number(statement.id));
     const onChainCredits = toCredits(onChainParts);
-    let partsAdjustment: number;
-    if (newCreditSupport === 0) {
-      // Snap to exactly zero to avoid sub-credit residue from decay
-      partsAdjustment = -onChainParts;
-    } else {
-      partsAdjustment = toParts(newCreditSupport - onChainCredits);
-    }
+    const adjustment =
+      newCreditSupport === 0
+        ? {
+            value: 0,
+            adjustmentType: SupportAdjustmentType.SetTo,
+          }
+        : {
+            value: toParts(newCreditSupport - onChainCredits),
+            adjustmentType: SupportAdjustmentType.Delta,
+          };
     dispatch({
       type: "STAGE_USER_SUPPORT",
       payload: {
         statementId: statement.id,
-        adjustment: partsAdjustment,
+        adjustment,
       },
     });
   };
@@ -182,9 +207,11 @@ export const StatementCard: FC<StatementCardProps> = ({
 
   const globalSupport = toCredits(Number(statement.support));
 
-  /** Credits allocated = triangular number of |support| */
-  const creditsAllocated =
-    (Math.abs(userSupport) * (Math.abs(userSupport) + 1)) / 2;
+  const absUserSupportParts = Math.abs(userSupportParts);
+  const creditsAllocated = toCredits(
+    (absUserSupportParts * (absUserSupportParts + creditMultiplier)) /
+      (2 * creditMultiplier),
+  );
 
   const leftSlot =
     currentRank !== null ? (
@@ -256,10 +283,16 @@ export const StatementCard: FC<StatementCardProps> = ({
       {peakRank !== null && (
         <Tooltip title={`Peak rank: #${peakRank}`} arrow>
           <Stack direction="row" alignItems="center" spacing={0.25}>
-            <Typography sx={{ fontSize: 14, lineHeight: 1 }}>🏆</Typography>
-            <Typography variant="body2" color="text.secondary">
-              {peakRank}
+            <Typography
+              sx={{ fontSize: peakRankIconSize(peakRank), lineHeight: 1 }}
+            >
+              {peakRankIcon(peakRank)}
             </Typography>
+            {peakRank > 3 && (
+              <Typography variant="body2" color="text.secondary">
+                {peakRank}
+              </Typography>
+            )}
           </Stack>
         </Tooltip>
       )}
@@ -268,7 +301,7 @@ export const StatementCard: FC<StatementCardProps> = ({
 
       {creditsAllocated > 0 && (
         <Tooltip
-          title={`Your support of ${userSupport} costs ${creditsAllocated} credits`}
+          title={`You have ${creditsAllocated} credits providing ${userSupport} support`}
           arrow
         >
           <Stack direction="row" alignItems="center" spacing={0.5}>
@@ -313,6 +346,40 @@ export const StatementCard: FC<StatementCardProps> = ({
       direction="vertical"
     />
   ) : undefined;
+  const rightTopSlot = onSwitchSupport ? (
+    <Tooltip title="Switch support to this statement" arrow>
+      <ButtonBase
+        aria-label="Switch support to this statement"
+        onClick={() => onSwitchSupport(Number(statement.id))}
+        sx={{
+          width: 32,
+          height: 24,
+          color: "text.secondary",
+          "&:hover": { color: "text.primary" },
+        }}
+      >
+        <MergeIcon sx={{ fontSize: 22, transform: "rotate(90deg)" }} />
+      </ButtonBase>
+    </Tooltip>
+  ) : undefined;
+  const canClearSupport = userSupportParts !== 0;
+  const rightStatsSlot =
+    isUserVerified && canClearSupport ? (
+      <Tooltip title="Clear support" arrow>
+        <ButtonBase
+          aria-label="Clear support"
+          onClick={() => handleSupportChange(0)}
+          sx={{
+            width: 32,
+            height: 24,
+            color: "text.secondary",
+            "&:hover": { color: "text.primary" },
+          }}
+        >
+          <UTurnLeftIcon sx={{ fontSize: 21, transform: "rotate(90deg)" }} />
+        </ButtonBase>
+      </Tooltip>
+    ) : undefined;
 
   return (
     <StatementCardShell
@@ -320,6 +387,8 @@ export const StatementCard: FC<StatementCardProps> = ({
       text={statement.text}
       statsSlot={statsSlot}
       voteControls={voteControls}
+      rightTopSlot={rightTopSlot}
+      rightStatsSlot={rightStatsSlot}
       onClick={handleCardClick}
       sx={{
         cursor: "pointer",
