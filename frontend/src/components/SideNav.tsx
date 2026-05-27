@@ -128,7 +128,6 @@ const SideNav: FC = () => {
             );
           })}
         </List>
-
       </Box>
 
       <ChooseForumModal
