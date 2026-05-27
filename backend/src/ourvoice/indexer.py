@@ -19,6 +19,7 @@ import asyncio
 import contextlib
 import json
 import logging
+import os
 import re
 import time
 from collections.abc import Sequence
@@ -29,11 +30,26 @@ from typing import Any
 import meilisearch
 from web3 import AsyncWeb3, WebSocketProvider
 
+from ourvoice.search_query import STOP_WORDS
+
 logger = logging.getLogger(__name__)
 
 
 # Meilisearch index name for statements.
 STATEMENTS_INDEX = "statements"
+
+# Optional semantic similarity support. Meilisearch downloads the configured
+# Hugging Face model on first use and stores generated document embeddings.
+SEMANTIC_EMBEDDER_NAME = os.getenv("MEILI_SEMANTIC_EMBEDDER_NAME", "statement-text")
+SEMANTIC_EMBEDDER_MODEL = os.getenv(
+    "MEILI_SEMANTIC_EMBEDDER_MODEL",
+    "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+)
+SEMANTIC_EMBEDDER_DOCUMENT_TEMPLATE = os.getenv(
+    "MEILI_SEMANTIC_EMBEDDER_DOCUMENT_TEMPLATE", "{{doc.statementText}}"
+)
+MEILI_TASK_TIMEOUT_MS = int(os.getenv("MEILI_TASK_TIMEOUT_MS", "300000"))
+MEILI_TASK_POLL_INTERVAL_MS = int(os.getenv("MEILI_TASK_POLL_INTERVAL_MS", "500"))
 
 # Maximum number of blocks to request per ``get_logs`` call during catch-up.
 _INDEX_RANGE_BATCH_SIZE = 1000
@@ -54,13 +70,30 @@ _LIVE_HEAD_DRAIN_LIMIT = 5_000
 _LIVE_IDLE_POLL_SECONDS = 2.0
 
 
+def _env_bool(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def semantic_search_enabled() -> bool:
+    return _env_bool("MEILI_SEMANTIC_SEARCH_ENABLED")
+
+
 def _load_forum_abi() -> list[dict[str, Any]]:
     """Load the Forum ABI from the package data."""
     abi_path = files("ourvoice").joinpath("ForumABI.json")
     return json.loads(abi_path.read_text())["abi"]
 
 
-def _wait_task(index_or_client: Any, task_info: Any, description: str) -> None:
+def _wait_task(
+    index_or_client: Any,
+    task_info: Any,
+    description: str,
+    *,
+    raise_on_failure: bool = False,
+) -> None:
     """Block until a Meilisearch task completes and log failures.
 
     Meilisearch operations (add_documents, update_documents,
@@ -71,14 +104,21 @@ def _wait_task(index_or_client: Any, task_info: Any, description: str) -> None:
     Accepts either a ``meilisearch.Client`` or a ``meilisearch.Index``;
     both expose ``wait_for_task``.
     """
-    result = index_or_client.wait_for_task(task_info.task_uid)
+    result = index_or_client.wait_for_task(
+        task_info.task_uid,
+        timeout_in_ms=MEILI_TASK_TIMEOUT_MS,
+        interval_in_ms=MEILI_TASK_POLL_INTERVAL_MS,
+    )
     if result.status != "succeeded":
-        logger.error(
-            "Meilisearch task failed [%s]: status=%s error=%s",
-            description,
-            result.status,
-            getattr(result, "error", None),
+        message = (
+            f"Meilisearch task failed [{description}]: "
+            f"status={result.status} error={getattr(result, 'error', None)}"
         )
+        logger.error(
+            message,
+        )
+        if raise_on_failure:
+            raise RuntimeError(message)
     else:
         logger.debug("Meilisearch task succeeded [%s]", description)
 
@@ -90,13 +130,14 @@ def _ensure_index(client: meilisearch.Client) -> None:
         client.get_index(STATEMENTS_INDEX)
     except meilisearch.errors.MeilisearchApiError:
         task = client.create_index(STATEMENTS_INDEX, {"primaryKey": "id"})
-        _wait_task(client, task, "create_index")
+        _wait_task(client, task, "create_index", raise_on_failure=True)
 
     # Ensure searchable/filterable attributes are configured.
     _wait_task(
         client,
         client.index(STATEMENTS_INDEX).update_searchable_attributes(["statementText"]),
         "update_searchable_attributes",
+        raise_on_failure=True,
     )
     _wait_task(
         client,
@@ -104,90 +145,44 @@ def _ensure_index(client: meilisearch.Client) -> None:
             ["statementId", "lastEngagement", "forumAddress"]
         ),
         "update_filterable_attributes",
+        raise_on_failure=True,
     )
     _wait_task(
         client,
         client.index(STATEMENTS_INDEX).update_sortable_attributes(["lastEngagement"]),
         "update_sortable_attributes",
+        raise_on_failure=True,
     )
 
     # Configure stop words so common filler words don't dilute relevance
     # when users search with full sentences (e.g. "similar statements" flow).
-    client.index(STATEMENTS_INDEX).update_stop_words(
-        [
-            "a",
-            "an",
-            "and",
-            "are",
-            "as",
-            "at",
-            "be",
-            "but",
-            "by",
-            "do",
-            "for",
-            "from",
-            "has",
-            "have",
-            "he",
-            "her",
-            "his",
-            "how",
-            "i",
-            "if",
-            "in",
-            "is",
-            "it",
-            "its",
-            "let",
-            "my",
-            "not",
-            "of",
-            "on",
-            "or",
-            "our",
-            "own",
-            "she",
-            "so",
-            "than",
-            "that",
-            "the",
-            "their",
-            "them",
-            "then",
-            "there",
-            "these",
-            "they",
-            "this",
-            "to",
-            "too",
-            "us",
-            "very",
-            "was",
-            "we",
-            "were",
-            "what",
-            "when",
-            "which",
-            "who",
-            "will",
-            "with",
-            "would",
-            "you",
-            "your",
-            "can",
-            "could",
-            "did",
-            "does",
-            "had",
-            "may",
-            "might",
-            "must",
-            "need",
-            "shall",
-            "should",
-        ]
+    _wait_task(
+        client,
+        client.index(STATEMENTS_INDEX).update_stop_words(sorted(STOP_WORDS)),
+        "update_stop_words",
+        raise_on_failure=True,
     )
+
+    if semantic_search_enabled():
+        _wait_task(
+            client,
+            client.index(STATEMENTS_INDEX).update_embedders(
+                {
+                    SEMANTIC_EMBEDDER_NAME: {
+                        "source": "huggingFace",
+                        "model": SEMANTIC_EMBEDDER_MODEL,
+                        "documentTemplate": SEMANTIC_EMBEDDER_DOCUMENT_TEMPLATE,
+                    }
+                }
+            ),
+            "update_embedders",
+            raise_on_failure=True,
+        )
+
+
+def ensure_search_index(client: meilisearch.Client) -> None:
+    """Ensure the Meilisearch statements index and settings are configured."""
+    _ensure_index(client)
 
 
 # ---------------------------------------------------------------------------
@@ -221,9 +216,13 @@ def parse_forum_contract_addresses(values: str | Sequence[str]) -> list[str]:
     return addresses
 
 
-def _statement_document_id(forum_contract_address: str, statement_id: int) -> str:
+def statement_document_id(forum_contract_address: str, statement_id: int) -> str:
     """Build a document ID that remains unique across multiple forums."""
     return f"{forum_contract_address.lower()}-{statement_id}"
+
+
+def _statement_document_id(forum_contract_address: str, statement_id: int) -> str:
+    return statement_document_id(forum_contract_address, statement_id)
 
 
 def _parse_backfill_param(value: str) -> int | datetime | None:

@@ -34,6 +34,9 @@ const SimilarStatements: FC<SimilarStatementsProps> = ({
   const { hits, isLoading: isSearchLoading } = useSearch(
     query,
     forumContractAddress,
+    {
+      similarStatementId: excludeId,
+    },
   );
 
   // Fetch the current statement count so we can discard stale/invalid IDs

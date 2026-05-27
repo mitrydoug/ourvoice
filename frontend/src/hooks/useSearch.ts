@@ -47,7 +47,10 @@ interface UseSearchResult {
 export function useSearch(
   query: string,
   forumAddress: string,
-  { updateUrl = false }: { updateUrl?: boolean } = {},
+  {
+    updateUrl = false,
+    similarStatementId,
+  }: { updateUrl?: boolean; similarStatementId?: bigint } = {},
 ): UseSearchResult {
   const [hits, setHits] = useState<SearchHit[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -68,13 +71,40 @@ export function useSearch(
     const timer = setTimeout(() => {
       const requestId = ++inflightRef.current;
 
-      const params = new URLSearchParams({
+      const lexicalParams = new URLSearchParams({
         statement_text: trimmed,
         forum_address: forumAddress,
       });
 
-      fetch(`${SEARCH_URL}/search?${params.toString()}`)
-        .then((res) => res.json())
+      const similarParams =
+        similarStatementId === undefined
+          ? undefined
+          : new URLSearchParams({
+              statement_id: similarStatementId.toString(),
+              forum_address: forumAddress,
+              limit: SEARCH_RESULTS_LIMIT.toString(),
+            });
+
+      const fetchResults = async (): Promise<unknown> => {
+        if (similarParams !== undefined) {
+          const similarResponse = await fetch(
+            `${SEARCH_URL}/similar?${similarParams.toString()}`,
+          );
+          if (similarResponse.ok) {
+            return similarResponse.json();
+          }
+        }
+
+        const lexicalResponse = await fetch(
+          `${SEARCH_URL}/search?${lexicalParams.toString()}`,
+        );
+        if (!lexicalResponse.ok) {
+          throw new Error("Search request failed");
+        }
+        return lexicalResponse.json();
+      };
+
+      fetchResults()
         .then((data: unknown) => {
           if (requestId !== inflightRef.current) return;
 
@@ -101,7 +131,7 @@ export function useSearch(
     }, DEBOUNCE_MS);
 
     return () => clearTimeout(timer);
-  }, [query, forumAddress, updateUrl]);
+  }, [query, forumAddress, updateUrl, similarStatementId]);
 
   return { hits, isLoading };
 }
