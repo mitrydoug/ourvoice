@@ -8,6 +8,7 @@ import {
 } from "@mui/material";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
+import MergeIcon from "@mui/icons-material/Merge";
 import UTurnLeftIcon from "@mui/icons-material/UTurnLeft";
 
 import { useForumNavigate } from "../hooks/useForumNavigate";
@@ -116,12 +117,14 @@ type StatementCardProps = {
   statement: Statement;
   isBookmarked?: boolean;
   onToggleBookmark?: (statementId: number) => void;
+  onSwitchSupport?: (statementId: number) => void;
 };
 
 export const StatementCard: FC<StatementCardProps> = ({
   statement,
   isBookmarked,
   onToggleBookmark,
+  onSwitchSupport,
 }) => {
   const navigate = useForumNavigate();
   const handleCardClick = () => {
@@ -343,6 +346,22 @@ export const StatementCard: FC<StatementCardProps> = ({
       direction="vertical"
     />
   ) : undefined;
+  const rightTopSlot = onSwitchSupport ? (
+    <Tooltip title="Switch support to this statement" arrow>
+      <ButtonBase
+        aria-label="Switch support to this statement"
+        onClick={() => onSwitchSupport(Number(statement.id))}
+        sx={{
+          width: 32,
+          height: 24,
+          color: "text.secondary",
+          "&:hover": { color: "text.primary" },
+        }}
+      >
+        <MergeIcon sx={{ fontSize: 22, transform: "rotate(90deg)" }} />
+      </ButtonBase>
+    </Tooltip>
+  ) : undefined;
   const canClearSupport = userSupportParts !== 0;
   const rightStatsSlot =
     isUserVerified && canClearSupport ? (
@@ -368,6 +387,7 @@ export const StatementCard: FC<StatementCardProps> = ({
       text={statement.text}
       statsSlot={statsSlot}
       voteControls={voteControls}
+      rightTopSlot={rightTopSlot}
       rightStatsSlot={rightStatsSlot}
       onClick={handleCardClick}
       sx={{

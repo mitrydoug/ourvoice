@@ -24,6 +24,8 @@ interface StatementCardShellProps {
    * inline below the text on mobile, in the right column on desktop.
    */
   voteControls?: ReactNode;
+  /** Optional action aligned above the desktop vote column. */
+  rightTopSlot?: ReactNode;
   /** Optional action aligned to the lower stats row and desktop vote column. */
   rightStatsSlot?: ReactNode;
   /** Optional click handler for the entire card. */
@@ -43,6 +45,7 @@ const StatementCardShell: FC<StatementCardShellProps> = ({
   text,
   statsSlot,
   voteControls,
+  rightTopSlot,
   rightStatsSlot,
   onClick,
   sx,
@@ -73,7 +76,16 @@ const StatementCardShell: FC<StatementCardShellProps> = ({
 
           {/* Inline vote controls on mobile */}
           {isMobile && voteControls && (
-            <div onClick={stopPropagation}>{voteControls}</div>
+            <div onClick={stopPropagation}>
+              {rightTopSlot ? (
+                <Stack alignItems="center" spacing={0.5}>
+                  {rightTopSlot}
+                  {voteControls}
+                </Stack>
+              ) : (
+                voteControls
+              )}
+            </div>
           )}
 
           <div onClick={stopPropagation}>
@@ -89,7 +101,7 @@ const StatementCardShell: FC<StatementCardShellProps> = ({
         </Stack>
 
         {/* Right column: vertical vote controls on desktop */}
-        {!isMobile && (voteControls || rightStatsSlot) && (
+        {!isMobile && (voteControls || rightTopSlot || rightStatsSlot) && (
           <Stack
             alignItems="center"
             justifyContent="center"
@@ -102,14 +114,22 @@ const StatementCardShell: FC<StatementCardShellProps> = ({
               position: "relative",
             }}
           >
-            {voteControls}
-            {rightStatsSlot && (
+            <Stack alignItems="center" spacing={0.75}>
               <Box
                 sx={{
-                  position: "absolute",
-                  bottom: 0,
-                  left: "50%",
-                  transform: "translateX(-50%)",
+                  width: 32,
+                  height: 24,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {rightTopSlot}
+              </Box>
+              {voteControls}
+              <Box
+                sx={{
+                  width: 32,
                   height: 24,
                   display: "flex",
                   alignItems: "center",
@@ -118,7 +138,7 @@ const StatementCardShell: FC<StatementCardShellProps> = ({
               >
                 {rightStatsSlot}
               </Box>
-            )}
+            </Stack>
           </Stack>
         )}
       </Stack>

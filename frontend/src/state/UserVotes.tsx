@@ -92,6 +92,11 @@ type StageUserSupport = {
   payload: { statementId: bigint; adjustment: StagedSupportAdjustment };
 };
 
+type SwitchUserSupport = {
+  type: "SWITCH_USER_SUPPORT";
+  payload: { sourceStatementId: number; targetStatementId: number };
+};
+
 type ClearStagedSupport = {
   type: "CLEAR_STAGED_SUPPORT";
 };
@@ -153,6 +158,7 @@ type RestoreStaged = {
 type UserSupportAction =
   | SyncOnChainState
   | StageUserSupport
+  | SwitchUserSupport
   | ClearStagedSupport
   | BeginCommit
   | CommitSubmitted
@@ -170,6 +176,20 @@ type UserSupportAction =
 // Matches the on-chain formula: s*(s+M)/(2*M) where M = creditMultiplier.
 const triangle = (x: number, creditMultiplier: number): number =>
   (Math.abs(x) * (Math.abs(x) + creditMultiplier)) / (2 * creditMultiplier);
+
+const inverseTriangle = (
+  creditCost: number,
+  creditMultiplier: number,
+): number => {
+  if (creditCost <= 0) return 0;
+  return Math.floor(
+    (Math.sqrt(
+      creditMultiplier * creditMultiplier + 8 * creditMultiplier * creditCost,
+    ) -
+      creditMultiplier) /
+      2,
+  );
+};
 
 // Cost of changing support from `fromSupport` to `toSupport` (both in
 // credit parts). A positive result means credits are spent; a negative
@@ -192,6 +212,19 @@ const getAdjustedSupport = (
   return adjustment.adjustmentType === SupportAdjustmentType.SetTo
     ? adjustment.value
     : onChainSupport + adjustment.value;
+};
+
+const setStagedSupportAdjustment = (
+  supportAdjustments: Map<number, StagedSupportAdjustment>,
+  statementId: number,
+  onChainSupport: number,
+  adjustment: StagedSupportAdjustment,
+): void => {
+  if (getAdjustedSupport(onChainSupport, adjustment) === onChainSupport) {
+    supportAdjustments.delete(statementId);
+  } else {
+    supportAdjustments.set(statementId, adjustment);
+  }
 };
 
 // ── localStorage helpers for staged-support persistence ──────────────────────
@@ -346,11 +379,80 @@ const reducer = (
       const statementIdNumber = Number(statementId);
       const onChainSupport =
         newState.onChain?.statementSupport.get(statementIdNumber) || 0;
-      if (getAdjustedSupport(onChainSupport, adjustment) === onChainSupport) {
-        newState.staged.supportAdjustments.delete(Number(statementId));
-      } else {
-        newState.staged.supportAdjustments.set(statementIdNumber, adjustment);
+      setStagedSupportAdjustment(
+        newState.staged.supportAdjustments,
+        statementIdNumber,
+        onChainSupport,
+        adjustment,
+      );
+      break;
+    }
+    case "SWITCH_USER_SUPPORT": {
+      const { sourceStatementId, targetStatementId } = action.payload;
+      if (sourceStatementId === targetStatementId) break;
+      if (!state.staged || !newState.staged || !newState.onChain) {
+        throw new Error(
+          "Cannot switch support before on-chain state is synced",
+        );
       }
+      const baseSupportState = newState.frozenOnChain ?? newState.onChain;
+
+      newState.staged = {
+        ...state.staged,
+        supportAdjustments: new Map(state.staged.supportAdjustments),
+        stagedStatements: [...state.staged.stagedStatements],
+      };
+
+      const sourceOnChainSupport =
+        baseSupportState.statementSupport.get(sourceStatementId) || 0;
+      const sourceAdjustment =
+        newState.staged.supportAdjustments.get(sourceStatementId);
+      const sourceSupport = sourceAdjustment
+        ? getAdjustedSupport(sourceOnChainSupport, sourceAdjustment)
+        : sourceOnChainSupport;
+
+      if (sourceSupport === 0) break;
+
+      const targetOnChainSupport =
+        baseSupportState.statementSupport.get(targetStatementId) || 0;
+      const targetAdjustment =
+        newState.staged.supportAdjustments.get(targetStatementId);
+      const targetSupport = targetAdjustment
+        ? getAdjustedSupport(targetOnChainSupport, targetAdjustment)
+        : targetOnChainSupport;
+
+      if (
+        targetSupport !== 0 &&
+        Math.sign(targetSupport) !== Math.sign(sourceSupport)
+      ) {
+        break;
+      }
+
+      const mergedCreditCost =
+        triangle(sourceSupport, action.creditMultiplier) +
+        triangle(targetSupport, action.creditMultiplier);
+      const mergedSupport =
+        Math.sign(sourceSupport) *
+        inverseTriangle(mergedCreditCost, action.creditMultiplier);
+
+      setStagedSupportAdjustment(
+        newState.staged.supportAdjustments,
+        sourceStatementId,
+        sourceOnChainSupport,
+        {
+          value: 0,
+          adjustmentType: SupportAdjustmentType.SetTo,
+        },
+      );
+      setStagedSupportAdjustment(
+        newState.staged.supportAdjustments,
+        targetStatementId,
+        targetOnChainSupport,
+        {
+          value: mergedSupport - targetOnChainSupport,
+          adjustmentType: SupportAdjustmentType.Delta,
+        },
+      );
       break;
     }
     case "CLEAR_STAGED_SUPPORT": {
@@ -536,6 +638,7 @@ type UserNotVerifiedContextValue = {
   getEffectiveSupport: undefined;
   getOnChainSupport: undefined;
   hasAdjustment: undefined;
+  switchSupport: undefined;
   stageStatement: undefined;
   unstageStatement: undefined;
   updateStagedInitialSupport: undefined;
@@ -553,6 +656,7 @@ type UserSupportContextValue = {
   getEffectiveSupport: (statementId: number) => number;
   getOnChainSupport: (statementId: number) => number;
   hasAdjustment: (statementId: number) => boolean;
+  switchSupport: (sourceStatementId: number, targetStatementId: number) => void;
   stageStatement: (text: string, initialSupport?: number) => void;
   unstageStatement: (tempId: string) => void;
   updateStagedInitialSupport: (tempId: string, newSupport: number) => void;
@@ -899,6 +1003,16 @@ export const UserVoteProvider: FC<{
     [state.staged],
   );
 
+  const switchSupport = useCallback(
+    (sourceStatementId: number, targetStatementId: number) => {
+      dispatch({
+        type: "SWITCH_USER_SUPPORT",
+        payload: { sourceStatementId, targetStatementId },
+      });
+    },
+    [dispatch],
+  );
+
   // Stage a new statement for batched submission
   const stageStatement = useCallback(
     (text: string, initialSupport = 0) => {
@@ -960,6 +1074,7 @@ export const UserVoteProvider: FC<{
           getEffectiveSupport,
           getOnChainSupport,
           hasAdjustment,
+          switchSupport,
           stageStatement,
           unstageStatement,
           updateStagedInitialSupport,
@@ -983,6 +1098,7 @@ export const UserVoteProvider: FC<{
           getEffectiveSupport: undefined,
           getOnChainSupport: undefined,
           hasAdjustment: undefined,
+          switchSupport: undefined,
           stageStatement: undefined,
           unstageStatement: undefined,
           updateStagedInitialSupport: undefined,

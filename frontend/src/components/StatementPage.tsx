@@ -75,7 +75,11 @@ const StatementPage: FC = () => {
       </Box>
 
       <Box sx={{ mt: 2 }}>
-        <SimilarStatements query={statement.text} excludeId={statement.id} />
+        <SimilarStatements
+          query={statement.text}
+          excludeId={statement.id}
+          switchSupportFromId={statement.id}
+        />
       </Box>
     </Box>
   );
