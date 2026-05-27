@@ -100,6 +100,18 @@ const rankColor = (rank: number): string | undefined => {
   return undefined;
 };
 
+const peakRankIcon = (rank: number): string => {
+  if (rank === 1) return "🏆";
+  if (rank === 2) return "🥈";
+  if (rank === 3) return "🥉";
+  return "⛰️";
+};
+
+const peakRankIconSize = (rank: number): number => {
+  if (rank === 2 || rank === 3) return 17;
+  return 14;
+};
+
 type StatementCardProps = {
   statement: Statement;
   isBookmarked?: boolean;
@@ -122,7 +134,7 @@ export const StatementCard: FC<StatementCardProps> = ({
     getOnChainSupport,
     hasAdjustment,
   } = useUserVotes();
-  const { forumContractAddress } = useForum();
+  const { forumContractAddress, creditMultiplier } = useForum();
   const { toCredits, toParts } = useCreditConversion();
 
   // Watch for new blocks
@@ -192,9 +204,11 @@ export const StatementCard: FC<StatementCardProps> = ({
 
   const globalSupport = toCredits(Number(statement.support));
 
-  /** Credits allocated = triangular number of |support| */
-  const creditsAllocated =
-    (Math.abs(userSupport) * (Math.abs(userSupport) + 1)) / 2;
+  const absUserSupportParts = Math.abs(userSupportParts);
+  const creditsAllocated = toCredits(
+    (absUserSupportParts * (absUserSupportParts + creditMultiplier)) /
+      (2 * creditMultiplier),
+  );
 
   const leftSlot =
     currentRank !== null ? (
@@ -266,10 +280,16 @@ export const StatementCard: FC<StatementCardProps> = ({
       {peakRank !== null && (
         <Tooltip title={`Peak rank: #${peakRank}`} arrow>
           <Stack direction="row" alignItems="center" spacing={0.25}>
-            <Typography sx={{ fontSize: 14, lineHeight: 1 }}>🏆</Typography>
-            <Typography variant="body2" color="text.secondary">
-              {peakRank}
+            <Typography
+              sx={{ fontSize: peakRankIconSize(peakRank), lineHeight: 1 }}
+            >
+              {peakRankIcon(peakRank)}
             </Typography>
+            {peakRank > 3 && (
+              <Typography variant="body2" color="text.secondary">
+                {peakRank}
+              </Typography>
+            )}
           </Stack>
         </Tooltip>
       )}
@@ -278,7 +298,7 @@ export const StatementCard: FC<StatementCardProps> = ({
 
       {creditsAllocated > 0 && (
         <Tooltip
-          title={`Your support of ${userSupport} costs ${creditsAllocated} credits`}
+          title={`You have ${creditsAllocated} credits providing ${userSupport} support`}
           arrow
         >
           <Stack direction="row" alignItems="center" spacing={0.5}>
