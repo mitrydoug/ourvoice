@@ -1,11 +1,18 @@
 import { FC } from "react";
-import { IconButton, Stack, Tooltip, Typography } from "@mui/material";
+import {
+  ButtonBase,
+  IconButton,
+  Stack,
+  Tooltip,
+  Typography,
+} from "@mui/material";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
+import UTurnLeftIcon from "@mui/icons-material/UTurnLeft";
 
 import { useForumNavigate } from "../hooks/useForumNavigate";
 
-import { useUserVotes } from "../state/UserVotes";
+import { SupportAdjustmentType, useUserVotes } from "../state/UserVotes";
 
 // ── Coin icon SVG ────────────────────────────────────────────────────────────
 const CoinIcon = ({ size = 14 }: { size?: number }) => (
@@ -161,18 +168,21 @@ export const StatementCard: FC<StatementCardProps> = ({
     if (!isUserVerified) return;
     const onChainParts = getOnChainSupport(Number(statement.id));
     const onChainCredits = toCredits(onChainParts);
-    let partsAdjustment: number;
-    if (newCreditSupport === 0) {
-      // Snap to exactly zero to avoid sub-credit residue from decay
-      partsAdjustment = -onChainParts;
-    } else {
-      partsAdjustment = toParts(newCreditSupport - onChainCredits);
-    }
+    const adjustment =
+      newCreditSupport === 0
+        ? {
+            value: 0,
+            adjustmentType: SupportAdjustmentType.SetTo,
+          }
+        : {
+            value: toParts(newCreditSupport - onChainCredits),
+            adjustmentType: SupportAdjustmentType.Delta,
+          };
     dispatch({
       type: "STAGE_USER_SUPPORT",
       payload: {
         statementId: statement.id,
-        adjustment: partsAdjustment,
+        adjustment,
       },
     });
   };
@@ -313,6 +323,24 @@ export const StatementCard: FC<StatementCardProps> = ({
       direction="vertical"
     />
   ) : undefined;
+  const canClearSupport = userSupportParts !== 0;
+  const rightStatsSlot =
+    isUserVerified && canClearSupport ? (
+      <Tooltip title="Clear support" arrow>
+        <ButtonBase
+          aria-label="Clear support"
+          onClick={() => handleSupportChange(0)}
+          sx={{
+            width: 32,
+            height: 24,
+            color: "text.secondary",
+            "&:hover": { color: "text.primary" },
+          }}
+        >
+          <UTurnLeftIcon sx={{ fontSize: 21, transform: "rotate(90deg)" }} />
+        </ButtonBase>
+      </Tooltip>
+    ) : undefined;
 
   return (
     <StatementCardShell
@@ -320,6 +348,7 @@ export const StatementCard: FC<StatementCardProps> = ({
       text={statement.text}
       statsSlot={statsSlot}
       voteControls={voteControls}
+      rightStatsSlot={rightStatsSlot}
       onClick={handleCardClick}
       sx={{
         cursor: "pointer",

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useUserVotes } from "../state/UserVotes";
+import { SupportAdjustmentType, useUserVotes } from "../state/UserVotes";
 import { useForum } from "../state/Forum";
 import { partsToCredits } from "../util";
 
@@ -53,15 +53,19 @@ export const useCreditAllocation = (): CreditAllocation | null => {
 
     for (const [statementId, adjustment] of staged.supportAdjustments) {
       const onChainSupport = onChain.statementSupport.get(statementId) || 0;
-      const effectiveSupport = onChainSupport + adjustment;
+      const effectiveSupport =
+        adjustment.adjustmentType === SupportAdjustmentType.SetTo
+          ? adjustment.value
+          : onChainSupport + adjustment.value;
 
       const onChainC = creditCost(onChainSupport, creditMultiplier);
       const effectiveC = creditCost(effectiveSupport, creditMultiplier);
+      const costChange = effectiveC - onChainC;
 
-      if (adjustment < 0) {
-        totalDecreaseCost += onChainC - effectiveC;
-      } else if (adjustment > 0) {
-        totalIncreaseCost += effectiveC - onChainC;
+      if (costChange < 0) {
+        totalDecreaseCost += -costChange;
+      } else if (costChange > 0) {
+        totalIncreaseCost += costChange;
       }
     }
 

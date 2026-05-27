@@ -29,9 +29,19 @@ interface UserSupport {
   statementSupport: Map<number, number>;
 }
 
+export enum SupportAdjustmentType {
+  Delta = 0,
+  SetTo = 1,
+}
+
+interface StagedSupportAdjustment {
+  value: number;
+  adjustmentType: SupportAdjustmentType;
+}
+
 interface StagedSupport {
   credits: number;
-  supportAdjustments: Map<number, number>;
+  supportAdjustments: Map<number, StagedSupportAdjustment>;
   stagedStatements: StagedStatement[];
 }
 
@@ -79,7 +89,7 @@ type SyncOnChainState = {
 
 type StageUserSupport = {
   type: "STAGE_USER_SUPPORT";
-  payload: { statementId: bigint; adjustment: number };
+  payload: { statementId: bigint; adjustment: StagedSupportAdjustment };
 };
 
 type ClearStagedSupport = {
@@ -135,7 +145,7 @@ type SetPendingDraftCost = {
 type RestoreStaged = {
   type: "RESTORE_STAGED";
   payload: {
-    supportAdjustments: Map<number, number>;
+    supportAdjustments: Map<number, StagedSupportAdjustment>;
     stagedStatements: StagedStatement[];
   };
 };
@@ -175,12 +185,42 @@ const adjustmentCost = (
   );
 };
 
+const getAdjustedSupport = (
+  onChainSupport: number,
+  adjustment: StagedSupportAdjustment,
+): number => {
+  return adjustment.adjustmentType === SupportAdjustmentType.SetTo
+    ? adjustment.value
+    : onChainSupport + adjustment.value;
+};
+
 // ── localStorage helpers for staged-support persistence ──────────────────────
 
+type PersistedSupportAdjustment = number | StagedSupportAdjustment;
+
 interface PersistedStaged {
-  supportAdjustments: [number, number][];
+  supportAdjustments: [number, PersistedSupportAdjustment][];
   stagedStatements: StagedStatement[];
 }
+
+const normalizeSupportAdjustment = (
+  adjustment: PersistedSupportAdjustment,
+): StagedSupportAdjustment => {
+  if (typeof adjustment === "number") {
+    return {
+      value: adjustment,
+      adjustmentType: SupportAdjustmentType.Delta,
+    };
+  }
+
+  return {
+    value: Number(adjustment.value),
+    adjustmentType:
+      adjustment.adjustmentType === SupportAdjustmentType.SetTo
+        ? SupportAdjustmentType.SetTo
+        : SupportAdjustmentType.Delta,
+  };
+};
 
 const stagedStorageKey = (
   chainFingerprint: string,
@@ -203,7 +243,7 @@ const saveStagedToStorage = (key: string, staged: StagedSupport): void => {
 const loadStagedFromStorage = (
   key: string,
 ): {
-  supportAdjustments: Map<number, number>;
+  supportAdjustments: Map<number, StagedSupportAdjustment>;
   stagedStatements: StagedStatement[];
 } | null => {
   try {
@@ -211,7 +251,12 @@ const loadStagedFromStorage = (
     if (!raw) return null;
     const data = JSON.parse(raw) as PersistedStaged;
     return {
-      supportAdjustments: new Map(data.supportAdjustments),
+      supportAdjustments: new Map(
+        data.supportAdjustments.map(([statementId, adjustment]) => [
+          statementId,
+          normalizeSupportAdjustment(adjustment),
+        ]),
+      ),
       stagedStatements: data.stagedStatements ?? [],
     };
   } catch {
@@ -298,10 +343,13 @@ const reducer = (
         supportAdjustments: new Map(state.staged.supportAdjustments),
         stagedStatements: [...state.staged.stagedStatements],
       };
-      if (adjustment === 0) {
+      const statementIdNumber = Number(statementId);
+      const onChainSupport =
+        newState.onChain?.statementSupport.get(statementIdNumber) || 0;
+      if (getAdjustedSupport(onChainSupport, adjustment) === onChainSupport) {
         newState.staged.supportAdjustments.delete(Number(statementId));
       } else {
-        newState.staged.supportAdjustments.set(Number(statementId), adjustment);
+        newState.staged.supportAdjustments.set(statementIdNumber, adjustment);
       }
       break;
     }
@@ -437,7 +485,7 @@ const reducer = (
       .supportAdjustments) {
       const onChainSupport =
         newState.onChain.statementSupport.get(statementId) || 0;
-      const newSupport = onChainSupport + adjustment;
+      const newSupport = getAdjustedSupport(onChainSupport, adjustment);
       totalAdjustmentCost += adjustmentCost(
         onChainSupport,
         newSupport,
@@ -757,8 +805,8 @@ export const UserVoteProvider: FC<{
             .supportAdjustments) {
             supportAdjustments.push({
               statementId: BigInt(statementId),
-              value: BigInt(adjustment),
-              adjustmentType: 0,
+              value: BigInt(adjustment.value),
+              adjustmentType: adjustment.adjustmentType,
             });
           }
           calls.push(
@@ -827,8 +875,10 @@ export const UserVoteProvider: FC<{
     (statementId: number): number => {
       const onChainSupport =
         renderOnChain?.statementSupport.get(statementId) || 0;
-      const adjustment = state.staged?.supportAdjustments.get(statementId) || 0;
-      return onChainSupport + adjustment;
+      const adjustment = state.staged?.supportAdjustments.get(statementId);
+      return adjustment
+        ? getAdjustedSupport(onChainSupport, adjustment)
+        : onChainSupport;
     },
     [renderOnChain, state.staged],
   );

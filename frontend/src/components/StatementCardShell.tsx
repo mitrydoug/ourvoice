@@ -1,5 +1,5 @@
 import { FC, MouseEvent, ReactNode } from "react";
-import { Card, Stack, SxProps, Theme, Typography } from "@mui/material";
+import { Box, Card, Stack, SxProps, Theme, Typography } from "@mui/material";
 import useIsMobile from "@/hooks/useIsMobile";
 
 /** Prevent clicks inside interactive zones from bubbling to the card. */
@@ -24,6 +24,8 @@ interface StatementCardShellProps {
    * inline below the text on mobile, in the right column on desktop.
    */
   voteControls?: ReactNode;
+  /** Optional action aligned to the lower stats row and desktop vote column. */
+  rightStatsSlot?: ReactNode;
   /** Optional click handler for the entire card. */
   onClick?: () => void;
   sx?: SxProps<Theme>;
@@ -41,6 +43,7 @@ const StatementCardShell: FC<StatementCardShellProps> = ({
   text,
   statsSlot,
   voteControls,
+  rightStatsSlot,
   onClick,
   sx,
 }) => {
@@ -73,18 +76,49 @@ const StatementCardShell: FC<StatementCardShellProps> = ({
             <div onClick={stopPropagation}>{voteControls}</div>
           )}
 
-          <div onClick={stopPropagation}>{statsSlot}</div>
+          <div onClick={stopPropagation}>
+            {isMobile && rightStatsSlot ? (
+              <Stack direction="row" alignItems="center" spacing={1}>
+                <Box sx={{ flex: 1, minWidth: 0 }}>{statsSlot}</Box>
+                {rightStatsSlot}
+              </Stack>
+            ) : (
+              statsSlot
+            )}
+          </div>
         </Stack>
 
         {/* Right column: vertical vote controls on desktop */}
-        {!isMobile && voteControls && (
+        {!isMobile && (voteControls || rightStatsSlot) && (
           <Stack
             alignItems="center"
             justifyContent="center"
             onClick={stopPropagation}
-            sx={{ flexShrink: 0, ml: "auto" }}
+            sx={{
+              flexShrink: 0,
+              ml: "auto",
+              mr: 1,
+              alignSelf: "stretch",
+              position: "relative",
+            }}
           >
             {voteControls}
+            {rightStatsSlot && (
+              <Box
+                sx={{
+                  position: "absolute",
+                  bottom: 0,
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  height: 24,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {rightStatsSlot}
+              </Box>
+            )}
           </Stack>
         )}
       </Stack>
