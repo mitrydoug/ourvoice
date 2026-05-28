@@ -20,6 +20,7 @@ import StatementPage from "./components/StatementPage.tsx";
 import GlobalErrorBoundary, {
   RouteErrorBoundary,
 } from "./components/GlobalErrorBoundary.tsx";
+import Settings from "./components/Settings.tsx";
 
 import { theme } from "./theme.ts";
 import {
@@ -75,6 +76,10 @@ const forumChildren = [
   {
     path: "profile",
     Component: Profile,
+  },
+  {
+    path: "settings",
+    Component: Settings,
   },
   {
     path: "write",
