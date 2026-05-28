@@ -22,7 +22,7 @@ import GlobalErrorBoundary, {
 } from "./components/GlobalErrorBoundary.tsx";
 import Settings from "./components/Settings.tsx";
 
-import { theme } from "./theme.ts";
+import { theme, THEME_MODE_STORAGE_KEY } from "./theme.ts";
 import {
   ForumProvider,
   getStoredForumSlug,
@@ -113,7 +113,12 @@ const router = createHashRouter([
 
 export const App: FC = () => {
   return (
-    <ThemeProvider theme={theme}>
+    <ThemeProvider
+      theme={theme}
+      defaultMode="system"
+      modeStorageKey={THEME_MODE_STORAGE_KEY}
+      disableTransitionOnChange
+    >
       <CssBaseline />
       <GlobalErrorBoundary>
         <ForumProvider>

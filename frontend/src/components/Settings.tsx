@@ -8,16 +8,25 @@ import {
   Divider,
   Stack,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
 } from "@mui/material";
+import DarkModeIcon from "@mui/icons-material/DarkMode";
+import LightModeIcon from "@mui/icons-material/LightMode";
+import SettingsBrightnessIcon from "@mui/icons-material/SettingsBrightness";
+import { useColorScheme } from "@mui/material/styles";
 
 import useNickname from "@/hooks/useNickname";
 import { metamaskIcon, shortenAddress } from "../util";
+
+type ThemeMode = "light" | "dark" | "system";
 
 const Settings: FC = () => {
   const { address } = useAccount();
   const [nickname, setNickname] = useNickname();
   const [nicknameInput, setNicknameInput] = useState(nickname);
+  const { mode, setMode, systemMode } = useColorScheme();
 
   useEffect(() => {
     setNicknameInput(nickname);
@@ -32,6 +41,7 @@ const Settings: FC = () => {
 
   const trimmedNickname = nicknameInput.trim();
   const hasNicknameChange = trimmedNickname !== nickname;
+  const selectedThemeMode: ThemeMode = mode ?? "system";
 
   const handleSaveNickname = () => {
     setNickname(trimmedNickname);
@@ -39,6 +49,10 @@ const Settings: FC = () => {
 
   const handleClearNickname = () => {
     setNickname("");
+  };
+
+  const handleThemeModeChange = (_event: unknown, value: ThemeMode | null) => {
+    if (value) setMode(value);
   };
 
   return (
@@ -104,6 +118,44 @@ const Settings: FC = () => {
                 </Button>
               </Stack>
             </Stack>
+          </Box>
+
+          <Box>
+            <Typography variant="subtitle1" fontWeight={700} gutterBottom>
+              Theme
+            </Typography>
+            <ToggleButtonGroup
+              value={selectedThemeMode}
+              exclusive
+              onChange={handleThemeModeChange}
+              aria-label="Theme"
+              size="small"
+              fullWidth
+            >
+              <ToggleButton value="light" aria-label="Light theme">
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <LightModeIcon fontSize="small" />
+                  <span>Light</span>
+                </Stack>
+              </ToggleButton>
+              <ToggleButton value="dark" aria-label="Dark theme">
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <DarkModeIcon fontSize="small" />
+                  <span>Dark</span>
+                </Stack>
+              </ToggleButton>
+              <ToggleButton value="system" aria-label="System theme">
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <SettingsBrightnessIcon fontSize="small" />
+                  <span>System</span>
+                </Stack>
+              </ToggleButton>
+            </ToggleButtonGroup>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              {selectedThemeMode === "system" && systemMode
+                ? `Using your system ${systemMode} theme.`
+                : "Saved on this device."}
+            </Typography>
           </Box>
         </Stack>
       </Box>
