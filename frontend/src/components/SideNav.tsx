@@ -12,7 +12,7 @@ import HomeIcon from "@mui/icons-material/Home";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import ArticleIcon from "@mui/icons-material/Article";
 import StarIcon from "@mui/icons-material/Star";
-import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import HelpIcon from "@mui/icons-material/Help";
 import { useUserVotes } from "../state/UserVotes";
 import ChooseForumModal, { FORUMS } from "./ChooseForumModal";
 import ForumIcon from "./ForumIcon";
@@ -41,8 +41,8 @@ const NAV_ITEMS = [
   },
   {
     label: "How it works",
-    href: "#",
-    icon: <HelpOutlineIcon />,
+    href: "/how-it-works",
+    icon: <HelpIcon />,
     memberOnly: false,
   },
 ];

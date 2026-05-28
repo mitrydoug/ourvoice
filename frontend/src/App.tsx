@@ -21,6 +21,7 @@ import GlobalErrorBoundary, {
   RouteErrorBoundary,
 } from "./components/GlobalErrorBoundary.tsx";
 import Settings from "./components/Settings.tsx";
+import HowItWorks from "./components/HowItWorks.tsx";
 
 import { theme, THEME_MODE_STORAGE_KEY } from "./theme.ts";
 import {
@@ -80,6 +81,10 @@ const forumChildren = [
   {
     path: "settings",
     Component: Settings,
+  },
+  {
+    path: "how-it-works",
+    Component: HowItWorks,
   },
   {
     path: "write",
