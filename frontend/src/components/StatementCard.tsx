@@ -66,7 +66,7 @@ interface Statement {
 
 /**
  * Format a number to 3 significant digits with a suffix (k, m, b, t).
- * Examples: 120 -> "120", 3220 -> "3.22k", 3220000 -> "3.22m"
+ * Examples: 120 -> "120", 1000 -> "1k", 3220 -> "3.22k"
  */
 const formatSupport = (value: number): string => {
   const abs = Math.abs(value);
@@ -81,7 +81,7 @@ const formatSupport = (value: number): string => {
 
   // 3 significant digits
   const digits = 3 - Math.floor(Math.log10(scaled)) - 1;
-  const formatted = scaled.toFixed(Math.max(0, digits));
+  const formatted = Number(scaled.toFixed(Math.max(0, digits))).toString();
 
   return `${sign}${formatted}${suffix}`;
 };
