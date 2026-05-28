@@ -17,6 +17,9 @@ import { UserVoteProvider } from "./state/UserVotes.tsx";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import GetVerified from "./components/GetVerified.tsx";
 import StatementPage from "./components/StatementPage.tsx";
+import GlobalErrorBoundary, {
+  RouteErrorBoundary,
+} from "./components/GlobalErrorBoundary.tsx";
 
 import { theme } from "./theme.ts";
 import {
@@ -87,16 +90,19 @@ const router = createHashRouter([
   {
     path: "/verify",
     Component: GetVerified,
+    errorElement: <RouteErrorBoundary />,
   },
   {
     path: "/:forumSlug",
     Component: ValidateForumSlug,
+    errorElement: <RouteErrorBoundary />,
     children: forumChildren,
   },
   {
     /* Bare "/" redirects to the last-visited forum (localStorage) */
     path: "/",
     Component: RootRedirect,
+    errorElement: <RouteErrorBoundary />,
   },
 ]);
 
@@ -104,11 +110,13 @@ export const App: FC = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <ForumProvider>
-        <UserVoteProvider>
-          <RouterProvider router={router} />
-        </UserVoteProvider>
-      </ForumProvider>
+      <GlobalErrorBoundary>
+        <ForumProvider>
+          <UserVoteProvider>
+            <RouterProvider router={router} />
+          </UserVoteProvider>
+        </ForumProvider>
+      </GlobalErrorBoundary>
     </ThemeProvider>
   );
 };
