@@ -13,10 +13,9 @@ import UserProfilePanel from "./UserProfilePanel";
 import useIsMobile from "@/hooks/useIsMobile";
 import { useUserVotes } from "../state/UserVotes";
 import CommitSupportModal from "./CommitSupportModal";
-import { useAccount } from "wagmi";
-import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { SearchProvider, useSearchQuery } from "@/state/Search";
 import { useForum } from "../state/Forum";
+import { useWalletAuth } from "@/hooks/useWalletAuth";
 
 /**
  * Sync the `:forumSlug` URL param → ForumProvider context.
@@ -36,12 +35,11 @@ const useForumSlugSync = () => {
 /* ── Right column: user profile pill / connect wallet ──────────────────── */
 
 const RightColumn: FC = () => {
-  const { address } = useAccount();
-  const { openConnectModal } = useConnectModal();
+  const { address, connect, ready } = useWalletAuth();
 
   if (!address) {
     return (
-      <Button onClick={() => openConnectModal?.()} size="medium" fullWidth>
+      <Button onClick={connect} size="medium" fullWidth disabled={!ready}>
         Connect Wallet
       </Button>
     );

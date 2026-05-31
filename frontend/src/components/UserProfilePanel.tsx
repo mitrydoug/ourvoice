@@ -24,7 +24,6 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import CreateIcon from "@mui/icons-material/Create";
-import { useAccount, useDisconnect } from "wagmi";
 import { useNavigate } from "react-router-dom";
 import useNickname from "@/hooks/useNickname";
 import { useForumNavigate } from "@/hooks/useForumNavigate";
@@ -38,6 +37,7 @@ import { useCreditConversion } from "../hooks/useCreditConversion";
 import AnimatedCounter from "./AnimatedCounter";
 import IndeterminateCheckBoxIcon from "@mui/icons-material/IndeterminateCheckBox";
 import useGracefulLoading from "@/hooks/useGracefulLoading";
+import { useWalletAuth } from "@/hooks/useWalletAuth";
 
 const shimmer = keyframes`
   0% { opacity: 0.6; }
@@ -71,8 +71,7 @@ const CoinIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
 );
 
 const UserProfilePanel: React.FC = () => {
-  const { address } = useAccount();
-  const { disconnect } = useDisconnect();
+  const { address, disconnect } = useWalletAuth();
   const navigate = useForumNavigate();
   const rawNavigate = useNavigate();
   const [nickname] = useNickname();

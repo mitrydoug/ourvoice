@@ -20,6 +20,12 @@ interface ImportMetaEnv {
   /** WalletConnect projectId. Get a free one at https://cloud.walletconnect.com */
   readonly VITE_WALLETCONNECT_PROJECT_ID?: string;
 
+  /** Privy app ID for embedded wallet and external wallet login. */
+  readonly VITE_PRIVY_APP_ID?: string;
+
+  /** Optional Privy app client ID, when configured in the Privy dashboard. */
+  readonly VITE_PRIVY_APP_CLIENT_ID?: string;
+
   /** Base URL for the search API. Defaults to http://localhost:8000 for local dev. */
   readonly VITE_SEARCH_URL?: string;
 

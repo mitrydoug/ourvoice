@@ -5,14 +5,12 @@ import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import { Avatar, Button, Stack } from "@mui/material";
-import { useAccount, useDisconnect } from "wagmi";
 import { Link, useNavigate } from "react-router-dom";
 import { useUserVotes } from "../state/UserVotes";
 import ChooseForumModal, { FORUMS } from "./ChooseForumModal";
 import ForumIcon from "./ForumIcon";
 import { useForum, forumToSlug } from "../state/Forum";
 import { metamaskIcon, shortenAddress } from "../util";
-import { useConnectModal } from "@rainbow-me/rainbowkit";
 import useIsMobile from "@/hooks/useIsMobile";
 import useNickname from "@/hooks/useNickname";
 import { useTheme } from "@mui/material/styles";
@@ -20,6 +18,7 @@ import { ProfileDrawer } from "./UserProfileMenu";
 import { useSearchQuery } from "@/state/Search";
 import SearchField from "./SearchField";
 import { useForumNavigate, useForumPath } from "../hooks/useForumNavigate";
+import { useWalletAuth } from "@/hooks/useWalletAuth";
 
 // Sub-components
 interface ForumSelectorProps {
@@ -69,14 +68,17 @@ export default function MenuAppBar() {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const [avatar, setAvatar] = useState<string | null>(null);
-  const { address } = useAccount();
+  const {
+    address,
+    connect,
+    disconnect: doDisconnect,
+    ready: walletAuthReady,
+  } = useWalletAuth();
   const isMobile = useIsMobile();
   const [chooseForumModalOpen, setChooseForumModalOpen] = useState(false);
   const { name: forumName, setForum } = useForum();
   const navigate = useForumNavigate();
   const rawNavigate = useNavigate();
-  const { disconnect: doDisconnect } = useDisconnect();
-  const { openConnectModal } = useConnectModal();
   const forumPath = useForumPath();
   const [nickname] = useNickname();
   const displayName = nickname || (address ? shortenAddress(address) : "");
@@ -180,7 +182,11 @@ export default function MenuAppBar() {
                     />
                   </>
                 ) : (
-                  <Button onClick={() => openConnectModal?.()} size="small">
+                  <Button
+                    onClick={connect}
+                    size="small"
+                    disabled={!walletAuthReady}
+                  >
                     <Typography variant="body1" component="div">
                       Connect
                     </Typography>
@@ -205,7 +211,11 @@ export default function MenuAppBar() {
               />
 
               {!address && (
-                <Button onClick={() => openConnectModal?.()} size="medium">
+                <Button
+                  onClick={connect}
+                  size="medium"
+                  disabled={!walletAuthReady}
+                >
                   <Typography variant="body1" component="div">
                     Connect
                   </Typography>

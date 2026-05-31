@@ -5,15 +5,39 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import InitColorSchemeScript from "@mui/material/InitColorSchemeScript";
 import App from "./App";
-import { WagmiProvider } from "wagmi";
+import { PrivyProvider } from "@privy-io/react-auth";
+import { WagmiProvider } from "@privy-io/wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { RainbowKitProvider } from "@rainbow-me/rainbowkit";
-import wagmiConfig, { targetChain } from "./wagmiConfig";
+import wagmiConfig, {
+  privyAppClientId,
+  privyAppId,
+  privyConfig,
+} from "./wagmiConfig";
 import NetworkGuard from "./components/NetworkGuard";
 import { THEME_MODE_STORAGE_KEY } from "./theme";
-import "@rainbow-me/rainbowkit/styles.css";
 
 const queryClient = new QueryClient();
+
+const app = !privyAppId ? (
+  <div style={{ padding: 24, fontFamily: "sans-serif" }}>
+    Missing VITE_PRIVY_APP_ID. Add your Privy app ID to the frontend
+    environment to enable wallet login.
+  </div>
+) : (
+  <PrivyProvider
+    appId={privyAppId}
+    clientId={privyAppClientId}
+    config={privyConfig}
+  >
+    <QueryClientProvider client={queryClient}>
+      <WagmiProvider config={wagmiConfig}>
+        <NetworkGuard>
+          <App />
+        </NetworkGuard>
+      </WagmiProvider>
+    </QueryClientProvider>
+  </PrivyProvider>
+);
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
@@ -21,14 +45,6 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
       defaultMode="system"
       modeStorageKey={THEME_MODE_STORAGE_KEY}
     />
-    <WagmiProvider config={wagmiConfig}>
-      <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider initialChain={targetChain}>
-          <NetworkGuard>
-            <App />
-          </NetworkGuard>
-        </RainbowKitProvider>
-      </QueryClientProvider>
-    </WagmiProvider>
+    {app}
   </React.StrictMode>,
 );

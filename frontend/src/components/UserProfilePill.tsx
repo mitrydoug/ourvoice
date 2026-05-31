@@ -13,7 +13,6 @@ import {
   keyframes,
 } from "@mui/material";
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
-import { useAccount, useDisconnect } from "wagmi";
 import { useNavigate } from "react-router-dom";
 import { useForumNavigate } from "../hooks/useForumNavigate";
 import useNickname from "@/hooks/useNickname";
@@ -26,6 +25,7 @@ import { metamaskIcon, shortenAddress } from "../util";
 import { useCreditConversion } from "../hooks/useCreditConversion";
 import AnimatedCounter from "./AnimatedCounter";
 import IndeterminateCheckBoxIcon from "@mui/icons-material/IndeterminateCheckBox";
+import { useWalletAuth } from "@/hooks/useWalletAuth";
 
 const shimmer = keyframes`
   0% { opacity: 0.6; }
@@ -59,8 +59,7 @@ const CoinIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
 );
 
 const UserProfilePanel: React.FC = () => {
-  const { address } = useAccount();
-  const { disconnect } = useDisconnect();
+  const { address, disconnect } = useWalletAuth();
   const navigate = useForumNavigate();
   const rawNavigate = useNavigate();
   const [nickname] = useNickname();
