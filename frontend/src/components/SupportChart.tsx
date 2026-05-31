@@ -11,6 +11,22 @@ interface SupportChartProps {
   statementId: bigint;
 }
 
+const formatAxisTick = (value: number): string => {
+  const abs = Math.abs(value);
+  const sign = value < 0 ? "-" : "";
+
+  if (abs < 1000) return `${sign}${abs}`;
+
+  const suffixes = ["", "k", "m", "b", "t"];
+  const tier = Math.floor(Math.log10(abs) / 3);
+  const suffix = suffixes[tier] ?? `e${tier * 3}`;
+  const scaled = abs / Math.pow(10, tier * 3);
+  const digits = 3 - Math.floor(Math.log10(scaled)) - 1;
+  const formatted = Number(scaled.toFixed(Math.max(0, digits))).toString();
+
+  return `${sign}${formatted}${suffix}`;
+};
+
 const SupportChart: FC<SupportChartProps> = ({ statementId }) => {
   const { data, isLoading } = useHistoricalSupport(statementId);
   const theme = useTheme();
@@ -80,7 +96,7 @@ const SupportChart: FC<SupportChartProps> = ({ statementId }) => {
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart
           data={data}
-          margin={{ top: 16, right: 12, bottom: 0, left: -40 }}
+          margin={{ top: 16, right: 12, bottom: 0, left: 0 }}
         >
           <defs>
             <linearGradient id="supportGradient" x1="0" y1="0" x2="0" y2="1">
@@ -99,6 +115,9 @@ const SupportChart: FC<SupportChartProps> = ({ statementId }) => {
             axisLine={false}
             tickLine={false}
             allowDecimals={false}
+            tickFormatter={formatAxisTick}
+            tickMargin={6}
+            width={42}
           />
           <Area
             type="monotone"

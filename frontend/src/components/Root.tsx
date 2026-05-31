@@ -62,6 +62,8 @@ const DesktopLayout: FC = () => {
 
   const hideSearch =
     location.pathname.endsWith("/write") ||
+    location.pathname.endsWith("/settings") ||
+    location.pathname.endsWith("/how-it-works") ||
     location.pathname.includes("/statement/");
 
   return (

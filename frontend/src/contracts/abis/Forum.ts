@@ -65,6 +65,11 @@ export default [
             "internalType": "uint256",
             "name": "refundPenaltyBps",
             "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "decaySpeedupFactor",
+            "type": "uint256"
           }
         ],
         "internalType": "struct Forum.ForumConfig",
@@ -348,6 +353,19 @@ export default [
   },
   {
     "inputs": [],
+    "name": "decaySpeedupFactor",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "engagementWindowSeconds",
     "outputs": [
       {
@@ -461,6 +479,19 @@ export default [
         "internalType": "struct Forum.Statement[]",
         "name": "",
         "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getRankingThreshold",
+    "outputs": [
+      {
+        "internalType": "int256",
+        "name": "",
+        "type": "int256"
       }
     ],
     "stateMutability": "view",

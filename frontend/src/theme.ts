@@ -1,5 +1,7 @@
 import { createTheme } from "@mui/material";
 
+export const THEME_MODE_STORAGE_KEY = "symvolia:settings:theme";
+
 // Type augmentation for custom theme tokens
 declare module "@mui/material/styles" {
   interface Theme {

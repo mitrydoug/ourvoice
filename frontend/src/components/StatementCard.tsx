@@ -1,6 +1,8 @@
 import { FC } from "react";
 import {
+  Box,
   ButtonBase,
+  CircularProgress,
   IconButton,
   Stack,
   Tooltip,
@@ -66,7 +68,7 @@ interface Statement {
 
 /**
  * Format a number to 3 significant digits with a suffix (k, m, b, t).
- * Examples: 120 -> "120", 3220 -> "3.22k", 3220000 -> "3.22m"
+ * Examples: 120 -> "120", 1000 -> "1k", 3220 -> "3.22k"
  */
 const formatSupport = (value: number): string => {
   const abs = Math.abs(value);
@@ -81,7 +83,7 @@ const formatSupport = (value: number): string => {
 
   // 3 significant digits
   const digits = 3 - Math.floor(Math.log10(scaled)) - 1;
-  const formatted = scaled.toFixed(Math.max(0, digits));
+  const formatted = Number(scaled.toFixed(Math.max(0, digits))).toString();
 
   return `${sign}${formatted}${suffix}`;
 };
@@ -111,6 +113,68 @@ const peakRankIcon = (rank: number): string => {
 const peakRankIconSize = (rank: number): number => {
   if (rank === 2 || rank === 3) return 17;
   return 14;
+};
+
+const clampPercent = (value: number): number =>
+  Math.max(0, Math.min(100, value));
+
+const rankingProgressPercent = (
+  supportParts: number,
+  thresholdParts: number,
+): number => {
+  if (thresholdParts <= 0) return supportParts > 0 ? 100 : 0;
+  return clampPercent((Math.max(0, supportParts) / thresholdParts) * 100);
+};
+
+const RankingProgressRing: FC<{ value: number }> = ({ value }) => {
+  const roundedValue = Math.round(value);
+
+  return (
+    <Tooltip title={`${roundedValue}% of the support needed to rank`} arrow>
+      <Box
+        sx={{
+          position: "relative",
+          width: 64,
+          height: 64,
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <CircularProgress
+          variant="determinate"
+          value={100}
+          size={64}
+          thickness={4}
+          sx={{
+            color: (theme) =>
+              theme.palette.mode === "dark"
+                ? "rgba(255, 255, 255, 0.18)"
+                : "rgba(0, 0, 0, 0.06)",
+            position: "absolute",
+          }}
+        />
+        <CircularProgress
+          variant="determinate"
+          value={roundedValue}
+          size={64}
+          thickness={4}
+          sx={{ color: "primary.main", position: "absolute" }}
+        />
+        <Typography
+          variant="caption"
+          sx={{
+            fontWeight: 700,
+            fontSize: "0.875rem",
+            lineHeight: 1,
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
+          {roundedValue}%
+        </Typography>
+      </Box>
+    </Tooltip>
+  );
 };
 
 type StatementCardProps = {
@@ -152,6 +216,16 @@ export const StatementCard: FC<StatementCardProps> = ({
     query: {
       enabled: !!blockNumber,
       placeholderData: (prev) => prev,
+    },
+  });
+
+  const { data: rankingThreshold } = useReadContract({
+    address: forumContractAddress,
+    abi: FORUM_ABI,
+    functionName: "getRankingThreshold",
+    query: {
+      enabled: statement.rank < 0n,
+      staleTime: 30_000,
     },
   });
 
@@ -205,6 +279,14 @@ export const StatementCard: FC<StatementCardProps> = ({
   const peakRank =
     statement.peakRank >= 0n ? Number(statement.peakRank) + 1 : null;
 
+  const rankingProgress =
+    rankingThreshold !== undefined
+      ? rankingProgressPercent(
+          Number(statement.support),
+          Number(rankingThreshold),
+        )
+      : null;
+
   const globalSupport = toCredits(Number(statement.support));
 
   const absUserSupportParts = Math.abs(userSupportParts);
@@ -213,9 +295,55 @@ export const StatementCard: FC<StatementCardProps> = ({
       (2 * creditMultiplier),
   );
 
+  const isHotRankChange =
+    rankChange !== null &&
+    lastWeekRank !== null &&
+    rankChange > 0 &&
+    rankChange / lastWeekRank >= 0.25;
+
+  const rankChangeIndicator =
+    rankChange !== null && rankChange !== 0 ? (
+      <Tooltip
+        title={`Recently moved ${rankChange > 0 ? "up" : "down"} ${Math.abs(rankChange)} ${Math.abs(rankChange) === 1 ? "rank" : "ranks"}`}
+        arrow
+      >
+        <Typography
+          variant="body2"
+          sx={{
+            fontWeight: 600,
+            fontSize: "0.95rem",
+            color: isHotRankChange
+              ? "warning.main"
+              : rankChange > 0
+                ? "success.main"
+                : "error.main",
+            lineHeight: 1,
+          }}
+        >
+          {isHotRankChange ? (
+            <Box
+              component="span"
+              sx={{
+                fontSize: "1.15em",
+                lineHeight: 1,
+                verticalAlign: "-0.04em",
+              }}
+            >
+              🔥
+            </Box>
+          ) : rankChange > 0 ? (
+            "▲"
+          ) : (
+            "▼"
+          )}
+          {Math.abs(rankChange)}
+        </Typography>
+      </Tooltip>
+    ) : null;
+
   const leftSlot =
     currentRank !== null ? (
-      <Stack alignItems="center" spacing={0.75}>
+      <Stack alignItems="center" spacing={1.35}>
         {/* Rank number */}
         <Typography
           variant="h4"
@@ -228,57 +356,47 @@ export const StatementCard: FC<StatementCardProps> = ({
         >
           {currentRank}
         </Typography>
-        {/* Total support */}
-        <Typography
-          variant="body2"
-          sx={{
-            fontWeight: 500,
-            color: "text.secondary",
-            fontSize: "1rem",
-            lineHeight: 1,
-          }}
-        >
-          {formatSupport(globalSupport)}
-        </Typography>
+        {rankChangeIndicator}
       </Stack>
     ) : (
-      <Typography
-        variant="caption"
-        sx={{
-          fontWeight: 600,
-          fontSize: "0.6rem",
-          lineHeight: 1.2,
-          color: "text.disabled",
-          textAlign: "center",
-          textTransform: "uppercase",
-          letterSpacing: "0.04em",
-        }}
-      >
-        Not
-        <br />
-        Ranked
-      </Typography>
+      <Stack alignItems="center" spacing={0.75}>
+        {rankingProgress !== null ? (
+          <RankingProgressRing value={rankingProgress} />
+        ) : (
+          <Typography
+            variant="caption"
+            sx={{
+              fontWeight: 600,
+              fontSize: "0.6rem",
+              lineHeight: 1.2,
+              color: "text.disabled",
+              textAlign: "center",
+              textTransform: "uppercase",
+              letterSpacing: "0.04em",
+            }}
+          >
+            Not
+            <br />
+            Ranked
+          </Typography>
+        )}
+      </Stack>
     );
 
   const statsSlot = (
     <Stack direction="row" alignItems="center" spacing={2} sx={{ mt: 0.5 }}>
-      {rankChange !== null && rankChange !== 0 && (
-        <Tooltip
-          title={`Recently moved ${rankChange > 0 ? "up" : "down"} ${Math.abs(rankChange)} ${Math.abs(rankChange) === 1 ? "rank" : "ranks"}`}
-          arrow
+      <Tooltip title={`${globalSupport} total support`} arrow>
+        <Typography
+          variant="body2"
+          sx={{
+            fontWeight: 600,
+            color: "text.secondary",
+            fontVariantNumeric: "tabular-nums",
+          }}
         >
-          <Typography
-            variant="body2"
-            sx={{
-              fontWeight: 600,
-              color: rankChange > 0 ? "success.main" : "error.main",
-            }}
-          >
-            {rankChange > 0 ? "▲" : "▼"}
-            {Math.abs(rankChange)}
-          </Typography>
-        </Tooltip>
-      )}
+          {formatSupport(globalSupport)}
+        </Typography>
+      </Tooltip>
 
       {peakRank !== null && (
         <Tooltip title={`Peak rank: #${peakRank}`} arrow>

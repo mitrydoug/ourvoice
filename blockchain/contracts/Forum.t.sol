@@ -319,6 +319,43 @@ contract ForumTest is Test {
         assertEq(forum.rankedCount(), 1, "Ranked count should be 1");
     }
 
+    function testRankingThresholdReturnsMinimumSupportWhenRankingHasRoom()
+        external
+        registeredMember
+    {
+        forum.addStatement("Statement A", 0);
+        _addStatementSupport(0, 2);
+
+        assertEq(
+            forum.getRankingThreshold(),
+            forum.minStatementSupportToRank(),
+            "Threshold should be minimum support while ranking has room"
+        );
+    }
+
+    function testRankingThresholdReturnsLowestRankedSupportPlusOneWhenFull()
+        external
+        registeredMember
+    {
+        forum.addStatement("Statement A", 0);
+        forum.addStatement("Statement B", 0);
+        forum.addStatement("Statement C", 0);
+
+        Forum.SupportAdjustment[]
+            memory adjustments = new Forum.SupportAdjustment[](3);
+        adjustments[0] = _deltaSupportAdjustment(0, 5);
+        adjustments[1] = _deltaSupportAdjustment(1, 4);
+        adjustments[2] = _deltaSupportAdjustment(2, 3);
+        forum.adjustSupport(adjustments);
+
+        assertEq(forum.rankedCount(), 3, "Ranking should be full");
+        assertEq(
+            forum.getRankingThreshold(),
+            4,
+            "Threshold should exceed the lowest ranked support"
+        );
+    }
+
     function testRankedStatementRankChangesWithMoreSupport()
         external
         registeredMember
@@ -749,7 +786,8 @@ contract ForumTest is Test {
         fractionalForum.adjustSupport(adjustments);
 
         int supportBefore = fractionalForum
-        .getStatementsById(_oneId(0))[0].support;
+            .getStatementsById(_oneId(0))[0]
+            .support;
         assertEq(
             supportBefore,
             100,

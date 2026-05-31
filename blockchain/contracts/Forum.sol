@@ -215,6 +215,11 @@ contract Forum is Multicall {
         return stmts;
     }
 
+    /// @notice Returns the support a statement needs to enter the ranked list.
+    function getRankingThreshold() external view returns (int) {
+        return _getRankingThreshold();
+    }
+
     function isMember() public view returns (bool) {
         if (!ourVoiceRegistry.isRegistered(msg.sender)) {
             return false;
@@ -239,7 +244,7 @@ contract Forum is Multicall {
             _getCurrentSupportValue(
                 statements[statementRankings[rankedCount - 1]].support
             ) <
-            minStatementSupportToRank
+                minStatementSupportToRank
         ) {
             rankedCount -= 1;
             _setStatementRank(statementRankings[rankedCount], -1);
@@ -308,9 +313,9 @@ contract Forum is Multicall {
         while (
             _rank >= 1 &&
             _getCurrentSupportValue(statement.support) >
-            _getCurrentSupportValue(
-                statements[statementRankings[_rank - 1]].support
-            )
+                _getCurrentSupportValue(
+                    statements[statementRankings[_rank - 1]].support
+                )
         ) {
             statementRankings[_rank] = statementRankings[_rank - 1];
             _setStatementRank(statementRankings[_rank], int(_rank));
@@ -320,9 +325,9 @@ contract Forum is Multicall {
         while (
             _rank + 1 < rankedCount &&
             _getCurrentSupportValue(statement.support) <
-            _getCurrentSupportValue(
-                statements[statementRankings[_rank + 1]].support
-            )
+                _getCurrentSupportValue(
+                    statements[statementRankings[_rank + 1]].support
+                )
         ) {
             statementRankings[_rank] = statementRankings[_rank + 1];
             _setStatementRank(statementRankings[_rank], int(_rank));

@@ -17,8 +17,13 @@ import { UserVoteProvider } from "./state/UserVotes.tsx";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import GetVerified from "./components/GetVerified.tsx";
 import StatementPage from "./components/StatementPage.tsx";
+import GlobalErrorBoundary, {
+  RouteErrorBoundary,
+} from "./components/GlobalErrorBoundary.tsx";
+import Settings from "./components/Settings.tsx";
+import HowItWorks from "./components/HowItWorks.tsx";
 
-import { theme } from "./theme.ts";
+import { theme, THEME_MODE_STORAGE_KEY } from "./theme.ts";
 import {
   ForumProvider,
   getStoredForumSlug,
@@ -74,6 +79,14 @@ const forumChildren = [
     Component: Profile,
   },
   {
+    path: "settings",
+    Component: Settings,
+  },
+  {
+    path: "how-it-works",
+    Component: HowItWorks,
+  },
+  {
     path: "write",
     Component: CreateStatementForm,
   },
@@ -87,28 +100,38 @@ const router = createHashRouter([
   {
     path: "/verify",
     Component: GetVerified,
+    errorElement: <RouteErrorBoundary />,
   },
   {
     path: "/:forumSlug",
     Component: ValidateForumSlug,
+    errorElement: <RouteErrorBoundary />,
     children: forumChildren,
   },
   {
     /* Bare "/" redirects to the last-visited forum (localStorage) */
     path: "/",
     Component: RootRedirect,
+    errorElement: <RouteErrorBoundary />,
   },
 ]);
 
 export const App: FC = () => {
   return (
-    <ThemeProvider theme={theme}>
+    <ThemeProvider
+      theme={theme}
+      defaultMode="system"
+      modeStorageKey={THEME_MODE_STORAGE_KEY}
+      disableTransitionOnChange
+    >
       <CssBaseline />
-      <ForumProvider>
-        <UserVoteProvider>
-          <RouterProvider router={router} />
-        </UserVoteProvider>
-      </ForumProvider>
+      <GlobalErrorBoundary>
+        <ForumProvider>
+          <UserVoteProvider>
+            <RouterProvider router={router} />
+          </UserVoteProvider>
+        </ForumProvider>
+      </GlobalErrorBoundary>
     </ThemeProvider>
   );
 };
