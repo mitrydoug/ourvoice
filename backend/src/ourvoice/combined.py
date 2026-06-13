@@ -41,6 +41,7 @@ import meilisearch
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from ourvoice.gas_sponsorship.api import create_api as create_gas_sponsorship_api
 from ourvoice.indexer import (
     DEFAULT_EVICTION_MAX_AGE_SECONDS,
     DEFAULT_WEB3_SUBSCRIPTION_RESPONSE_QUEUE_SIZE,
@@ -125,3 +126,4 @@ if CORS_ORIGINS:
 
 app.state.meili_client = meilisearch.Client(MEILI_URL, MEILI_API_KEY)
 create_api(app)
+create_gas_sponsorship_api(app)
