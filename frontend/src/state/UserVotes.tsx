@@ -8,16 +8,18 @@ import React, {
   useRef,
 } from "react";
 import {
-  useAccount,
   usePublicClient,
   useReadContract,
   useWaitForTransactionReceipt,
-  useWriteContract,
 } from "wagmi";
 import { encodeFunctionData, parseEventLogs, BaseError } from "viem";
 import { FORUM_ABI, useForum } from "./Forum";
 import useBlockSync from "@/hooks/useBlockSync";
 import useLocalStorageSet from "@/hooks/useLocalStorageSet";
+import {
+  useParticipantAddress,
+  useSponsoredContractWrite,
+} from "@/hooks/useSponsoredContractWrite";
 
 interface StatementSupport {
   statementId: bigint;
@@ -187,7 +189,7 @@ const inverseTriangle = (
       creditMultiplier * creditMultiplier + 8 * creditMultiplier * creditCost,
     ) -
       creditMultiplier) /
-      2,
+    2,
   );
 };
 
@@ -616,9 +618,9 @@ const reducer = (
     ...newState,
     staged: newState.staged
       ? {
-          ...newState.staged,
-          credits: stagedCredits,
-        }
+        ...newState.staged,
+        credits: stagedCredits,
+      }
       : undefined,
     hasStagedChanges,
     hasEnoughCredits: stagedCredits >= 0,
@@ -678,8 +680,9 @@ export const UserVoteProvider: FC<{
     commitStatus: "idle",
     pendingDraftCost: 0,
   });
-  const { writeContractAsync } = useWriteContract();
-  const { address } = useAccount();
+  const { writeContractAsync } = useSponsoredContractWrite();
+  const { address: participantAddress, isSmartWalletLoading } =
+    useParticipantAddress();
   const publicClient = usePublicClient();
   const {
     forumContractAddress,
@@ -705,11 +708,11 @@ export const UserVoteProvider: FC<{
   } = useReadContract({
     address: forumContractAddress,
     abi: FORUM_ABI,
-    account: address,
+    account: participantAddress,
     functionName: "isMember",
     args: [],
     query: {
-      enabled: !!address,
+      enabled: !!participantAddress,
     },
   });
 
@@ -717,11 +720,11 @@ export const UserVoteProvider: FC<{
     useReadContract({
       address: forumContractAddress,
       abi: FORUM_ABI,
-      account: address,
+      account: participantAddress,
       functionName: "getUserStatementSupport",
       args: [],
       query: {
-        enabled: Boolean(address && isUserVerified),
+        enabled: Boolean(participantAddress && isUserVerified),
       },
     });
 
@@ -729,11 +732,11 @@ export const UserVoteProvider: FC<{
     {
       address: forumContractAddress,
       abi: FORUM_ABI,
-      account: address,
+      account: participantAddress,
       functionName: "getUserBalance",
       args: [],
       query: {
-        enabled: Boolean(address && isUserVerified),
+        enabled: Boolean(participantAddress && isUserVerified),
       },
     },
   );
@@ -773,8 +776,12 @@ export const UserVoteProvider: FC<{
 
   // ── Staged-support persistence ──────────────────────────────────────────
   const persistKey =
-    chainFingerprint && address
-      ? stagedStorageKey(chainFingerprint, forumName, address.slice(0, 10))
+    chainFingerprint && participantAddress
+      ? stagedStorageKey(
+        chainFingerprint,
+        forumName,
+        participantAddress.slice(0, 10),
+      )
       : undefined;
   const restoredKeyRef = useRef<string | undefined>(undefined);
   useEffect(() => {
@@ -877,7 +884,8 @@ export const UserVoteProvider: FC<{
       state.hasStagedChanges &&
       state.hasEnoughCredits &&
       state.staged &&
-      publicClient
+      publicClient &&
+      participantAddress
     ) {
       const hasSupportAdjustments = state.staged.supportAdjustments.size > 0;
 
@@ -935,7 +943,7 @@ export const UserVoteProvider: FC<{
           abi: FORUM_ABI,
           functionName: "multicall",
           args: [calls],
-          account: address,
+          account: participantAddress,
         });
         const txHash = await writeContractAsync({
           address: forumContractAddress,
@@ -962,7 +970,7 @@ export const UserVoteProvider: FC<{
     writeContractAsync,
     forumContractAddress,
     publicClient,
-    address,
+    participantAddress,
     dispatch,
   ]);
 
@@ -1058,7 +1066,8 @@ export const UserVoteProvider: FC<{
 
   // Verification is still loading if the query is in-flight OR the wallet
   // address hasn't resolved yet (the query won't even start without it).
-  const isVerifiedStillLoading = !!address && isVerifiedLoading;
+  const isVerifiedStillLoading =
+    isSmartWalletLoading || (!!participantAddress && isVerifiedLoading);
 
   if (isUserVerified) {
     return (

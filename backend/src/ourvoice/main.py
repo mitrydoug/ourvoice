@@ -5,6 +5,7 @@ Run with:
         --forum-contract-address 0x... \
         --forum-contract-address 0x... \
         --ethereum-node-url ws://... \
+        --ethereum-read-node-url http://... \
         --meili-url http://... \
         --meili-api-key ...
 """
@@ -39,6 +40,15 @@ def parse_args() -> argparse.Namespace:
         type=str,
         required=True,
         help="WebSocket URL of the Ethereum node",
+    )
+    parser.add_argument(
+        "--ethereum-read-node-url",
+        type=str,
+        default=None,
+        help=(
+            "HTTP URL of the Ethereum node for read/backfill RPCs. "
+            "Defaults to --ethereum-node-url."
+        ),
     )
     parser.add_argument(
         "--meili-url",
@@ -96,6 +106,7 @@ async def main() -> None:
         meili_client=meili_client,
         forum_contract_addresses=forum_contract_addresses,
         ethereum_node_url=args.ethereum_node_url,
+        ethereum_read_node_url=args.ethereum_read_node_url,
         backfill_from=args.backfill_from,
         eviction_max_age_seconds=args.eviction_max_age_seconds,
         web3_subscription_response_queue_size=args.web3_subscription_response_queue_size,

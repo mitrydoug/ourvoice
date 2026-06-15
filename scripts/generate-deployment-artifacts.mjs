@@ -52,6 +52,14 @@ if (!ADDRESS_PATTERN.test(deployment.registryAddress)) {
   fail("registryAddress must be a 20-byte hex address");
 }
 
+if (
+  typeof deployment.deploymentBlockNumber !== "number" ||
+  !Number.isSafeInteger(deployment.deploymentBlockNumber) ||
+  deployment.deploymentBlockNumber < 0
+) {
+  fail("deploymentBlockNumber must be a non-negative safe integer");
+}
+
 if (!deployment.forums || typeof deployment.forums !== "object" || Array.isArray(deployment.forums)) {
   fail("forums must be an object mapping forum names to addresses");
 }
@@ -73,6 +81,10 @@ for (const forumName of forumOrder) {
 
 const orderedForumAddresses = forumOrder.map((forumName) => deployment.forums[forumName]);
 const registryMode = deployment.registryMode ?? "production";
+const registrySponsorshipSignatures =
+  registryMode === "mocked"
+    ? ["register(string)"]
+    : ["register((bytes32,(bytes32,bytes,bytes32[]),bytes,(uint256,string,string,bool)))"];
 const label =
   networkName === "localhost"
     ? "the local Hardhat development network (chain 31337)"
@@ -104,6 +116,8 @@ const backendEnvText =
   `DEPLOYMENT_PROFILE=${deployment.deploymentProfile}\n` +
   `REGISTRY_MODE=${registryMode}\n` +
   `REGISTRY_ADDRESS=${deployment.registryAddress}\n` +
+  `GAS_SPONSORSHIP_REGISTRY_SIGNATURES="${registrySponsorshipSignatures.join(";")}"\n` +
+  `DEPLOYMENT_BLOCK_NUMBER=${deployment.deploymentBlockNumber}\n` +
   `FORUM_CONTRACT_ADDRESSES="${orderedForumAddresses.join(",")}"\n`;
 
 const backendEnvPath = path.join(backendGeneratedDir, "deployment.env");

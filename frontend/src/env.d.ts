@@ -10,17 +10,19 @@ interface ImportMetaEnv {
 
   /**
    * Which network address file to load from `src/contracts/networks/`.
-   * Defaults to `"localhost"` for local development.
    */
   readonly VITE_NETWORK: string;
 
-  /** Sepolia RPC endpoint URL. Falls back to https://rpc.sepolia.org if unset. */
+  /** Local Hardhat RPC endpoint URL. Required when VITE_NETWORK is "localhost". */
+  readonly VITE_LOCALHOST_RPC_URL?: string;
+
+  /** Sepolia RPC endpoint URL. Required when VITE_NETWORK is "sepolia". */
   readonly VITE_SEPOLIA_RPC_URL?: string;
 
-  /** Base mainnet RPC endpoint URL. Falls back to https://mainnet.base.org if unset. */
+  /** Base mainnet RPC endpoint URL. Required when VITE_NETWORK is "base". */
   readonly VITE_BASE_RPC_URL?: string;
 
-  /** Base Sepolia RPC endpoint URL. Falls back to https://sepolia.base.org if unset. */
+  /** Base Sepolia RPC endpoint URL. Required when VITE_NETWORK is "base_sepolia". */
   readonly VITE_BASE_SEPOLIA_RPC_URL?: string;
 
   /** WalletConnect projectId. Get a free one at https://cloud.walletconnect.com */
@@ -31,6 +33,12 @@ interface ImportMetaEnv {
 
   /** Optional Privy app client ID, when configured in the Privy dashboard. */
   readonly VITE_PRIVY_APP_CLIENT_ID?: string;
+
+  /** Enables Privy smart-wallet sponsored transactions when set to "true". */
+  readonly VITE_ENABLE_GAS_SPONSORSHIP?: string;
+
+  /** Alchemy Gas Manager policy ID used by Privy smart wallets. */
+  readonly VITE_ALCHEMY_GAS_POLICY_ID?: string;
 
   /** Base URL for the search API. Defaults to http://localhost:8000 for local dev. */
   readonly VITE_SEARCH_URL?: string;

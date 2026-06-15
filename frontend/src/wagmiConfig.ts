@@ -9,21 +9,51 @@ import { http } from "wagmi";
 // target to keep connected wallets on the deployed chain.
 // ---------------------------------------------------------------------------
 
-const networkName = import.meta.env.VITE_NETWORK ?? "localhost";
-
-const optionalEnvUrl = (value: string | undefined) => {
+const optionalEnvValue = (value: string | undefined) => {
   const trimmedValue = value?.trim();
   return trimmedValue === "" ? undefined : trimmedValue;
 };
 
-const networkToChain: Record<string, Chain> = {
+const requiredEnvValue = (
+  name: keyof ImportMetaEnv,
+  value: string | undefined,
+) => {
+  const trimmedValue = optionalEnvValue(value);
+  if (!trimmedValue) {
+    throw new Error(`${name} is required.`);
+  }
+
+  return trimmedValue;
+};
+
+const networkToChain = {
   localhost: hardhat,
   sepolia,
   base,
   base_sepolia: baseSepolia,
-};
+} satisfies Record<string, Chain>;
 
-export const targetChain: Chain = networkToChain[networkName] ?? sepolia;
+type NetworkName = keyof typeof networkToChain;
+
+const isNetworkName = (value: string): value is NetworkName =>
+  value in networkToChain;
+
+const networkNameValue = requiredEnvValue(
+  "VITE_NETWORK",
+  import.meta.env.VITE_NETWORK,
+);
+
+if (!isNetworkName(networkNameValue)) {
+  throw new Error(
+    `Unsupported VITE_NETWORK "${networkNameValue}". Expected one of: ${Object.keys(
+      networkToChain,
+    ).join(", ")}.`,
+  );
+}
+
+const networkName = networkNameValue;
+
+export const targetChain: Chain = networkToChain[networkName];
 
 const networkToAverageBlockTimeSeconds: Record<string, number> = {
   localhost: 1,
@@ -33,19 +63,34 @@ const networkToAverageBlockTimeSeconds: Record<string, number> = {
 };
 
 export const targetAverageBlockTimeSeconds =
-  networkToAverageBlockTimeSeconds[networkName] ?? 12;
+  networkToAverageBlockTimeSeconds[networkName];
 
-export const privyAppId = import.meta.env.VITE_PRIVY_APP_ID ?? "";
+export const privyAppId = optionalEnvValue(import.meta.env.VITE_PRIVY_APP_ID);
 export const privyAppClientId = import.meta.env.VITE_PRIVY_APP_CLIENT_ID;
+const isGasSponsorshipRequested =
+  import.meta.env.VITE_ENABLE_GAS_SPONSORSHIP === "true";
+export const isGasSponsorshipEnabled =
+  isGasSponsorshipRequested && targetChain.id === baseSepolia.id;
+export const alchemyGasPolicyId = optionalEnvValue(
+  import.meta.env.VITE_ALCHEMY_GAS_POLICY_ID,
+);
+export const smartWalletsConfig =
+  isGasSponsorshipEnabled && alchemyGasPolicyId
+    ? { paymasterContext: { policyId: alchemyGasPolicyId } }
+    : undefined;
 
-const sepoliaRpcUrl =
-  optionalEnvUrl(import.meta.env.VITE_SEPOLIA_RPC_URL) ??
-  "https://rpc.sepolia.org";
-const baseRpcUrl =
-  optionalEnvUrl(import.meta.env.VITE_BASE_RPC_URL) ?? "https://mainnet.base.org";
-const baseSepoliaRpcUrl =
-  optionalEnvUrl(import.meta.env.VITE_BASE_SEPOLIA_RPC_URL) ??
-  "https://sepolia.base.org";
+const networkToRpcEnv = {
+  localhost: ["VITE_LOCALHOST_RPC_URL", import.meta.env.VITE_LOCALHOST_RPC_URL],
+  sepolia: ["VITE_SEPOLIA_RPC_URL", import.meta.env.VITE_SEPOLIA_RPC_URL],
+  base: ["VITE_BASE_RPC_URL", import.meta.env.VITE_BASE_RPC_URL],
+  base_sepolia: [
+    "VITE_BASE_SEPOLIA_RPC_URL",
+    import.meta.env.VITE_BASE_SEPOLIA_RPC_URL,
+  ],
+} satisfies Record<NetworkName, [keyof ImportMetaEnv, string | undefined]>;
+
+const [targetRpcEnvName, targetRpcEnvValue] = networkToRpcEnv[networkName];
+const targetRpcUrl = requiredEnvValue(targetRpcEnvName, targetRpcEnvValue);
 
 export const privyConfig = {
   appearance: {
@@ -74,10 +119,7 @@ export const privyConfig = {
 const wagmiConfig = createConfig({
   chains: [targetChain] as const,
   transports: {
-    [hardhat.id]: http("http://127.0.0.1:8545"),
-    [sepolia.id]: http(sepoliaRpcUrl),
-    [base.id]: http(baseRpcUrl),
-    [baseSepolia.id]: http(baseSepoliaRpcUrl),
+    [targetChain.id]: http(targetRpcUrl),
   },
 });
 

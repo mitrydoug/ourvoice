@@ -28,7 +28,7 @@ from importlib.resources import files
 from typing import Any
 
 import meilisearch
-from web3 import AsyncWeb3, WebSocketProvider
+from web3 import AsyncHTTPProvider, AsyncWeb3, WebSocketProvider
 
 from ourvoice.search_query import STOP_WORDS
 
@@ -364,6 +364,24 @@ async def _latest_chain_block_number(w3: AsyncWeb3) -> int:
     return int((await w3.eth.get_block("latest"))["number"])
 
 
+@contextlib.asynccontextmanager
+async def _read_web3_provider(
+    read_node_url: str,
+    subscription_node_url: str,
+    subscription_w3: AsyncWeb3,
+) -> Any:
+    """Yield a Web3 client for read RPCs, reusing the subscription client if needed."""
+    if read_node_url == subscription_node_url:
+        yield subscription_w3
+        return
+
+    read_w3 = AsyncWeb3(AsyncHTTPProvider(read_node_url))
+    try:
+        yield read_w3
+    finally:
+        await read_w3.provider.disconnect()
+
+
 async def _initial_index_cursor(w3: AsyncWeb3, backfill_from: str) -> int:
     """Resolve the first block the indexer should scan."""
     start_block = await _resolve_start_block(w3, backfill_from)
@@ -675,6 +693,7 @@ async def run_indexers(
     meili_client: meilisearch.Client,
     forum_contract_addresses: Sequence[str],
     ethereum_node_url: str,
+    ethereum_read_node_url: str | None = None,
     backfill_from: str = "",
     eviction_max_age_seconds: int = DEFAULT_EVICTION_MAX_AGE_SECONDS,
     web3_subscription_response_queue_size: int = (
@@ -701,12 +720,14 @@ async def run_indexers(
     forum_abi = _load_forum_abi()
     _ensure_index(meili_client)
     index = meili_client.index(STATEMENTS_INDEX)
+    read_node_url = ethereum_read_node_url or ethereum_node_url
 
     logger.info(
         "Starting indexer for %d contract(s) via %s "
-        "(eviction TTL=%ds, web3 subscription queue=%d)",
+        "(read RPC=%s, eviction TTL=%ds, web3 subscription queue=%d)",
         len(normalized_forum_contract_addresses),
         ethereum_node_url,
+        read_node_url,
         eviction_max_age_seconds,
         web3_subscription_response_queue_size,
     )
@@ -726,72 +747,83 @@ async def run_indexers(
                             web3_subscription_response_queue_size
                         ),
                     )
-                ) as w3:
-                    contracts = [
-                        (
-                            forum_contract_address,
-                            w3.eth.contract(
-                                address=forum_contract_address,
-                                abi=forum_abi,
-                            ),
-                        )
-                        for forum_contract_address in normalized_forum_contract_addresses
-                    ]
+                ) as subscription_w3:
+                    async with _read_web3_provider(
+                        read_node_url,
+                        ethereum_node_url,
+                        subscription_w3,
+                    ) as read_w3:
+                        contracts = [
+                            (
+                                forum_contract_address,
+                                read_w3.eth.contract(
+                                    address=forum_contract_address,
+                                    abi=forum_abi,
+                                ),
+                            )
+                            for forum_contract_address in normalized_forum_contract_addresses
+                        ]
 
-                    # Subscribe before catch-up so blocks mined during the
-                    # initial range scan are queued and share the same cursor.
-                    await w3.eth.subscribe("newHeads")
-                    logger.info("Subscribed to new block headers")
-                    subscription_stream = w3.socket.process_subscriptions()
-
-                    if next_block_to_index is None:
-                        next_block_to_index = await _initial_index_cursor(
-                            w3,
-                            backfill_from,
+                        # Subscribe before catch-up so blocks mined during the
+                        # initial range scan are queued and share the same cursor.
+                        await subscription_w3.eth.subscribe("newHeads")
+                        logger.info("Subscribed to new block headers")
+                        subscription_stream = (
+                            subscription_w3.socket.process_subscriptions()
                         )
-                    else:
+
+                        if next_block_to_index is None:
+                            next_block_to_index = await _initial_index_cursor(
+                                read_w3,
+                                backfill_from,
+                            )
+                        else:
+                            logger.info(
+                                "Resuming index cursor at block #%d",
+                                next_block_to_index,
+                            )
+
+                        latest_block = await _latest_chain_block_number(read_w3)
                         logger.info(
-                            "Resuming index cursor at block #%d",
+                            "Initial catch-up target is block #%d (cursor #%d)",
+                            latest_block,
                             next_block_to_index,
                         )
-
-                    latest_block = await _latest_chain_block_number(w3)
-                    logger.info(
-                        "Initial catch-up target is block #%d (cursor #%d)",
-                        latest_block,
-                        next_block_to_index,
-                    )
-                    next_block_to_index = await _index_missing_blocks(
-                        w3,
-                        contracts,
-                        index,
-                        next_block_to_index,
-                        latest_block,
-                        subscription_stream,
-                    )
-
-                    while True:
-                        queued_block = _latest_subscription_block_number(
-                            subscription_stream
-                        )
-                        latest_block = await _latest_chain_block_number(w3)
-                        target_block = max(
+                        next_block_to_index = await _index_missing_blocks(
+                            read_w3,
+                            contracts,
+                            index,
+                            next_block_to_index,
                             latest_block,
-                            queued_block if queued_block is not None else latest_block,
+                            subscription_stream,
                         )
 
-                        if next_block_to_index <= target_block:
-                            next_block_to_index = await _index_missing_blocks(
-                                w3,
-                                contracts,
-                                index,
-                                next_block_to_index,
-                                target_block,
-                                subscription_stream,
+                        while True:
+                            queued_block = _latest_subscription_block_number(
+                                subscription_stream
                             )
-                            continue
+                            latest_block = await _latest_chain_block_number(read_w3)
+                            target_block = max(
+                                latest_block,
+                                (
+                                    queued_block
+                                    if queued_block is not None
+                                    else latest_block
+                                ),
+                            )
 
-                        await asyncio.sleep(_LIVE_IDLE_POLL_SECONDS)
+                            if next_block_to_index <= target_block:
+                                next_block_to_index = await _index_missing_blocks(
+                                    read_w3,
+                                    contracts,
+                                    index,
+                                    next_block_to_index,
+                                    target_block,
+                                    subscription_stream,
+                                )
+                                continue
+
+                            await asyncio.sleep(_LIVE_IDLE_POLL_SECONDS)
             except asyncio.CancelledError:
                 raise
             except Exception:
