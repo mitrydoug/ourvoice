@@ -1,9 +1,10 @@
 # Local development — mocked registry (no Sepolia fork).
 # Launched via: make local-mocked
 #
-# Meilisearch runs in Docker (started by Makefile before overmind).
-# Everything else runs natively.
+# Meilisearch runs in Docker under Overmind. Everything else runs natively.
 
-hardhat:  cd blockchain && npx hardhat node
-frontend: VITE_NETWORK=localhost VITE_REGISTRY_MODE=mocked DEPLOY_NETWORK=localhost ./scripts/local-deploy-and-serve.sh
-backend:  NETWORK_FILE_NAME=localhost ./scripts/local-backend.sh
+meilisearch: bash scripts/dev/meilisearch.sh local-mocked
+hardhat: bash scripts/dev/hardhat.sh local-mocked
+contracts: bash scripts/dev/contracts.sh local-mocked
+frontend: bash scripts/dev/frontend.sh local-mocked
+backend: bash scripts/dev/backend.sh local-mocked

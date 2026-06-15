@@ -14,25 +14,3 @@ services:
       retries: 3
       timeout: 2s
       start_period: 10s
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    working_dir: /app
-    volumes:
-      - ./backend:/app
-    environment:
-      - MEILI_URL=http://meilisearch:7700
-      - MEILI_API_KEY=dev-master-key
-      - MEILI_SEMANTIC_SEARCH_ENABLED=${MEILI_SEMANTIC_SEARCH_ENABLED:-true}
-      - MEILI_SEMANTIC_EMBEDDER_NAME=${MEILI_SEMANTIC_EMBEDDER_NAME:-statement-text}
-      - MEILI_SEMANTIC_EMBEDDER_MODEL=${MEILI_SEMANTIC_EMBEDDER_MODEL:-sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2}
-      - FORUM_CONTRACT_ADDRESSES=${FORUM_CONTRACT_ADDRESSES:-}
-      - BACKFILL_FROM=${BACKFILL_FROM:-all}
-      - CORS_ORIGINS=*
-    ports:
-      - "8000:8000"
-    depends_on:
-      meilisearch:
-        condition: service_healthy
-    command: sh -c "if [ -z \"$${FORUM_CONTRACT_ADDRESSES:-}\" ] && [ -f .generated/deployment.env ]; then set -a && . .generated/deployment.env && set +a; fi && python -m venv .venv || true && . .venv/bin/activate && python -m pip install uv && python -m uv pip sync requirements.txt && uvicorn ourvoice.combined:app --host 0.0.0.0 --port 8000 --app-dir src"

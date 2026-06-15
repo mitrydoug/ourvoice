@@ -31,6 +31,7 @@ jobs:
     env:
       SEPOLIA_RPC_URL: ${{ secrets.SEPOLIA_RPC_URL }}
       SEPOLIA_DEPLOYER_PRIVATE_KEY: ${{ secrets.SEPOLIA_DEPLOYER_PRIVATE_KEY }}
+      DEPLOYMENT_PROFILE: sepolia
 
     steps:
       - name: Checkout
@@ -61,12 +62,16 @@ jobs:
       - name: Deploy contracts to Sepolia
         run: npx hardhat run scripts/deploy.ts --network sepolia
 
+      - name: Generate deployment artifacts
+        run: node ../scripts/generate-deployment-artifacts.mjs sepolia
+
       - name: Commit deployment state
         run: |
           git config user.name "smart-contract-deployer"
           git config user.email "smart-contract-deployer@ourvoice.eth"
 
           git add ignition/deployments/
+          git add ../deployments/sepolia.json
           git add ../frontend/src/contracts/networks/sepolia.ts
 
           if git diff --cached --quiet; then

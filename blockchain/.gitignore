@@ -29,3 +29,6 @@
 
 # Production deployment state (Sepolia, chain 11155111) — DO commit this
 # !ignition/deployments/chain-11155111/
+
+# Base Sepolia deployment state (chain 84532) — DO commit this after deployment
+# !ignition/deployments/chain-84532/

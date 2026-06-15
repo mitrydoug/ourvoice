@@ -49,6 +49,19 @@ uvicorn ourvoice.combined:app --host 0.0.0.0 --port 8000 --app-dir src
 | `MEILI_TASK_TIMEOUT_MS`                   | No       | `300000`                | Max wait for Meilisearch setup/indexing tasks              |
 | `ALCHEMY_GAS_SPONSORSHIP_INSPECT_APPROVE` | No       | `false`                 | Temporary: approve Alchemy Gas Manager inspection requests |
 
+`ETHEREUM_NODE_URL` must be a WebSocket RPC because the indexer subscribes to
+new block headers. Local development usually sets this to `ws://127.0.0.1:8545`
+or `ws://hardhat:8545`; public-chain development should provide an authenticated
+network WebSocket URL.
+
+Native Procfile workflows start the combined backend through
+`scripts/dev/backend.sh`, which loads the selected target profile from
+`scripts/dev/profile.sh`, waits for the `contracts` Overmind process readiness
+marker, then invokes `scripts/local-backend.sh`. The backend launcher still
+requires `RPC_URL`, an HTTP JSON-RPC endpoint used only for startup readiness
+checks, and `MEILI_URL`, the Meilisearch endpoint. `ETHEREUM_NODE_URL` remains
+separate and controls live indexing.
+
 If you are upgrading an existing Meilisearch index from the older single-forum backend, run a full backfill or clear the `statements` index once so documents are recreated with forum-scoped IDs.
 
 ### Split mode (recommended for production scaling)
@@ -69,23 +82,25 @@ MEILI_URL=http://... MEILI_API_KEY=... \
   uvicorn ourvoice.search_service.main:app --host 0.0.0.0 --port 8000 --app-dir src
 ```
 
-## Local Development (docker-compose)
+## Local Development (Overmind)
 
 From the repo root:
 
 ```bash
-docker compose up hardhat_mocked contract_deployer meilisearch backend
+make local-mocked
 ```
 
 This starts:
+- Meilisearch in Docker on port 7700
 - Hardhat local node on port 8545
-- Contract deployer (runs once)
-- Meilisearch on port 7700
+- Contract deployment/artifact generation as an Overmind process
+- Frontend dev server on port 5173
 - Combined backend (indexer + API) on port 8000
 
-The deploy step writes `backend/.generated/deployment.env`, and the backend
-automatically sources that file to discover the deployed forum contract
-addresses.
+The deploy step writes a shared deployment JSON file under `deployments/`, and
+`scripts/generate-deployment-artifacts.mjs` writes
+`backend/.generated/deployment.env`. The backend automatically sources that file
+to discover the deployed forum contract addresses.
 
 ## Self-Hosting on Railway
 

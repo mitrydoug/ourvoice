@@ -18,7 +18,6 @@ const optionalEnvUrl = (value: string | undefined) => {
 
 const networkToChain: Record<string, Chain> = {
   localhost: hardhat,
-  compose_hardhat_forked: hardhat,
   sepolia,
   base,
   base_sepolia: baseSepolia,
@@ -28,7 +27,6 @@ export const targetChain: Chain = networkToChain[networkName] ?? sepolia;
 
 const networkToAverageBlockTimeSeconds: Record<string, number> = {
   localhost: 1,
-  compose_hardhat_forked: 1,
   sepolia: 12,
   base: 2,
   base_sepolia: 2,
