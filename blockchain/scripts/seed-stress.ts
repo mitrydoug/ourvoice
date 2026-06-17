@@ -14,6 +14,7 @@ import {
 import { privateKeyToAccount } from "viem/accounts";
 import {
   getDeploymentConfig,
+  requireDeploymentProfile,
   CRED_MULT,
 } from "../ignition/config/deployments.js";
 
@@ -212,7 +213,10 @@ async function runConcurrently<T>(
 async function main() {
   const connection = await hre.network.connect();
   const { networkName, provider } = connection;
-  const config = getDeploymentConfig(networkName);
+  const deploymentProfile = requireDeploymentProfile(
+    process.env.DEPLOYMENT_PROFILE,
+  );
+  const config = getDeploymentConfig(deploymentProfile);
   if (config.mode !== "mocked") {
     throw new Error(
       `Stress seeding requires a mocked deployment, got ${config.mode}`,
@@ -220,7 +224,9 @@ async function main() {
   }
 
   if (!config.forums.includes(TARGET_FORUM)) {
-    throw new Error(`Forum ${TARGET_FORUM} is not deployed on ${networkName}`);
+    throw new Error(
+      `Forum ${TARGET_FORUM} is not deployed by profile ${deploymentProfile}`,
+    );
   }
 
   const env = parseEnvFile(deploymentEnvPath);

@@ -2,9 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useBlockNumber, usePublicClient } from "wagmi";
 import { useForum, FORUM_ABI } from "../state/Forum";
 import { useCreditConversion } from "./useCreditConversion";
+import { targetAverageBlockTimeSeconds } from "../wagmiConfig";
 
-/** Average Sepolia block time in seconds. */
-export const AVG_BLOCK_TIME = 12;
+/** Average target-chain block time in seconds, used for chart block estimates. */
+export const AVG_BLOCK_TIME = targetAverageBlockTimeSeconds;
 
 /** Number of past periods to chart. */
 export const PERIODS_BACK = 7;
@@ -42,9 +43,9 @@ export interface SupportDataPoint {
  * (defaults to 86 400 = 1 day).  In test environments a shorter period
  * such as 360 s (6 minutes) can be used.
  *
- * Uses block-number estimation (currentBlock − secondsAgo / 12) rather
- * than binary-searching for exact blocks — precision is ±~1 minute which
- * is fine for a visual chart.
+ * Uses block-number estimation based on the configured target chain rather
+ * than binary-searching for exact blocks. This is approximate but sufficient
+ * for a visual chart.
  */
 export function useHistoricalSupport(statementId: bigint): {
   data: SupportDataPoint[];

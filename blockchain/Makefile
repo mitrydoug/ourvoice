@@ -13,6 +13,7 @@ compile:
 .PHONY: deploy
 deploy: clean compile
 	npx hardhat run scripts/deploy.ts
+	node ../scripts/generate-deployment-artifacts.mjs localhost
 
 .PHONY: deploy-mocked
 deploy-mocked: deploy
@@ -20,9 +21,11 @@ deploy-mocked: deploy
 .PHONY: deploy-local-fork
 deploy-local-fork: compile
 	npx hardhat run scripts/deploy.ts --network local_sepolia_fork
+	node ../scripts/generate-deployment-artifacts.mjs localhost
 
 # --- Testnet deployments ---
 
 .PHONY: deploy-sepolia
 deploy-sepolia: compile
 	npx hardhat run scripts/deploy.ts --network sepolia
+	node ../scripts/generate-deployment-artifacts.mjs sepolia

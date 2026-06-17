@@ -10,6 +10,7 @@ Required env vars:
     MEILI_API_KEY        — Meilisearch API key (default: empty)
     FORUM_CONTRACT_ADDRESSES — Comma-separated forum contract addresses
     ETHEREUM_NODE_URL    — WebSocket RPC URL (required)
+    ETHEREUM_HTTP_URL    — HTTP RPC URL for read/backfill calls (optional)
 
 Optional env vars:
     BACKFILL_FROM        — Initial block cursor for historical catch-up.
@@ -41,6 +42,7 @@ import meilisearch
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from ourvoice.gas_sponsorship.api import create_api as create_gas_sponsorship_api
 from ourvoice.indexer import (
     DEFAULT_EVICTION_MAX_AGE_SECONDS,
     DEFAULT_WEB3_SUBSCRIPTION_RESPONSE_QUEUE_SIZE,
@@ -66,6 +68,9 @@ MEILI_API_KEY = os.getenv("MEILI_API_KEY", "")
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "")
 FORUM_CONTRACT_ADDRESSES = os.environ.get("FORUM_CONTRACT_ADDRESSES", "")
 ETHEREUM_NODE_URL = os.environ.get("ETHEREUM_NODE_URL", "")
+ETHEREUM_HTTP_URL = os.environ.get("ETHEREUM_HTTP_URL") or os.environ.get(
+    "RPC_URL", ""
+)
 BACKFILL_FROM = os.environ.get("BACKFILL_FROM", "")
 EVICTION_MAX_AGE_SECONDS = int(
     os.environ.get("EVICTION_MAX_AGE_SECONDS", str(DEFAULT_EVICTION_MAX_AGE_SECONDS))
@@ -97,6 +102,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             meili_client=app.state.meili_client,
             forum_contract_addresses=forum_contract_addresses,
             ethereum_node_url=ETHEREUM_NODE_URL,
+            ethereum_read_node_url=ETHEREUM_HTTP_URL,
             backfill_from=BACKFILL_FROM,
             eviction_max_age_seconds=EVICTION_MAX_AGE_SECONDS,
             web3_subscription_response_queue_size=WEB3_SUBSCRIPTION_RESPONSE_QUEUE_SIZE,
@@ -125,3 +131,4 @@ if CORS_ORIGINS:
 
 app.state.meili_client = meilisearch.Client(MEILI_URL, MEILI_API_KEY)
 create_api(app)
+create_gas_sponsorship_api(app)

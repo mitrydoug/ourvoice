@@ -34,19 +34,33 @@ uvicorn ourvoice.combined:app --host 0.0.0.0 --port 8000 --app-dir src
 
 **Environment variables:**
 
-| Variable                                | Required | Default                 | Description                                      |
-| --------------------------------------- | -------- | ----------------------- | ------------------------------------------------ |
-| `MEILI_URL`                             | No       | `http://localhost:7700` | Meilisearch URL                                  |
-| `MEILI_API_KEY`                         | No       | (empty)                 | Meilisearch API key                              |
-| `FORUM_CONTRACT_ADDRESSES`              | Yes      | —                       | Comma-separated forum contract addresses         |
-| `ETHEREUM_NODE_URL`                     | Yes      | —                       | WebSocket RPC URL                                |
-| `BACKFILL_FROM`                         | No       | (empty)                 | Initial indexing cursor; `all` indexes history   |
-| `LOG_LEVEL`                             | No       | `INFO`                  | Python logging level                             |
-| `WEB3_SUBSCRIPTION_RESPONSE_QUEUE_SIZE` | No       | `10000`                 | Web3 subscription buffer for bursty local chains |
-| `MEILI_SEMANTIC_SEARCH_ENABLED`         | No       | `false`                 | Configure Meilisearch `/similar` semantic search |
-| `MEILI_SEMANTIC_EMBEDDER_NAME`          | No       | `statement-text`        | Meilisearch embedder name for `/similar`         |
-| `MEILI_SEMANTIC_EMBEDDER_MODEL`         | No       | multilingual MiniLM     | Hugging Face model used by Meilisearch           |
-| `MEILI_TASK_TIMEOUT_MS`                 | No       | `300000`                | Max wait for Meilisearch setup/indexing tasks    |
+| Variable                                  | Required | Default                 | Description                                                |
+| ----------------------------------------- | -------- | ----------------------- | ---------------------------------------------------------- |
+| `MEILI_URL`                               | No       | `http://localhost:7700` | Meilisearch URL                                            |
+| `MEILI_API_KEY`                           | No       | (empty)                 | Meilisearch API key                                        |
+| `FORUM_CONTRACT_ADDRESSES`                | Yes      | —                       | Comma-separated forum contract addresses                   |
+| `ETHEREUM_NODE_URL`                       | Yes      | —                       | WebSocket RPC URL                                          |
+| `BACKFILL_FROM`                           | No       | (empty)                 | Initial indexing cursor; `all` indexes history             |
+| `LOG_LEVEL`                               | No       | `INFO`                  | Python logging level                                       |
+| `WEB3_SUBSCRIPTION_RESPONSE_QUEUE_SIZE`   | No       | `10000`                 | Web3 subscription buffer for bursty local chains           |
+| `MEILI_SEMANTIC_SEARCH_ENABLED`           | No       | `false`                 | Configure Meilisearch `/similar` semantic search           |
+| `MEILI_SEMANTIC_EMBEDDER_NAME`            | No       | `statement-text`        | Meilisearch embedder name for `/similar`                   |
+| `MEILI_SEMANTIC_EMBEDDER_MODEL`           | No       | multilingual MiniLM     | Hugging Face model used by Meilisearch                     |
+| `MEILI_TASK_TIMEOUT_MS`                   | No       | `300000`                | Max wait for Meilisearch setup/indexing tasks              |
+| `ALCHEMY_GAS_SPONSORSHIP_INSPECT_APPROVE` | No       | `false`                 | Temporary: approve Alchemy Gas Manager inspection requests |
+
+`ETHEREUM_NODE_URL` must be a WebSocket RPC because the indexer subscribes to
+new block headers. Local development usually sets this to `ws://127.0.0.1:8545`
+or `ws://hardhat:8545`; public-chain development should provide an authenticated
+network WebSocket URL.
+
+Native Procfile workflows start the combined backend through
+`scripts/dev/backend.sh`, which loads the selected target profile from
+`scripts/dev/profile.sh`, waits for the `contracts` Overmind process readiness
+marker, then invokes `scripts/local-backend.sh`. The backend launcher still
+requires `RPC_URL`, an HTTP JSON-RPC endpoint used only for startup readiness
+checks, and `MEILI_URL`, the Meilisearch endpoint. `ETHEREUM_NODE_URL` remains
+separate and controls live indexing.
 
 If you are upgrading an existing Meilisearch index from the older single-forum backend, run a full backfill or clear the `statements` index once so documents are recreated with forum-scoped IDs.
 
@@ -68,23 +82,25 @@ MEILI_URL=http://... MEILI_API_KEY=... \
   uvicorn ourvoice.search_service.main:app --host 0.0.0.0 --port 8000 --app-dir src
 ```
 
-## Local Development (docker-compose)
+## Local Development (Overmind)
 
 From the repo root:
 
 ```bash
-docker compose up hardhat_mocked contract_deployer meilisearch backend
+make local-mocked
 ```
 
 This starts:
+- Meilisearch in Docker on port 7700
 - Hardhat local node on port 8545
-- Contract deployer (runs once)
-- Meilisearch on port 7700
+- Contract deployment/artifact generation as an Overmind process
+- Frontend dev server on port 5173
 - Combined backend (indexer + API) on port 8000
 
-The deploy step writes `backend/.generated/deployment.env`, and the backend
-automatically sources that file to discover the deployed forum contract
-addresses.
+The deploy step writes a shared deployment JSON file under `deployments/`, and
+`scripts/generate-deployment-artifacts.mjs` writes
+`backend/.generated/deployment.env`. The backend automatically sources that file
+to discover the deployed forum contract addresses.
 
 ## Self-Hosting on Railway
 
@@ -107,12 +123,34 @@ For **production scaling**, split into three services:
 
 ## API Endpoints
 
-| Method | Path       | Description                                                               |
-| ------ | ---------- | ------------------------------------------------------------------------- |
-| GET    | `/`        | Redirects to `/docs` (Swagger UI)                                         |
-| GET    | `/health`  | Health check                                                              |
-| GET    | `/search`  | Forum-scoped full-text search (`?statement_text=...&forum_address=0x...`) |
-| GET    | `/similar` | Forum-scoped semantic similarity (`?statement_id=1&forum_address=0x...`)  |
+| Method | Path                          | Description                                                                                                                                                    |
+| ------ | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/`                           | Redirects to `/docs` (Swagger UI)                                                                                                                              |
+| GET    | `/health`                     | Health check                                                                                                                                                   |
+| GET    | `/search`                     | Forum-scoped full-text search (`?statement_text=...&forum_address=0x...`)                                                                                      |
+| GET    | `/similar`                    | Forum-scoped semantic similarity (`?statement_id=1&forum_address=0x...`)                                                                                       |
+| POST   | `/alchemy/gas-policy/inspect` | Temporary Alchemy Gas Manager webhook inspector. Logs request shape and returns `{ "approved": false }` unless `ALCHEMY_GAS_SPONSORSHIP_INSPECT_APPROVE=true`. |
+
+## Alchemy Gas Sponsorship Inspection
+
+The `/alchemy/gas-policy/inspect` endpoint is a temporary integration spike for
+mapping the exact Gas Manager webhook payload and UserOperation calldata shape.
+It is not the final sponsorship policy implementation.
+
+To use it with Alchemy manually:
+
+1. Expose the backend over HTTPS, for example with a tunnel during local testing.
+2. In the Alchemy dashboard, create a Base Sepolia Gas Manager policy.
+3. Add conservative built-in limits, such as a low global spend cap and low max spend per UserOperation.
+4. In the policy's Custom Rules, set the webhook URL to `https://<your-host>/alchemy/gas-policy/inspect`.
+5. Set `approveOnFailure` to `false` so sponsorship fails closed if the backend is unavailable.
+6. Set `ALCHEMY_GAS_SPONSORSHIP_INSPECT_APPROVE=true` only for the short-lived Base Sepolia inspection run.
+
+After a test sponsored transaction, inspect backend logs for the received
+`policyId`, `chainId`, `userOperation.sender`, top-level UserOperation keys, and
+redacted calldata length/prefix. Use that captured shape to implement the real
+policy route that decodes allowed calls, simulates registry registration, and
+enforces daily zkPassport user budgets.
 
 When `MEILI_SEMANTIC_SEARCH_ENABLED=true`, backend startup configures a local
 Hugging Face embedder in Meilisearch using

@@ -29,7 +29,8 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
-import { useWaitForTransactionReceipt, useWriteContract } from "wagmi";
+import { useWaitForTransactionReceipt } from "wagmi";
+import { useSponsoredContractWrite } from "@/hooks/useSponsoredContractWrite";
 import {
   registryContractConfig,
   mockRegistryContractConfig,
@@ -658,7 +659,7 @@ const StepScanVerify: FC<{
   const [verifierParams, setVerifierParams] = useState<any>(null); // eslint-disable-line @typescript-eslint/no-unsafe-assignment
 
   const zkPassport = useMemo(() => new ZKPassport(), []);
-  const { writeContractAsync } = useWriteContract();
+  const { writeContractAsync } = useSponsoredContractWrite();
 
   // Wait for on-chain confirmation once we have a tx hash
   const { data: txReceipt, error: txReceiptError } =

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "network": "sepolia",
+  "deployNetwork": "sepolia",
+  "deploymentProfile": "sepolia",
+  "chainId": 11155111,
+  "registryMode": "production",
+  "registryAddress": "0x4d6B0F496C831A0fF4DE3bCF7A7a8675a93Dde9e",
+  "forumOrder": [
+    "global",
+    "USA",
+    "CAN"
+  ],
+  "forums": {
+    "global": "0x032166BC380bd06B5805D3AC8fB44139eDe31Aa6",
+    "USA": "0x000Fd29478e2F4f7ff02Bb9d5F71791a78859659",
+    "CAN": "0x69F68dc0404b523Fc6d8cD9A86Fe147dcc717450"
+  },
+  "deploymentBlockNumber": 10448057
+}

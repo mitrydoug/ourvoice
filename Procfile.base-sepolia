@@ -1,0 +1,9 @@
+# Base Sepolia development using committed contract addresses.
+# Launched via: make base-sepolia
+# To deploy fresh mock-registry contracts before startup:
+#   DEPLOY_CONTRACTS=1 make base-sepolia
+
+meilisearch: bash scripts/dev/meilisearch.sh base-sepolia
+contracts: bash scripts/dev/contracts.sh base-sepolia
+frontend: bash scripts/dev/frontend.sh base-sepolia
+backend: bash scripts/dev/backend.sh base-sepolia

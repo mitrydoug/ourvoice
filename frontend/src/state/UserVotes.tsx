@@ -8,16 +8,20 @@ import React, {
   useRef,
 } from "react";
 import {
-  useAccount,
   usePublicClient,
   useReadContract,
   useWaitForTransactionReceipt,
-  useWriteContract,
 } from "wagmi";
 import { encodeFunctionData, parseEventLogs, BaseError } from "viem";
 import { FORUM_ABI, useForum } from "./Forum";
 import useBlockSync from "@/hooks/useBlockSync";
 import useLocalStorageSet from "@/hooks/useLocalStorageSet";
+import {
+  type ContractWriteRequest,
+  type SponsoredNetworkFeeEstimate,
+  useParticipantAddress,
+  useSponsoredContractWrite,
+} from "@/hooks/useSponsoredContractWrite";
 
 interface StatementSupport {
   statementId: bigint;
@@ -77,6 +81,16 @@ interface UserSupportState {
   /** Credit cost of the in-progress draft statement (before it is staged). */
   pendingDraftCost: number;
 }
+
+export type CommitPreview = {
+  statementCount: number;
+  supportAdjustmentCount: number;
+  networkFee: SponsoredNetworkFeeEstimate;
+};
+
+type CommitChangesOptions = {
+  showWalletUIs?: boolean;
+};
 
 type SyncOnChainState = {
   type: "SYNC_ONCHAIN_STATE";
@@ -633,6 +647,7 @@ type UserNotVerifiedContextValue = {
   state: undefined;
   dispatch: undefined;
   commitChanges: undefined;
+  previewCommitChanges: undefined;
   resetChanges: undefined;
   resetCommitStatus: undefined;
   getEffectiveSupport: undefined;
@@ -650,7 +665,8 @@ type UserSupportContextValue = {
   isVerifiedLoading: boolean;
   state: UserSupportState;
   dispatch: React.Dispatch<UserSupportAction>;
-  commitChanges: () => void | Promise<void>;
+  commitChanges: (options?: CommitChangesOptions) => void | Promise<void>;
+  previewCommitChanges: () => Promise<CommitPreview | undefined>;
   resetChanges: () => void;
   resetCommitStatus: () => void;
   getEffectiveSupport: (statementId: number) => number;
@@ -678,8 +694,9 @@ export const UserVoteProvider: FC<{
     commitStatus: "idle",
     pendingDraftCost: 0,
   });
-  const { writeContractAsync } = useWriteContract();
-  const { address } = useAccount();
+  const { writeContractAsync, previewNetworkFee } = useSponsoredContractWrite();
+  const { address: participantAddress, isSmartWalletLoading } =
+    useParticipantAddress();
   const publicClient = usePublicClient();
   const {
     forumContractAddress,
@@ -705,11 +722,11 @@ export const UserVoteProvider: FC<{
   } = useReadContract({
     address: forumContractAddress,
     abi: FORUM_ABI,
-    account: address,
+    account: participantAddress,
     functionName: "isMember",
     args: [],
     query: {
-      enabled: !!address,
+      enabled: !!participantAddress,
     },
   });
 
@@ -717,11 +734,11 @@ export const UserVoteProvider: FC<{
     useReadContract({
       address: forumContractAddress,
       abi: FORUM_ABI,
-      account: address,
+      account: participantAddress,
       functionName: "getUserStatementSupport",
       args: [],
       query: {
-        enabled: Boolean(address && isUserVerified),
+        enabled: Boolean(participantAddress && isUserVerified),
       },
     });
 
@@ -729,11 +746,11 @@ export const UserVoteProvider: FC<{
     {
       address: forumContractAddress,
       abi: FORUM_ABI,
-      account: address,
+      account: participantAddress,
       functionName: "getUserBalance",
       args: [],
       query: {
-        enabled: Boolean(address && isUserVerified),
+        enabled: Boolean(participantAddress && isUserVerified),
       },
     },
   );
@@ -773,8 +790,12 @@ export const UserVoteProvider: FC<{
 
   // ── Staged-support persistence ──────────────────────────────────────────
   const persistKey =
-    chainFingerprint && address
-      ? stagedStorageKey(chainFingerprint, forumName, address.slice(0, 10))
+    chainFingerprint && participantAddress
+      ? stagedStorageKey(
+          chainFingerprint,
+          forumName,
+          participantAddress.slice(0, 10),
+        )
       : undefined;
   const restoredKeyRef = useRef<string | undefined>(undefined);
   useEffect(() => {
@@ -872,99 +893,135 @@ export const UserVoteProvider: FC<{
     };
   }, [state.commitStatus, dispatch]);
 
-  const commitChanges = useCallback(async () => {
+  const buildCommitRequest = useCallback(async (): Promise<
+    ContractWriteRequest | undefined
+  > => {
     if (
       state.hasStagedChanges &&
       state.hasEnoughCredits &&
       state.staged &&
-      publicClient
+      publicClient &&
+      participantAddress
     ) {
       const hasSupportAdjustments = state.staged.supportAdjustments.size > 0;
 
-      dispatch({ type: "BEGIN_COMMIT" });
+      const calls: `0x${string}`[] = [];
 
-      try {
-        // Build the list of encoded calls for multicall
-        const calls: `0x${string}`[] = [];
-
-        // 1. addStatement calls for staged new statements
-        for (const stmt of state.staged.stagedStatements) {
-          calls.push(
-            encodeFunctionData({
-              abi: FORUM_ABI,
-              functionName: "addStatement",
-              args: [stmt.text, BigInt(stmt.initialSupport)],
-            }),
-          );
-        }
-
-        // 2. adjustSupport call for support adjustments on existing statements
-        if (hasSupportAdjustments) {
-          const supportAdjustments: {
-            statementId: bigint;
-            value: bigint;
-            adjustmentType: number;
-          }[] = [];
-          for (const [statementId, adjustment] of state.staged
-            .supportAdjustments) {
-            supportAdjustments.push({
-              statementId: BigInt(statementId),
-              value: BigInt(adjustment.value),
-              adjustmentType: adjustment.adjustmentType,
-            });
-          }
-          calls.push(
-            encodeFunctionData({
-              abi: FORUM_ABI,
-              functionName: "adjustSupport",
-              args: [supportAdjustments],
-            }),
-          );
-        }
-
-        // Use multicall to batch everything in a single transaction.
-        // Authored statement IDs are extracted from the receipt logs in
-        // the COMMIT_CONFIRMED effect, avoiding prediction race conditions.
-        //
-        // Decay calculations inside Multicall's delegatecall have
-        // variable gas cost depending on block.timestamp at execution
-        // time (which may differ from estimation time).  Adding a 20%
-        // buffer prevents intermittent out-of-gas FailedCall reverts.
-        const gasEstimate = await publicClient.estimateContractGas({
-          address: forumContractAddress,
-          abi: FORUM_ABI,
-          functionName: "multicall",
-          args: [calls],
-          account: address,
-        });
-        const txHash = await writeContractAsync({
-          address: forumContractAddress,
-          abi: FORUM_ABI,
-          functionName: "multicall",
-          args: [calls],
-          gas: (gasEstimate * 120n) / 100n,
-        });
-
-        dispatch({ type: "COMMIT_SUBMITTED", payload: { txHash } });
-      } catch (err: unknown) {
-        if (err instanceof BaseError) {
-          if (err.shortMessage?.toLowerCase().includes("rejected")) {
-            dispatch({ type: "COMMIT_CANCELLED" });
-            return;
-          }
-        }
-
-        dispatch({ type: "COMMIT_ERROR" });
+      for (const stmt of state.staged.stagedStatements) {
+        calls.push(
+          encodeFunctionData({
+            abi: FORUM_ABI,
+            functionName: "addStatement",
+            args: [stmt.text, BigInt(stmt.initialSupport)],
+          }),
+        );
       }
+
+      if (hasSupportAdjustments) {
+        const supportAdjustments: {
+          statementId: bigint;
+          value: bigint;
+          adjustmentType: number;
+        }[] = [];
+        for (const [statementId, adjustment] of state.staged
+          .supportAdjustments) {
+          supportAdjustments.push({
+            statementId: BigInt(statementId),
+            value: BigInt(adjustment.value),
+            adjustmentType: adjustment.adjustmentType,
+          });
+        }
+        calls.push(
+          encodeFunctionData({
+            abi: FORUM_ABI,
+            functionName: "adjustSupport",
+            args: [supportAdjustments],
+          }),
+        );
+      }
+
+      const gasEstimate = await publicClient.estimateContractGas({
+        address: forumContractAddress,
+        abi: FORUM_ABI,
+        functionName: "multicall",
+        args: [calls],
+        account: participantAddress,
+      });
+
+      return {
+        address: forumContractAddress,
+        abi: FORUM_ABI,
+        functionName: "multicall",
+        args: [calls],
+        gas: (gasEstimate * 120n) / 100n,
+      };
     }
   }, [
-    state,
-    writeContractAsync,
-    forumContractAddress,
+    state.hasStagedChanges,
+    state.hasEnoughCredits,
+    state.staged,
     publicClient,
-    address,
-    dispatch,
+    participantAddress,
+    forumContractAddress,
   ]);
+
+  const previewCommitChanges = useCallback(async () => {
+    if (!state.staged) return undefined;
+
+    const request = await buildCommitRequest();
+    if (!request) return undefined;
+
+    return {
+      statementCount: state.staged.stagedStatements.length,
+      supportAdjustmentCount: state.staged.supportAdjustments.size,
+      networkFee: await previewNetworkFee(request),
+    };
+  }, [buildCommitRequest, previewNetworkFee, state.staged]);
+
+  const commitChanges = useCallback(
+    async (options?: CommitChangesOptions) => {
+      if (
+        state.hasStagedChanges &&
+        state.hasEnoughCredits &&
+        state.staged &&
+        publicClient &&
+        participantAddress
+      ) {
+        dispatch({ type: "BEGIN_COMMIT" });
+
+        try {
+          const request = await buildCommitRequest();
+          if (!request) {
+            throw new Error("No staged changes are ready to commit.");
+          }
+
+          const txHash = await writeContractAsync({
+            ...request,
+            uiOptions: { showWalletUIs: options?.showWalletUIs ?? false },
+          });
+
+          dispatch({ type: "COMMIT_SUBMITTED", payload: { txHash } });
+        } catch (err: unknown) {
+          if (err instanceof BaseError) {
+            if (err.shortMessage?.toLowerCase().includes("rejected")) {
+              dispatch({ type: "COMMIT_CANCELLED" });
+              return;
+            }
+          }
+
+          dispatch({ type: "COMMIT_ERROR" });
+        }
+      }
+    },
+    [
+      state,
+      writeContractAsync,
+      buildCommitRequest,
+      publicClient,
+      participantAddress,
+      dispatch,
+    ],
+  );
 
   const resetCommitStatus = useCallback(() => {
     dispatch({ type: "RESET_COMMIT_STATUS" });
@@ -1058,7 +1115,8 @@ export const UserVoteProvider: FC<{
 
   // Verification is still loading if the query is in-flight OR the wallet
   // address hasn't resolved yet (the query won't even start without it).
-  const isVerifiedStillLoading = !!address && isVerifiedLoading;
+  const isVerifiedStillLoading =
+    isSmartWalletLoading || (!!participantAddress && isVerifiedLoading);
 
   if (isUserVerified) {
     return (
@@ -1069,6 +1127,7 @@ export const UserVoteProvider: FC<{
           state,
           dispatch,
           commitChanges,
+          previewCommitChanges,
           resetChanges,
           resetCommitStatus,
           getEffectiveSupport,
@@ -1093,6 +1152,7 @@ export const UserVoteProvider: FC<{
           state: undefined,
           dispatch: undefined,
           commitChanges: undefined,
+          previewCommitChanges: undefined,
           resetChanges: undefined,
           resetCommitStatus: undefined,
           getEffectiveSupport: undefined,

@@ -13,6 +13,7 @@ import meilisearch
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from ourvoice.gas_sponsorship.api import create_api as create_gas_sponsorship_api
 from ourvoice.search_service.api import create_api
 
 MEILI_URL = os.getenv("MEILI_URL", "http://localhost:7700")
@@ -32,3 +33,4 @@ if CORS_ORIGINS:
 
 app.state.meili_client = meilisearch.Client(MEILI_URL, MEILI_API_KEY)
 create_api(app)
+create_gas_sponsorship_api(app)

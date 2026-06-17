@@ -1,7 +1,7 @@
 /**
- * Deployment configuration per Hardhat network.
+ * Deployment configuration per deployment profile.
  *
- * Maps each network name to the Ignition module mode and forum list
+ * Maps each deployment profile to the Ignition module mode and forum list
  * to deploy. For "production" mode, a parameters file path (relative
  * to ignition/parameters/) supplies the module's runtime parameters.
  */
@@ -9,7 +9,6 @@
 type MockedDeploymentConfig = {
   mode: "mocked";
   forums: string[];
-  seedMockContent: boolean;
   creditAllowanceIntervalSeconds: number;
   engagementWindowSeconds: number;
   maxRankedStatements: number;
@@ -48,47 +47,10 @@ export type DeploymentConfig =
 export const CRED_MULT = 1_000_000;
 
 const deploymentConfigs: Record<string, DeploymentConfig> = {
-  /** Local development on a fresh Hardhat node with mock data. */
-  default: {
-    mode: "mocked",
-    forums: ["global", "USA", "CAN"],
-    seedMockContent: true,
-    creditAllowanceIntervalSeconds: 60,
-    engagementWindowSeconds: 300,
-    maxRankedStatements: 10,
-    minStatementSupportToRank: 3 * CRED_MULT,
-    maxStatementLength: 120,
-    userCreditAllowancePerInterval: 25 * CRED_MULT,
-    userStartingCredits: 1000 * CRED_MULT,
-    minAdjustmentIntervalSeconds: 12,
-    creditMultiplier: CRED_MULT,
-    refundPenaltyBps: 2000,
-    decaySpeedupFactor: 2016,
-  },
-
-  /** Docker Compose Hardhat node with mock data. */
-  compose_hardhat: {
-    mode: "mocked",
-    forums: ["global", "USA", "CAN"],
-    seedMockContent: true,
-    creditAllowanceIntervalSeconds: 60,
-    engagementWindowSeconds: 300,
-    maxRankedStatements: 10,
-    minStatementSupportToRank: 3 * CRED_MULT,
-    maxStatementLength: 120,
-    userCreditAllowancePerInterval: 25 * CRED_MULT,
-    userStartingCredits: 1000 * CRED_MULT,
-    minAdjustmentIntervalSeconds: 12,
-    creditMultiplier: CRED_MULT,
-    refundPenaltyBps: 2000,
-    decaySpeedupFactor: 2016,
-  },
-
   /** Local native Hardhat node with mock data. */
-  localhost: {
+  "local-mocked": {
     mode: "mocked",
     forums: ["global", "USA", "CAN"],
-    seedMockContent: true,
     creditAllowanceIntervalSeconds: 60,
     engagementWindowSeconds: 300,
     maxRankedStatements: 10,
@@ -103,10 +65,9 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
   },
 
   /** Local native Hardhat node with mock registry and larger stress-test limits. */
-  localhost_stress: {
+  "local-stress-test": {
     mode: "mocked",
     forums: ["global", "USA", "CAN"],
-    seedMockContent: false,
     creditAllowanceIntervalSeconds: 60,
     engagementWindowSeconds: 300,
     maxRankedStatements: 100,
@@ -120,8 +81,8 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
     decaySpeedupFactor: 168,
   },
 
-  /** Local native Hardhat node forking Sepolia with real ZKPassport verifier. */
-  localhost_forked: {
+  /** Local Sepolia fork with production verifier settings. */
+  "local-sepolia-fork-strict": {
     mode: "production",
     forums: ["global", "USA", "CAN"],
     creditAllowanceIntervalSeconds: 60,
@@ -138,26 +99,8 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
     parametersFile: "local-fork-strict.json",
   },
 
-  /** Docker Compose Hardhat node forking Sepolia with real ZKPassport verifier. */
-  compose_hardhat_forked: {
-    mode: "production",
-    forums: ["global", "USA", "CAN"],
-    creditAllowanceIntervalSeconds: 60,
-    engagementWindowSeconds: 300,
-    maxRankedStatements: 10,
-    minStatementSupportToRank: 3 * CRED_MULT,
-    maxStatementLength: 120,
-    userCreditAllowancePerInterval: 25 * CRED_MULT,
-    userStartingCredits: 1000 * CRED_MULT,
-    minAdjustmentIntervalSeconds: 12,
-    creditMultiplier: CRED_MULT,
-    refundPenaltyBps: 2000,
-    decaySpeedupFactor: 2016,
-    parametersFile: "local-fork-strict.json",
-  },
-
-  /** Local Sepolia fork with real OurVoiceRegistry (dev mode). */
-  local_sepolia_fork: {
+  /** Local Sepolia fork with verifier dev mode enabled. */
+  "local-sepolia-fork-dev": {
     mode: "production",
     forums: ["global", "USA", "CAN"],
     creditAllowanceIntervalSeconds: 60,
@@ -191,15 +134,45 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
     decaySpeedupFactor: 1,
     parametersFile: "sepolia.json",
   },
+
+  /** Base Sepolia testnet deployment with mock registry until zkPassport verifier is available. */
+  "base-sepolia": {
+    mode: "mocked",
+    forums: ["global", "USA", "CAN"],
+    creditAllowanceIntervalSeconds: 14400,
+    engagementWindowSeconds: 86400,
+    maxRankedStatements: 1000,
+    minStatementSupportToRank: 10 * CRED_MULT,
+    maxStatementLength: 120,
+    userCreditAllowancePerInterval: 25 * CRED_MULT,
+    userStartingCredits: 1000 * CRED_MULT,
+    minAdjustmentIntervalSeconds: 12,
+    creditMultiplier: CRED_MULT,
+    refundPenaltyBps: 2000,
+    decaySpeedupFactor: 1,
+  },
 };
 
-export function getDeploymentConfig(networkName: string): DeploymentConfig {
-  const config = deploymentConfigs[networkName];
+export function getDeploymentConfig(profileName: string): DeploymentConfig {
+  const config = deploymentConfigs[profileName];
   if (!config) {
     throw new Error(
-      `No deployment config for network "${networkName}". ` +
-      `Known networks: ${Object.keys(deploymentConfigs).join(", ")}`,
+      `No deployment config for profile "${profileName}". ` +
+      `Known profiles: ${Object.keys(deploymentConfigs).join(", ")}`,
     );
   }
   return config;
+}
+
+export function requireDeploymentProfile(
+  profileName: string | undefined,
+): string {
+  if (!profileName) {
+    throw new Error(
+      "DEPLOYMENT_PROFILE must be set explicitly. " +
+      `Known profiles: ${Object.keys(deploymentConfigs).join(", ")}`,
+    );
+  }
+
+  return profileName;
 }

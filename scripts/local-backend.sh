@@ -1,36 +1,70 @@
 #!/usr/bin/env bash
 # ──────────────────────────────────────────────────────────────────────────────
-# Waits for Hardhat + Meilisearch, then starts the backend (uvicorn).
+# Waits for an RPC endpoint + Meilisearch, then starts the backend (uvicorn).
 #
-# The deploy script writes backend/.generated/deployment.env with the
-# FORUM_CONTRACT_ADDRESSES value for all deployed forums.
+# `scripts/generate-deployment-artifacts.mjs` writes backend/.generated/deployment.env
+# with the FORUM_CONTRACT_ADDRESSES value for all deployed forums.
 #
 # Usage (called by overmind via Procfile, not directly):
-#   DEPLOY_NETWORK=default \
+#   RPC_URL=http://127.0.0.1:8545 \
+#     ETHEREUM_NODE_URL=ws://127.0.0.1:8545 \
+#     MEILI_URL=http://localhost:7700 \
 #     scripts/local-backend.sh
 # ──────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
 
-HARDHAT_URL="${HARDHAT_URL:-http://127.0.0.1:8545}"
-MEILI_URL="${MEILI_URL:-http://localhost:7700}"
+if [ -z "${RPC_URL:-}" ]; then
+  echo "❌ RPC_URL must be set to an HTTP JSON-RPC endpoint."
+  exit 1
+fi
 
-echo "⏳ Waiting for Hardhat node at ${HARDHAT_URL}…"
-until curl -sf "${HARDHAT_URL}" > /dev/null 2>&1; do
-  sleep 1
-done
+if [ -z "${MEILI_URL:-}" ]; then
+  echo "❌ MEILI_URL must be set to the Meilisearch endpoint."
+  exit 1
+fi
 
-echo "⏳ Waiting for Meilisearch at ${MEILI_URL}…"
-until curl -sf "${MEILI_URL}/health" > /dev/null 2>&1; do
-  sleep 1
-done
+RPC_READY_TIMEOUT_SECONDS="${RPC_READY_TIMEOUT_SECONDS:-20}"
+MEILI_READY_TIMEOUT_SECONDS="${MEILI_READY_TIMEOUT_SECONDS:-20}"
 
-# Wait for the deploy script to write the backend env artifact.
+wait_for_rpc() {
+  local deadline=$((SECONDS + RPC_READY_TIMEOUT_SECONDS))
+
+  echo "⏳ Waiting up to ${RPC_READY_TIMEOUT_SECONDS}s for RPC at ${RPC_URL}…"
+  until curl -sf \
+    -H 'content-type: application/json' \
+    --data '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}' \
+    "${RPC_URL}" > /dev/null 2>&1; do
+    if [ "${SECONDS}" -ge "${deadline}" ]; then
+      echo "❌ RPC endpoint did not become ready within ${RPC_READY_TIMEOUT_SECONDS}s: ${RPC_URL}"
+      exit 1
+    fi
+    sleep 1
+  done
+}
+
+wait_for_meili() {
+  local deadline=$((SECONDS + MEILI_READY_TIMEOUT_SECONDS))
+
+  echo "⏳ Waiting up to ${MEILI_READY_TIMEOUT_SECONDS}s for Meilisearch at ${MEILI_URL}…"
+  until curl -sf "${MEILI_URL}/health" > /dev/null 2>&1; do
+    if [ "${SECONDS}" -ge "${deadline}" ]; then
+      echo "❌ Meilisearch did not become ready within ${MEILI_READY_TIMEOUT_SECONDS}s: ${MEILI_URL}"
+      exit 1
+    fi
+    sleep 1
+  done
+}
+
+wait_for_rpc
+wait_for_meili
+
+# Wait for generated deployment artifacts.
 DEPLOYMENT_ENV="backend/.generated/deployment.env"
 echo "⏳ Waiting for contract deployment (${DEPLOYMENT_ENV})…"
 until [ -f "${DEPLOYMENT_ENV}" ]; do
   sleep 2
 done
-# Give deploy.ts a moment to finish writing.
+# Give the artifact generator a moment to finish writing.
 sleep 2
 
 # Source the generated deployment env and export its values.
@@ -45,13 +79,16 @@ if [ -z "${FORUM_CONTRACT_ADDRESSES:-}" ]; then
 fi
 echo "📋 Using FORUM_CONTRACT_ADDRESSES=${FORUM_CONTRACT_ADDRESSES}"
 
-export ETHEREUM_NODE_URL="${ETHEREUM_NODE_URL:-ws://127.0.0.1:8545}"
+if [ -z "${ETHEREUM_NODE_URL:-}" ]; then
+  echo "⚠️  ETHEREUM_NODE_URL is not set; backend will start without live indexing."
+fi
 export MEILI_URL
 export MEILI_API_KEY="${MEILI_API_KEY:-dev-master-key}"
 export MEILI_SEMANTIC_SEARCH_ENABLED="${MEILI_SEMANTIC_SEARCH_ENABLED:-true}"
 export MEILI_SEMANTIC_EMBEDDER_NAME="${MEILI_SEMANTIC_EMBEDDER_NAME:-statement-text}"
 export MEILI_SEMANTIC_EMBEDDER_MODEL="${MEILI_SEMANTIC_EMBEDDER_MODEL:-sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2}"
 export MEILI_TASK_TIMEOUT_MS="${MEILI_TASK_TIMEOUT_MS:-300000}"
+export BACKFILL_FROM="${BACKFILL_FROM:-${DEPLOYMENT_BLOCK_NUMBER:+block:${DEPLOYMENT_BLOCK_NUMBER}}}"
 export BACKFILL_FROM="${BACKFILL_FROM:-all}"
 export CORS_ORIGINS="${CORS_ORIGINS:-*}"
 

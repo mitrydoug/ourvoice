@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Avatar,
   Box,
@@ -13,7 +13,6 @@ import {
   keyframes,
 } from "@mui/material";
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
-import { useAccount, useDisconnect } from "wagmi";
 import { useNavigate } from "react-router-dom";
 import { useForumNavigate } from "../hooks/useForumNavigate";
 import useNickname from "@/hooks/useNickname";
@@ -26,6 +25,9 @@ import { metamaskIcon, shortenAddress } from "../util";
 import { useCreditConversion } from "../hooks/useCreditConversion";
 import AnimatedCounter from "./AnimatedCounter";
 import IndeterminateCheckBoxIcon from "@mui/icons-material/IndeterminateCheckBox";
+import { useWalletAuth } from "@/hooks/useWalletAuth";
+import CommitConfirmationDialog from "./CommitConfirmationDialog";
+import type { CommitPreview } from "../state/UserVotes";
 
 const shimmer = keyframes`
   0% { opacity: 0.6; }
@@ -59,8 +61,7 @@ const CoinIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
 );
 
 const UserProfilePanel: React.FC = () => {
-  const { address } = useAccount();
-  const { disconnect } = useDisconnect();
+  const { address, disconnect } = useWalletAuth();
   const navigate = useForumNavigate();
   const rawNavigate = useNavigate();
   const [nickname] = useNickname();
@@ -89,6 +90,9 @@ const UserProfilePanel: React.FC = () => {
       userVotes.state?.commitStatus !== "idle"
     : false;
   const commitChanges = isUserVerified ? userVotes.commitChanges : () => {};
+  const previewCommitChanges = isUserVerified
+    ? userVotes.previewCommitChanges
+    : undefined;
   const resetChanges = isUserVerified ? userVotes.resetChanges : () => {};
   const hasEnoughCredits = isUserVerified
     ? (userVotes.state?.hasEnoughCredits ?? true)
@@ -102,7 +106,47 @@ const UserProfilePanel: React.FC = () => {
     : 0;
 
   const isOverBudget = credits !== null && credits < 0;
+  const [commitDialogOpen, setCommitDialogOpen] = useState(false);
+  const [commitPreview, setCommitPreview] = useState<CommitPreview | null>(
+    null,
+  );
+  const [commitPreviewLoading, setCommitPreviewLoading] = useState(false);
+  const [commitPreviewError, setCommitPreviewError] = useState<string>();
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
+
+  useEffect(() => {
+    if (!commitDialogOpen || !previewCommitChanges) return;
+
+    let isCancelled = false;
+    setCommitPreview(null);
+    setCommitPreviewError(undefined);
+    setCommitPreviewLoading(true);
+
+    void previewCommitChanges()
+      .then((preview) => {
+        if (isCancelled) return;
+        if (preview) {
+          setCommitPreview(preview);
+        } else {
+          setCommitPreviewError("No staged changes are ready to commit.");
+        }
+      })
+      .catch((error: unknown) => {
+        if (isCancelled) return;
+        setCommitPreviewError(
+          error instanceof Error
+            ? error.message
+            : "Unable to check the network fee.",
+        );
+      })
+      .finally(() => {
+        if (!isCancelled) setCommitPreviewLoading(false);
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [commitDialogOpen, previewCommitChanges]);
 
   return (
     <>
@@ -264,7 +308,7 @@ const UserProfilePanel: React.FC = () => {
                 size="small"
                 onClick={(e) => {
                   e.stopPropagation();
-                  void commitChanges();
+                  setCommitDialogOpen(true);
                 }}
                 disabled={!hasStagedChanges || commitBusy || !hasEnoughCredits}
                 sx={{
@@ -337,6 +381,22 @@ const UserProfilePanel: React.FC = () => {
           Disconnect
         </Button>
       </Box>
+
+      <CommitConfirmationDialog
+        open={commitDialogOpen}
+        statementCount={stagedStatementCount}
+        supportAdjustmentCount={stagedSupportCount}
+        networkFee={commitPreview?.networkFee ?? null}
+        isNetworkFeeLoading={commitPreviewLoading}
+        networkFeeError={commitPreviewError}
+        onClose={() => setCommitDialogOpen(false)}
+        onConfirm={() => {
+          setCommitDialogOpen(false);
+          void commitChanges({
+            showWalletUIs: commitPreview?.networkFee.kind === "self-funded",
+          });
+        }}
+      />
 
       {/* Reset confirmation dialog */}
       <Dialog open={resetDialogOpen} onClose={() => setResetDialogOpen(false)}>

@@ -1,4 +1,5 @@
-import { useAccount, useReadContract } from "wagmi";
+import { useReadContract } from "wagmi";
+import { useParticipantAddress } from "./useSponsoredContractWrite";
 import {
   isDevMode,
   mockRegistryContractConfig,
@@ -45,7 +46,7 @@ export interface UserRegistration {
  * forum if nationality requirements don't match.
  */
 export function useUserRegistration(): UserRegistration {
-  const { address } = useAccount();
+  const { address, isSmartWalletLoading } = useParticipantAddress();
 
   const { data: isRegistered, isLoading: isRegisteredLoading } =
     useReadContract({
@@ -66,7 +67,7 @@ export function useUserRegistration(): UserRegistration {
   if (!isRegistered) {
     return {
       isRegistered: false,
-      isLoading: !!address && isRegisteredLoading,
+      isLoading: isSmartWalletLoading || (!!address && isRegisteredLoading),
       nationality: null,
     };
   }
