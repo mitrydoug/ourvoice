@@ -1,4 +1,4 @@
-# OurVoice Backend — Search & Indexing
+# Symvolia Backend — Search & Indexing
 
 The backend provides two concerns that can run together or separately:
 
@@ -29,7 +29,7 @@ The backend provides two concerns that can run together or separately:
 Runs the indexer as a background task inside the FastAPI process:
 
 ```bash
-uvicorn ourvoice.combined:app --host 0.0.0.0 --port 8000 --app-dir src
+uvicorn symvolia.combined:app --host 0.0.0.0 --port 8000 --app-dir src
 ```
 
 **Environment variables:**
@@ -70,7 +70,7 @@ Run the indexer and API as separate processes:
 
 ```bash
 # Indexer (exactly one instance)
-python -m ourvoice.main \
+python -m symvolia.main \
   --forum-contract-address 0x... \
   --forum-contract-address 0x... \
   --ethereum-node-url ws://... \
@@ -79,7 +79,7 @@ python -m ourvoice.main \
 
 # Search API (scale horizontally)
 MEILI_URL=http://... MEILI_API_KEY=... \
-  uvicorn ourvoice.search_service.main:app --host 0.0.0.0 --port 8000 --app-dir src
+  uvicorn symvolia.search_service.main:app --host 0.0.0.0 --port 8000 --app-dir src
 ```
 
 ## Local Development (Overmind)
@@ -106,7 +106,7 @@ to discover the deployed forum contract addresses.
 
 See the [Deploy to Railway](#deploy-to-railway) section in the root README, or use the button below:
 
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/template/ourvoice)
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/template/symvolia)
 
 ### Railway services
 
@@ -118,7 +118,7 @@ For a **simple deployment** (combined mode), you need two Railway services:
 For **production scaling**, split into three services:
 
 1. **Meilisearch** — Database service
-2. **Indexer** — Worker process (override CMD: `python -m ourvoice.main --forum-contract-address ... --forum-contract-address ... --ethereum-node-url ... --meili-url ... --meili-api-key ...`)
+2. **Indexer** — Worker process (override CMD: `python -m symvolia.main --forum-contract-address ... --forum-contract-address ... --ethereum-node-url ... --meili-url ... --meili-api-key ...`)
 3. **Search API** — Web process (default CMD from Dockerfile)
 
 ## API Endpoints

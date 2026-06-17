@@ -2,11 +2,11 @@
 pragma solidity ^0.8.28;
 
 import "./IZKPassportVerifier.sol";
-import "./IOurVoiceRegistry.sol";
+import "./ISymvoliaRegistry.sol";
 import "./Constants.sol";
 import "./StringUtils.sol";
 
-contract OurVoiceRegistry is AOurVoiceRegistry {
+contract SymvoliaRegistry is ASymvoliaRegistry {
     error DevProofsNotAllowed();
     error ProofInvalid();
     error AddressAlreadyRegistered(address user, bytes32 existingId);

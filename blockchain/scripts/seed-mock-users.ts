@@ -24,7 +24,7 @@ async function main() {
   const registryAbi = loadAbi(
     path.join(
       repoRoot,
-      "blockchain/artifacts/contracts/MockOurVoiceRegistry.sol/MockOurVoiceRegistry.json",
+      "blockchain/artifacts/contracts/MockSymvoliaRegistry.sol/MockSymvoliaRegistry.json",
     ),
   );
 

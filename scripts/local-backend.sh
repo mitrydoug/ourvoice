@@ -99,4 +99,4 @@ if [ -f .venv/bin/activate ]; then
   . .venv/bin/activate
 fi
 
-exec uvicorn ourvoice.combined:app --host 127.0.0.1 --port 8000 --app-dir src
+exec uvicorn symvolia.combined:app --host 127.0.0.1 --port 8000 --app-dir src

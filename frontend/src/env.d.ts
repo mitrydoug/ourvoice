@@ -2,9 +2,9 @@
 
 interface ImportMetaEnv {
   /**
-   * Which OurVoiceRegistry ABI to use at build time.
-   *   - `"mocked"` (default) — `MockOurVoiceRegistry`, accepts a plain string
-   *   - `"production"` — `OurVoiceRegistry`, requires `ProofVerificationParams`
+   * Which SymvoliaRegistry ABI to use at build time.
+   *   - `"mocked"` (default) — `MockSymvoliaRegistry`, accepts a plain string
+   *   - `"production"` — `SymvoliaRegistry`, requires `ProofVerificationParams`
    */
   readonly VITE_REGISTRY_MODE: "mocked" | "production";
 

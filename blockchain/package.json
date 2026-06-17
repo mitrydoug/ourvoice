@@ -1,14 +1,14 @@
 {
-  "name": "ourvoice-backend",
+  "name": "symvolia-blockchain",
   "version": "0.0.1",
-  "description": "Smart contracts for Our Voice DApp",
-  "homepage": "https://github.com/mitrydoug/ourvoice#readme",
+  "description": "Smart contracts for Symvolia DApp",
+  "homepage": "https://github.com/mitrydoug/symvolia#readme",
   "bugs": {
-    "url": "https://github.com/mitrydoug/ourvoice/issues"
+    "url": "https://github.com/mitrydoug/symvolia/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mitrydoug/ourvoice.git"
+    "url": "git+https://github.com/mitrydoug/symvolia.git"
   },
   "license": "Apache-2.0",
   "author": "",

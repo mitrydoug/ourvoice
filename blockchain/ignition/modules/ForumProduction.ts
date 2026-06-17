@@ -2,7 +2,7 @@ import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import { deployForums } from "./helpers/deployForums.js";
 
 /**
- * Creates a production Ignition module that deploys the OurVoiceRegistry
+ * Creates a production Ignition module that deploys the SymvoliaRegistry
  * (backed by a real on-chain IZKPassportVerifier) and a set of Forum contracts.
  *
  * This single module serves both:
@@ -44,7 +44,7 @@ export function createForumProductionModule(
       verifierAddress,
     );
 
-    const registry = m.contract("OurVoiceRegistry", [
+    const registry = m.contract("SymvoliaRegistry", [
       scope,
       domain,
       ZKPassportVerifier,

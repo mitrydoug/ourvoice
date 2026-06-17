@@ -1,7 +1,7 @@
-"""OurVoice CLI entry-point for the standalone indexer.
+"""Symvolia CLI entry-point for the standalone indexer.
 
 Run with:
-    python -m ourvoice.main \
+    python -m symvolia.main \
         --forum-contract-address 0x... \
         --forum-contract-address 0x... \
         --ethereum-node-url ws://... \
@@ -15,7 +15,7 @@ import asyncio
 
 import meilisearch
 
-from ourvoice.indexer import (
+from symvolia.indexer import (
     DEFAULT_EVICTION_MAX_AGE_SECONDS,
     DEFAULT_WEB3_SUBSCRIPTION_RESPONSE_QUEUE_SIZE,
     parse_forum_contract_addresses,
@@ -24,7 +24,7 @@ from ourvoice.indexer import (
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="OurVoice Indexer")
+    parser = argparse.ArgumentParser(description="Symvolia Indexer")
     parser.add_argument(
         "--forum-contract-address",
         type=str,

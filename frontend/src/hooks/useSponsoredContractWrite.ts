@@ -49,7 +49,7 @@ const DEFAULT_SPONSORED_TRANSACTION_UI_OPTIONS: SendTransactionModalUIOptions =
       title: "What happens",
       action: "Publish update",
       contractInfo: {
-        name: "Our Voice",
+        name: "Symvolia",
       },
     },
     successHeader: "Update submitted",
@@ -69,7 +69,7 @@ const SPONSORED_TRANSACTION_UI_OPTIONS_BY_FUNCTION_NAME: Record<
       title: "",
       action: "Register identity",
       contractInfo: {
-        name: "Our Voice Registry",
+        name: "Symvolia Registry",
       },
     },
     successHeader: "Registration submitted",
@@ -84,7 +84,7 @@ const SPONSORED_TRANSACTION_UI_OPTIONS_BY_FUNCTION_NAME: Record<
       title: "Lock In Your Changes",
       action: "Publish changes",
       contractInfo: {
-        name: "Our Voice Forum",
+        name: "Symvolia Forum",
       },
     },
     successHeader: "Changes submitted",

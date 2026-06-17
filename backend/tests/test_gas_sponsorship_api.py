@@ -2,10 +2,26 @@ import os
 import unittest
 from unittest.mock import patch
 
+from eth_abi import encode
+from eth_utils import function_signature_to_4byte_selector
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from ourvoice.gas_sponsorship.api import create_api
+from symvolia.gas_sponsorship.api import create_api
+
+
+REGISTRY_ADDRESS = "0x00000000000000000000000000000000000000aa"
+
+
+def _selector(signature: str) -> bytes:
+    return function_signature_to_4byte_selector(signature)
+
+
+def _execute_call_data(target: str, inner_call_data: bytes) -> str:
+    return "0x" + (
+        _selector("execute(address,uint256,bytes)")
+        + encode(["address", "uint256", "bytes"], [target, 0, inner_call_data])
+    ).hex()
 
 
 class GasSponsorshipApiTests(unittest.TestCase):
@@ -32,10 +48,19 @@ class GasSponsorshipApiTests(unittest.TestCase):
 
     @patch.dict(
         os.environ,
-        {"ALCHEMY_GAS_SPONSORSHIP_INSPECT_APPROVE": "true"},
+        {
+            "ALCHEMY_GAS_SPONSORSHIP_INSPECT_APPROVE": "true",
+            "REGISTRY_ADDRESS": REGISTRY_ADDRESS,
+            "REGISTRY_MODE": "mocked",
+        },
         clear=True,
     )
     def test_inspect_endpoint_can_be_enabled_for_spike(self) -> None:
+        self.payload["userOperation"]["callData"] = _execute_call_data(
+            REGISTRY_ADDRESS,
+            _selector("register(string)") + encode(["string"], ["USA"]),
+        )
+
         response = self.client.post("/alchemy/gas-policy/inspect", json=self.payload)
 
         self.assertEqual(response.status_code, 200)

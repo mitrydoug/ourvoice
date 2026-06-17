@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.28;
 
-import "./IOurVoiceRegistry.sol";
+import "./ISymvoliaRegistry.sol";
 import "./StringUtils.sol";
 import "./DecayUtils.sol";
 import "@openzeppelin/contracts/utils/Multicall.sol";
@@ -44,7 +44,7 @@ contract Forum is Multicall {
     // Multiplier to speed up decay for testing (1 = normal, 2016 = 5-min half-life)
     uint public immutable decaySpeedupFactor;
 
-    AOurVoiceRegistry public ourVoiceRegistry;
+    ASymvoliaRegistry public symvoliaRegistry;
 
     struct ForumConfig {
         uint maxRankedStatements;
@@ -132,11 +132,11 @@ contract Forum is Multicall {
     event StatementEngaged(uint indexed statementId);
 
     constructor(
-        AOurVoiceRegistry _ourVoiceRegistry,
+        ASymvoliaRegistry _symvoliaRegistry,
         string memory _nationality,
         ForumConfig memory _config
     ) {
-        ourVoiceRegistry = _ourVoiceRegistry;
+        symvoliaRegistry = _symvoliaRegistry;
         nationality = _nationality;
         maxRankedStatements = _config.maxRankedStatements;
         creditAllowanceIntervalSeconds = _config.creditAllowanceIntervalSeconds;
@@ -221,13 +221,13 @@ contract Forum is Multicall {
     }
 
     function isMember() public view returns (bool) {
-        if (!ourVoiceRegistry.isRegistered(msg.sender)) {
+        if (!symvoliaRegistry.isRegistered(msg.sender)) {
             return false;
         }
         if (bytes(nationality).length == 0) {
             return true;
         }
-        Registration memory registration = ourVoiceRegistry.getUserRegistration(
+        Registration memory registration = symvoliaRegistry.getUserRegistration(
             msg.sender
         );
         return StringUtils.equals(registration.nationality, nationality);
@@ -373,9 +373,9 @@ contract Forum is Multicall {
         });
 
         if (_initialSupport != 0) {
-            if (!ourVoiceRegistry.isRegistered(msg.sender))
+            if (!symvoliaRegistry.isRegistered(msg.sender))
                 revert UserNotRegistered(msg.sender);
-            bytes32 _userId = ourVoiceRegistry.getUserIdentifier(msg.sender);
+            bytes32 _userId = symvoliaRegistry.getUserIdentifier(msg.sender);
 
             // Apply initial support to statement and user support map
             statements[statementCount].support.value = _initialSupport;
@@ -402,7 +402,7 @@ contract Forum is Multicall {
     }
 
     function getUserBalance() external view onlyMembers returns (uint) {
-        bytes32 userId = ourVoiceRegistry.getUserIdentifier(msg.sender);
+        bytes32 userId = symvoliaRegistry.getUserIdentifier(msg.sender);
         UserBalance memory _balance = userCredits[userId];
         return _getCurrentUserBalance(_balance);
     }
@@ -413,7 +413,7 @@ contract Forum is Multicall {
         onlyMembers
         returns (StatementSupport[] memory)
     {
-        bytes32 userId = ourVoiceRegistry.getUserIdentifier(msg.sender);
+        bytes32 userId = symvoliaRegistry.getUserIdentifier(msg.sender);
 
         uint _numSupported = 0;
         for (uint i = 0; i < _userSupportedStatements[userId].length; i++) {
@@ -469,7 +469,7 @@ contract Forum is Multicall {
     ) internal view returns (uint) {
         if (_balance.lastUpdated == 0) {
             _balance.credits = userStartingCredits;
-            _balance.lastUpdated = ourVoiceRegistry
+            _balance.lastUpdated = symvoliaRegistry
                 .getUserRegistration(msg.sender)
                 .registrationTimestamp;
         }
@@ -570,9 +570,9 @@ contract Forum is Multicall {
     function adjustSupport(
         SupportAdjustment[] calldata _supportAdjustments
     ) external onlyMembers {
-        if (!ourVoiceRegistry.isRegistered(msg.sender))
+        if (!symvoliaRegistry.isRegistered(msg.sender))
             revert UserNotRegistered(msg.sender);
-        bytes32 _userId = ourVoiceRegistry.getUserIdentifier(msg.sender);
+        bytes32 _userId = symvoliaRegistry.getUserIdentifier(msg.sender);
 
         UserBalance storage _userBalance = userCredits[_userId];
         _updateUserBalanceToBeCurrent(_userBalance);

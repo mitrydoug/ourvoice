@@ -1,4 +1,4 @@
-// Auto-extracted from blockchain/artifacts/contracts/OurVoiceRegistry.sol/OurVoiceRegistry.json
+// Auto-extracted from blockchain/artifacts/contracts/SymvoliaRegistry.sol/SymvoliaRegistry.json
 // Do not edit manually — re-extract from Hardhat artifacts when contracts change.
 
 export default [

@@ -1,12 +1,12 @@
 // Auto-extracted from blockchain/artifacts/contracts/Forum.sol/Forum.json
-// Do not edit manually — re-extract from Hardhat artifacts when contracts change.
+// Do not edit manually -- re-extract from Hardhat artifacts when contracts change.
 
 export default [
   {
     "inputs": [
       {
-        "internalType": "contract AOurVoiceRegistry",
-        "name": "_ourVoiceRegistry",
+        "internalType": "contract ASymvoliaRegistry",
+        "name": "_symvoliaRegistry",
         "type": "address"
       },
       {
@@ -685,19 +685,6 @@ export default [
   },
   {
     "inputs": [],
-    "name": "ourVoiceRegistry",
-    "outputs": [
-      {
-        "internalType": "contract AOurVoiceRegistry",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
     "name": "rankedCount",
     "outputs": [
       {
@@ -810,6 +797,19 @@ export default [
         "internalType": "uint256",
         "name": "lastEngagementEventTimestamp",
         "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "symvoliaRegistry",
+    "outputs": [
+      {
+        "internalType": "contract ASymvoliaRegistry",
+        "name": "",
+        "type": "address"
       }
     ],
     "stateMutability": "view",

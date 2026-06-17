@@ -11,7 +11,7 @@ struct Registration {
     uint registrationTimestamp; // Timestamp of initial registration
 }
 
-abstract contract AOurVoiceRegistry {
+abstract contract ASymvoliaRegistry {
     error UserNotRegistered(address user);
     error NationalityMismatch(string existing, string provided);
 

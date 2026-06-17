@@ -68,7 +68,7 @@ jobs:
       - name: Commit deployment state
         run: |
           git config user.name "smart-contract-deployer"
-          git config user.email "smart-contract-deployer@ourvoice.eth"
+          git config user.email "smart-contract-deployer@symvolia.org"
 
           git add ignition/deployments/
           git add ../deployments/sepolia.json

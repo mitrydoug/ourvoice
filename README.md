@@ -3,7 +3,7 @@ A platform to reflect public sentiment on important issues, ranking them by quad
 
 ## Base Sepolia Development
 
-Base Sepolia currently uses `MockOurVoiceRegistry` because zkPassport has not
+Base Sepolia currently uses `MockSymvoliaRegistry` because zkPassport has not
 deployed its verifier there. Shared deployment state is tracked in
 `deployments/base_sepolia.json`; generated frontend bindings are tracked in
 `frontend/src/contracts/networks/base_sepolia.ts`; and Hardhat Ignition state is

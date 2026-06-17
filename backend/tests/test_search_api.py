@@ -4,7 +4,7 @@ from unittest.mock import patch
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from ourvoice.search_service.api import create_api
+from symvolia.search_service.api import create_api
 
 
 class FakeIndex:
@@ -41,7 +41,7 @@ class SearchApiTests(unittest.TestCase):
         create_api(app)
         self.client = TestClient(app)
 
-    @patch("ourvoice.search_service.api.semantic_search_enabled", return_value=True)
+    @patch("symvolia.search_service.api.semantic_search_enabled", return_value=True)
     def test_similar_search_scopes_to_forum_and_excludes_source(self, _enabled):
         response = self.client.get(
             "/similar",
@@ -76,7 +76,7 @@ class SearchApiTests(unittest.TestCase):
             },
         )
 
-    @patch("ourvoice.search_service.api.semantic_search_enabled", return_value=False)
+    @patch("symvolia.search_service.api.semantic_search_enabled", return_value=False)
     def test_similar_search_returns_unavailable_when_disabled(self, _enabled):
         response = self.client.get(
             "/similar",

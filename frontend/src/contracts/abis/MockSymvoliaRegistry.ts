@@ -1,4 +1,4 @@
-// Auto-extracted from blockchain/artifacts/contracts/MockOurVoiceRegistry.sol/MockOurVoiceRegistry.json
+// Auto-extracted from blockchain/artifacts/contracts/MockSymvoliaRegistry.sol/MockSymvoliaRegistry.json
 // Do not edit manually — re-extract from Hardhat artifacts when contracts change.
 
 export default [
