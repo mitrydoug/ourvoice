@@ -1,7 +1,7 @@
 {
-  "name": "ourvoice-frontend",
+  "name": "symvolia-frontend",
   "version": "0.0.1",
-  "description": "Web app for Voice Board DApp",
+  "description": "Web app for Symvolia DApp",
   "keywords": [
     "ethereum",
     "eth-global",
@@ -10,13 +10,13 @@
     "governance",
     "democracy"
   ],
-  "homepage": "https://github.com/mitrydoug/ourvoice#readme",
+  "homepage": "https://github.com/mitrydoug/symvolia#readme",
   "bugs": {
-    "url": "https://github.com/mitrydoug/ourvoice/issues"
+    "url": "https://github.com/mitrydoug/symvolia/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mitrydoug/ourvoice.git"
+    "url": "git+https://github.com/mitrydoug/symvolia.git"
   },
   "license": "Apache-2.0",
   "author": "",

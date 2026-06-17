@@ -1,4 +1,4 @@
-"""Search API routes for the OurVoice search service."""
+"""Search API routes for the Symvolia search service."""
 
 import logging
 
@@ -7,14 +7,14 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
-from ourvoice.indexer import (
+from symvolia.indexer import (
     SEMANTIC_EMBEDDER_NAME,
     STATEMENTS_INDEX,
     normalize_forum_contract_address,
     semantic_search_enabled,
     statement_document_id,
 )
-from ourvoice.search_query import build_similarity_query
+from symvolia.search_query import build_similarity_query
 
 logger = logging.getLogger(__name__)
 

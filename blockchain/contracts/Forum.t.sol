@@ -6,16 +6,16 @@ import {Vm} from "forge-std/Vm.sol";
 import {console} from "forge-std/console.sol";
 
 import {Forum} from "./Forum.sol";
-import {MockOurVoiceRegistry} from "./MockOurVoiceRegistry.sol";
-import {AOurVoiceRegistry} from "./IOurVoiceRegistry.sol";
+import {MockSymvoliaRegistry} from "./MockSymvoliaRegistry.sol";
+import {ASymvoliaRegistry} from "./ISymvoliaRegistry.sol";
 
 // Test harness to expose internal methods for testing
 contract ForumHarness is Forum {
     constructor(
-        AOurVoiceRegistry _ourVoiceRegistry,
+        ASymvoliaRegistry _symvoliaRegistry,
         string memory _nationality,
         Forum.ForumConfig memory _config
-    ) Forum(_ourVoiceRegistry, _nationality, _config) {}
+    ) Forum(_symvoliaRegistry, _nationality, _config) {}
 
     function exposed_costOfUserSupport(
         int _userSupport
@@ -35,13 +35,13 @@ contract ForumTest is Test {
     uint constant CREDIT_ALLOWANCE_INTERVAL_SECONDS = 60;
     uint constant HALF_LIFE = 604800; // 1 week in seconds
     uint constant ONE_PERCENT_DECAY_SECONDS = 8770;
-    MockOurVoiceRegistry mockRegistry;
+    MockSymvoliaRegistry mockRegistry;
     ForumHarness forum;
 
     function setUp() public {
         vm.warp(MOCK_TEST_TIMESTAMP);
 
-        mockRegistry = new MockOurVoiceRegistry();
+        mockRegistry = new MockSymvoliaRegistry();
         forum = new ForumHarness(
             mockRegistry,
             "",
@@ -1782,12 +1782,12 @@ contract ForumRefundPenaltyTest is Test {
     uint constant MOCK_TEST_TIMESTAMP = 1767572100;
     uint constant CREDIT_ALLOWANCE_INTERVAL_SECONDS = 60;
     uint constant HALF_LIFE = 604800;
-    MockOurVoiceRegistry mockRegistry;
+    MockSymvoliaRegistry mockRegistry;
     ForumHarness forum;
 
     function setUp() public {
         vm.warp(MOCK_TEST_TIMESTAMP);
-        mockRegistry = new MockOurVoiceRegistry();
+        mockRegistry = new MockSymvoliaRegistry();
         forum = new ForumHarness(
             mockRegistry,
             "",

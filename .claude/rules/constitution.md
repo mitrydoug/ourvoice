@@ -22,7 +22,7 @@ Follow-up TODOs: None
 ================================================================================
 -->
 
-# Our Voice Constitution
+# Symvolia Constitution
 
 ## Core Principles
 
@@ -30,7 +30,7 @@ Follow-up TODOs: None
 
 All core functionality MUST be achievable through smart contracts and a static frontend alone. Backend services are OPTIONAL enhancements that provide auxiliary features (search, indexing) but MUST NOT be required for basic platform operation. Users MUST be able to interact with the system in a permissionless way without depending on centralized infrastructure.
 
-**Rationale**: Our Voice serves as a "distributed, public billboard"—centralized dependencies would undermine censorship resistance and trustlessness.
+**Rationale**: Symvolia serves as a "distributed, public billboard"—centralized dependencies would undermine censorship resistance and trustlessness.
 
 ### II. Smart Contract Correctness (NON-NEGOTIABLE)
 

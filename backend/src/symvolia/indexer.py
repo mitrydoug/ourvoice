@@ -11,7 +11,7 @@ accepts:
 Stale documents (those whose ``lastEngagement`` is older than a configurable
 TTL) are periodically evicted from the index.
 
-Can be run standalone (``python -m ourvoice.main``) or embedded in the combined
+Can be run standalone (``python -m symvolia.main``) or embedded in the combined
 process via the ``run_indexer`` coroutine.
 """
 
@@ -30,7 +30,7 @@ from typing import Any
 import meilisearch
 from web3 import AsyncHTTPProvider, AsyncWeb3, WebSocketProvider
 
-from ourvoice.search_query import STOP_WORDS
+from symvolia.search_query import STOP_WORDS
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +83,7 @@ def semantic_search_enabled() -> bool:
 
 def _load_forum_abi() -> list[dict[str, Any]]:
     """Load the Forum ABI from the package data."""
-    abi_path = files("ourvoice").joinpath("ForumABI.json")
+    abi_path = files("symvolia").joinpath("ForumABI.json")
     return json.loads(abi_path.read_text())["abi"]
 
 

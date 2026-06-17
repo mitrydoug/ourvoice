@@ -89,7 +89,7 @@ const label =
   networkName === "localhost"
     ? "the local Hardhat development network (chain 31337)"
     : registryMode === "mocked"
-      ? `the ${networkName} network with MockOurVoiceRegistry`
+      ? `the ${networkName} network with MockSymvoliaRegistry`
       : `the ${networkName} network`;
 
 const networksDir = path.join(repoRoot, "frontend/src/contracts/networks");

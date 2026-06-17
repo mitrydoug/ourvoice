@@ -1,6 +1,6 @@
 import unittest
 
-from ourvoice.search_query import MAX_MEILI_QUERY_TERMS, build_similarity_query
+from symvolia.search_query import MAX_MEILI_QUERY_TERMS, build_similarity_query
 
 
 class BuildSimilarityQueryTest(unittest.TestCase):

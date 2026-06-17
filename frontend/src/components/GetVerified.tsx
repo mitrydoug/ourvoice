@@ -57,7 +57,7 @@ import AndroidIcon from "@mui/icons-material/Android";
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const MY_ICON_URL = "https://i.imgur.com/I86xH4n.png";
-const MY_SCOPE = "our-voice-verify";
+const MY_SCOPE = "symvolia-verify";
 
 const ZKPASSPORT_URL = "https://zkpassport.id";
 const ZKPASSPORT_IOS_URL = "https://apps.apple.com/app/zkpassport/id6477371975";

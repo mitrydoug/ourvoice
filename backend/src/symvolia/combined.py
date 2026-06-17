@@ -3,7 +3,7 @@
 Ideal for local development and low-traffic self-hosted deployments.
 
 Run with:
-    uvicorn ourvoice.combined:app --host 0.0.0.0 --port 8000
+    uvicorn symvolia.combined:app --host 0.0.0.0 --port 8000
 
 Required env vars:
     MEILI_URL            — Meilisearch URL  (default: http://localhost:7700)
@@ -42,25 +42,25 @@ import meilisearch
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from ourvoice.gas_sponsorship.api import create_api as create_gas_sponsorship_api
-from ourvoice.indexer import (
+from symvolia.gas_sponsorship.api import create_api as create_gas_sponsorship_api
+from symvolia.indexer import (
     DEFAULT_EVICTION_MAX_AGE_SECONDS,
     DEFAULT_WEB3_SUBSCRIPTION_RESPONSE_QUEUE_SIZE,
     ensure_search_index,
     parse_forum_contract_addresses,
     run_indexers,
 )
-from ourvoice.search_service.api import create_api
+from symvolia.search_service.api import create_api
 
 logging.basicConfig(
     level="INFO",
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
-# Allow fine-grained control over ourvoice package logging without enabling
+# Allow fine-grained control over symvolia package logging without enabling
 # DEBUG output from third-party libraries (web3, websockets, urllib3, etc.).
-# Set LOG_LEVEL=DEBUG to see detailed ourvoice-internal logs only.
-_our_log_level = os.getenv("LOG_LEVEL", "INFO").upper()
-logging.getLogger("ourvoice").setLevel(_our_log_level)
+# Set LOG_LEVEL=DEBUG to see detailed symvolia-internal logs only.
+_symvolia_log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+logging.getLogger("symvolia").setLevel(_symvolia_log_level)
 logger = logging.getLogger(__name__)
 
 MEILI_URL = os.getenv("MEILI_URL", "http://localhost:7700")
@@ -118,7 +118,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     logger.info("Indexer background task stopped")
 
 
-app = FastAPI(title="OurVoice Search (combined)", lifespan=lifespan)
+app = FastAPI(title="Symvolia Search (combined)", lifespan=lifespan)
 
 if CORS_ORIGINS:
     app.add_middleware(

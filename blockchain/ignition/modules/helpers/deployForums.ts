@@ -8,7 +8,7 @@ import type {
  * Shared helper that deploys a set of Forum contracts pointing at the given registry.
  *
  * @param m                          - The Ignition module builder.
- * @param registry                   - A Future resolving to the OurVoiceRegistry (or mock) contract.
+ * @param registry                   - A Future resolving to the SymvoliaRegistry (or mock) contract.
  * @param forumNames                 - The list of forum identifiers to deploy (e.g. ["global", "USA"]).
  *                                     "global" is special-cased to pass an empty nationality string.
  * @param creditAllowanceIntervalSeconds - Duration (in seconds) of a single credit allowance interval.

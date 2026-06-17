@@ -94,7 +94,7 @@ async function main() {
     ({ registry, ...forums } = deployResult);
   }
 
-  console.log("Deployed OurVoiceRegistry at:", registry.address);
+  console.log("Deployed SymvoliaRegistry at:", registry.address);
   for (const [name, contract] of Object.entries(forums)) {
     console.log(`Deployed Forum (${name}) at:`, contract.address);
   }

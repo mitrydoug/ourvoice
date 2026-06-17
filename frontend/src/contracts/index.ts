@@ -8,8 +8,8 @@
  */
 
 import ForumABI from "./abis/Forum";
-import OurVoiceRegistryABI from "./abis/OurVoiceRegistry";
-import MockOurVoiceRegistryABI from "./abis/MockOurVoiceRegistry";
+import SymvoliaRegistryABI from "./abis/SymvoliaRegistry";
+import MockSymvoliaRegistryABI from "./abis/MockSymvoliaRegistry";
 
 // ---------------------------------------------------------------------------
 // Network addresses — resolved at build time via import.meta.glob so that
@@ -42,25 +42,25 @@ export const FORUMS = activeNetwork.FORUMS;
 
 const REGISTRY_ADDRESS = activeNetwork.REGISTRY_ADDRESS;
 
-/** true when the frontend targets a MockOurVoiceRegistry deployment. */
+/** true when the frontend targets a MockSymvoliaRegistry deployment. */
 export const isDevMode = import.meta.env.VITE_REGISTRY_MODE !== "production";
 
 export const FORUM_ABI = ForumABI;
 
 /**
- * Contract config for the production OurVoiceRegistry.
+ * Contract config for the production SymvoliaRegistry.
  * `register()` expects `ProofVerificationParams` from zkpassport.
  */
 export const registryContractConfig = {
   address: REGISTRY_ADDRESS,
-  abi: OurVoiceRegistryABI,
+  abi: SymvoliaRegistryABI,
 } as const;
 
 /**
- * Contract config for the MockOurVoiceRegistry (dev/test only).
+ * Contract config for the MockSymvoliaRegistry (dev/test only).
  * `register()` accepts a plain nationality string.
  */
 export const mockRegistryContractConfig = {
   address: REGISTRY_ADDRESS,
-  abi: MockOurVoiceRegistryABI,
+  abi: MockSymvoliaRegistryABI,
 } as const;

@@ -24,7 +24,7 @@ interface Registration {
 }
 
 export interface UserRegistration {
-  /** Whether the user is registered in the OurVoiceRegistry (any forum). */
+  /** Whether the user is registered in the SymvoliaRegistry (any forum). */
   isRegistered: boolean;
   /** True while the registration query is still in-flight. */
   isLoading: boolean;
@@ -38,7 +38,7 @@ export interface UserRegistration {
 }
 
 /**
- * Reads the user's global registration state from the OurVoiceRegistry.
+ * Reads the user's global registration state from the SymvoliaRegistry.
  *
  * This is distinct from `isUserVerified` in `useUserVotes`, which checks
  * forum-specific membership via `Forum.isMember()`. A user can be registered

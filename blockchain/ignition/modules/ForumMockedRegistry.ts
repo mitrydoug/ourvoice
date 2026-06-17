@@ -2,7 +2,7 @@ import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import { deployForums } from "./helpers/deployForums.js";
 
 /**
- * Creates a mocked Ignition module that deploys a MockOurVoiceRegistry
+ * Creates a mocked Ignition module that deploys a MockSymvoliaRegistry
  * (allowing unverified user registration) and a set of Forum contracts.
  */
 export function createForumMockedModule(
@@ -20,7 +20,7 @@ export function createForumMockedModule(
   decaySpeedupFactor: number,
 ) {
   return buildModule("ForumMockedRegistryModule", (m) => {
-    const mockedZKRegistry = m.contract("MockOurVoiceRegistry");
+    const mockedZKRegistry = m.contract("MockSymvoliaRegistry");
 
     const { forums } = deployForums(
       m,
