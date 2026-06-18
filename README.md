@@ -95,3 +95,10 @@ you want that process to deploy fresh mock-registry contracts first.
 
 The backend can start without `ETHEREUM_NODE_URL`, but live indexing is disabled
 until a WebSocket RPC is configured.
+
+## Backend Deployment
+
+The backend is packaged as a public container image and can be deployed with
+Railway or any container host. See [deploy/README.md](deploy/README.md) for the
+maintainer deployment workflow, Railway self-hosting steps, generated backend env
+examples, and troubleshooting notes.

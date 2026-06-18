@@ -104,7 +104,7 @@ to discover the deployed forum contract addresses.
 
 ## Self-Hosting on Railway
 
-See the [Deploy to Railway](#deploy-to-railway) section in the root README, or use the button below:
+See the deployment guide in [deploy/README.md](../deploy/README.md), or use the button below:
 
 [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/template/symvolia)
 
@@ -113,7 +113,7 @@ See the [Deploy to Railway](#deploy-to-railway) section in the root README, or u
 For a **simple deployment** (combined mode), you need two Railway services:
 
 1. **Meilisearch** — Use the official Meilisearch template on Railway
-2. **Backend** — Uses `backend/Dockerfile`, set env vars pointing to the Meilisearch service
+2. **Backend** — Use the published GHCR image or build `backend/Dockerfile`, set env vars pointing to the Meilisearch service
 
 For **production scaling**, split into three services:
 
