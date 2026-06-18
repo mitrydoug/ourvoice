@@ -113,7 +113,7 @@ See the [Deploy to Railway](#deploy-to-railway) section in the root README, or u
 For a **simple deployment** (combined mode), you need two Railway services:
 
 1. **Meilisearch** — Use the official Meilisearch template on Railway
-2. **Backend** — Uses `backend/Dockerfile.railway`, set env vars pointing to the Meilisearch service
+2. **Backend** — Uses `backend/Dockerfile`, set env vars pointing to the Meilisearch service
 
 For **production scaling**, split into three services:
 
