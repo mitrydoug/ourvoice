@@ -16,12 +16,19 @@ local-stress-test: ## Start local dev env with mocked registry and stress-test f
 	overmind start -f Procfile.local-stress-test
 
 .PHONY: local-forked
-local-forked: ## Start local dev env with Sepolia fork (needs SEPOLIA_RPC_URL in .env.local)
+local-forked: ## Start local dev env with Base Sepolia fork (needs BASE_SEPOLIA_RPC_URL in .env.local)
 	overmind start -f Procfile.local-forked
 
 .PHONY: base-sepolia
-base-sepolia: ## Start dev env against Base Sepolia mock registry; DEPLOY_CONTRACTS=1 deploys fresh contracts
+base-sepolia: ## Start dev env against committed Base Sepolia mock-registry contracts
 	overmind start -f Procfile.base-sepolia
+
+.PHONY: base-sepolia-break-glass
+base-sepolia-break-glass: ## Break glass: redeploy fresh Base Sepolia contracts; requires CONFIRM_BASE_SEPOLIA_REDEPLOY=I_UNDERSTAND_THIS_WIPES_BASE_SEPOLIA_STATE
+	@test "$(CONFIRM_BASE_SEPOLIA_REDEPLOY)" = "I_UNDERSTAND_THIS_WIPES_BASE_SEPOLIA_STATE" || (echo "Set CONFIRM_BASE_SEPOLIA_REDEPLOY=I_UNDERSTAND_THIS_WIPES_BASE_SEPOLIA_STATE" && exit 1)
+	cd blockchain && DEPLOYMENT_PROFILE=base-sepolia npx hardhat compile --build-profile production && DEPLOYMENT_PROFILE=base-sepolia npx hardhat run scripts/deploy.ts --network base_sepolia
+	node scripts/generate-deployment-artifacts.mjs base_sepolia
+	node scripts/generate-backend-env-examples.mjs
 
 .PHONY: local-stop
 local-stop: ## Stop all local dev processes and Meilisearch container

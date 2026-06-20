@@ -13,11 +13,11 @@ type DeployedContract = { address: string; abi: unknown[] };
 
 const writesLocalDeploymentArtifact = (networkName: string) =>
   networkName === "default" ||
-  networkName === "local_sepolia_fork" ||
+  networkName === "local_base_sepolia_fork" ||
   networkName.startsWith("localhost");
 
 const supportsNetworkHelpers = (networkName: string) =>
-  networkName === "default" || networkName === "local_sepolia_fork";
+  networkName === "default" || networkName === "local_base_sepolia_fork";
 
 const hexQuantityToNumber = (value: string) => Number(BigInt(value));
 

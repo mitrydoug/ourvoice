@@ -20,12 +20,5 @@ deploy-mocked: deploy
 
 .PHONY: deploy-local-fork
 deploy-local-fork: compile
-	npx hardhat run scripts/deploy.ts --network local_sepolia_fork
+	npx hardhat run scripts/deploy.ts --network local_base_sepolia_fork
 	node ../scripts/generate-deployment-artifacts.mjs localhost
-
-# --- Testnet deployments ---
-
-.PHONY: deploy-sepolia
-deploy-sepolia: compile
-	npx hardhat run scripts/deploy.ts --network sepolia
-	node ../scripts/generate-deployment-artifacts.mjs sepolia

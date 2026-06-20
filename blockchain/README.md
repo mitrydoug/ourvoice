@@ -1,57 +1,79 @@
-# Sample Hardhat 3 Beta Project (`node:test` and `viem`)
+# Symvolia Blockchain
 
-This project showcases a Hardhat 3 Beta project using the native Node.js test runner (`node:test`) and the `viem` library for Ethereum interactions.
+This package contains the Symvolia smart contracts, Hardhat configuration,
+deployment scripts, and Solidity tests.
 
-To learn more about the Hardhat 3 Beta, please visit the [Getting Started guide](https://hardhat.org/docs/getting-started#getting-started-with-hardhat-3). To share your feedback, join our [Hardhat 3 Beta](https://hardhat.org/hardhat3-beta-telegram-group) Telegram group or [open an issue](https://github.com/NomicFoundation/hardhat/issues/new) in our GitHub issue tracker.
+## Common Commands
 
-## Project Overview
+Run Solidity tests:
 
-This example project includes:
-
-- A simple Hardhat configuration file.
-- Foundry-compatible Solidity unit tests.
-- TypeScript integration tests using [`node:test`](nodejs.org/api/test.html), the new Node.js native test runner, and [`viem`](https://viem.sh/).
-- Examples demonstrating how to connect to different types of networks, including locally simulating OP mainnet.
-
-## Usage
-
-### Running Tests
-
-To run all the tests in the project, execute the following command:
-
-```shell
-npx hardhat test
+```bash
+npm run test:solidity
 ```
 
-You can also selectively run the Solidity or `node:test` tests:
+Compile contracts:
 
-```shell
-npx hardhat test solidity
-npx hardhat test nodejs
+```bash
+npx hardhat compile
 ```
 
-### Make a deployment to Sepolia
+Compile with the production optimizer profile:
 
-This project includes an example Ignition module to deploy the contract. You can deploy this module to a locally simulated chain or to Sepolia.
-
-To run the deployment to a local chain:
-
-```shell
-npx hardhat ignition deploy ignition/modules/Counter.ts
+```bash
+npx hardhat compile --build-profile production
 ```
 
-To run the deployment to Sepolia, you need an account with funds to send the transaction. The provided Hardhat configuration includes a Configuration Variable called `SEPOLIA_DEPLOYER_PRIVATE_KEY`, which you can use to set the private key of the account you want to use.
+## Local Deployments
 
-You can set the `SEPOLIA_DEPLOYER_PRIVATE_KEY` variable using the `hardhat-keystore` plugin or by setting it as an environment variable.
+Local development workflows are normally launched from the repository root with
+`make local-mocked`, `make local-forked`, `make local-stress-test`, or
+`make base-sepolia`.
 
-To set the `SEPOLIA_DEPLOYER_PRIVATE_KEY` config variable using `hardhat-keystore`:
+For direct local contract work:
 
-```shell
-npx hardhat keystore set SEPOLIA_DEPLOYER_PRIVATE_KEY
+```bash
+make deploy
 ```
 
-After setting the variable, you can run the deployment with the Sepolia network:
+This deploys the local mocked-registry topology to a local Hardhat network and
+regenerates `deployments/localhost.json` plus frontend/backend runtime artifacts.
 
-```shell
-npx hardhat ignition deploy --network sepolia ignition/modules/Counter.ts
+## Base Sepolia Break-Glass Deployment
+
+Base Sepolia is the public test network used for development deployments. Normal
+`make base-sepolia` usage reads the committed `deployments/base_sepolia.json` and
+does not redeploy contracts.
+
+To deliberately wipe and redeploy the Base Sepolia app contracts, run from the
+repository root:
+
+```bash
+CONFIRM_BASE_SEPOLIA_REDEPLOY=I_UNDERSTAND_THIS_WIPES_BASE_SEPOLIA_STATE make base-sepolia-break-glass
 ```
+
+This is intentionally verbose because redeploying the registry or forums wipes
+their on-chain state for the app.
+
+## Base Mainnet Production
+
+Production targets Base Mainnet. Automatic production contract work should use
+forum reconciliation only: deploy new forums that are missing from
+`deployments/base.json` while preserving the existing registry and existing forum
+addresses.
+
+The initial Base Mainnet registry deployment is a migration-level operation and
+must be run manually with explicit review. Before that can happen,
+`ignition/parameters/base.json` must contain the approved production verifier,
+scope, domain, and `devMode` values.
+
+## Reconcile Missing Forums
+
+After an initial deployment artifact exists, deploy only missing forums with:
+
+```bash
+DEPLOYMENT_PROFILE=base-sepolia npx hardhat run scripts/reconcile-forums.ts --network base_sepolia
+DEPLOYMENT_PROFILE=base npx hardhat run scripts/reconcile-forums.ts --network base
+```
+
+The reconciliation script verifies existing registry/forum bytecode, refuses
+forum removals, and preserves all known deployed addresses.

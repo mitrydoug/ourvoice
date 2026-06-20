@@ -1,4 +1,4 @@
-# Local development — mocked registry (no Sepolia fork).
+# Local development — mocked registry (no public-network fork).
 # Launched via: make local-mocked
 #
 # Meilisearch runs in Docker under Overmind. Everything else runs natively.

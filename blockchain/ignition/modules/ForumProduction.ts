@@ -6,8 +6,8 @@ import { deployForums } from "./helpers/deployForums.js";
  * (backed by a real on-chain IZKPassportVerifier) and a set of Forum contracts.
  *
  * This single module serves both:
- *   - Real Sepolia deployments (with a production parameter file)
- *   - Local Sepolia-fork deployments (with a dev parameter file)
+ *   - Base Mainnet deployments (with a production parameter file)
+ *   - Local public-network fork deployments (with a dev parameter file)
  *
  * The forum list is a factory argument (not an Ignition parameter) because it
  * determines which Future IDs exist in the deployment graph and must be known
@@ -52,10 +52,16 @@ export function createForumProductionModule(
     ]);
 
     const { forums } = deployForums(
-      m, registry, forumNames,
-      creditAllowanceIntervalSeconds, engagementWindowSeconds,
-      maxRankedStatements, minStatementSupportToRank,
-      maxStatementLength, userCreditAllowancePerInterval, userStartingCredits,
+      m,
+      registry,
+      forumNames,
+      creditAllowanceIntervalSeconds,
+      engagementWindowSeconds,
+      maxRankedStatements,
+      minStatementSupportToRank,
+      maxStatementLength,
+      userCreditAllowancePerInterval,
+      userStartingCredits,
       minAdjustmentIntervalSeconds,
       creditMultiplier,
       refundPenaltyBps,

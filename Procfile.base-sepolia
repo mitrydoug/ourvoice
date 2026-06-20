@@ -1,7 +1,6 @@
 # Base Sepolia development using committed contract addresses.
 # Launched via: make base-sepolia
-# To deploy fresh mock-registry contracts before startup:
-#   DEPLOY_CONTRACTS=1 make base-sepolia
+# To redeploy fresh mock-registry contracts, use the break-glass Make target.
 
 meilisearch: bash scripts/dev/meilisearch.sh base-sepolia
 contracts: bash scripts/dev/contracts.sh base-sepolia

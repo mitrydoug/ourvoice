@@ -131,12 +131,12 @@ case "${PROFILE}" in
     ;;
   base-sepolia)
     if [ "${DEPLOY_CONTRACTS:-0}" = "1" ]; then
-      echo "🚀 Deploying Base Sepolia contracts…"
-      rm -rf blockchain/ignition/deployments/chain-84532
-      (cd blockchain && npx hardhat compile && npx hardhat run scripts/deploy.ts --network "${DEPLOY_NETWORK}")
-    else
-      echo "📄 Using existing deployment state for Base Sepolia."
+      echo "❌ DEPLOY_CONTRACTS=1 is no longer supported for make base-sepolia."
+      echo "Use: CONFIRM_BASE_SEPOLIA_REDEPLOY=I_UNDERSTAND_THIS_WIPES_BASE_SEPOLIA_STATE make base-sepolia-break-glass"
+      exit 1
     fi
+
+    echo "📄 Using existing deployment state for Base Sepolia."
 
     generate_artifacts "${DEPLOY_ARTIFACT_NETWORK}"
     seed_contract_state

@@ -16,9 +16,6 @@ interface ImportMetaEnv {
   /** Local Hardhat RPC endpoint URL. Required when VITE_NETWORK is "localhost". */
   readonly VITE_LOCALHOST_RPC_URL?: string;
 
-  /** Sepolia RPC endpoint URL. Required when VITE_NETWORK is "sepolia". */
-  readonly VITE_SEPOLIA_RPC_URL?: string;
-
   /** Base mainnet RPC endpoint URL. Required when VITE_NETWORK is "base". */
   readonly VITE_BASE_RPC_URL?: string;
 

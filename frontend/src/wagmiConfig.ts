@@ -1,6 +1,6 @@
 import { createConfig } from "@privy-io/wagmi";
 import type { PrivyClientConfig } from "@privy-io/react-auth";
-import { base, baseSepolia, hardhat, sepolia, type Chain } from "wagmi/chains";
+import { base, baseSepolia, hardhat, type Chain } from "wagmi/chains";
 import { http } from "wagmi";
 
 // ---------------------------------------------------------------------------
@@ -28,7 +28,6 @@ const requiredEnvValue = (
 
 const networkToChain = {
   localhost: hardhat,
-  sepolia,
   base,
   base_sepolia: baseSepolia,
 } satisfies Record<string, Chain>;
@@ -57,7 +56,6 @@ export const targetChain: Chain = networkToChain[networkName];
 
 const networkToAverageBlockTimeSeconds: Record<string, number> = {
   localhost: 1,
-  sepolia: 12,
   base: 2,
   base_sepolia: 2,
 };
@@ -81,7 +79,6 @@ export const smartWalletsConfig =
 
 const networkToRpcEnv = {
   localhost: ["VITE_LOCALHOST_RPC_URL", import.meta.env.VITE_LOCALHOST_RPC_URL],
-  sepolia: ["VITE_SEPOLIA_RPC_URL", import.meta.env.VITE_SEPOLIA_RPC_URL],
   base: ["VITE_BASE_RPC_URL", import.meta.env.VITE_BASE_RPC_URL],
   base_sepolia: [
     "VITE_BASE_SEPOLIA_RPC_URL",

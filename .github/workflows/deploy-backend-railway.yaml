@@ -1,0 +1,76 @@
+name: Deploy backend to Railway
+
+on:
+  workflow_run:
+    workflows: ["Publish backend Docker image"]
+    types: [completed]
+    branches:
+      - develop
+      - release
+
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Railway deployment target"
+        required: true
+        type: choice
+        options:
+          - development
+          - production
+
+concurrency:
+  group: railway-backend-${{ github.event.workflow_run.head_branch || inputs.target }}
+  cancel-in-progress: false
+
+jobs:
+  deploy-development:
+    if: >-
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'develop') ||
+      (github.event_name == 'workflow_dispatch' && inputs.target == 'development')
+    runs-on: ubuntu-latest
+    container: ghcr.io/railwayapp/cli:latest
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_DEVELOPMENT_TOKEN }}
+      RAILWAY_BACKEND_SERVICE: ${{ vars.RAILWAY_BACKEND_SERVICE }}
+    steps:
+      - name: Check Railway configuration
+        run: |
+          if [ -z "${RAILWAY_TOKEN}" ]; then
+            echo "Set the RAILWAY_DEVELOPMENT_TOKEN repository secret."
+            exit 1
+          fi
+          if [ -z "${RAILWAY_BACKEND_SERVICE}" ]; then
+            echo "Set the RAILWAY_BACKEND_SERVICE repository variable to the Railway backend service name or ID."
+            exit 1
+          fi
+
+      - name: Redeploy backend development service
+        run: railway redeploy --service "${RAILWAY_BACKEND_SERVICE}" --yes
+
+  deploy-production:
+    if: >-
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'release') ||
+      (github.event_name == 'workflow_dispatch' && inputs.target == 'production')
+    runs-on: ubuntu-latest
+    container: ghcr.io/railwayapp/cli:latest
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_PRODUCTION_TOKEN }}
+      RAILWAY_BACKEND_SERVICE: ${{ vars.RAILWAY_BACKEND_SERVICE }}
+    steps:
+      - name: Check Railway configuration
+        run: |
+          if [ -z "${RAILWAY_TOKEN}" ]; then
+            echo "Set the RAILWAY_PRODUCTION_TOKEN repository secret."
+            exit 1
+          fi
+          if [ -z "${RAILWAY_BACKEND_SERVICE}" ]; then
+            echo "Set the RAILWAY_BACKEND_SERVICE repository variable to the Railway backend service name or ID."
+            exit 1
+          fi
+
+      - name: Redeploy backend production service
+        run: railway redeploy --service "${RAILWAY_BACKEND_SERVICE}" --yes

@@ -6,6 +6,10 @@ import hardhatNetworkHelpers from "@nomicfoundation/hardhat-network-helpers";
 
 import { configVariable } from "hardhat/config";
 
+const BASE_SEPOLIA_FORK_BLOCK_NUMBER = Number(
+  process.env.BASE_SEPOLIA_FORK_BLOCK_NUMBER ?? "43106971",
+);
+
 const config: HardhatUserConfig = {
   plugins: [hardhatToolboxViemPlugin, hardhatNetworkHelpers, hardhatKeystore],
   solidity: {
@@ -28,18 +32,18 @@ const config: HardhatUserConfig = {
     default: {
       type: "edr-simulated",
     },
-    local_sepolia_fork: {
+    local_base_sepolia_fork: {
       type: "edr-simulated",
       forking: {
-        url: configVariable("SEPOLIA_RPC_URL"),
-        blockNumber: 10436395,
+        url: configVariable("BASE_SEPOLIA_RPC_URL"),
+        blockNumber: BASE_SEPOLIA_FORK_BLOCK_NUMBER,
       },
     },
-    sepolia: {
+    base: {
       type: "http",
-      chainType: "l1",
-      url: configVariable("SEPOLIA_RPC_URL"),
-      accounts: [configVariable("SEPOLIA_DEPLOYER_PRIVATE_KEY")],
+      chainType: "op",
+      url: configVariable("BASE_RPC_URL"),
+      accounts: [configVariable("BASE_DEPLOYER_PRIVATE_KEY")],
     },
     base_sepolia: {
       type: "http",
