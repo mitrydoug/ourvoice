@@ -4,7 +4,9 @@ on:
   workflow_run:
     workflows: ["Reconcile smart contracts"]
     types: [completed]
-    branches: [release]
+    branches:
+      - develop
+      - release
 
   # Allow manual re-runs (e.g. after fixing a Pinata issue)
   workflow_dispatch:
@@ -19,8 +21,11 @@ permissions:
 
 # Prevent parallel deploys
 concurrency:
-  group: "site-deploy"
+  group: site-deploy-${{ github.event.workflow_run.head_branch || inputs.branch || 'release' }}
   cancel-in-progress: false
+
+env:
+  DEPLOY_BRANCH: ${{ github.event.workflow_run.head_branch || inputs.branch || 'release' }}
 
 jobs:
   build:
@@ -37,7 +42,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.branch || 'release' }}
+          ref: ${{ env.DEPLOY_BRANCH }}
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -58,9 +63,49 @@ jobs:
       - name: Check formatting
         run: npm run format:check
 
-      - name: Build
+      - name: Configure frontend deployment environment
         env:
-          VITE_BASE_RPC_URL: ${{ secrets.BASE_RPC_URL }}
+          BASE_RPC_URL: ${{ secrets.BASE_RPC_URL }}
+          BASE_SEPOLIA_RPC_URL: ${{ secrets.BASE_SEPOLIA_RPC_URL }}
+          DEVELOPMENT_SEARCH_URL: ${{ vars.DEVELOPMENT_SEARCH_URL }}
+          PRODUCTION_SEARCH_URL: ${{ vars.PRODUCTION_SEARCH_URL }}
+        run: |
+          case "${DEPLOY_BRANCH}" in
+            develop)
+              if [ -z "${BASE_SEPOLIA_RPC_URL}" ]; then
+                echo "BASE_SEPOLIA_RPC_URL secret is required for develop site deployment."
+                exit 1
+              fi
+              if [ -z "${DEVELOPMENT_SEARCH_URL}" ]; then
+                echo "DEVELOPMENT_SEARCH_URL repository variable is required for develop site deployment."
+                exit 1
+              fi
+              echo "VITE_NETWORK=base_sepolia" >> "${GITHUB_ENV}"
+              echo "VITE_REGISTRY_MODE=mocked" >> "${GITHUB_ENV}"
+              echo "VITE_BASE_SEPOLIA_RPC_URL=${BASE_SEPOLIA_RPC_URL}" >> "${GITHUB_ENV}"
+              echo "VITE_SEARCH_URL=${DEVELOPMENT_SEARCH_URL}" >> "${GITHUB_ENV}"
+              ;;
+            release)
+              if [ -z "${BASE_RPC_URL}" ]; then
+                echo "BASE_RPC_URL secret is required for release site deployment."
+                exit 1
+              fi
+              if [ -z "${PRODUCTION_SEARCH_URL}" ]; then
+                echo "PRODUCTION_SEARCH_URL repository variable is required for release site deployment."
+                exit 1
+              fi
+              echo "VITE_NETWORK=base" >> "${GITHUB_ENV}"
+              echo "VITE_REGISTRY_MODE=production" >> "${GITHUB_ENV}"
+              echo "VITE_BASE_RPC_URL=${BASE_RPC_URL}" >> "${GITHUB_ENV}"
+              echo "VITE_SEARCH_URL=${PRODUCTION_SEARCH_URL}" >> "${GITHUB_ENV}"
+              ;;
+            *)
+              echo "Unsupported site deployment branch: ${DEPLOY_BRANCH}"
+              exit 1
+              ;;
+          esac
+
+      - name: Build
         run: npm run build
 
       - name: Upload build artifact
@@ -81,7 +126,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.branch || 'release' }}
+          ref: ${{ env.DEPLOY_BRANCH }}
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -115,7 +160,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.branch || 'release' }}
+          ref: ${{ env.DEPLOY_BRANCH }}
 
       - name: Create GitHub Release
         env:
@@ -123,7 +168,7 @@ jobs:
           CID: ${{ needs.pin-ipfs.outputs.cid }}
           PINATA_GATEWAY: ${{ secrets.PINATA_GATEWAY }}
         run: |
-          TAG="site-$(date -u +%Y%m%d-%H%M%S)"
+          TAG="site-${DEPLOY_BRANCH}-$(date -u +%Y%m%d-%H%M%S)"
           GATEWAY="https://${PINATA_GATEWAY}/ipfs/${CID}"
           PUBLIC="https://ipfs.io/ipfs/${CID}"
 
