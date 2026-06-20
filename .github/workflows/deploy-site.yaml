@@ -2,7 +2,7 @@ name: Deploy static site to IPFS
 
 on:
   workflow_run:
-    workflows: ["Deploy smart contracts to Sepolia"]
+    workflows: ["Reconcile smart contracts"]
     types: [completed]
     branches: [release]
 
@@ -60,7 +60,7 @@ jobs:
 
       - name: Build
         env:
-          VITE_SEPOLIA_RPC_URL: ${{ secrets.SEPOLIA_RPC_URL }}
+          VITE_BASE_RPC_URL: ${{ secrets.BASE_RPC_URL }}
         run: npm run build
 
       - name: Upload build artifact

@@ -81,9 +81,9 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
     decaySpeedupFactor: 168,
   },
 
-  /** Local Sepolia fork with production verifier settings. */
-  "local-sepolia-fork-strict": {
-    mode: "production",
+  /** Local Base Sepolia fork using the same mocked-registry topology as Base Sepolia. */
+  "local-base-sepolia-fork": {
+    mode: "mocked",
     forums: ["global", "USA", "CAN"],
     creditAllowanceIntervalSeconds: 60,
     engagementWindowSeconds: 300,
@@ -96,29 +96,10 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
     creditMultiplier: CRED_MULT,
     refundPenaltyBps: 2000,
     decaySpeedupFactor: 2016,
-    parametersFile: "local-fork-strict.json",
   },
 
-  /** Local Sepolia fork with verifier dev mode enabled. */
-  "local-sepolia-fork-dev": {
-    mode: "production",
-    forums: ["global", "USA", "CAN"],
-    creditAllowanceIntervalSeconds: 60,
-    engagementWindowSeconds: 300,
-    maxRankedStatements: 10,
-    minStatementSupportToRank: 3 * CRED_MULT,
-    maxStatementLength: 120,
-    userCreditAllowancePerInterval: 25 * CRED_MULT,
-    userStartingCredits: 1000 * CRED_MULT,
-    minAdjustmentIntervalSeconds: 12,
-    creditMultiplier: CRED_MULT,
-    refundPenaltyBps: 2000,
-    decaySpeedupFactor: 2016,
-    parametersFile: "local-fork.json",
-  },
-
-  /** Real Sepolia testnet deployment. */
-  sepolia: {
+  /** Base mainnet production deployment. */
+  base: {
     mode: "production",
     forums: ["global", "USA", "CAN"],
     creditAllowanceIntervalSeconds: 14400,
@@ -132,7 +113,7 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
     creditMultiplier: CRED_MULT,
     refundPenaltyBps: 2000,
     decaySpeedupFactor: 1,
-    parametersFile: "sepolia.json",
+    parametersFile: "base.json",
   },
 
   /** Base Sepolia testnet deployment with mock registry until zkPassport verifier is available. */

@@ -1,7 +1,7 @@
-# Local development — Sepolia fork with real ZKPassport verifier.
+# Local development — Base Sepolia fork with mocked registry topology.
 # Launched via: make local-forked
 #
-# Requires SEPOLIA_RPC_URL in .env.local (gitignored).
+# Requires BASE_SEPOLIA_RPC_URL in .env.local (gitignored).
 # Meilisearch runs in Docker under Overmind. Everything else runs natively.
 
 meilisearch: bash scripts/dev/meilisearch.sh local-forked

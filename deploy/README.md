@@ -102,7 +102,9 @@ Use the generated backend env example for the chain you want to index:
 | Chain        | Env example                                                              |
 | ------------ | ------------------------------------------------------------------------ |
 | Base Sepolia | [base_sepolia.backend.env.example](env/base_sepolia.backend.env.example) |
-| Sepolia      | [sepolia.backend.env.example](env/sepolia.backend.env.example)           |
+
+The Base Mainnet backend env example will be generated after the first Base
+Mainnet deployment creates `deployments/base.json`.
 
 Replace placeholder values before deploying:
 

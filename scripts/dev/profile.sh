@@ -56,15 +56,15 @@ load_dev_profile() {
       unset HARDHAT_NETWORK
       ;;
     local-forked)
-      require_env SEPOLIA_RPC_URL
+      require_env BASE_SEPOLIA_RPC_URL
       export RPC_URL="${LOCAL_RPC_URL}"
       export ETHEREUM_NODE_URL="${LOCAL_WS_URL}"
       export VITE_NETWORK="localhost"
-      export VITE_REGISTRY_MODE="production"
+      export VITE_REGISTRY_MODE="mocked"
       export DEPLOY_NETWORK="localhost"
-      export DEPLOYMENT_PROFILE="local-sepolia-fork-strict"
+      export DEPLOYMENT_PROFILE="local-base-sepolia-fork"
       export SEED_PROFILE="none"
-      export HARDHAT_NETWORK="local_sepolia_fork"
+      export HARDHAT_NETWORK="local_base_sepolia_fork"
       ;;
     local-stress-test)
       export RPC_URL="${LOCAL_RPC_URL}"

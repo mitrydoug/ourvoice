@@ -4,5 +4,5 @@ dist/
 # Per-network contract address files — public deployments are committed.
 # Local/dev network files are generated from deployments/*.json.
 src/contracts/networks/*
-!src/contracts/networks/sepolia.ts
+!src/contracts/networks/base.ts
 !src/contracts/networks/base_sepolia.ts
