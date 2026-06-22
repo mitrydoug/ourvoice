@@ -67,8 +67,13 @@ export const privyAppId = optionalEnvValue(import.meta.env.VITE_PRIVY_APP_ID);
 export const privyAppClientId = import.meta.env.VITE_PRIVY_APP_CLIENT_ID;
 const isGasSponsorshipRequested =
   import.meta.env.VITE_ENABLE_GAS_SPONSORSHIP === "true";
+const gasSponsorshipSupportedChainIds: ReadonlySet<number> = new Set([
+  base.id,
+  baseSepolia.id,
+]);
 export const isGasSponsorshipEnabled =
-  isGasSponsorshipRequested && targetChain.id === baseSepolia.id;
+  isGasSponsorshipRequested &&
+  gasSponsorshipSupportedChainIds.has(targetChain.id);
 export const alchemyGasPolicyId = optionalEnvValue(
   import.meta.env.VITE_ALCHEMY_GAS_POLICY_ID,
 );
