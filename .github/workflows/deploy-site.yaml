@@ -67,7 +67,9 @@ jobs:
         env:
           BASE_RPC_URL: ${{ secrets.BASE_RPC_URL }}
           BASE_SEPOLIA_RPC_URL: ${{ secrets.BASE_SEPOLIA_RPC_URL }}
+          DEVELOPMENT_ALCHEMY_GAS_POLICY_ID: ${{ vars.DEVELOPMENT_ALCHEMY_GAS_POLICY_ID }}
           DEVELOPMENT_SEARCH_URL: ${{ vars.DEVELOPMENT_SEARCH_URL }}
+          PRODUCTION_ALCHEMY_GAS_POLICY_ID: ${{ vars.PRODUCTION_ALCHEMY_GAS_POLICY_ID }}
           PRODUCTION_SEARCH_URL: ${{ vars.PRODUCTION_SEARCH_URL }}
         run: |
           case "${DEPLOY_BRANCH}" in
@@ -80,10 +82,16 @@ jobs:
                 echo "DEVELOPMENT_SEARCH_URL repository variable is required for develop site deployment."
                 exit 1
               fi
+              if [ -z "${DEVELOPMENT_ALCHEMY_GAS_POLICY_ID}" ]; then
+                echo "DEVELOPMENT_ALCHEMY_GAS_POLICY_ID repository variable is required for develop gas sponsorship."
+                exit 1
+              fi
               echo "VITE_NETWORK=base_sepolia" >> "${GITHUB_ENV}"
               echo "VITE_REGISTRY_MODE=mocked" >> "${GITHUB_ENV}"
               echo "VITE_BASE_SEPOLIA_RPC_URL=${BASE_SEPOLIA_RPC_URL}" >> "${GITHUB_ENV}"
               echo "VITE_SEARCH_URL=${DEVELOPMENT_SEARCH_URL}" >> "${GITHUB_ENV}"
+              echo "VITE_ENABLE_GAS_SPONSORSHIP=true" >> "${GITHUB_ENV}"
+              echo "VITE_ALCHEMY_GAS_POLICY_ID=${DEVELOPMENT_ALCHEMY_GAS_POLICY_ID}" >> "${GITHUB_ENV}"
               ;;
             release)
               if [ -z "${BASE_RPC_URL}" ]; then
@@ -94,10 +102,16 @@ jobs:
                 echo "PRODUCTION_SEARCH_URL repository variable is required for release site deployment."
                 exit 1
               fi
+              if [ -z "${PRODUCTION_ALCHEMY_GAS_POLICY_ID}" ]; then
+                echo "PRODUCTION_ALCHEMY_GAS_POLICY_ID repository variable is required for release gas sponsorship."
+                exit 1
+              fi
               echo "VITE_NETWORK=base" >> "${GITHUB_ENV}"
               echo "VITE_REGISTRY_MODE=production" >> "${GITHUB_ENV}"
               echo "VITE_BASE_RPC_URL=${BASE_RPC_URL}" >> "${GITHUB_ENV}"
               echo "VITE_SEARCH_URL=${PRODUCTION_SEARCH_URL}" >> "${GITHUB_ENV}"
+              echo "VITE_ENABLE_GAS_SPONSORSHIP=true" >> "${GITHUB_ENV}"
+              echo "VITE_ALCHEMY_GAS_POLICY_ID=${PRODUCTION_ALCHEMY_GAS_POLICY_ID}" >> "${GITHUB_ENV}"
               ;;
             *)
               echo "Unsupported site deployment branch: ${DEPLOY_BRANCH}"

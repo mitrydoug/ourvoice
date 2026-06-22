@@ -7,6 +7,14 @@ import path from "path";
 export default defineConfig({
   plugins: [react(), nodePolyfills()],
   base: "./",
+  build: {
+    rollupOptions: {
+      output: {
+        // Keep IPFS directory uploads below Pinata account file-count limits.
+        inlineDynamicImports: true,
+      },
+    },
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

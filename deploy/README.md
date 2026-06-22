@@ -138,6 +138,19 @@ Point the frontend build at the backend URL:
 VITE_SEARCH_URL=https://replace-with-your-backend-domain
 ```
 
+The static sites also enable Privy smart-wallet gas sponsorship. Configure these
+GitHub repository variables before deploying:
+
+```text
+DEVELOPMENT_ALCHEMY_GAS_POLICY_ID=<Alchemy Gas Manager policy ID for Base Sepolia>
+PRODUCTION_ALCHEMY_GAS_POLICY_ID=<Alchemy Gas Manager policy ID for Base>
+```
+
+In the Privy dashboard, enable smart wallets for the same app/client and
+configure Base Sepolia and Base with their matching Alchemy paymaster policies.
+In the Alchemy dashboard, make sure each gas policy allows the corresponding
+frontend origin, such as `https://test.symvolia.org` for development.
+
 If the frontend is deployed separately, update its environment and redeploy it
 after the backend Railway domain is available.
 
