@@ -92,12 +92,15 @@ REGISTRY_MODE=${registryMode}
 REGISTRY_ADDRESS=${deployment.registryAddress}
 GAS_SPONSORSHIP_REGISTRY_SIGNATURES="${signatures.join(";")}"
 FORUM_CONTRACT_ADDRESSES="${orderedForumAddresses.join(",")}"
-BACKFILL_FROM=block:${deployment.deploymentBlockNumber}
 
 # Chain RPC endpoints
-# ETHEREUM_NODE_URL must be a WebSocket RPC endpoint for live indexing.
-ETHEREUM_NODE_URL=wss://replace-with-your-websocket-rpc
-ETHEREUM_HTTP_URL=https://replace-with-your-http-rpc
+# ETHEREUM_RPC_URL is required for pull-based log polling.
+ETHEREUM_RPC_URL=https://replace-with-your-http-rpc
+
+# Indexer polling and catch-up behavior
+INDEXER_POLL_INTERVAL_SECONDS=60
+INDEXER_MAX_BLOCKS_PER_REQUEST=600
+INDEXER_MAX_STARTUP_LOOKBACK_SECONDS=14400
 
 # Meilisearch connection
 # For Railway private networking, use: http://<meilisearch-service-name>.railway.internal:7700

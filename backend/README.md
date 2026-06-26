@@ -2,13 +2,13 @@
 
 The backend provides two concerns that can run together or separately:
 
-1. **Indexer** — Subscribes to blockchain events from one or more deployed forum contracts and writes documents to Meilisearch.
+1. **Indexer** — Polls blockchain event logs from one or more deployed forum contracts and writes documents to Meilisearch.
 2. **Search API** — FastAPI service exposing a `/search` endpoint for full-text search.
 
 ## Architecture
 
 ```
-┌──────────────┐      WebSocket       ┌──────────────┐
+┌──────────────┐       HTTP RPC       ┌──────────────┐
 │  Blockchain  │ ──────────────────►  │   Indexer    │
 │   (Hardhat)  │                      │              │
 └──────────────┘                      └──────┬───────┘
@@ -39,28 +39,26 @@ uvicorn symvolia.combined:app --host 0.0.0.0 --port 8000 --app-dir src
 | `MEILI_URL`                               | No       | `http://localhost:7700` | Meilisearch URL                                            |
 | `MEILI_API_KEY`                           | No       | (empty)                 | Meilisearch API key                                        |
 | `FORUM_CONTRACT_ADDRESSES`                | Yes      | —                       | Comma-separated forum contract addresses                   |
-| `ETHEREUM_NODE_URL`                       | Yes      | —                       | WebSocket RPC URL                                          |
-| `BACKFILL_FROM`                           | No       | (empty)                 | Initial indexing cursor; `all` indexes history             |
+| `ETHEREUM_RPC_URL`                        | Yes      | —                       | HTTP RPC URL for indexer polling                           |
 | `LOG_LEVEL`                               | No       | `INFO`                  | Python logging level                                       |
-| `WEB3_SUBSCRIPTION_RESPONSE_QUEUE_SIZE`   | No       | `10000`                 | Web3 subscription buffer for bursty local chains           |
+| `INDEXER_POLL_INTERVAL_SECONDS`           | No       | `60`                    | Poll interval between new log queries                      |
+| `INDEXER_MAX_BLOCKS_PER_REQUEST`          | No       | `600`                   | Maximum block span per `eth_getLogs` call                  |
+| `INDEXER_MAX_STARTUP_LOOKBACK_SECONDS`    | No       | `14400`                 | Startup catch-up cap (4 hours)                             |
 | `MEILI_SEMANTIC_SEARCH_ENABLED`           | No       | `false`                 | Configure Meilisearch `/similar` semantic search           |
 | `MEILI_SEMANTIC_EMBEDDER_NAME`            | No       | `statement-text`        | Meilisearch embedder name for `/similar`                   |
 | `MEILI_SEMANTIC_EMBEDDER_MODEL`           | No       | multilingual MiniLM     | Hugging Face model used by Meilisearch                     |
 | `MEILI_TASK_TIMEOUT_MS`                   | No       | `300000`                | Max wait for Meilisearch setup/indexing tasks              |
 | `ALCHEMY_GAS_SPONSORSHIP_INSPECT_APPROVE` | No       | `false`                 | Temporary: approve Alchemy Gas Manager inspection requests |
 
-`ETHEREUM_NODE_URL` must be a WebSocket RPC because the indexer subscribes to
-new block headers. Local development usually sets this to `ws://127.0.0.1:8545`
-or `ws://hardhat:8545`; public-chain development should provide an authenticated
-network WebSocket URL.
+`ETHEREUM_RPC_URL` must be an HTTP RPC endpoint. The indexer uses pull-based
+`eth_getLogs` polling with capped request ranges and persisted cursors.
 
 Native Procfile workflows start the combined backend through
 `scripts/dev/backend.sh`, which loads the selected target profile from
 `scripts/dev/profile.sh`, waits for the `contracts` Overmind process readiness
-marker, then invokes `scripts/local-backend.sh`. The backend launcher still
-requires `RPC_URL`, an HTTP JSON-RPC endpoint used only for startup readiness
-checks, and `MEILI_URL`, the Meilisearch endpoint. `ETHEREUM_NODE_URL` remains
-separate and controls live indexing.
+marker, then invokes `scripts/local-backend.sh`. The backend launcher requires
+`ETHEREUM_RPC_URL` (used for both startup readiness checks and live indexing)
+and `MEILI_URL`, the Meilisearch endpoint.
 
 If you are upgrading an existing Meilisearch index from the older single-forum backend, run a full backfill or clear the `statements` index once so documents are recreated with forum-scoped IDs.
 
@@ -73,7 +71,7 @@ Run the indexer and API as separate processes:
 python -m symvolia.main \
   --forum-contract-address 0x... \
   --forum-contract-address 0x... \
-  --ethereum-node-url ws://... \
+  --ethereum-rpc-url https://... \
   --meili-url http://... \
   --meili-api-key ...
 
@@ -118,7 +116,7 @@ For a **simple deployment** (combined mode), you need two Railway services:
 For **production scaling**, split into three services:
 
 1. **Meilisearch** — Database service
-2. **Indexer** — Worker process (override CMD: `python -m symvolia.main --forum-contract-address ... --forum-contract-address ... --ethereum-node-url ... --meili-url ... --meili-api-key ...`)
+2. **Indexer** — Worker process (override CMD: `python -m symvolia.main --forum-contract-address ... --forum-contract-address ... --ethereum-rpc-url ... --meili-url ... --meili-api-key ...`)
 3. **Search API** — Web process (default CMD from Dockerfile)
 
 ## API Endpoints
