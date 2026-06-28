@@ -48,6 +48,7 @@ load_dev_profile() {
   case "${profile}" in
     local-mocked)
       export ETHEREUM_RPC_URL="${LOCAL_RPC_URL}"
+      export RELAY_RPC_URL="${LOCAL_RPC_URL}"
       export VITE_LOCALHOST_RPC_URL="${LOCAL_BACKEND_RPC_URL}"
       export VITE_SEARCH_URL="${LOCAL_BACKEND_URL}"
       export VITE_NETWORK="localhost"
@@ -60,6 +61,7 @@ load_dev_profile() {
     local-forked)
       require_env BASE_SEPOLIA_RPC_URL
       export ETHEREUM_RPC_URL="${LOCAL_RPC_URL}"
+      export RELAY_RPC_URL="${LOCAL_RPC_URL}"
       export VITE_LOCALHOST_RPC_URL="${LOCAL_BACKEND_RPC_URL}"
       export VITE_SEARCH_URL="${LOCAL_BACKEND_URL}"
       export VITE_NETWORK="localhost"
@@ -71,6 +73,7 @@ load_dev_profile() {
       ;;
     local-stress-test)
       export ETHEREUM_RPC_URL="${LOCAL_RPC_URL}"
+      export RELAY_RPC_URL="${LOCAL_RPC_URL}"
       export VITE_LOCALHOST_RPC_URL="${LOCAL_BACKEND_RPC_URL}"
       export VITE_SEARCH_URL="${LOCAL_BACKEND_URL}"
       export VITE_NETWORK="localhost"
@@ -84,6 +87,7 @@ load_dev_profile() {
       ;;
     base-sepolia)
       require_env BASE_SEPOLIA_RPC_URL
+      require_env RELAY_RPC_URL
       export ETHEREUM_RPC_URL="${ETHEREUM_RPC_URL:-${BASE_SEPOLIA_RPC_URL}}"
       export VITE_BASE_SEPOLIA_RPC_URL="${LOCAL_BACKEND_RPC_URL}"
       export VITE_SEARCH_URL="${LOCAL_BACKEND_URL}"

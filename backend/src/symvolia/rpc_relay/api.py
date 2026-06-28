@@ -319,7 +319,8 @@ def create_api(app: FastAPI) -> None:
 
     allowed_methods = _load_allowed_methods()
     allowed_contracts = _load_allowed_contracts()
-    upstream_rpc_url = os.getenv("ETHEREUM_RPC_URL", "").strip()
+    # RELAY_RPC_URL is the dedicated RPC endpoint for the relay.
+    upstream_rpc_url = os.getenv("RELAY_RPC_URL", "").strip()
     upstream_timeout_seconds = _load_upstream_timeout_seconds()
 
     logger.info(
@@ -418,7 +419,7 @@ def create_api(app: FastAPI) -> None:
 
         if not upstream_rpc_url:
             logger.warning(
-                "RPC relay cannot forward method %s request_id=%r: ETHEREUM_RPC_URL missing",
+                "RPC relay cannot forward method %s request_id=%r: RELAY_RPC_URL missing",
                 method,
                 request_id,
             )
@@ -426,7 +427,7 @@ def create_api(app: FastAPI) -> None:
                 _error_response(
                     request_id,
                     -32000,
-                    f"ETHEREUM_RPC_URL is not configured for RPC method id '{method}'",
+                    f"RELAY_RPC_URL is not configured for RPC method id '{method}'",
                 ),
                 status_code=503,
             )

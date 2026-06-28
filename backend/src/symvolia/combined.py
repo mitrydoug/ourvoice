@@ -10,6 +10,9 @@ Required env vars:
     MEILI_API_KEY        — Meilisearch API key (default: empty)
     FORUM_CONTRACT_ADDRESSES — Comma-separated forum contract addresses
     ETHEREUM_RPC_URL     — HTTP RPC URL used by the indexer (required)
+    RELAY_RPC_URL        — HTTP RPC URL used by the RPC relay for frontend
+                           read traffic. Required for the relay to forward
+                           requests; relay returns errors when not set.
 
 Optional env vars:
     EVICTION_MAX_AGE_SECONDS — Maximum age (in seconds) for indexed

@@ -19,7 +19,7 @@ class RpcRelayApiTests(unittest.TestCase):
     def test_allows_configured_method(self, forward_mock: AsyncMock) -> None:
         client = self.client_for_env(
             {
-                "ETHEREUM_RPC_URL": "https://rpc.example",
+                "RELAY_RPC_URL": "https://rpc.example",
                 "RPC_RELAY_ALLOWED_METHODS": "eth_blockNumber",
             }
         )
@@ -38,7 +38,7 @@ class RpcRelayApiTests(unittest.TestCase):
     def test_blocks_unconfigured_method(self, forward_mock: AsyncMock) -> None:
         client = self.client_for_env(
             {
-                "ETHEREUM_RPC_URL": "https://rpc.example",
+                "RELAY_RPC_URL": "https://rpc.example",
                 "RPC_RELAY_ALLOWED_METHODS": "eth_blockNumber",
             }
         )
@@ -62,7 +62,7 @@ class RpcRelayApiTests(unittest.TestCase):
     ) -> None:
         client = self.client_for_env(
             {
-                "ETHEREUM_RPC_URL": "https://rpc.example",
+                "RELAY_RPC_URL": "https://rpc.example",
                 "RPC_RELAY_ALLOWED_METHODS": "eth_blockNumber",
             }
         )
@@ -88,7 +88,7 @@ class RpcRelayApiTests(unittest.TestCase):
     def test_eth_call_allows_allowlisted_contract(self, forward_mock: AsyncMock) -> None:
         client = self.client_for_env(
             {
-                "ETHEREUM_RPC_URL": "https://rpc.example",
+                "RELAY_RPC_URL": "https://rpc.example",
                 "RPC_RELAY_ALLOWED_METHODS": "eth_call",
                 "RPC_RELAY_ALLOWED_CONTRACTS": "0x00000000000000000000000000000000000000aa",
             }
@@ -119,7 +119,7 @@ class RpcRelayApiTests(unittest.TestCase):
     def test_eth_call_blocks_non_allowlisted_contract(self, forward_mock: AsyncMock) -> None:
         client = self.client_for_env(
             {
-                "ETHEREUM_RPC_URL": "https://rpc.example",
+                "RELAY_RPC_URL": "https://rpc.example",
                 "RPC_RELAY_ALLOWED_METHODS": "eth_call",
                 "RPC_RELAY_ALLOWED_CONTRACTS": "0x00000000000000000000000000000000000000aa",
             }
@@ -156,7 +156,7 @@ class RpcRelayApiTests(unittest.TestCase):
     ) -> None:
         client = self.client_for_env(
             {
-                "ETHEREUM_RPC_URL": "https://rpc.example",
+                "RELAY_RPC_URL": "https://rpc.example",
                 "RPC_RELAY_ALLOWED_METHODS": "eth_call",
             }
         )
@@ -244,7 +244,7 @@ class RpcRelayApiTests(unittest.TestCase):
         addr_bb = "0x" + "bb" * 20
         client = self.client_for_env(
             {
-                "ETHEREUM_RPC_URL": "https://rpc.example",
+                "RELAY_RPC_URL": "https://rpc.example",
                 "RPC_RELAY_ALLOWED_METHODS": "eth_call",
                 "RPC_RELAY_ALLOWED_CONTRACTS": f"{addr_aa},{addr_bb}",
             }
@@ -275,7 +275,7 @@ class RpcRelayApiTests(unittest.TestCase):
         addr_aa = "0x" + "aa" * 20
         client = self.client_for_env(
             {
-                "ETHEREUM_RPC_URL": "https://rpc.example",
+                "RELAY_RPC_URL": "https://rpc.example",
                 "RPC_RELAY_ALLOWED_METHODS": "eth_call",
                 "RPC_RELAY_ALLOWED_CONTRACTS": addr_aa,
             }
@@ -305,7 +305,7 @@ class RpcRelayApiTests(unittest.TestCase):
         addr_aa = "0x" + "aa" * 20
         client = self.client_for_env(
             {
-                "ETHEREUM_RPC_URL": "https://rpc.example",
+                "RELAY_RPC_URL": "https://rpc.example",
                 "RPC_RELAY_ALLOWED_METHODS": "eth_call",
                 "RPC_RELAY_ALLOWED_CONTRACTS": addr_aa,
             }
