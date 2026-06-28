@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
-import { useBlockNumber, usePublicClient } from "wagmi";
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { usePublicClient } from "wagmi";
 import { useForum, FORUM_ABI } from "../state/Forum";
 import { useCreditConversion } from "./useCreditConversion";
-import { targetAverageBlockTimeSeconds } from "../wagmiConfig";
+import { blockPollingIntervalMs, targetAverageBlockTimeSeconds } from "../wagmiConfig";
+import { useBlockSync } from "./useBlockSync";
 
 /** Average target-chain block time in seconds, used for chart block estimates. */
 export const AVG_BLOCK_TIME = targetAverageBlockTimeSeconds;
@@ -26,6 +28,12 @@ const PERIOD_MS = PERIOD_SECONDS * 1000;
 /** Whether we're using the production (daily) period. */
 const IS_DAILY = PERIOD_SECONDS >= 86400;
 
+// Number of blocks mined per polling interval — used to bucket currentBlockNumber
+// so the React Query cache key is stable for the duration of one polling window.
+const BLOCKS_PER_POLLING_INTERVAL = BigInt(
+  Math.max(1, Math.ceil((blockPollingIntervalMs / 1000) / AVG_BLOCK_TIME)),
+);
+
 export interface SupportDataPoint {
   /** UTC timestamp in milliseconds. */
   timestamp: number;
@@ -46,6 +54,10 @@ export interface SupportDataPoint {
  * Uses block-number estimation based on the configured target chain rather
  * than binary-searching for exact blocks. This is approximate but sufficient
  * for a visual chart.
+ *
+ * Results are cached via React Query. The cache key is bucketed to the
+ * current polling window so navigating away and back within the interval
+ * serves from cache without re-issuing RPC calls.
  */
 export function useHistoricalSupport(statementId: bigint): {
   data: SupportDataPoint[];
@@ -54,10 +66,15 @@ export function useHistoricalSupport(statementId: bigint): {
   const publicClient = usePublicClient();
   const { forumContractAddress } = useForum();
   const { toCredits } = useCreditConversion();
-  const { data: currentBlockNumber } = useBlockNumber();
+  const { blockNumber: currentBlockNumber } = useBlockSync(() => { });
 
-  const [dataPoints, setDataPoints] = useState<SupportDataPoint[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // Bucket the block number to the polling window so the cache key is stable
+  // for the duration of one interval — navigating away and back hits the cache.
+  const cacheBlockNumber =
+    currentBlockNumber !== undefined
+      ? (currentBlockNumber / BLOCKS_PER_POLLING_INTERVAL) *
+      BLOCKS_PER_POLLING_INTERVAL
+      : undefined;
 
   // Build the list of target timestamps for the past PERIODS_BACK periods.
   const targets = useMemo(() => {
@@ -117,15 +134,16 @@ export function useHistoricalSupport(statementId: bigint): {
     return result;
   }, []);
 
-  useEffect(() => {
-    if (!publicClient || !currentBlockNumber || !forumContractAddress) return;
-
-    let cancelled = false;
-    setIsLoading(true);
-
-    const fetchHistory = async () => {
+  const { data: dataPoints = [], isPending: isLoading } = useQuery({
+    queryKey: [
+      "historicalSupport",
+      forumContractAddress,
+      statementId.toString(),
+      cacheBlockNumber?.toString(),
+    ],
+    queryFn: async () => {
       const nowMs = Date.now();
-      const currentBlock = Number(currentBlockNumber);
+      const currentBlock = Number(cacheBlockNumber);
 
       // Estimate block numbers for each target timestamp
       const queries = targets.map(({ timestamp, label }) => {
@@ -139,7 +157,7 @@ export function useHistoricalSupport(statementId: bigint): {
       const results = await Promise.all(
         queries.map(async ({ blockNumber, timestamp, label }) => {
           try {
-            const data = await publicClient.readContract({
+            const data = await publicClient!.readContract({
               address: forumContractAddress,
               abi: FORUM_ABI,
               functionName: "getStatementsById",
@@ -162,15 +180,13 @@ export function useHistoricalSupport(statementId: bigint): {
         }),
       );
 
-      if (cancelled) return;
-
       const points: SupportDataPoint[] = results.filter(
         (r): r is SupportDataPoint => r !== null,
       );
 
       // Add the current (live) data point
       try {
-        const liveData = await publicClient.readContract({
+        const liveData = await publicClient!.readContract({
           address: forumContractAddress,
           abi: FORUM_ABI,
           functionName: "getStatementsById",
@@ -180,7 +196,7 @@ export function useHistoricalSupport(statementId: bigint): {
           id: bigint;
           support: bigint;
         }[];
-        if (!cancelled && liveStatements.length > 0) {
+        if (liveStatements.length > 0) {
           points.push({
             timestamp: nowMs,
             support: toCredits(Number(liveStatements[0].support)),
@@ -191,25 +207,10 @@ export function useHistoricalSupport(statementId: bigint): {
         // Ignore — live data already shown on the card
       }
 
-      if (!cancelled) {
-        setDataPoints(points);
-        setIsLoading(false);
-      }
-    };
-
-    void fetchHistory();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    publicClient,
-    currentBlockNumber,
-    forumContractAddress,
-    toCredits,
-    statementId,
-    targets,
-  ]);
+      return points;
+    },
+    enabled: !!publicClient && !!cacheBlockNumber && !!forumContractAddress,
+  });
 
   return { data: dataPoints, isLoading };
 }

@@ -10,6 +10,7 @@ import { SmartWalletsProvider } from "@privy-io/react-auth/smart-wallets";
 import { WagmiProvider } from "@privy-io/wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import wagmiConfig, {
+  blockPollingIntervalMs,
   privyAppClientId,
   privyAppId,
   privyConfig,
@@ -18,7 +19,16 @@ import wagmiConfig, {
 import NetworkGuard from "./components/NetworkGuard";
 import { THEME_MODE_STORAGE_KEY } from "./theme";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Treat data as fresh for the full polling interval — prevents React Query
+      // from issuing a new RPC call on every component mount / page navigation.
+      // useBlockSync drives explicit refetches at the right cadence via refetch().
+      staleTime: blockPollingIntervalMs,
+    },
+  },
+});
 
 const app = !privyAppId ? (
   <div style={{ padding: 24, fontFamily: "sans-serif" }}>

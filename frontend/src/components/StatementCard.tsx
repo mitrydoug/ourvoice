@@ -44,8 +44,8 @@ const CoinIcon = ({ size = 14 }: { size?: number }) => (
 import VoteToggle from "./VoteToggle";
 import AnimatedCounter from "./AnimatedCounter";
 import StatementCardShell from "./StatementCardShell";
-import { useBlockNumber, useReadContract } from "wagmi";
-import { blockPollingIntervalMs } from "@/wagmiConfig";
+import { useReadContract } from "wagmi";
+import { useBlockSync } from "../hooks/useBlockSync";
 import { useForum, FORUM_ABI } from "../state/Forum";
 import { useCreditConversion } from "../hooks/useCreditConversion";
 import {
@@ -205,8 +205,7 @@ export const StatementCard: FC<StatementCardProps> = ({
   const { forumContractAddress, creditMultiplier } = useForum();
   const { toCredits, toParts } = useCreditConversion();
 
-  // Watch for new blocks at the configured polling interval
-  const { data: blockNumber } = useBlockNumber({ watch: { pollingInterval: blockPollingIntervalMs } });
+  const { blockNumber } = useBlockSync(() => { });
 
   const { data: historicalData } = useReadContract({
     address: forumContractAddress,
@@ -226,7 +225,6 @@ export const StatementCard: FC<StatementCardProps> = ({
     functionName: "getRankingThreshold",
     query: {
       enabled: statement.rank < 0n,
-      staleTime: 30_000,
     },
   });
 
