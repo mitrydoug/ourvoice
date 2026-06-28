@@ -115,6 +115,14 @@ Replace placeholder values before deploying:
 | `MEILI_API_KEY`    | Same value as the Meilisearch `MEILI_MASTER_KEY`                        |
 | `CORS_ORIGINS`     | Comma-separated frontend origins allowed to call the backend            |
 
+Optional relay policy variables:
+
+| Variable                             | Purpose                                                                     |
+| ------------------------------------ | --------------------------------------------------------------------------- |
+| `RPC_RELAY_ALLOWED_METHODS`          | Comma-separated JSON-RPC methods allowed via `POST /rpc`                    |
+| `RPC_RELAY_ALLOWED_CONTRACTS`        | Comma-separated contract addresses allowed for `eth_call`/`eth_estimateGas` |
+| `RPC_RELAY_UPSTREAM_TIMEOUT_SECONDS` | Upstream RPC timeout in seconds                                             |
+
 The generated contract values should usually be copied as-is. They include
 `REGISTRY_MODE`, `REGISTRY_ADDRESS`, `FORUM_CONTRACT_ADDRESSES`,
 and `GAS_SPONSORSHIP_REGISTRY_SIGNATURES`.
@@ -135,6 +143,14 @@ Point the frontend build at the backend URL:
 
 ```env
 VITE_SEARCH_URL=https://replace-with-your-backend-domain
+```
+
+To route public read RPC through the backend relay, set the frontend RPC
+environment variable for the deployed chain to the backend relay endpoint,
+for example:
+
+```env
+VITE_BASE_SEPOLIA_RPC_URL=https://replace-with-your-backend-domain/rpc
 ```
 
 The static sites also enable Privy smart-wallet gas sponsorship. Configure these

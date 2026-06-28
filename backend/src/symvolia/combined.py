@@ -22,6 +22,13 @@ Optional env vars:
                                      Default: 600.
     INDEXER_MAX_STARTUP_LOOKBACK_SECONDS — Startup catch-up cap.
                                            Default: 14400 (4h).
+    RPC_RELAY_ALLOWED_METHODS — Comma-separated JSON-RPC methods allowed on
+                                POST /rpc. Defaults to frontend-safe reads.
+    RPC_RELAY_ALLOWED_CONTRACTS — Comma-separated contract addresses allowed
+                                  for eth_call/eth_estimateGas.
+                                  Defaults to FORUM_CONTRACT_ADDRESSES.
+    RPC_RELAY_UPSTREAM_TIMEOUT_SECONDS — Upstream RPC timeout in seconds.
+                                         Default: 15.
     MEILI_SEMANTIC_SEARCH_ENABLED — Configure Meilisearch local embeddings and
                                     enable /similar. Default: false.
     MEILI_SEMANTIC_EMBEDDER_MODEL — Hugging Face model used by Meilisearch when
@@ -47,6 +54,7 @@ from symvolia.indexer import (
     parse_forum_contract_addresses,
     run_indexers,
 )
+from symvolia.rpc_relay.api import create_api as create_rpc_relay_api
 from symvolia.search_service.api import create_api
 
 logging.basicConfig(
@@ -115,4 +123,5 @@ if CORS_ORIGINS:
 
 app.state.meili_client = meilisearch.Client(MEILI_URL, MEILI_API_KEY)
 create_api(app)
+create_rpc_relay_api(app)
 create_gas_sponsorship_api(app)

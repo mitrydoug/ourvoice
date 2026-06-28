@@ -180,7 +180,7 @@ const SearchResults: FC<SearchResultsProps> = ({
       statements={noResults ? [] : statements}
       hasMore={false}
       isLoading={noResults ? false : isLoading}
-      onLoadMore={() => {}}
+      onLoadMore={() => { }}
       loadingLabel="Searching…"
       isBookmarked={isBookmarked}
       onToggleBookmark={onToggleBookmark}
@@ -231,7 +231,7 @@ const RankedBrowse: FC<RankedBrowseProps> = ({
     if (paginationTimerRef.current) clearTimeout(paginationTimerRef.current);
   }, [forumContractAddress]);
 
-  const result = useReadContracts({
+  const { data: [rankedCountResult, statementsPageResult] = [], refetch: refetchRankedBrowse, isLoading: isBrowseLoading } = useReadContracts({
     contracts: [
       {
         address: forumContractAddress,
@@ -248,16 +248,20 @@ const RankedBrowse: FC<RankedBrowseProps> = ({
     ],
   });
 
-  useBlockSync(result.refetch);
+  const refetchRankedBrowseCallback = useCallback(() => {
+    void refetchRankedBrowse();
+  }, [refetchRankedBrowse]);
 
-  const rankedCount = result.data && result.data[0].result;
-  const statementsPage =
-    result.data && (result.data[1].result as Statement[] | undefined);
+  useBlockSync(refetchRankedBrowseCallback);
 
-  const isLoading = result.isLoading || isPaginationLoading;
+  const rankedCount = rankedCountResult?.result;
+  const statementsPage = statementsPageResult?.result as Statement[] | undefined;
+
+  const isLoading =
+    isBrowseLoading || isPaginationLoading;
 
   useEffect(() => {
-    if (statementsPage && statementsPage.length > 0 && !result.isLoading) {
+    if (statementsPage && statementsPage.length > 0 && !isBrowseLoading) {
       setStatements((prev) => {
         const newStatements = [...prev];
         for (let i = 0; i < statementsPage.length; i++) {
@@ -270,7 +274,7 @@ const RankedBrowse: FC<RankedBrowseProps> = ({
         setHasMore(offset + statementsPage.length < Number(rankedCount));
       }
     }
-  }, [statementsPage, offset, rankedCount, result.isLoading]);
+  }, [statementsPage, offset, rankedCount, isBrowseLoading]);
 
   const handleLoadMore = useCallback(() => {
     if (!isLoading && hasMore) {

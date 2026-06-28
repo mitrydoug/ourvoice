@@ -79,6 +79,7 @@ const registrySponsorshipSignatures = (registryMode) =>
 const backendEnvText = (networkName, deployment, forumOrder) => {
   const registryMode = deployment.registryMode ?? "production";
   const orderedForumAddresses = forumOrder.map((forumName) => deployment.forums[forumName]);
+  const relayAllowedContracts = [...orderedForumAddresses, deployment.registryAddress];
   const signatures = registrySponsorshipSignatures(registryMode);
 
   return `# Symvolia backend environment example for ${networkName}.
@@ -101,6 +102,13 @@ ETHEREUM_RPC_URL=https://replace-with-your-http-rpc
 INDEXER_POLL_INTERVAL_SECONDS=60
 INDEXER_MAX_BLOCKS_PER_REQUEST=600
 INDEXER_MAX_STARTUP_LOOKBACK_SECONDS=14400
+
+# Optional constrained JSON-RPC relay for frontend read traffic.
+# Keep methods limited to what the frontend actually uses.
+RPC_RELAY_ALLOWED_METHODS=eth_chainId,eth_blockNumber,eth_getBlockByNumber,eth_getTransactionReceipt,eth_call,eth_estimateGas,eth_getCode
+# Include forum contracts plus the registry contract for frontend reads.
+RPC_RELAY_ALLOWED_CONTRACTS="${relayAllowedContracts.join(",")}" 
+RPC_RELAY_UPSTREAM_TIMEOUT_SECONDS=15
 
 # Meilisearch connection
 # For Railway private networking, use: http://<meilisearch-service-name>.railway.internal:7700

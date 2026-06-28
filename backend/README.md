@@ -34,21 +34,24 @@ uvicorn symvolia.combined:app --host 0.0.0.0 --port 8000 --app-dir src
 
 **Environment variables:**
 
-| Variable                                  | Required | Default                 | Description                                                |
-| ----------------------------------------- | -------- | ----------------------- | ---------------------------------------------------------- |
-| `MEILI_URL`                               | No       | `http://localhost:7700` | Meilisearch URL                                            |
-| `MEILI_API_KEY`                           | No       | (empty)                 | Meilisearch API key                                        |
-| `FORUM_CONTRACT_ADDRESSES`                | Yes      | —                       | Comma-separated forum contract addresses                   |
-| `ETHEREUM_RPC_URL`                        | Yes      | —                       | HTTP RPC URL for indexer polling                           |
-| `LOG_LEVEL`                               | No       | `INFO`                  | Python logging level                                       |
-| `INDEXER_POLL_INTERVAL_SECONDS`           | No       | `60`                    | Poll interval between new log queries                      |
-| `INDEXER_MAX_BLOCKS_PER_REQUEST`          | No       | `600`                   | Maximum block span per `eth_getLogs` call                  |
-| `INDEXER_MAX_STARTUP_LOOKBACK_SECONDS`    | No       | `14400`                 | Startup catch-up cap (4 hours)                             |
-| `MEILI_SEMANTIC_SEARCH_ENABLED`           | No       | `false`                 | Configure Meilisearch `/similar` semantic search           |
-| `MEILI_SEMANTIC_EMBEDDER_NAME`            | No       | `statement-text`        | Meilisearch embedder name for `/similar`                   |
-| `MEILI_SEMANTIC_EMBEDDER_MODEL`           | No       | multilingual MiniLM     | Hugging Face model used by Meilisearch                     |
-| `MEILI_TASK_TIMEOUT_MS`                   | No       | `300000`                | Max wait for Meilisearch setup/indexing tasks              |
-| `ALCHEMY_GAS_SPONSORSHIP_INSPECT_APPROVE` | No       | `false`                 | Temporary: approve Alchemy Gas Manager inspection requests |
+| Variable                                  | Required | Default                 | Description                                                                 |
+| ----------------------------------------- | -------- | ----------------------- | --------------------------------------------------------------------------- |
+| `MEILI_URL`                               | No       | `http://localhost:7700` | Meilisearch URL                                                             |
+| `MEILI_API_KEY`                           | No       | (empty)                 | Meilisearch API key                                                         |
+| `FORUM_CONTRACT_ADDRESSES`                | Yes      | —                       | Comma-separated forum contract addresses                                    |
+| `ETHEREUM_RPC_URL`                        | Yes      | —                       | HTTP RPC URL for indexer polling                                            |
+| `LOG_LEVEL`                               | No       | `INFO`                  | Python logging level                                                        |
+| `INDEXER_POLL_INTERVAL_SECONDS`           | No       | `60`                    | Poll interval between new log queries                                       |
+| `INDEXER_MAX_BLOCKS_PER_REQUEST`          | No       | `600`                   | Maximum block span per `eth_getLogs` call                                   |
+| `INDEXER_MAX_STARTUP_LOOKBACK_SECONDS`    | No       | `14400`                 | Startup catch-up cap (4 hours)                                              |
+| `RPC_RELAY_ALLOWED_METHODS`               | No       | frontend-safe defaults  | Comma-separated JSON-RPC methods allowed on `POST /rpc`                     |
+| `RPC_RELAY_ALLOWED_CONTRACTS`             | No       | forum contracts         | Comma-separated contract addresses allowed for `eth_call`/`eth_estimateGas` |
+| `RPC_RELAY_UPSTREAM_TIMEOUT_SECONDS`      | No       | `15`                    | Timeout when proxying allowed JSON-RPC requests upstream                    |
+| `MEILI_SEMANTIC_SEARCH_ENABLED`           | No       | `false`                 | Configure Meilisearch `/similar` semantic search                            |
+| `MEILI_SEMANTIC_EMBEDDER_NAME`            | No       | `statement-text`        | Meilisearch embedder name for `/similar`                                    |
+| `MEILI_SEMANTIC_EMBEDDER_MODEL`           | No       | multilingual MiniLM     | Hugging Face model used by Meilisearch                                      |
+| `MEILI_TASK_TIMEOUT_MS`                   | No       | `300000`                | Max wait for Meilisearch setup/indexing tasks                               |
+| `ALCHEMY_GAS_SPONSORSHIP_INSPECT_APPROVE` | No       | `false`                 | Temporary: approve Alchemy Gas Manager inspection requests                  |
 
 `ETHEREUM_RPC_URL` must be an HTTP RPC endpoint. The indexer uses pull-based
 `eth_getLogs` polling with capped request ranges and persisted cursors.
@@ -127,7 +130,12 @@ For **production scaling**, split into three services:
 | GET    | `/health`                     | Health check                                                                                                                                                   |
 | GET    | `/search`                     | Forum-scoped full-text search (`?statement_text=...&forum_address=0x...`)                                                                                      |
 | GET    | `/similar`                    | Forum-scoped semantic similarity (`?statement_id=1&forum_address=0x...`)                                                                                       |
+| POST   | `/rpc`                        | Constrained JSON-RPC relay. Method allowlist + contract allowlist enforced via environment variables.                                                          |
 | POST   | `/alchemy/gas-policy/inspect` | Temporary Alchemy Gas Manager webhook inspector. Logs request shape and returns `{ "approved": false }` unless `ALCHEMY_GAS_SPONSORSHIP_INSPECT_APPROVE=true`. |
+
+The relay is intended for frontend read traffic. Keep writes on wallet
+providers (EOA wallets or embedded smart wallets) so signing remains in the
+wallet boundary.
 
 ## Alchemy Gas Sponsorship Inspection
 
