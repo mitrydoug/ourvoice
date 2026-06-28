@@ -63,6 +63,14 @@ const networkToAverageBlockTimeSeconds: Record<string, number> = {
 export const targetAverageBlockTimeSeconds =
   networkToAverageBlockTimeSeconds[networkName];
 
+const _rawBlockPollingInterval = parseInt(
+  import.meta.env.VITE_BLOCK_POLLING_INTERVAL_SECONDS ?? "",
+  10,
+);
+export const blockPollingIntervalMs = Number.isFinite(_rawBlockPollingInterval)
+  ? _rawBlockPollingInterval * 1000
+  : 60_000;
+
 export const privyAppId = optionalEnvValue(import.meta.env.VITE_PRIVY_APP_ID);
 export const privyAppClientId = import.meta.env.VITE_PRIVY_APP_CLIENT_ID;
 const isGasSponsorshipRequested =

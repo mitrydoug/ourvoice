@@ -40,6 +40,14 @@ interface ImportMetaEnv {
   /** Base URL for the search API. Defaults to http://localhost:8000 for local dev. */
   readonly VITE_SEARCH_URL?: string;
 
+  /**
+   * How often (in seconds) the frontend polls the chain for a new block
+   * number and refreshes contract data. Defaults to `60`.
+   * Set to a lower value (e.g. `4`) for local development if fast feedback
+   * is useful.
+   */
+  readonly VITE_BLOCK_POLLING_INTERVAL_SECONDS?: string;
+
   /** Maximum search/similar-statement results to fetch. Defaults to 20. */
   readonly VITE_SEARCH_RESULTS_LIMIT?: string;
 

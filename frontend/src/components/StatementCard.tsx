@@ -45,6 +45,7 @@ import VoteToggle from "./VoteToggle";
 import AnimatedCounter from "./AnimatedCounter";
 import StatementCardShell from "./StatementCardShell";
 import { useBlockNumber, useReadContract } from "wagmi";
+import { blockPollingIntervalMs } from "@/wagmiConfig";
 import { useForum, FORUM_ABI } from "../state/Forum";
 import { useCreditConversion } from "../hooks/useCreditConversion";
 import {
@@ -204,8 +205,8 @@ export const StatementCard: FC<StatementCardProps> = ({
   const { forumContractAddress, creditMultiplier } = useForum();
   const { toCredits, toParts } = useCreditConversion();
 
-  // Watch for new blocks
-  const { data: blockNumber } = useBlockNumber({ watch: true });
+  // Watch for new blocks at the configured polling interval
+  const { data: blockNumber } = useBlockNumber({ watch: { pollingInterval: blockPollingIntervalMs } });
 
   const { data: historicalData } = useReadContract({
     address: forumContractAddress,
@@ -260,13 +261,13 @@ export const StatementCard: FC<StatementCardProps> = ({
     const adjustment =
       newCreditSupport === 0
         ? {
-            value: 0,
-            adjustmentType: SupportAdjustmentType.SetTo,
-          }
+          value: 0,
+          adjustmentType: SupportAdjustmentType.SetTo,
+        }
         : {
-            value: toParts(newCreditSupport - onChainCredits),
-            adjustmentType: SupportAdjustmentType.Delta,
-          };
+          value: toParts(newCreditSupport - onChainCredits),
+          adjustmentType: SupportAdjustmentType.Delta,
+        };
     dispatch({
       type: "STAGE_USER_SUPPORT",
       payload: {
@@ -282,9 +283,9 @@ export const StatementCard: FC<StatementCardProps> = ({
   const rankingProgress =
     rankingThreshold !== undefined
       ? rankingProgressPercent(
-          Number(statement.support),
-          Number(rankingThreshold),
-        )
+        Number(statement.support),
+        Number(rankingThreshold),
+      )
       : null;
 
   const globalSupport = toCredits(Number(statement.support));
@@ -292,7 +293,7 @@ export const StatementCard: FC<StatementCardProps> = ({
   const absUserSupportParts = Math.abs(userSupportParts);
   const creditsAllocated = toCredits(
     (absUserSupportParts * (absUserSupportParts + creditMultiplier)) /
-      (2 * creditMultiplier),
+    (2 * creditMultiplier),
   );
 
   const isHotRankChange =
