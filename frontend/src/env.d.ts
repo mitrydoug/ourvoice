@@ -13,13 +13,13 @@ interface ImportMetaEnv {
    */
   readonly VITE_NETWORK: string;
 
-  /** Local Hardhat RPC endpoint URL. Required when VITE_NETWORK is "localhost". */
+  /** Local backend RPC relay URL. Required when VITE_NETWORK is "localhost". */
   readonly VITE_LOCALHOST_RPC_URL?: string;
 
-  /** Base mainnet RPC endpoint URL. Required when VITE_NETWORK is "base". */
+  /** Base mainnet backend RPC relay URL. Required when VITE_NETWORK is "base". */
   readonly VITE_BASE_RPC_URL?: string;
 
-  /** Base Sepolia RPC endpoint URL. Required when VITE_NETWORK is "base_sepolia". */
+  /** Base Sepolia backend RPC relay URL. Required when VITE_NETWORK is "base_sepolia". */
   readonly VITE_BASE_SEPOLIA_RPC_URL?: string;
 
   /** WalletConnect projectId. Get a free one at https://cloud.walletconnect.com */
@@ -39,6 +39,14 @@ interface ImportMetaEnv {
 
   /** Base URL for the search API. Defaults to http://localhost:8000 for local dev. */
   readonly VITE_SEARCH_URL?: string;
+
+  /**
+   * How often (in seconds) the frontend polls the chain for a new block
+   * number and refreshes contract data. Defaults to `60`.
+   * Set to a lower value (e.g. `4`) for local development if fast feedback
+   * is useful.
+   */
+  readonly VITE_BLOCK_POLLING_INTERVAL_SECONDS?: string;
 
   /** Maximum search/similar-statement results to fetch. Defaults to 20. */
   readonly VITE_SEARCH_RESULTS_LIMIT?: string;

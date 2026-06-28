@@ -79,6 +79,7 @@ const registrySponsorshipSignatures = (registryMode) =>
 const backendEnvText = (networkName, deployment, forumOrder) => {
   const registryMode = deployment.registryMode ?? "production";
   const orderedForumAddresses = forumOrder.map((forumName) => deployment.forums[forumName]);
+  const relayAllowedContracts = [...orderedForumAddresses, deployment.registryAddress];
   const signatures = registrySponsorshipSignatures(registryMode);
 
   return `# Symvolia backend environment example for ${networkName}.
@@ -92,12 +93,25 @@ REGISTRY_MODE=${registryMode}
 REGISTRY_ADDRESS=${deployment.registryAddress}
 GAS_SPONSORSHIP_REGISTRY_SIGNATURES="${signatures.join(";")}"
 FORUM_CONTRACT_ADDRESSES="${orderedForumAddresses.join(",")}"
-BACKFILL_FROM=block:${deployment.deploymentBlockNumber}
 
 # Chain RPC endpoints
-# ETHEREUM_NODE_URL must be a WebSocket RPC endpoint for live indexing.
-ETHEREUM_NODE_URL=wss://replace-with-your-websocket-rpc
-ETHEREUM_HTTP_URL=https://replace-with-your-http-rpc
+# ETHEREUM_RPC_URL is required for pull-based log polling.
+ETHEREUM_RPC_URL=https://replace-with-your-http-rpc
+# RELAY_RPC_URL is used by the RPC relay for frontend read traffic.
+# Use a dedicated Alchemy/Infura app here to separate frontend from indexer quota.
+RELAY_RPC_URL=https://replace-with-your-frontend-http-rpc
+
+# Indexer polling and catch-up behavior
+INDEXER_POLL_INTERVAL_SECONDS=60
+INDEXER_MAX_BLOCKS_PER_REQUEST=600
+INDEXER_MAX_STARTUP_LOOKBACK_SECONDS=14400
+
+# Optional constrained JSON-RPC relay for frontend read traffic.
+# Keep methods limited to what the frontend actually uses.
+RPC_RELAY_ALLOWED_METHODS=eth_chainId,eth_blockNumber,eth_getBlockByNumber,eth_getTransactionReceipt,eth_call,eth_estimateGas,eth_getCode
+# Include forum contracts plus the registry contract for frontend reads.
+RPC_RELAY_ALLOWED_CONTRACTS="${relayAllowedContracts.join(",")}" 
+RPC_RELAY_UPSTREAM_TIMEOUT_SECONDS=15
 
 # Meilisearch connection
 # For Railway private networking, use: http://<meilisearch-service-name>.railway.internal:7700

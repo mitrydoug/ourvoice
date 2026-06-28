@@ -80,6 +80,7 @@ for (const forumName of forumOrder) {
 }
 
 const orderedForumAddresses = forumOrder.map((forumName) => deployment.forums[forumName]);
+const relayAllowedContracts = [...orderedForumAddresses, deployment.registryAddress];
 const registryMode = deployment.registryMode ?? "production";
 const registrySponsorshipSignatures =
   registryMode === "mocked"
@@ -118,7 +119,8 @@ const backendEnvText =
   `REGISTRY_ADDRESS=${deployment.registryAddress}\n` +
   `GAS_SPONSORSHIP_REGISTRY_SIGNATURES="${registrySponsorshipSignatures.join(";")}"\n` +
   `DEPLOYMENT_BLOCK_NUMBER=${deployment.deploymentBlockNumber}\n` +
-  `FORUM_CONTRACT_ADDRESSES="${orderedForumAddresses.join(",")}"\n`;
+  `FORUM_CONTRACT_ADDRESSES="${orderedForumAddresses.join(",")}"\n` +
+  `RPC_RELAY_ALLOWED_CONTRACTS="${relayAllowedContracts.join(",")}"\n`;
 
 const backendEnvPath = path.join(backendGeneratedDir, "deployment.env");
 writeFileSync(backendEnvPath, backendEnvText);

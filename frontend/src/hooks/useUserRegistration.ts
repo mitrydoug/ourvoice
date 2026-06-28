@@ -1,5 +1,8 @@
+import { useCallback } from "react";
 import { useReadContract } from "wagmi";
 import { useParticipantAddress } from "./useSponsoredContractWrite";
+import useBlockSync from "./useBlockSync";
+import { blockPollingIntervalMs } from "../wagmiConfig";
 import {
   isDevMode,
   mockRegistryContractConfig,
@@ -48,21 +51,37 @@ export interface UserRegistration {
 export function useUserRegistration(): UserRegistration {
   const { address, isSmartWalletLoading } = useParticipantAddress();
 
-  const { data: isRegistered, isLoading: isRegisteredLoading } =
-    useReadContract({
-      ...registryReadConfig,
-      functionName: "isRegistered",
-      args: address ? [address] : undefined,
-      query: { enabled: !!address },
-    });
+  const {
+    data: isRegistered,
+    isLoading: isRegisteredLoading,
+    refetch: refetchIsRegistered,
+  } = useReadContract({
+    ...registryReadConfig,
+    functionName: "isRegistered",
+    args: address ? [address] : undefined,
+    query: { enabled: !!address, staleTime: blockPollingIntervalMs },
+  });
 
-  const { data: registration, isLoading: isRegistrationLoading } =
-    useReadContract({
-      ...registryReadConfig,
-      functionName: "getUserRegistration",
-      args: address ? [address] : undefined,
-      query: { enabled: !!address && isRegistered === true },
-    });
+  const {
+    data: registration,
+    isLoading: isRegistrationLoading,
+    refetch: refetchRegistration,
+  } = useReadContract({
+    ...registryReadConfig,
+    functionName: "getUserRegistration",
+    args: address ? [address] : undefined,
+    query: {
+      enabled: !!address && isRegistered === true,
+      staleTime: blockPollingIntervalMs,
+    },
+  });
+
+  const refetchAll = useCallback(() => {
+    void refetchIsRegistered();
+    if (isRegistered) void refetchRegistration();
+  }, [refetchIsRegistered, refetchRegistration, isRegistered]);
+
+  useBlockSync(refetchAll);
 
   if (!isRegistered) {
     return {

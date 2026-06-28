@@ -30,25 +30,27 @@ BASE_SEPOLIA_RPC_URL=https://sepolia.base.org
 BASE_SEPOLIA_DEPLOYER_PRIVATE_KEY=<set via Hardhat keystore or env>
 ```
 
-For live backend indexing, also set `ETHEREUM_NODE_URL` to a Base Sepolia
-WebSocket RPC:
+For live backend indexing, set `ETHEREUM_RPC_URL` to a Base Sepolia HTTP RPC:
 
 ```bash
-ETHEREUM_NODE_URL=wss://...
+ETHEREUM_RPC_URL=https://...
 ```
 
-`BASE_SEPOLIA_RPC_URL` and `ETHEREUM_NODE_URL` are intentionally separate:
+`BASE_SEPOLIA_RPC_URL`, `ETHEREUM_RPC_URL`, and frontend RPC relay URLs are
+intentionally separate:
 
-- `BASE_SEPOLIA_RPC_URL` is an HTTP RPC used by Hardhat deployment and exposed
-	to the static frontend as `VITE_BASE_SEPOLIA_RPC_URL`.
-- `ETHEREUM_NODE_URL` is a WebSocket RPC used by the backend indexer for
-	`newHeads` subscriptions.
+- `BASE_SEPOLIA_RPC_URL` is an HTTP RPC used by Hardhat deployment.
+- `ETHEREUM_RPC_URL` is an HTTP RPC used by the backend indexer for pull-based
+	log polling.
+- `VITE_*_RPC_URL` values point the frontend at the backend `/rpc` relay for
+	public read RPC. Wallet write operations still go through the wallet provider.
 
 Local Overmind workflows load `.env.local` through `scripts/dev/profile.sh` and
 derive target-specific variables there. For example, the Base Sepolia profile
-maps `BASE_SEPOLIA_RPC_URL` to `RPC_URL` for HTTP readiness checks and to
-`VITE_BASE_SEPOLIA_RPC_URL` for the frontend. Procfiles should stay focused on
-process topology rather than repeating environment mappings.
+maps `BASE_SEPOLIA_RPC_URL` to `ETHEREUM_RPC_URL` for HTTP readiness checks and
+sets `VITE_BASE_SEPOLIA_RPC_URL` to the local backend relay
+(`http://localhost:8000/rpc`) for the frontend. Procfiles should stay focused
+on process topology rather than repeating environment mappings.
 
 Hardhat connection targets are intentionally separate from deployment behavior.
 `DEPLOY_NETWORK` selects the Hardhat network/RPC endpoint, while
@@ -94,8 +96,8 @@ artifacts from that existing deployment state. Use `make base-sepolia-break-glas
 only when you explicitly want to deploy fresh mock-registry contracts and discard
 the old Base Sepolia app state.
 
-The backend can start without `ETHEREUM_NODE_URL`, but live indexing is disabled
-until a WebSocket RPC is configured.
+The backend can start without `ETHEREUM_RPC_URL`, but live indexing is disabled
+until an RPC URL is configured.
 
 ## Backend Deployment
 

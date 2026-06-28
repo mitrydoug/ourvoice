@@ -12,13 +12,13 @@ RPC_READY_TIMEOUT_SECONDS="${RPC_READY_TIMEOUT_SECONDS:-20}"
 wait_for_rpc() {
   local deadline=$((SECONDS + RPC_READY_TIMEOUT_SECONDS))
 
-  echo "⏳ Waiting up to ${RPC_READY_TIMEOUT_SECONDS}s for RPC at ${RPC_URL}…"
+  echo "⏳ Waiting up to ${RPC_READY_TIMEOUT_SECONDS}s for RPC at ${ETHEREUM_RPC_URL}…"
   until curl -sf \
     -H 'content-type: application/json' \
     --data '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}' \
-    "${RPC_URL}" > /dev/null 2>&1; do
+    "${ETHEREUM_RPC_URL}" > /dev/null 2>&1; do
     if [ "${SECONDS}" -ge "${deadline}" ]; then
-      echo "❌ RPC endpoint did not become ready within ${RPC_READY_TIMEOUT_SECONDS}s: ${RPC_URL}"
+      echo "❌ RPC endpoint did not become ready within ${RPC_READY_TIMEOUT_SECONDS}s: ${ETHEREUM_RPC_URL}"
       exit 1
     fi
     sleep 1
@@ -60,11 +60,11 @@ set_local_mining() {
   curl -sf \
     -H 'content-type: application/json' \
     --data "{\"jsonrpc\":\"2.0\",\"method\":\"evm_setAutomine\",\"params\":[${automine}],\"id\":1}" \
-    "${RPC_URL}" > /dev/null
+    "${ETHEREUM_RPC_URL}" > /dev/null
   curl -sf \
     -H 'content-type: application/json' \
     --data "{\"jsonrpc\":\"2.0\",\"method\":\"evm_setIntervalMining\",\"params\":[${interval_ms}],\"id\":1}" \
-    "${RPC_URL}" > /dev/null
+    "${ETHEREUM_RPC_URL}" > /dev/null
 }
 
 seed_contract_state() {

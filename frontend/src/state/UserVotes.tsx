@@ -764,7 +764,7 @@ export const UserVoteProvider: FC<{
   }, [refetchIsMember, refetchSupport, refetchBalance, isUserVerified]);
 
   // Sync with blockchain on every new block
-  const { blockNumber: latestBlockNumber } = useBlockSync(refetch);
+  const { blockNumber: latestBlockNumber, triggerSync } = useBlockSync(refetch);
 
   useEffect(() => {
     // Load state from blockchain
@@ -854,16 +854,16 @@ export const UserVoteProvider: FC<{
         payload: { blockNumber: txReceipt.blockNumber },
       });
 
-      // Nudge a block sync so SYNC_ONCHAIN_STATE fires with fresh data.
-      // The receipt callback does NOT read on-chain data itself.
-      refetch();
+      // Trigger an immediate sync so SYNC_ONCHAIN_STATE fires with a current
+      // block number and fresh contract data, without waiting for the next poll.
+      triggerSync();
     }
   }, [
     txReceipt,
     state.commitStatus,
     state.confirmedBlockNumber,
     addAuthoredStatement,
-    refetch,
+    triggerSync,
     dispatch,
   ]);
 

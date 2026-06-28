@@ -108,17 +108,24 @@ Mainnet deployment creates `deployments/base.json`.
 
 Replace placeholder values before deploying:
 
-| Variable            | Required value                                                          |
-| ------------------- | ----------------------------------------------------------------------- |
-| `ETHEREUM_NODE_URL` | WebSocket RPC URL for live indexing                                     |
-| `ETHEREUM_HTTP_URL` | HTTP RPC URL for read/backfill calls                                    |
-| `MEILI_URL`         | Railway private URL, such as `http://meilisearch.railway.internal:7700` |
-| `MEILI_API_KEY`     | Same value as the Meilisearch `MEILI_MASTER_KEY`                        |
-| `CORS_ORIGINS`      | Comma-separated frontend origins allowed to call the backend            |
+| Variable           | Required value                                                          |
+| ------------------ | ----------------------------------------------------------------------- |
+| `ETHEREUM_RPC_URL` | HTTP RPC URL for pull-based live indexing                               |
+| `MEILI_URL`        | Railway private URL, such as `http://meilisearch.railway.internal:7700` |
+| `MEILI_API_KEY`    | Same value as the Meilisearch `MEILI_MASTER_KEY`                        |
+| `CORS_ORIGINS`     | Comma-separated frontend origins allowed to call the backend            |
+
+Optional relay policy variables:
+
+| Variable                             | Purpose                                                                     |
+| ------------------------------------ | --------------------------------------------------------------------------- |
+| `RPC_RELAY_ALLOWED_METHODS`          | Comma-separated JSON-RPC methods allowed via `POST /rpc`                    |
+| `RPC_RELAY_ALLOWED_CONTRACTS`        | Comma-separated contract addresses allowed for `eth_call`/`eth_estimateGas` |
+| `RPC_RELAY_UPSTREAM_TIMEOUT_SECONDS` | Upstream RPC timeout in seconds                                             |
 
 The generated contract values should usually be copied as-is. They include
 `REGISTRY_MODE`, `REGISTRY_ADDRESS`, `FORUM_CONTRACT_ADDRESSES`,
-`GAS_SPONSORSHIP_REGISTRY_SIGNATURES`, and `BACKFILL_FROM`.
+and `GAS_SPONSORSHIP_REGISTRY_SIGNATURES`.
 
 Start with semantic search disabled:
 
@@ -136,6 +143,14 @@ Point the frontend build at the backend URL:
 
 ```env
 VITE_SEARCH_URL=https://replace-with-your-backend-domain
+```
+
+To route public read RPC through the backend relay, set the frontend RPC
+environment variable for the deployed chain to the backend relay endpoint,
+for example:
+
+```env
+VITE_BASE_SEPOLIA_RPC_URL=https://replace-with-your-backend-domain/rpc
 ```
 
 The static sites also enable Privy smart-wallet gas sponsorship. Configure these
@@ -176,13 +191,14 @@ services:
     environment:
       MEILI_URL: http://meilisearch:7700
       MEILI_API_KEY: ${MEILI_MASTER_KEY}
-      ETHEREUM_NODE_URL: ${ETHEREUM_NODE_URL}
-      ETHEREUM_HTTP_URL: ${ETHEREUM_HTTP_URL}
+      ETHEREUM_RPC_URL: ${ETHEREUM_RPC_URL}
       FORUM_CONTRACT_ADDRESSES: ${FORUM_CONTRACT_ADDRESSES}
       REGISTRY_MODE: ${REGISTRY_MODE}
       REGISTRY_ADDRESS: ${REGISTRY_ADDRESS}
       GAS_SPONSORSHIP_REGISTRY_SIGNATURES: ${GAS_SPONSORSHIP_REGISTRY_SIGNATURES}
-      BACKFILL_FROM: ${BACKFILL_FROM}
+      INDEXER_POLL_INTERVAL_SECONDS: ${INDEXER_POLL_INTERVAL_SECONDS}
+      INDEXER_MAX_BLOCKS_PER_REQUEST: ${INDEXER_MAX_BLOCKS_PER_REQUEST}
+      INDEXER_MAX_STARTUP_LOOKBACK_SECONDS: ${INDEXER_MAX_STARTUP_LOOKBACK_SECONDS}
       CORS_ORIGINS: ${CORS_ORIGINS}
     ports:
       - "8000:8000"
@@ -208,9 +224,9 @@ Commit the generated files with the deployment state update.
 
 - Meilisearch Railway healthcheck fails without `/health` logs: set `PORT=7700`
   on the Meilisearch service.
-- Backend is healthy but search returns no results: verify `ETHEREUM_NODE_URL`,
-  `FORUM_CONTRACT_ADDRESSES`, and `BACKFILL_FROM`, then inspect backend logs for
-  indexer startup messages.
+- Backend is healthy but search returns no results: verify `ETHEREUM_RPC_URL`,
+  `FORUM_CONTRACT_ADDRESSES`, and indexer polling vars, then inspect backend
+  logs for indexer startup messages.
 - Railway cannot pull the backend image: make the GHCR package public or add
   private registry credentials to Railway.
 - Semantic search is unavailable: keep `MEILI_SEMANTIC_SEARCH_ENABLED=false`

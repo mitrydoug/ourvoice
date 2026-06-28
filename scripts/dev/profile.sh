@@ -37,7 +37,8 @@ load_dev_profile() {
 
   export DEV_PROFILE="${profile}"
   export LOCAL_RPC_URL="${LOCAL_RPC_URL:-http://127.0.0.1:8545}"
-  export LOCAL_WS_URL="${LOCAL_WS_URL:-ws://127.0.0.1:8545}"
+  export LOCAL_BACKEND_URL="${LOCAL_BACKEND_URL:-http://localhost:8000}"
+  export LOCAL_BACKEND_RPC_URL="${LOCAL_BACKEND_RPC_URL:-${LOCAL_BACKEND_URL}/rpc}"
   export MEILI_URL="${MEILI_URL:-http://localhost:7700}"
   export MEILI_READY_TIMEOUT_SECONDS="${MEILI_READY_TIMEOUT_SECONDS:-120}"
   export NETWORK_FILE_NAME="${NETWORK_FILE_NAME:-localhost}"
@@ -46,8 +47,10 @@ load_dev_profile() {
 
   case "${profile}" in
     local-mocked)
-      export RPC_URL="${LOCAL_RPC_URL}"
-      export ETHEREUM_NODE_URL="${LOCAL_WS_URL}"
+      export ETHEREUM_RPC_URL="${LOCAL_RPC_URL}"
+      export RELAY_RPC_URL="${LOCAL_RPC_URL}"
+      export VITE_LOCALHOST_RPC_URL="${LOCAL_BACKEND_RPC_URL}"
+      export VITE_SEARCH_URL="${LOCAL_BACKEND_URL}"
       export VITE_NETWORK="localhost"
       export VITE_REGISTRY_MODE="mocked"
       export DEPLOY_NETWORK="localhost"
@@ -57,8 +60,10 @@ load_dev_profile() {
       ;;
     local-forked)
       require_env BASE_SEPOLIA_RPC_URL
-      export RPC_URL="${LOCAL_RPC_URL}"
-      export ETHEREUM_NODE_URL="${LOCAL_WS_URL}"
+      export ETHEREUM_RPC_URL="${LOCAL_RPC_URL}"
+      export RELAY_RPC_URL="${LOCAL_RPC_URL}"
+      export VITE_LOCALHOST_RPC_URL="${LOCAL_BACKEND_RPC_URL}"
+      export VITE_SEARCH_URL="${LOCAL_BACKEND_URL}"
       export VITE_NETWORK="localhost"
       export VITE_REGISTRY_MODE="mocked"
       export DEPLOY_NETWORK="localhost"
@@ -67,8 +72,10 @@ load_dev_profile() {
       export HARDHAT_NETWORK="local_base_sepolia_fork"
       ;;
     local-stress-test)
-      export RPC_URL="${LOCAL_RPC_URL}"
-      export ETHEREUM_NODE_URL="${LOCAL_WS_URL}"
+      export ETHEREUM_RPC_URL="${LOCAL_RPC_URL}"
+      export RELAY_RPC_URL="${LOCAL_RPC_URL}"
+      export VITE_LOCALHOST_RPC_URL="${LOCAL_BACKEND_RPC_URL}"
+      export VITE_SEARCH_URL="${LOCAL_BACKEND_URL}"
       export VITE_NETWORK="localhost"
       export VITE_REGISTRY_MODE="mocked"
       export VITE_SEARCH_RESULTS_LIMIT="${VITE_SEARCH_RESULTS_LIMIT:-100}"
@@ -80,11 +87,12 @@ load_dev_profile() {
       ;;
     base-sepolia)
       require_env BASE_SEPOLIA_RPC_URL
-      export RPC_URL="${BASE_SEPOLIA_RPC_URL}"
-      export ETHEREUM_NODE_URL="${ETHEREUM_NODE_URL:-${BASE_SEPOLIA_WS_URL:-}}"
+      require_env RELAY_RPC_URL
+      export ETHEREUM_RPC_URL="${ETHEREUM_RPC_URL:-${BASE_SEPOLIA_RPC_URL}}"
+      export VITE_BASE_SEPOLIA_RPC_URL="${LOCAL_BACKEND_RPC_URL}"
+      export VITE_SEARCH_URL="${LOCAL_BACKEND_URL}"
       export VITE_NETWORK="base_sepolia"
       export VITE_REGISTRY_MODE="mocked"
-      export VITE_BASE_SEPOLIA_RPC_URL="${BASE_SEPOLIA_RPC_URL}"
       export DEPLOY_NETWORK="base_sepolia"
       export DEPLOY_ARTIFACT_NETWORK="base_sepolia"
       export DEPLOYMENT_PROFILE="base-sepolia"
