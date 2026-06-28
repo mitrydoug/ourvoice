@@ -180,7 +180,7 @@ const SearchResults: FC<SearchResultsProps> = ({
       statements={noResults ? [] : statements}
       hasMore={false}
       isLoading={noResults ? false : isLoading}
-      onLoadMore={() => { }}
+      onLoadMore={() => {}}
       loadingLabel="Searching…"
       isBookmarked={isBookmarked}
       onToggleBookmark={onToggleBookmark}
@@ -231,7 +231,11 @@ const RankedBrowse: FC<RankedBrowseProps> = ({
     if (paginationTimerRef.current) clearTimeout(paginationTimerRef.current);
   }, [forumContractAddress]);
 
-  const { data: [rankedCountResult, statementsPageResult] = [], refetch: refetchRankedBrowse, isLoading: isBrowseLoading } = useReadContracts({
+  const {
+    data: [rankedCountResult, statementsPageResult] = [],
+    refetch: refetchRankedBrowse,
+    isLoading: isBrowseLoading,
+  } = useReadContracts({
     contracts: [
       {
         address: forumContractAddress,
@@ -255,10 +259,11 @@ const RankedBrowse: FC<RankedBrowseProps> = ({
   useBlockSync(refetchRankedBrowseCallback);
 
   const rankedCount = rankedCountResult?.result;
-  const statementsPage = statementsPageResult?.result as Statement[] | undefined;
+  const statementsPage = statementsPageResult?.result as
+    | Statement[]
+    | undefined;
 
-  const isLoading =
-    isBrowseLoading || isPaginationLoading;
+  const isLoading = isBrowseLoading || isPaginationLoading;
 
   useEffect(() => {
     if (statementsPage && statementsPage.length > 0 && !isBrowseLoading) {

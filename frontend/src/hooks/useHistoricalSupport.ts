@@ -3,7 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { usePublicClient } from "wagmi";
 import { useForum, FORUM_ABI } from "../state/Forum";
 import { useCreditConversion } from "./useCreditConversion";
-import { blockPollingIntervalMs, targetAverageBlockTimeSeconds } from "../wagmiConfig";
+import {
+  blockPollingIntervalMs,
+  targetAverageBlockTimeSeconds,
+} from "../wagmiConfig";
 import { useBlockSync } from "./useBlockSync";
 
 /** Average target-chain block time in seconds, used for chart block estimates. */
@@ -31,7 +34,7 @@ const IS_DAILY = PERIOD_SECONDS >= 86400;
 // Number of blocks mined per polling interval — used to bucket currentBlockNumber
 // so the React Query cache key is stable for the duration of one polling window.
 const BLOCKS_PER_POLLING_INTERVAL = BigInt(
-  Math.max(1, Math.ceil((blockPollingIntervalMs / 1000) / AVG_BLOCK_TIME)),
+  Math.max(1, Math.ceil(blockPollingIntervalMs / 1000 / AVG_BLOCK_TIME)),
 );
 
 export interface SupportDataPoint {
@@ -66,14 +69,14 @@ export function useHistoricalSupport(statementId: bigint): {
   const publicClient = usePublicClient();
   const { forumContractAddress } = useForum();
   const { toCredits } = useCreditConversion();
-  const { blockNumber: currentBlockNumber } = useBlockSync(() => { });
+  const { blockNumber: currentBlockNumber } = useBlockSync(() => {});
 
   // Bucket the block number to the polling window so the cache key is stable
   // for the duration of one interval — navigating away and back hits the cache.
   const cacheBlockNumber =
     currentBlockNumber !== undefined
       ? (currentBlockNumber / BLOCKS_PER_POLLING_INTERVAL) *
-      BLOCKS_PER_POLLING_INTERVAL
+        BLOCKS_PER_POLLING_INTERVAL
       : undefined;
 
   // Build the list of target timestamps for the past PERIODS_BACK periods.

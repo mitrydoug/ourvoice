@@ -51,21 +51,30 @@ export interface UserRegistration {
 export function useUserRegistration(): UserRegistration {
   const { address, isSmartWalletLoading } = useParticipantAddress();
 
-  const { data: isRegistered, isLoading: isRegisteredLoading, refetch: refetchIsRegistered } =
-    useReadContract({
-      ...registryReadConfig,
-      functionName: "isRegistered",
-      args: address ? [address] : undefined,
-      query: { enabled: !!address, staleTime: blockPollingIntervalMs },
-    });
+  const {
+    data: isRegistered,
+    isLoading: isRegisteredLoading,
+    refetch: refetchIsRegistered,
+  } = useReadContract({
+    ...registryReadConfig,
+    functionName: "isRegistered",
+    args: address ? [address] : undefined,
+    query: { enabled: !!address, staleTime: blockPollingIntervalMs },
+  });
 
-  const { data: registration, isLoading: isRegistrationLoading, refetch: refetchRegistration } =
-    useReadContract({
-      ...registryReadConfig,
-      functionName: "getUserRegistration",
-      args: address ? [address] : undefined,
-      query: { enabled: !!address && isRegistered === true, staleTime: blockPollingIntervalMs },
-    });
+  const {
+    data: registration,
+    isLoading: isRegistrationLoading,
+    refetch: refetchRegistration,
+  } = useReadContract({
+    ...registryReadConfig,
+    functionName: "getUserRegistration",
+    args: address ? [address] : undefined,
+    query: {
+      enabled: !!address && isRegistered === true,
+      staleTime: blockPollingIntervalMs,
+    },
+  });
 
   const refetchAll = useCallback(() => {
     void refetchIsRegistered();
