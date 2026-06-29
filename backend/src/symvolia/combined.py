@@ -87,7 +87,7 @@ MEILI_URL = require_env("MEILI_URL")
 MEILI_API_KEY = require_env("MEILI_API_KEY")
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "")
 FORUM_CONTRACT_ADDRESSES = os.environ.get("FORUM_CONTRACT_ADDRESSES", "")
-INDEXER_RPC_URL = "" # os.environ.get("INDEXER_RPC_URL", "")
+INDEXER_RPC_URL = os.environ.get("INDEXER_RPC_URL", "")
 EVICTION_MAX_AGE_SECONDS = int(
     os.environ.get("EVICTION_MAX_AGE_SECONDS", str(DEFAULT_EVICTION_MAX_AGE_SECONDS))
 )
