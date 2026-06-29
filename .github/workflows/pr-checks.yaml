@@ -98,7 +98,9 @@ jobs:
         run: docker build -t symvolia-backend:ci -f backend/Dockerfile .
       - name: Smoke test backend image
         run: >-
-          docker run --rm symvolia-backend:ci python -c
+          docker run --rm
+          -e MEILI_URL=http://localhost:7700 -e MEILI_API_KEY=ci
+          symvolia-backend:ci python -c
           "import symvolia.combined, symvolia.search_service.main, symvolia.main; print('backend imports ok')"
   solidity_tests:
     runs-on: ubuntu-latest
