@@ -1,12 +1,7 @@
 import { FC, useEffect, useRef } from "react";
 import { Statement } from "../types";
-import {
-  Box,
-  CircularProgress,
-  Stack,
-  Typography,
-  useTheme,
-} from "@mui/material";
+import { Box, CircularProgress, Stack, Typography } from "@mui/material";
+import { theme } from "../theme";
 import StatementCard from "./StatementCard";
 import StagedStatementCard from "./StagedStatementCard";
 import { StatementListSkeleton } from "./StatementCardSkeleton";
@@ -39,7 +34,6 @@ const StatementList: FC<StatementListProps> = ({
   onToggleBookmark,
   showStagedStatements = false,
 }) => {
-  const theme = useTheme();
   const sentinelRef = useRef<HTMLDivElement>(null);
   const userVotes = useUserVotes();
 
