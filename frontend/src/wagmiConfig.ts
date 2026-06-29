@@ -90,17 +90,10 @@ export const smartWalletsConfig =
     ? { paymasterContext: { policyId: alchemyGasPolicyId } }
     : undefined;
 
-const networkToRpcEnv = {
-  localhost: ["VITE_LOCALHOST_RPC_URL", import.meta.env.VITE_LOCALHOST_RPC_URL],
-  base: ["VITE_BASE_RPC_URL", import.meta.env.VITE_BASE_RPC_URL],
-  base_sepolia: [
-    "VITE_BASE_SEPOLIA_RPC_URL",
-    import.meta.env.VITE_BASE_SEPOLIA_RPC_URL,
-  ],
-} satisfies Record<NetworkName, [keyof ImportMetaEnv, string | undefined]>;
-
-const [targetRpcEnvName, targetRpcEnvValue] = networkToRpcEnv[networkName];
-const targetRpcUrl = requiredEnvValue(targetRpcEnvName, targetRpcEnvValue);
+const targetRpcUrl = requiredEnvValue(
+  "VITE_RPC_URL",
+  import.meta.env.VITE_RPC_URL,
+);
 
 export const privyConfig = {
   appearance: {

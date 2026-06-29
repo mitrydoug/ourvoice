@@ -13,7 +13,7 @@ import { useForum, forumToSlug } from "../state/Forum";
 import { metamaskIcon, shortenAddress } from "../util";
 import useIsMobile from "@/hooks/useIsMobile";
 import useNickname from "@/hooks/useNickname";
-import { useTheme } from "@mui/material/styles";
+import { theme } from "../theme";
 import { ProfileDrawer } from "./UserProfileMenu";
 import { useSearchQuery } from "@/state/Search";
 import SearchField from "./SearchField";
@@ -46,8 +46,6 @@ interface LogoProps {
 }
 
 const Logo: React.FC<LogoProps> = ({ isMobile, homePath }) => {
-  const theme = useTheme();
-
   return (
     <Link to={homePath} style={{ textDecoration: "none" }}>
       <img

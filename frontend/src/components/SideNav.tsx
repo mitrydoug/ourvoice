@@ -7,7 +7,7 @@ import {
   ListItemText,
 } from "@mui/material";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useTheme } from "@mui/material/styles";
+import { theme } from "../theme";
 import HomeIcon from "@mui/icons-material/Home";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import ArticleIcon from "@mui/icons-material/Article";
@@ -51,7 +51,6 @@ const SideNav: FC = () => {
   const location = useLocation();
   const navigate = useForumNavigate();
   const rawNavigate = useNavigate();
-  const theme = useTheme();
   const { isUserVerified, isVerifiedLoading } = useUserVotes();
   const { name: forumName, setForum } = useForum();
   const forumPath = useForumPath();

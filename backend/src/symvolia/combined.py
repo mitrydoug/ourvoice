@@ -6,10 +6,10 @@ Run with:
     uvicorn symvolia.combined:app --host 0.0.0.0 --port 8000
 
 Required env vars:
-    MEILI_URL            — Meilisearch URL  (default: http://localhost:7700)
-    MEILI_API_KEY        — Meilisearch API key (default: empty)
+    MEILI_URL            — Meilisearch URL (required)
+    MEILI_API_KEY        — Meilisearch API key (required)
     FORUM_CONTRACT_ADDRESSES — Comma-separated forum contract addresses
-    ETHEREUM_RPC_URL     — HTTP RPC URL used by the indexer (required)
+    INDEXER_RPC_URL      — HTTP RPC URL used by the indexer (required)
     RELAY_RPC_URL        — HTTP RPC URL used by the RPC relay for frontend
                            read traffic. Required for the relay to forward
                            requests; relay returns errors when not set.
@@ -71,11 +71,20 @@ _symvolia_log_level = os.getenv("LOG_LEVEL", "INFO").upper()
 logging.getLogger("symvolia").setLevel(_symvolia_log_level)
 logger = logging.getLogger(__name__)
 
-MEILI_URL = os.getenv("MEILI_URL", "http://localhost:7700")
-MEILI_API_KEY = os.getenv("MEILI_API_KEY", "")
+
+def require_env(name: str) -> str:
+    """Return a required env var, failing fast if it is missing."""
+    value = os.environ.get(name, "").strip()
+    if not value:
+        raise RuntimeError(f"{name} must be set.")
+    return value
+
+
+MEILI_URL = require_env("MEILI_URL")
+MEILI_API_KEY = require_env("MEILI_API_KEY")
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "")
 FORUM_CONTRACT_ADDRESSES = os.environ.get("FORUM_CONTRACT_ADDRESSES", "")
-ETHEREUM_RPC_URL = os.environ.get("ETHEREUM_RPC_URL", "")
+INDEXER_RPC_URL = os.environ.get("INDEXER_RPC_URL", "")
 EVICTION_MAX_AGE_SECONDS = int(
     os.environ.get("EVICTION_MAX_AGE_SECONDS", str(DEFAULT_EVICTION_MAX_AGE_SECONDS))
 )
@@ -87,9 +96,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     ensure_search_index(app.state.meili_client)
 
     forum_contract_addresses = parse_forum_contract_addresses(FORUM_CONTRACT_ADDRESSES)
-    if not forum_contract_addresses or not ETHEREUM_RPC_URL:
+    if not forum_contract_addresses or not INDEXER_RPC_URL:
         logger.warning(
-            "FORUM_CONTRACT_ADDRESSES or ETHEREUM_RPC_URL not set — "
+            "FORUM_CONTRACT_ADDRESSES or INDEXER_RPC_URL not set — "
             "indexer will NOT start.  Search API is still available."
         )
         yield
@@ -99,7 +108,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         run_indexers(
             meili_client=app.state.meili_client,
             forum_contract_addresses=forum_contract_addresses,
-            ethereum_rpc_url=ETHEREUM_RPC_URL,
+            ethereum_rpc_url=INDEXER_RPC_URL,
             eviction_max_age_seconds=EVICTION_MAX_AGE_SECONDS,
         )
     )

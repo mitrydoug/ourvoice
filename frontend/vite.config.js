@@ -7,6 +7,9 @@ import path from "path";
 export default defineConfig({
   plugins: [react(), nodePolyfills()],
   base: "./",
+  // Shared repo env dir: env/.env (+ .env.production, .env.local) is the single
+  // source of frontend build config; profiles/CI override via process env.
+  envDir: path.resolve(__dirname, "../env"),
   build: {
     rollupOptions: {
       output: {

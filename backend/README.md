@@ -34,33 +34,34 @@ uvicorn symvolia.combined:app --host 0.0.0.0 --port 8000 --app-dir src
 
 **Environment variables:**
 
-| Variable                                  | Required | Default                 | Description                                                                 |
-| ----------------------------------------- | -------- | ----------------------- | --------------------------------------------------------------------------- |
-| `MEILI_URL`                               | No       | `http://localhost:7700` | Meilisearch URL                                                             |
-| `MEILI_API_KEY`                           | No       | (empty)                 | Meilisearch API key                                                         |
-| `FORUM_CONTRACT_ADDRESSES`                | Yes      | —                       | Comma-separated forum contract addresses                                    |
-| `ETHEREUM_RPC_URL`                        | Yes      | —                       | HTTP RPC URL for indexer polling                                            |
-| `LOG_LEVEL`                               | No       | `INFO`                  | Python logging level                                                        |
-| `INDEXER_POLL_INTERVAL_SECONDS`           | No       | `60`                    | Poll interval between new log queries                                       |
-| `INDEXER_MAX_BLOCKS_PER_REQUEST`          | No       | `600`                   | Maximum block span per `eth_getLogs` call                                   |
-| `INDEXER_MAX_STARTUP_LOOKBACK_SECONDS`    | No       | `14400`                 | Startup catch-up cap (4 hours)                                              |
-| `RPC_RELAY_ALLOWED_METHODS`               | No       | frontend-safe defaults  | Comma-separated JSON-RPC methods allowed on `POST /rpc`                     |
-| `RPC_RELAY_ALLOWED_CONTRACTS`             | No       | forum contracts         | Comma-separated contract addresses allowed for `eth_call`/`eth_estimateGas` |
-| `RPC_RELAY_UPSTREAM_TIMEOUT_SECONDS`      | No       | `15`                    | Timeout when proxying allowed JSON-RPC requests upstream                    |
-| `MEILI_SEMANTIC_SEARCH_ENABLED`           | No       | `false`                 | Configure Meilisearch `/similar` semantic search                            |
-| `MEILI_SEMANTIC_EMBEDDER_NAME`            | No       | `statement-text`        | Meilisearch embedder name for `/similar`                                    |
-| `MEILI_SEMANTIC_EMBEDDER_MODEL`           | No       | multilingual MiniLM     | Hugging Face model used by Meilisearch                                      |
-| `MEILI_TASK_TIMEOUT_MS`                   | No       | `300000`                | Max wait for Meilisearch setup/indexing tasks                               |
-| `ALCHEMY_GAS_SPONSORSHIP_INSPECT_APPROVE` | No       | `false`                 | Temporary: approve Alchemy Gas Manager inspection requests                  |
+| Variable                                  | Required | Default                | Description                                                                           |
+| ----------------------------------------- | -------- | ---------------------- | ------------------------------------------------------------------------------------- |
+| `MEILI_URL`                               | Yes      | —                      | Meilisearch URL                                                                       |
+| `MEILI_API_KEY`                           | Yes      | —                      | Meilisearch API key                                                                   |
+| `FORUM_CONTRACT_ADDRESSES`                | Yes      | —                      | Comma-separated forum contract addresses                                              |
+| `INDEXER_RPC_URL`                         | No       | —                      | HTTP RPC URL for indexer polling (indexer disabled if unset)                          |
+| `RELAY_RPC_URL`                           | No       | —                      | Upstream HTTP RPC URL the `POST /rpc` relay forwards reads to (relay errors if unset) |
+| `LOG_LEVEL`                               | No       | `INFO`                 | Python logging level                                                                  |
+| `INDEXER_POLL_INTERVAL_SECONDS`           | No       | `60`                   | Poll interval between new log queries                                                 |
+| `INDEXER_MAX_BLOCKS_PER_REQUEST`          | No       | `600`                  | Maximum block span per `eth_getLogs` call                                             |
+| `INDEXER_MAX_STARTUP_LOOKBACK_SECONDS`    | No       | `14400`                | Startup catch-up cap (4 hours)                                                        |
+| `RPC_RELAY_ALLOWED_METHODS`               | No       | frontend-safe defaults | Comma-separated JSON-RPC methods allowed on `POST /rpc`                               |
+| `RPC_RELAY_ALLOWED_CONTRACTS`             | No       | forum contracts        | Comma-separated contract addresses allowed for `eth_call`/`eth_estimateGas`           |
+| `RPC_RELAY_UPSTREAM_TIMEOUT_SECONDS`      | No       | `15`                   | Timeout when proxying allowed JSON-RPC requests upstream                              |
+| `MEILI_SEMANTIC_SEARCH_ENABLED`           | No       | `false`                | Configure Meilisearch `/similar` semantic search                                      |
+| `MEILI_SEMANTIC_EMBEDDER_NAME`            | No       | `statement-text`       | Meilisearch embedder name for `/similar`                                              |
+| `MEILI_SEMANTIC_EMBEDDER_MODEL`           | No       | multilingual MiniLM    | Hugging Face model used by Meilisearch                                                |
+| `MEILI_TASK_TIMEOUT_MS`                   | No       | `300000`               | Max wait for Meilisearch setup/indexing tasks                                         |
+| `ALCHEMY_GAS_SPONSORSHIP_INSPECT_APPROVE` | No       | `false`                | Temporary: approve Alchemy Gas Manager inspection requests                            |
 
-`ETHEREUM_RPC_URL` must be an HTTP RPC endpoint. The indexer uses pull-based
+`INDEXER_RPC_URL` must be an HTTP RPC endpoint. The indexer uses pull-based
 `eth_getLogs` polling with capped request ranges and persisted cursors.
 
 Native Procfile workflows start the combined backend through
 `scripts/dev/backend.sh`, which loads the selected target profile from
 `scripts/dev/profile.sh`, waits for the `contracts` Overmind process readiness
 marker, then invokes `scripts/local-backend.sh`. The backend launcher requires
-`ETHEREUM_RPC_URL` (used for both startup readiness checks and live indexing)
+`INDEXER_RPC_URL` (used for both startup readiness checks and live indexing)
 and `MEILI_URL`, the Meilisearch endpoint.
 
 If you are upgrading an existing Meilisearch index from the older single-forum backend, run a full backfill or clear the `statements` index once so documents are recreated with forum-scoped IDs.
