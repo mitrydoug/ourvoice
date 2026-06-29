@@ -6,14 +6,14 @@
 # with the FORUM_CONTRACT_ADDRESSES value for all deployed forums.
 #
 # Usage (called by overmind via Procfile, not directly):
-#   ETHEREUM_RPC_URL=http://127.0.0.1:8545 \
+#   INDEXER_RPC_URL=http://127.0.0.1:8545 \
 #     MEILI_URL=http://localhost:7700 \
 #     scripts/local-backend.sh
 # ──────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
 
-if [ -z "${ETHEREUM_RPC_URL:-}" ]; then
-  echo "❌ ETHEREUM_RPC_URL must be set to an HTTP JSON-RPC endpoint."
+if [ -z "${INDEXER_RPC_URL:-}" ]; then
+  echo "❌ INDEXER_RPC_URL must be set to an HTTP JSON-RPC endpoint."
   exit 1
 fi
 
@@ -28,13 +28,13 @@ MEILI_READY_TIMEOUT_SECONDS="${MEILI_READY_TIMEOUT_SECONDS:-20}"
 wait_for_rpc() {
   local deadline=$((SECONDS + RPC_READY_TIMEOUT_SECONDS))
 
-  echo "⏳ Waiting up to ${RPC_READY_TIMEOUT_SECONDS}s for RPC at ${ETHEREUM_RPC_URL}…"
+  echo "⏳ Waiting up to ${RPC_READY_TIMEOUT_SECONDS}s for RPC at ${INDEXER_RPC_URL}…"
   until curl -sf \
     -H 'content-type: application/json' \
     --data '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}' \
-    "${ETHEREUM_RPC_URL}" > /dev/null 2>&1; do
+    "${INDEXER_RPC_URL}" > /dev/null 2>&1; do
     if [ "${SECONDS}" -ge "${deadline}" ]; then
-      echo "❌ RPC endpoint did not become ready within ${RPC_READY_TIMEOUT_SECONDS}s: ${ETHEREUM_RPC_URL}"
+      echo "❌ RPC endpoint did not become ready within ${RPC_READY_TIMEOUT_SECONDS}s: ${INDEXER_RPC_URL}"
       exit 1
     fi
     sleep 1
@@ -77,17 +77,6 @@ if [ -z "${FORUM_CONTRACT_ADDRESSES:-}" ]; then
   exit 1
 fi
 echo "📋 Using FORUM_CONTRACT_ADDRESSES=${FORUM_CONTRACT_ADDRESSES}"
-
-if [ -z "${ETHEREUM_RPC_URL:-}" ]; then
-  echo "⚠️  ETHEREUM_RPC_URL is not set; backend will start without live indexing."
-fi
-export MEILI_URL
-export MEILI_API_KEY="${MEILI_API_KEY:-dev-master-key}"
-export MEILI_SEMANTIC_SEARCH_ENABLED="${MEILI_SEMANTIC_SEARCH_ENABLED:-true}"
-export MEILI_SEMANTIC_EMBEDDER_NAME="${MEILI_SEMANTIC_EMBEDDER_NAME:-statement-text}"
-export MEILI_SEMANTIC_EMBEDDER_MODEL="${MEILI_SEMANTIC_EMBEDDER_MODEL:-sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2}"
-export MEILI_TASK_TIMEOUT_MS="${MEILI_TASK_TIMEOUT_MS:-300000}"
-export CORS_ORIGINS="${CORS_ORIGINS:-*}"
 
 cd backend
 # Activate venv if it exists; otherwise expect system Python has deps.

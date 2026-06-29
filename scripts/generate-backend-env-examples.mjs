@@ -95,8 +95,8 @@ GAS_SPONSORSHIP_REGISTRY_SIGNATURES="${signatures.join(";")}"
 FORUM_CONTRACT_ADDRESSES="${orderedForumAddresses.join(",")}"
 
 # Chain RPC endpoints
-# ETHEREUM_RPC_URL is required for pull-based log polling.
-ETHEREUM_RPC_URL=https://replace-with-your-http-rpc
+# INDEXER_RPC_URL is required for pull-based log polling.
+INDEXER_RPC_URL=https://replace-with-your-http-rpc
 # RELAY_RPC_URL is used by the RPC relay for frontend read traffic.
 # Use a dedicated Alchemy/Infura app here to separate frontend from indexer quota.
 RELAY_RPC_URL=https://replace-with-your-frontend-http-rpc

@@ -13,14 +13,8 @@ interface ImportMetaEnv {
    */
   readonly VITE_NETWORK: string;
 
-  /** Local backend RPC relay URL. Required when VITE_NETWORK is "localhost". */
-  readonly VITE_LOCALHOST_RPC_URL?: string;
-
-  /** Base mainnet backend RPC relay URL. Required when VITE_NETWORK is "base". */
-  readonly VITE_BASE_RPC_URL?: string;
-
-  /** Base Sepolia backend RPC relay URL. Required when VITE_NETWORK is "base_sepolia". */
-  readonly VITE_BASE_SEPOLIA_RPC_URL?: string;
+  /** Local backend RPC relay URL for the selected VITE_NETWORK. */
+  readonly VITE_RPC_URL?: string;
 
   /** WalletConnect projectId. Get a free one at https://cloud.walletconnect.com */
   readonly VITE_WALLETCONNECT_PROJECT_ID?: string;

@@ -108,12 +108,13 @@ Mainnet deployment creates `deployments/base.json`.
 
 Replace placeholder values before deploying:
 
-| Variable           | Required value                                                          |
-| ------------------ | ----------------------------------------------------------------------- |
-| `ETHEREUM_RPC_URL` | HTTP RPC URL for pull-based live indexing                               |
-| `MEILI_URL`        | Railway private URL, such as `http://meilisearch.railway.internal:7700` |
-| `MEILI_API_KEY`    | Same value as the Meilisearch `MEILI_MASTER_KEY`                        |
-| `CORS_ORIGINS`     | Comma-separated frontend origins allowed to call the backend            |
+| Variable          | Required value                                                          |
+| ----------------- | ----------------------------------------------------------------------- |
+| `INDEXER_RPC_URL` | HTTP RPC URL for pull-based live indexing                               |
+| `RELAY_RPC_URL`   | Upstream HTTP RPC URL the `POST /rpc` relay forwards reads to           |
+| `MEILI_URL`       | Railway private URL, such as `http://meilisearch.railway.internal:7700` |
+| `MEILI_API_KEY`   | Same value as the Meilisearch `MEILI_MASTER_KEY`                        |
+| `CORS_ORIGINS`    | Comma-separated frontend origins allowed to call the backend            |
 
 Optional relay policy variables:
 
@@ -139,26 +140,15 @@ model/index data in `/meili_data`, so persistent storage matters.
 
 ### Frontend Configuration
 
-Point the frontend build at the backend URL:
+The static site is built per branch from a committed deploy profile:
+`env/profiles/develop.env` (Base Sepolia) and `env/profiles/release.env` (Base).
+Set the deployed backend URL, RPC relay, and gas policy there — these values are
+non-secret and live in source, not GitHub Variables:
 
 ```env
 VITE_SEARCH_URL=https://replace-with-your-backend-domain
-```
-
-To route public read RPC through the backend relay, set the frontend RPC
-environment variable for the deployed chain to the backend relay endpoint,
-for example:
-
-```env
-VITE_BASE_SEPOLIA_RPC_URL=https://replace-with-your-backend-domain/rpc
-```
-
-The static sites also enable Privy smart-wallet gas sponsorship. Configure these
-GitHub repository variables before deploying:
-
-```text
-DEVELOPMENT_ALCHEMY_GAS_POLICY_ID=<Alchemy Gas Manager policy ID for Base Sepolia>
-PRODUCTION_ALCHEMY_GAS_POLICY_ID=<Alchemy Gas Manager policy ID for Base>
+VITE_RPC_URL=https://replace-with-your-backend-domain/rpc
+VITE_ALCHEMY_GAS_POLICY_ID=<Alchemy Gas Manager policy ID>
 ```
 
 In the Privy dashboard, enable smart wallets for the same app/client and
@@ -166,7 +156,7 @@ configure Base Sepolia and Base with their matching Alchemy paymaster policies.
 In the Alchemy dashboard, make sure each gas policy allows the corresponding
 frontend origin, such as `https://test.symvolia.org` for development.
 
-If the frontend is deployed separately, update its environment and redeploy it
+If the frontend is deployed separately, update its profile and redeploy it
 after the backend Railway domain is available.
 
 ## Docker Compose Self-Hosting
@@ -191,7 +181,8 @@ services:
     environment:
       MEILI_URL: http://meilisearch:7700
       MEILI_API_KEY: ${MEILI_MASTER_KEY}
-      ETHEREUM_RPC_URL: ${ETHEREUM_RPC_URL}
+      INDEXER_RPC_URL: ${INDEXER_RPC_URL}
+      RELAY_RPC_URL: ${RELAY_RPC_URL}
       FORUM_CONTRACT_ADDRESSES: ${FORUM_CONTRACT_ADDRESSES}
       REGISTRY_MODE: ${REGISTRY_MODE}
       REGISTRY_ADDRESS: ${REGISTRY_ADDRESS}
@@ -224,7 +215,7 @@ Commit the generated files with the deployment state update.
 
 - Meilisearch Railway healthcheck fails without `/health` logs: set `PORT=7700`
   on the Meilisearch service.
-- Backend is healthy but search returns no results: verify `ETHEREUM_RPC_URL`,
+- Backend is healthy but search returns no results: verify `INDEXER_RPC_URL`,
   `FORUM_CONTRACT_ADDRESSES`, and indexer polling vars, then inspect backend
   logs for indexer startup messages.
 - Railway cannot pull the backend image: make the GHCR package public or add
