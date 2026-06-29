@@ -38,6 +38,9 @@ Optional env vars:
                                     semantic search is enabled.
     MEILI_TASK_TIMEOUT_MS — Max time to wait for Meilisearch setup/indexing
                             tasks. Default: 300000.
+    MEILI_CLIENT_TIMEOUT_SECONDS — Per-request Meilisearch HTTP timeout so the
+                            service fails fast instead of hanging when
+                            Meilisearch is unreachable. Default: 5.
 """
 
 import asyncio
@@ -84,7 +87,7 @@ MEILI_URL = require_env("MEILI_URL")
 MEILI_API_KEY = require_env("MEILI_API_KEY")
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "")
 FORUM_CONTRACT_ADDRESSES = os.environ.get("FORUM_CONTRACT_ADDRESSES", "")
-INDEXER_RPC_URL = os.environ.get("INDEXER_RPC_URL", "")
+INDEXER_RPC_URL = "" # os.environ.get("INDEXER_RPC_URL", "")
 EVICTION_MAX_AGE_SECONDS = int(
     os.environ.get("EVICTION_MAX_AGE_SECONDS", str(DEFAULT_EVICTION_MAX_AGE_SECONDS))
 )
@@ -93,8 +96,6 @@ EVICTION_MAX_AGE_SECONDS = int(
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Start the indexer as a background task while the API is running."""
-    ensure_search_index(app.state.meili_client)
-
     forum_contract_addresses = parse_forum_contract_addresses(FORUM_CONTRACT_ADDRESSES)
     if not forum_contract_addresses or not INDEXER_RPC_URL:
         logger.warning(
@@ -103,6 +104,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         )
         yield
         return
+
+    ensure_search_index(app.state.meili_client)
 
     task = asyncio.create_task(
         run_indexers(
@@ -133,7 +136,9 @@ if CORS_ORIGINS:
         allow_headers=["*"],
     )
 
-app.state.meili_client = meilisearch.Client(MEILI_URL, MEILI_API_KEY)
+app.state.meili_client = meilisearch.Client(
+    MEILI_URL, MEILI_API_KEY, timeout=int(os.getenv("MEILI_CLIENT_TIMEOUT_SECONDS", "5"))
+)
 create_api(app)
 create_rpc_relay_api(app)
 create_gas_sponsorship_api(app)
