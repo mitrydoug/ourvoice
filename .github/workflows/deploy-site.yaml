@@ -143,6 +143,13 @@ jobs:
           GATEWAY="https://${PINATA_GATEWAY}/ipfs/${CID}"
           PUBLIC="https://ipfs.io/ipfs/${CID}"
 
+          # On the develop branch the build is published to the public test site.
+          SITE_LINE=""
+          if [ "${DEPLOY_BRANCH}" = "develop" ]; then
+            TEST_SITE="https://test.symvolia.org/ipfs/${CID}"
+            SITE_LINE="- [Test site](${TEST_SITE})"
+          fi
+
           gh release create "$TAG" \
             --title "Site Deployment — ${TAG}" \
             --notes "## Frontend deployed to IPFS
@@ -150,6 +157,7 @@ jobs:
           **CID:** \`${CID}\`
 
           **Access the site:**
+          ${SITE_LINE}
           - [Pinata Gateway](${GATEWAY})
           - [Public Gateway](${PUBLIC})
           - Local IPFS node: \`ipfs cat ${CID}\`"
