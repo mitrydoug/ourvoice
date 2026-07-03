@@ -18,7 +18,7 @@ import { ProfileDrawer } from "./UserProfileMenu";
 import { useSearchQuery } from "@/state/Search";
 import SearchField from "./SearchField";
 import { useForumNavigate, useForumPath } from "../hooks/useForumNavigate";
-import { useWalletAuth } from "@/hooks/useWalletAuth";
+import { useWalletAuth } from "@/wallet";
 
 // Sub-components
 interface ForumSelectorProps {
@@ -70,7 +70,7 @@ export default function MenuAppBar() {
     address,
     connect,
     disconnect: doDisconnect,
-    ready: walletAuthReady,
+    isLoading: walletAuthLoading,
   } = useWalletAuth();
   const isMobile = useIsMobile();
   const [chooseForumModalOpen, setChooseForumModalOpen] = useState(false);
@@ -183,7 +183,7 @@ export default function MenuAppBar() {
                   <Button
                     onClick={connect}
                     size="small"
-                    disabled={!walletAuthReady}
+                    disabled={walletAuthLoading}
                   >
                     <Typography variant="body1" component="div">
                       Connect
@@ -212,7 +212,7 @@ export default function MenuAppBar() {
                 <Button
                   onClick={connect}
                   size="medium"
-                  disabled={!walletAuthReady}
+                  disabled={walletAuthLoading}
                 >
                   <Typography variant="body1" component="div">
                     Connect

@@ -79,6 +79,10 @@ const gasSponsorshipSupportedChainIds: ReadonlySet<number> = new Set([
   base.id,
   baseSepolia.id,
 ]);
+// Whether gas sponsorship is *available* for this deployment (env flag + a
+// supported chain). This is a capability flag, not a per-user decision: the
+// wallet module (`useActiveWallet`) only sponsors when the user actually has a
+// smart wallet connected. External and embedded-EOA wallets are self-funded.
 export const isGasSponsorshipEnabled =
   isGasSponsorshipRequested &&
   gasSponsorshipSupportedChainIds.has(targetChain.id);

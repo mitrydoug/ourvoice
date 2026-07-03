@@ -25,7 +25,7 @@ import { metamaskIcon, shortenAddress } from "../util";
 import { useCreditConversion } from "../hooks/useCreditConversion";
 import AnimatedCounter from "./AnimatedCounter";
 import IndeterminateCheckBoxIcon from "@mui/icons-material/IndeterminateCheckBox";
-import { useWalletAuth } from "@/hooks/useWalletAuth";
+import { useWalletAuth } from "@/wallet";
 import CommitConfirmationDialog from "./CommitConfirmationDialog";
 import type { CommitPreview } from "../state/UserVotes";
 

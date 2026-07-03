@@ -8,7 +8,7 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import type { SponsoredNetworkFeeEstimate } from "@/hooks/useSponsoredContractWrite";
+import type { SponsoredNetworkFeeEstimate } from "@/wallet";
 
 type CommitConfirmationDialogProps = {
   open: boolean;
