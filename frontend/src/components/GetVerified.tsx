@@ -30,7 +30,7 @@ import {
   useTheme,
 } from "@mui/material";
 import { useWaitForTransactionReceipt } from "wagmi";
-import { useSponsoredContractWrite } from "@/hooks/useSponsoredContractWrite";
+import { useContractWrite } from "@/wallet";
 import {
   registryContractConfig,
   mockRegistryContractConfig,
@@ -659,7 +659,7 @@ const StepScanVerify: FC<{
   const [verifierParams, setVerifierParams] = useState<any>(null); // eslint-disable-line @typescript-eslint/no-unsafe-assignment
 
   const zkPassport = useMemo(() => new ZKPassport(), []);
-  const { writeContractAsync } = useSponsoredContractWrite();
+  const { writeContract } = useContractWrite();
 
   // Wait for on-chain confirmation once we have a tx hash
   const { data: txReceipt, error: txReceiptError } =
@@ -689,10 +689,10 @@ const StepScanVerify: FC<{
   }, [txReceipt, txReceiptError, pendingTxHash, navigate]);
 
   const submitTx = useCallback(
-    async (config: Parameters<typeof writeContractAsync>[0]) => {
+    async (config: Parameters<typeof writeContract>[0]) => {
       setVerifyPhase("SUBMITTING_TX");
       try {
-        const txHash = await writeContractAsync(config);
+        const txHash = await writeContract(config);
         setPendingTxHash(txHash);
         setVerifyPhase("CONFIRMING_TX");
       } catch (err) {
@@ -700,7 +700,7 @@ const StepScanVerify: FC<{
         setVerifyPhase("TX_FAILED");
       }
     },
-    [writeContractAsync],
+    [writeContract],
   );
 
   const devModeRegister = useCallback(() => {

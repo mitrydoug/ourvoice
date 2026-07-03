@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 import { useForum } from "../state/Forum";
-import { useParticipantAddress } from "./useSponsoredContractWrite";
+import { useWalletAuth } from "@/wallet";
 
 /**
  * Custom event name used to synchronise localStorage-set writes
@@ -62,7 +62,7 @@ const useLocalStorageSet = (
   toggle: (id: number) => void;
 } => {
   const { name: forumName, chainFingerprint } = useForum();
-  const { address } = useParticipantAddress();
+  const { address } = useWalletAuth();
 
   // Shorten address to first 4 bytes (10 chars inc. "0x") for a compact key.
   const addrKey = address ? address.slice(0, 10) : "anon";

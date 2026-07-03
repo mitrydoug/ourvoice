@@ -15,7 +15,7 @@ import { useUserVotes } from "../state/UserVotes";
 import CommitSupportModal from "./CommitSupportModal";
 import { SearchProvider, useSearchQuery } from "@/state/Search";
 import { useForum } from "../state/Forum";
-import { useWalletAuth } from "@/hooks/useWalletAuth";
+import { useWalletAuth } from "@/wallet";
 
 /**
  * Sync the `:forumSlug` URL param → ForumProvider context.
@@ -35,11 +35,11 @@ const useForumSlugSync = () => {
 /* ── Right column: user profile pill / connect wallet ──────────────────── */
 
 const RightColumn: FC = () => {
-  const { address, connect, ready } = useWalletAuth();
+  const { address, connect, isLoading } = useWalletAuth();
 
   if (!address) {
     return (
-      <Button onClick={connect} size="medium" fullWidth disabled={!ready}>
+      <Button onClick={connect} size="medium" fullWidth disabled={isLoading}>
         Connect Wallet
       </Button>
     );

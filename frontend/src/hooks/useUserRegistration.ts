@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { useReadContract } from "wagmi";
-import { useParticipantAddress } from "./useSponsoredContractWrite";
+import { useWalletAuth } from "@/wallet";
 import useBlockSync from "./useBlockSync";
 import { blockPollingIntervalMs } from "../wagmiConfig";
 import {
@@ -49,7 +49,7 @@ export interface UserRegistration {
  * forum if nationality requirements don't match.
  */
 export function useUserRegistration(): UserRegistration {
-  const { address, isSmartWalletLoading } = useParticipantAddress();
+  const { address, isLoading: isWalletLoading } = useWalletAuth();
 
   const {
     data: isRegistered,
@@ -86,7 +86,7 @@ export function useUserRegistration(): UserRegistration {
   if (!isRegistered) {
     return {
       isRegistered: false,
-      isLoading: isSmartWalletLoading || (!!address && isRegisteredLoading),
+      isLoading: isWalletLoading || (!!address && isRegisteredLoading),
       nationality: null,
     };
   }

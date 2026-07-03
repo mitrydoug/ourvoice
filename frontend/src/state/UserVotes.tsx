@@ -19,9 +19,9 @@ import useLocalStorageSet from "@/hooks/useLocalStorageSet";
 import {
   type ContractWriteRequest,
   type SponsoredNetworkFeeEstimate,
-  useParticipantAddress,
-  useSponsoredContractWrite,
-} from "@/hooks/useSponsoredContractWrite";
+  useContractWrite,
+  useWalletAuth,
+} from "@/wallet";
 
 interface StatementSupport {
   statementId: bigint;
@@ -694,9 +694,9 @@ export const UserVoteProvider: FC<{
     commitStatus: "idle",
     pendingDraftCost: 0,
   });
-  const { writeContractAsync, previewNetworkFee } = useSponsoredContractWrite();
-  const { address: participantAddress, isSmartWalletLoading } =
-    useParticipantAddress();
+  const { writeContract, previewNetworkFee } = useContractWrite();
+  const { address: participantAddress, isLoading: isWalletLoading } =
+    useWalletAuth();
   const publicClient = usePublicClient();
   const {
     forumContractAddress,
@@ -995,7 +995,7 @@ export const UserVoteProvider: FC<{
             throw new Error("No staged changes are ready to commit.");
           }
 
-          const txHash = await writeContractAsync({
+          const txHash = await writeContract({
             ...request,
             uiOptions: { showWalletUIs: options?.showWalletUIs ?? false },
           });
@@ -1015,7 +1015,7 @@ export const UserVoteProvider: FC<{
     },
     [
       state,
-      writeContractAsync,
+      writeContract,
       buildCommitRequest,
       publicClient,
       participantAddress,
@@ -1116,7 +1116,7 @@ export const UserVoteProvider: FC<{
   // Verification is still loading if the query is in-flight OR the wallet
   // address hasn't resolved yet (the query won't even start without it).
   const isVerifiedStillLoading =
-    isSmartWalletLoading || (!!participantAddress && isVerifiedLoading);
+    isWalletLoading || (!!participantAddress && isVerifiedLoading);
 
   if (isUserVerified) {
     return (

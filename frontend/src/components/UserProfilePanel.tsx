@@ -37,7 +37,7 @@ import { useCreditConversion } from "../hooks/useCreditConversion";
 import AnimatedCounter from "./AnimatedCounter";
 import IndeterminateCheckBoxIcon from "@mui/icons-material/IndeterminateCheckBox";
 import useGracefulLoading from "@/hooks/useGracefulLoading";
-import { useWalletAuth } from "@/hooks/useWalletAuth";
+import { useWalletAuth } from "@/wallet";
 import CommitConfirmationDialog from "./CommitConfirmationDialog";
 import type { CommitPreview } from "../state/UserVotes";
 
