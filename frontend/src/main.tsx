@@ -17,7 +17,14 @@ import wagmiConfig, {
   smartWalletsConfig,
 } from "./wagmiConfig";
 import NetworkGuard from "./components/NetworkGuard";
+import { FORUMS } from "./components/ChooseForumModal";
+import { getForumIconSrc, preloadImageSrcs } from "./forumAssets";
 import { THEME_MODE_STORAGE_KEY } from "./theme";
+
+preloadImageSrcs([
+  ...Object.values(FORUMS).map((forum) => getForumIconSrc(forum)),
+  "./earth.png",
+]);
 
 const queryClient = new QueryClient({
   defaultOptions: {
