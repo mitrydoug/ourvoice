@@ -2,29 +2,14 @@ import { createConfig } from "@privy-io/wagmi";
 import type { PrivyClientConfig } from "@privy-io/react-auth";
 import { base, baseSepolia, hardhat, type Chain } from "wagmi/chains";
 import { http } from "wagmi";
+import { optionalEnvValue, requiredEnvValue } from "./envVars";
+import { resolveRpcUrl } from "./rpcUrl";
 
 // ---------------------------------------------------------------------------
 // Derive the single target chain from VITE_NETWORK.  Every deployment is
 // confined to exactly one chain. Privy and the network guard both use this
 // target to keep connected wallets on the deployed chain.
 // ---------------------------------------------------------------------------
-
-const optionalEnvValue = (value: string | undefined) => {
-  const trimmedValue = value?.trim();
-  return trimmedValue === "" ? undefined : trimmedValue;
-};
-
-const requiredEnvValue = (
-  name: keyof ImportMetaEnv,
-  value: string | undefined,
-) => {
-  const trimmedValue = optionalEnvValue(value);
-  if (!trimmedValue) {
-    throw new Error(`${name} is required.`);
-  }
-
-  return trimmedValue;
-};
 
 const networkToChain = {
   localhost: hardhat,
@@ -94,9 +79,8 @@ export const smartWalletsConfig =
     ? { paymasterContext: { policyId: alchemyGasPolicyId } }
     : undefined;
 
-const targetRpcUrl = requiredEnvValue(
-  "VITE_RPC_URL",
-  import.meta.env.VITE_RPC_URL,
+const targetRpcUrl = resolveRpcUrl(
+  requiredEnvValue("VITE_RPC_URL", import.meta.env.VITE_RPC_URL),
 );
 
 export const privyConfig = {
