@@ -20,10 +20,21 @@ Maintainer deployments are handled by GitHub Actions:
 
 1. [Publish backend Docker image](../.github/workflows/publish-backend-image.yaml)
    builds `backend/Dockerfile`, smoke-tests it, and publishes branch tags to
-   GHCR on pushes to `develop` and `release`.
+  GHCR on pushes to `develop` and `release`. It also publishes an app-version
+  tag derived from the repo-root [VERSION](../VERSION) file.
 2. [Deploy backend to Railway](../.github/workflows/deploy-backend-railway.yaml)
    runs after the image publish workflow succeeds and redeploys the matching
    Railway backend environment.
+
+Version derivation stays intentionally simple:
+
+- `release` deployments use the plain version from [VERSION](../VERSION), such
+  as `0.1.0`.
+- Non-production artifacts use `<base>-dev.<short-sha>`, such as
+  `0.1.0-dev.abc1234`.
+
+The same derived version is injected into the frontend build as
+`VITE_APP_VERSION` and displayed in the app UI.
 
 Required GitHub repository configuration:
 

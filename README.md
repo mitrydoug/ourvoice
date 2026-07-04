@@ -122,3 +122,27 @@ The backend is packaged as a public container image and can be deployed with
 Railway or any container host. See [deploy/README.md](deploy/README.md) for the
 maintainer deployment workflow, Railway self-hosting steps, generated backend env
 examples, and troubleshooting notes.
+
+## Versioning
+
+Symvolia uses a single user-facing app version for the whole product. The
+canonical version lives in [VERSION](VERSION) at the repository root.
+
+- `major` is for releases that break continuity for existing users, especially
+	when migration is required or prior app state becomes inaccessible.
+- `minor` is for new features and meaningful improvements that do not force a
+	user migration.
+- `patch` is for fixes, polish, and marginal improvements.
+
+Development and non-production artifacts derive an effective version by
+appending `-dev.<short-commit-sha>` to the base version from [VERSION](VERSION).
+Production artifacts use the plain base version with no suffix.
+
+GitHub releases for deployed site artifacts use version tags directly: release
+deployments publish `v<version>`, and development deployments publish
+`v<version>-dev.<short-sha>` as prereleases. That is advisable here because the
+repo has a single user-facing version and the tag stays meaningful to users.
+
+Update [VERSION](VERSION) manually in the same change, or in the release-prep
+change, whenever the next shipped user-facing version should change. CI derives
+artifact versions from that file; it does not decide major/minor/patch bumps.

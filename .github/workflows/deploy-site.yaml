@@ -76,6 +76,9 @@ jobs:
           # so the later Build step sees them.
           printenv | grep -E '^VITE_' >> "${GITHUB_ENV}"
 
+      - name: Compute app version
+        run: echo "VITE_APP_VERSION=$(node ../scripts/app-version.mjs)" >> "${GITHUB_ENV}"
+
       - name: Build
         run: npm run build
 
@@ -138,26 +141,43 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           CID: ${{ needs.pin-ipfs.outputs.cid }}
           PINATA_GATEWAY: ${{ secrets.PINATA_GATEWAY }}
+          REPO: ${{ github.repository }}
         run: |
-          TAG="site-${DEPLOY_BRANCH}-$(date -u +%Y%m%d-%H%M%S)"
+          APP_VERSION="$(node scripts/app-version.mjs)"
+          CONTRACT_NOTES="$(node scripts/release-contract-notes.mjs)"
+          TAG="v${APP_VERSION}"
+          TITLE="Symvolia ${APP_VERSION}"
           GATEWAY="https://${PINATA_GATEWAY}/ipfs/${CID}"
           PUBLIC="https://ipfs.io/ipfs/${CID}"
+          SITE_URL="${PUBLIC}"
 
           # On the develop branch the build is published to the public test site.
-          SITE_LINE=""
+          RELEASE_ARGS=""
           if [ "${DEPLOY_BRANCH}" = "develop" ]; then
-            TEST_SITE="https://test.symvolia.org/ipfs/${CID}"
-            SITE_LINE="- [Test site](${TEST_SITE})"
+            SITE_URL="https://test.symvolia.org/ipfs/${CID}"
+            RELEASE_ARGS="--prerelease"
           fi
 
-          gh release create "$TAG" \
-            --title "Site Deployment — ${TAG}" \
-            --notes "## Frontend deployed to IPFS
+          NOTES=$(printf '%s\n' \
+            '## Frontend deployed to IPFS' \
+            '' \
+            "**Version:** ${APP_VERSION}" \
+            '' \
+            "**IPFS cid:** \`${CID}\`" \
+            '' \
+            "**Site:** ${SITE_URL}" \
+            '' \
+            "$CONTRACT_NOTES")
 
-          **CID:** \`${CID}\`
-
-          **Access the site:**
-          ${SITE_LINE}
-          - [Pinata Gateway](${GATEWAY})
-          - [Public Gateway](${PUBLIC})
-          - Local IPFS node: \`ipfs cat ${CID}\`"
+          if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
+            gh release edit "$TAG" \
+              --repo "$REPO" \
+              --title "$TITLE" \
+              --notes "$NOTES"
+          else
+            gh release create "$TAG" \
+              --repo "$REPO" \
+              --title "$TITLE" \
+              --notes "$NOTES" \
+              ${RELEASE_ARGS}
+          fi
