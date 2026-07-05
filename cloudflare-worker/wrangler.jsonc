@@ -1,27 +1,44 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
+  // Shared/base config for the IPFS reverse-proxy. Per-environment settings
+  // (name, vars, routes) live under `env.*` below so one src/index.js can feed
+  // multiple sites. Always deploy WITH an explicit `--env` (e.g. `--env test`);
+  // a bare `wrangler deploy` would publish an unconfigured top-level Worker.
   "name": "symvolia-ipfs-proxy",
   "main": "src/index.js",
   "compatibility_date": "2026-04-23",
   "observability": {
     "enabled": true
   },
-  "vars": {
-    // Pinata gateway CUSTOM DOMAIN. Pinata will not serve HTML over the shared
-    // *.mypinata.cloud host (ERR_ID:00023), and this must differ from the
-    // Worker's own public domain (test.symvolia.org) or requests would loop.
-    "IPFS_GATEWAY": "ipfs.symvolia.org",
-    // CID of the current frontend build to serve at the site root. CI overrides
-    // this per deploy via `wrangler deploy --var IPFS_CID:<cid>` (see
-    // .github/workflows/deploy-site.yaml); this placeholder is only used for
-    // manual/local `wrangler deploy` runs.
-    "IPFS_CID": "REPLACE_WITH_CURRENT_BUILD_CID"
+  "env": {
+    // Test site (test.symvolia.org), fed by the develop branch. CI deploys this
+    // with `wrangler deploy --env test --var IPFS_CID:<cid>` (see
+    // .github/workflows/deploy-site.yaml).
+    "test": {
+      "name": "test-symvolia",
+      "vars": {
+        // Pinata gateway CUSTOM DOMAIN. Pinata will not serve HTML over the
+        // shared *.mypinata.cloud host (ERR_ID:00023), and this must differ
+        // from the Worker's own public domain or requests would loop.
+        "IPFS_GATEWAY": "ipfs.symvolia.org",
+        // CID of the current build. CI overrides this per deploy via
+        // `--var IPFS_CID:<cid>`; the placeholder is only for manual/local runs.
+        "IPFS_CID": "REPLACE_WITH_CURRENT_BUILD_CID"
+      },
+      // Binds this Worker to the test site's clean domain. Cloudflare provisions
+      // TLS and manages the routing DNS record for a Custom Domain.
+      "routes": [
+        {
+          "pattern": "test.symvolia.org",
+          "custom_domain": true
+        }
+      ]
+    }
+    // A "production" environment (symvolia.org) will be added here later, e.g.:
+    // "production": {
+    //   "name": "symvolia",
+    //   "vars": { "IPFS_GATEWAY": "ipfs.symvolia.org", "IPFS_CID": "..." },
+    //   "routes": [{ "pattern": "symvolia.org", "custom_domain": true }]
+    // }
   }
-  // After the first `wrangler deploy`, bind the Worker to your domain. You can
-  // either add a Custom Domain in the dashboard (Workers → this Worker →
-  // Settings → Domains & Routes) or uncomment and edit the block below:
-  //
-  // "routes": [
-  //   { "pattern": "test.symvolia.org", "custom_domain": true }
-  // ]
 }

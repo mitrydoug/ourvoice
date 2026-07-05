@@ -71,12 +71,15 @@ From this directory (`cloudflare-worker/`):
    npx wrangler login
    ```
 
-3. Set your values in `wrangler.jsonc` (`IPFS_GATEWAY` and `IPFS_CID`).
+3. Set your values under `env.test` in `wrangler.jsonc` (`IPFS_GATEWAY` and
+   `IPFS_CID`). Configuration is organized into Wrangler **environments** so one
+   `src/index.js` can serve multiple sites; the `test` environment maps to
+   `test.symvolia.org`. Always deploy with an explicit `--env`.
 
 4. (Optional) Run it locally against your live gateway:
 
    ```sh
-   npx wrangler dev
+   npx wrangler dev --env test
    # open http://localhost:8787
    ```
 
@@ -90,10 +93,10 @@ From this directory (`cloudflare-worker/`):
 5. Deploy:
 
    ```sh
-   npx wrangler deploy
+   npx wrangler deploy --env test
    ```
 
-   This publishes to `symvolia-ipfs-proxy.<your-subdomain>.workers.dev`. Visit
+   This publishes to `test-symvolia.<your-subdomain>.workers.dev`. Visit
    that URL to confirm the site loads.
 
 6. Attach your domain (see **Custom domain** below).
@@ -103,7 +106,7 @@ From this directory (`cloudflare-worker/`):
 ## Option B — Deploy via the dashboard (copy/paste)
 
 1. Go to the Cloudflare dashboard → **Workers & Pages** → **Create** →
-   **Create Worker**. Give it a name (e.g. `symvolia-ipfs-proxy`) and deploy the
+   **Create Worker**. Give it a name (e.g. `test-symvolia`) and deploy the
    default "Hello World".
 2. Click **Edit code**, delete the template, and paste the full contents of
    [`src/index.js`](./src/index.js). Click **Deploy**.
@@ -142,15 +145,16 @@ Each deploy produces a new CID.
 
 **Automated (default).** On the `develop` branch, `.github/workflows/deploy-site.yaml`
 builds the frontend, pins it to IPFS, and then runs a `deploy-worker` job that
-redeploys this Worker with the fresh CID via
-`wrangler deploy --var IPFS_CID:<cid>`. `IPFS_GATEWAY` stays pinned to
+redeploys the test Worker with the fresh CID via
+`wrangler deploy --env test --var IPFS_CID:<cid>`. `IPFS_GATEWAY` stays pinned to
 `ipfs.symvolia.org` from `wrangler.jsonc`. This requires a `CLOUDFLARE_API_TOKEN`
 repository secret (see below).
 
 **Manual.** To point the Worker at a CID by hand:
 
-- **CLI:** `npx wrangler deploy --var IPFS_CID:<cid>` (or edit `IPFS_CID` in
-  `wrangler.jsonc` first, then `npx wrangler deploy`).
+- **CLI:** `npx wrangler deploy --env test --var IPFS_CID:<cid>` (or edit
+  `IPFS_CID` under `env.test` in `wrangler.jsonc` first, then
+  `npx wrangler deploy --env test`).
 - **Dashboard:** edit the `IPFS_CID` variable and redeploy.
 
 ### CI secret: `CLOUDFLARE_API_TOKEN`
