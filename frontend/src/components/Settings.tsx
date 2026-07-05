@@ -17,6 +17,7 @@ import DarkModeIcon from "@mui/icons-material/DarkMode";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import SettingsBrightnessIcon from "@mui/icons-material/SettingsBrightness";
 import { useColorScheme } from "@mui/material/styles";
+import { useWalletAuth } from "@/wallet";
 
 import useNickname from "@/hooks/useNickname";
 import { metamaskIcon, shortenAddress } from "../util";
@@ -38,7 +39,7 @@ type RpcValidation =
   | { kind: "invalid"; message: string };
 
 const Settings: FC = () => {
-  const { address } = useAccount();
+  const { address } = useWalletAuth();
   const [nickname, setNickname] = useNickname();
   const [nicknameInput, setNicknameInput] = useState(nickname);
   const [storedRpcUrl] = useState(() => {
