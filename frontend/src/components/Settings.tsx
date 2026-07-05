@@ -1,6 +1,5 @@
 import { FC, useEffect, useMemo, useState } from "react";
 import { Navigate } from "react-router-dom";
-import { useAccount } from "wagmi";
 import {
   Avatar,
   Box,
