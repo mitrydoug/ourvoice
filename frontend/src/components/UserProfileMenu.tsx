@@ -17,6 +17,7 @@ import HowToRegIcon from "@mui/icons-material/HowToReg";
 import SettingsIcon from "@mui/icons-material/Settings";
 import GitHubIcon from "@mui/icons-material/GitHub";
 import IndeterminateCheckBoxIcon from "@mui/icons-material/IndeterminateCheckBox";
+import AppVersionLabel from "./AppVersionLabel";
 
 export interface ProfileDrawerProps {
   open: boolean;
@@ -252,6 +253,10 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
             />
           </IconButton>
         </Stack>
+
+        <Box sx={{ mt: 2 }}>
+          <AppVersionLabel align="center" />
+        </Box>
       </Box>
     </Drawer>
   );

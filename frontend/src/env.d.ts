@@ -1,6 +1,9 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
+  /** User-facing Symvolia app version string derived from the repo VERSION file. */
+  readonly VITE_APP_VERSION?: string;
+
   /**
    * Which SymvoliaRegistry ABI to use at build time.
    *   - `"mocked"` (default) — `MockSymvoliaRegistry`, accepts a plain string

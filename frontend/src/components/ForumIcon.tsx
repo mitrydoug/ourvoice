@@ -1,6 +1,6 @@
 import { FC } from "react";
-import { toAlpha2 } from "../countryCodeMap";
 import type { Forum } from "./ChooseForumModal";
+import { getForumIconSrc } from "../forumAssets";
 
 interface ForumIconProps {
   forum: Forum;
@@ -24,20 +24,20 @@ const ForumIcon: FC<ForumIconProps> = ({ forum, size = "1.5rem" }) => {
     height: size,
   };
 
-  if (forum.countryCode) {
-    const alpha2 = toAlpha2(forum.countryCode);
-    if (alpha2) {
-      return (
-        <span style={wrapper}>
-          <img
-            src={`./flags/${alpha2}.svg`}
-            alt={`${forum.label} flag`}
-            style={{ height: size, width: "auto", borderRadius: "3px" }}
-          />
-        </span>
-      );
-    }
+  const iconSrc = getForumIconSrc(forum);
+
+  if (iconSrc !== "./earth.png") {
+    return (
+      <span style={wrapper}>
+        <img
+          src={iconSrc}
+          alt={`${forum.label} flag`}
+          style={{ height: size, width: "auto", borderRadius: "3px" }}
+        />
+      </span>
+    );
   }
+
   return (
     <span style={wrapper}>
       <img

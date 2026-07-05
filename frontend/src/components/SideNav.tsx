@@ -1,6 +1,7 @@
 import { FC, useState } from "react";
 import {
   Box,
+  Divider,
   List,
   ListItemButton,
   ListItemIcon,
@@ -16,6 +17,7 @@ import HelpIcon from "@mui/icons-material/Help";
 import { useUserVotes } from "../state/UserVotes";
 import ChooseForumModal, { FORUMS } from "./ChooseForumModal";
 import ForumIcon from "./ForumIcon";
+import AppVersionLabel from "./AppVersionLabel";
 import { useForum, forumToSlug } from "../state/Forum";
 import { useForumNavigate, useForumPath } from "../hooks/useForumNavigate";
 
@@ -127,6 +129,12 @@ const SideNav: FC = () => {
             );
           })}
         </List>
+
+        <Divider sx={{ mt: 2.5, mb: 1.5, mx: 1.5 }} />
+
+        <Box sx={{ px: 1 }}>
+          <AppVersionLabel align="center" />
+        </Box>
       </Box>
 
       <ChooseForumModal

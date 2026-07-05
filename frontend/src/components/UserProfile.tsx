@@ -1,6 +1,6 @@
 import { FC, useMemo, useState } from "react";
 import { metamaskIcon } from "../util";
-import { useAccount } from "wagmi";
+import { useWalletAuth } from "@/wallet";
 import { Navigate, useNavigate } from "react-router-dom";
 import {
   Avatar,
@@ -152,7 +152,7 @@ const DonutLegend: FC<{ segments: DonutSegment[] }> = ({ segments }) => (
 // ── Main Profile Component ───────────────────────────────────────────────────
 
 const UserProfile: FC = () => {
-  const { address, isReconnecting } = useAccount();
+  const { address, isLoading } = useWalletAuth();
   const navigate = useNavigate();
   const theme = useTheme();
   const { isUserVerified } = useUserVotes();
@@ -200,7 +200,7 @@ const UserProfile: FC = () => {
     : [];
 
   const { isLoading: isLoadingReconnect, showSkeleton } =
-    useGracefulLoading(isReconnecting);
+    useGracefulLoading(isLoading);
 
   if (showSkeleton) {
     return (

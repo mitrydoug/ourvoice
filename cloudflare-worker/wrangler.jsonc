@@ -1,0 +1,27 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "symvolia-ipfs-proxy",
+  "main": "src/index.js",
+  "compatibility_date": "2026-04-23",
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    // Pinata gateway CUSTOM DOMAIN. Pinata will not serve HTML over the shared
+    // *.mypinata.cloud host (ERR_ID:00023), and this must differ from the
+    // Worker's own public domain (test.symvolia.org) or requests would loop.
+    "IPFS_GATEWAY": "ipfs.symvolia.org",
+    // CID of the current frontend build to serve at the site root. CI overrides
+    // this per deploy via `wrangler deploy --var IPFS_CID:<cid>` (see
+    // .github/workflows/deploy-site.yaml); this placeholder is only used for
+    // manual/local `wrangler deploy` runs.
+    "IPFS_CID": "REPLACE_WITH_CURRENT_BUILD_CID"
+  }
+  // After the first `wrangler deploy`, bind the Worker to your domain. You can
+  // either add a Custom Domain in the dashboard (Workers → this Worker →
+  // Settings → Domains & Routes) or uncomment and edit the block below:
+  //
+  // "routes": [
+  //   { "pattern": "test.symvolia.org", "custom_domain": true }
+  // ]
+}
