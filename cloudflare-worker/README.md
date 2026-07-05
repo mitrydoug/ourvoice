@@ -57,7 +57,7 @@ No loop, because `ipfs.symvolia.org` points at Pinata, not the Worker.
 
 ## Option A — Deploy with the Wrangler CLI (recommended)
 
-From this directory (`deploy/cloudflare-worker/`):
+From this directory (`cloudflare-worker/`):
 
 1. Install dependencies:
 
@@ -138,14 +138,30 @@ curl -sI https://test.symvolia.org/
 
 ## Updating the site after a new build
 
-Each deploy produces a new CID. To point the Worker at it:
+Each deploy produces a new CID.
 
-- **CLI:** update `IPFS_CID` in `wrangler.jsonc`, then `npx wrangler deploy`.
+**Automated (default).** On the `develop` branch, `.github/workflows/deploy-site.yaml`
+builds the frontend, pins it to IPFS, and then runs a `deploy-worker` job that
+redeploys this Worker with the fresh CID via
+`wrangler deploy --var IPFS_CID:<cid>`. `IPFS_GATEWAY` stays pinned to
+`ipfs.symvolia.org` from `wrangler.jsonc`. This requires a `CLOUDFLARE_API_TOKEN`
+repository secret (see below).
+
+**Manual.** To point the Worker at a CID by hand:
+
+- **CLI:** `npx wrangler deploy --var IPFS_CID:<cid>` (or edit `IPFS_CID` in
+  `wrangler.jsonc` first, then `npx wrangler deploy`).
 - **Dashboard:** edit the `IPFS_CID` variable and redeploy.
 
-(A later CI step can automate this right after the pin step — intentionally out
-of scope for now. Moving the CID into Workers KV would also let you update it
-without a redeploy.)
+### CI secret: `CLOUDFLARE_API_TOKEN`
+
+Create a scoped API token in the Cloudflare dashboard
+(**My Profile → API Tokens → Create Token → Edit Cloudflare Workers**, or a
+custom token with the **Account · Workers Scripts · Edit** permission for this
+account) and add it to the repo as a GitHub Actions secret named
+`CLOUDFLARE_API_TOKEN`. The account ID is set directly in the workflow. Moving
+the CID into Workers KV would let you update it without a redeploy, if you ever
+want that.
 
 ---
 
