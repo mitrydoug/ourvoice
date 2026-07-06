@@ -29,6 +29,7 @@ import {
   getStoredForumSlug,
   slugToForum,
 } from "./state/Forum.tsx";
+import { LocalSearchProvider } from "./state/LocalSearch.tsx";
 import Profile from "./components/UserProfile.tsx";
 
 /**
@@ -127,9 +128,11 @@ export const App: FC = () => {
       <CssBaseline />
       <GlobalErrorBoundary>
         <ForumProvider>
-          <UserVoteProvider>
-            <RouterProvider router={router} />
-          </UserVoteProvider>
+          <LocalSearchProvider>
+            <UserVoteProvider>
+              <RouterProvider router={router} />
+            </UserVoteProvider>
+          </LocalSearchProvider>
         </ForumProvider>
       </GlobalErrorBoundary>
     </ThemeProvider>

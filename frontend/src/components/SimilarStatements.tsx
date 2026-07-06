@@ -72,6 +72,7 @@ const SimilarStatements: FC<SimilarStatementsProps> = ({
     forumContractAddress,
     {
       similarStatementId: excludeId,
+      mode: "similarity",
     },
   );
 

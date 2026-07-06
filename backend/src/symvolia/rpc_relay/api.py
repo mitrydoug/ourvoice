@@ -23,13 +23,24 @@ _DEFAULT_ALLOWED_METHODS = {
     "eth_estimateGas",
     "eth_getBlockByNumber",
     "eth_getCode",
+    "eth_getLogs",
+    "eth_getTransactionByHash",
     "eth_getTransactionReceipt",
 }
 
 # Methods whose params include a contract address that must be allowlisted.
 _CONTRACT_SCOPED_METHODS = {"eth_call", "eth_estimateGas"}
+# eth_getLogs is scoped separately: its filter object carries an address (or list
+# of addresses) plus an explicit numeric block range that must be block-aligned
+# and no larger than a single window.
+_GETLOGS_METHOD = "eth_getLogs"
 _METHOD_NAME_PATTERN = re.compile(r"^[A-Za-z0-9_]+$")
 _PAYLOAD_PREVIEW_CHARS = 500
+# eth_getLogs requests must start on a multiple of this many blocks and span at
+# most this many blocks. A fixed grid keeps historical windows canonical (so the
+# upstream RPC can cache them) and bounds each request. Must match the frontend
+# local-search GETLOGS_WINDOW_BLOCKS.
+_DEFAULT_GETLOGS_WINDOW_BLOCKS = 1000
 
 # Canonical Multicall3 address (CREATE2-deterministic, same on every EVM chain).
 _MULTICALL3_ADDRESS = "0xca11bde05977b3631167028862be2a173976ca11"
@@ -95,6 +106,28 @@ def _load_upstream_timeout_seconds() -> float:
         )
 
     return timeout_seconds
+
+
+def _load_getlogs_window_blocks() -> int:
+    raw = os.getenv("RPC_RELAY_GETLOGS_WINDOW_BLOCKS", "").strip()
+    if not raw:
+        return _DEFAULT_GETLOGS_WINDOW_BLOCKS
+
+    try:
+        window_blocks = int(raw)
+    except ValueError as exc:
+        raise ValueError(
+            "RPC_RELAY_GETLOGS_WINDOW_BLOCKS must be an integer; "
+            f"got {raw!r}"
+        ) from exc
+
+    if window_blocks <= 0:
+        raise ValueError(
+            "RPC_RELAY_GETLOGS_WINDOW_BLOCKS must be greater than 0; "
+            f"got {raw!r}"
+        )
+
+    return window_blocks
 
 
 def _error_response(request_id: Any, code: int, message: str) -> dict[str, Any]:
@@ -266,6 +299,186 @@ def _validate_multicall3_scope(
     return None
 
 
+def _parse_block_number(value: Any) -> int | None:
+    """Parse a JSON-RPC block quantity into an int.
+
+    Only concrete numeric values are accepted. Named tags such as "latest",
+    "pending", "earliest", "safe", and "finalized" return None so callers can
+    reject them (an unbounded tag would let a filter span the whole chain).
+    """
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value if value >= 0 else None
+    if isinstance(value, str):
+        try:
+            parsed = int(value, 16) if value.lower().startswith("0x") else int(value)
+        except ValueError:
+            return None
+        return parsed if parsed >= 0 else None
+    return None
+
+
+def _validate_getlogs_scope(
+    payload: dict[str, Any],
+    allowed_contracts: frozenset[str],
+    window_blocks: int,
+) -> dict[str, Any] | None:
+    """Validate an eth_getLogs filter.
+
+    Enforces that (a) every filter address is allowlisted and (b) the numeric
+    block range is aligned to the ``window_blocks`` grid and spans at most one
+    window. Aligned, fixed-size windows keep historical queries canonical (so the
+    upstream RPC can cache them) and bound each request against abuse.
+    """
+    request_id = payload.get("id")
+    method = str(payload.get("method"))
+    params = payload.get("params", [])
+
+    if not isinstance(params, list) or not params or not isinstance(params[0], dict):
+        logger.warning(
+            "RPC relay rejected method %s request_id=%r: missing filter object; "
+            "payload_preview=%s",
+            method,
+            request_id,
+            _preview(payload),
+        )
+        return _error_response(
+            request_id,
+            -32602,
+            f"Invalid params for RPC method id '{method}': expected a filter object",
+        )
+
+    filter_obj = params[0]
+
+    raw_address = filter_obj.get("address")
+    if raw_address is None:
+        logger.warning(
+            "RPC relay rejected method %s request_id=%r: filter has no address",
+            method,
+            request_id,
+        )
+        return _error_response(
+            request_id,
+            -32602,
+            f"Invalid params for RPC method id '{method}': filter address is required",
+        )
+
+    addresses = raw_address if isinstance(raw_address, list) else [raw_address]
+    if not addresses:
+        return _error_response(
+            request_id,
+            -32602,
+            f"Invalid params for RPC method id '{method}': filter address is required",
+        )
+
+    for candidate in addresses:
+        if not isinstance(candidate, str) or not AsyncWeb3.is_address(candidate):
+            logger.warning(
+                "RPC relay rejected method %s request_id=%r: invalid filter address %r",
+                method,
+                request_id,
+                candidate,
+            )
+            return _error_response(
+                request_id,
+                -32602,
+                f"Invalid contract id for RPC method id '{method}': {candidate!r}",
+            )
+        normalized = AsyncWeb3.to_checksum_address(candidate).lower()
+        if normalized not in allowed_contracts:
+            logger.warning(
+                "RPC relay rejected method %s request_id=%r: contract %s not allowlisted",
+                method,
+                request_id,
+                normalized,
+            )
+            return _error_response(
+                request_id,
+                -32601,
+                f"RPC method id '{method}' not allowed for contract id '{normalized}'",
+            )
+
+    if "blockHash" in filter_obj:
+        # A blockHash filter targets exactly one block, so the range bound does
+        # not apply. fromBlock/toBlock must not be combined with it.
+        if "fromBlock" in filter_obj or "toBlock" in filter_obj:
+            return _error_response(
+                request_id,
+                -32602,
+                f"Invalid params for RPC method id '{method}': "
+                "blockHash cannot be combined with fromBlock/toBlock",
+            )
+        return None
+
+    from_block = _parse_block_number(filter_obj.get("fromBlock"))
+    to_block = _parse_block_number(filter_obj.get("toBlock"))
+    if from_block is None or to_block is None:
+        logger.warning(
+            "RPC relay rejected method %s request_id=%r: non-numeric block range "
+            "fromBlock=%r toBlock=%r",
+            method,
+            request_id,
+            filter_obj.get("fromBlock"),
+            filter_obj.get("toBlock"),
+        )
+        return _error_response(
+            request_id,
+            -32602,
+            f"Invalid params for RPC method id '{method}': "
+            "fromBlock and toBlock must be explicit numeric block numbers",
+        )
+
+    if to_block < from_block:
+        return _error_response(
+            request_id,
+            -32602,
+            f"Invalid params for RPC method id '{method}': toBlock is before fromBlock",
+        )
+
+    if from_block % window_blocks != 0:
+        logger.warning(
+            "RPC relay rejected method %s request_id=%r: fromBlock %d is not aligned "
+            "to a %d-block window",
+            method,
+            request_id,
+            from_block,
+            window_blocks,
+        )
+        return _error_response(
+            request_id,
+            -32602,
+            f"Invalid params for RPC method id '{method}': fromBlock {from_block} "
+            f"must be aligned to a multiple of {window_blocks}",
+        )
+
+    span_blocks = to_block - from_block + 1
+    if span_blocks > window_blocks:
+        logger.warning(
+            "RPC relay rejected method %s request_id=%r: block span %d exceeds the "
+            "%d-block window",
+            method,
+            request_id,
+            span_blocks,
+            window_blocks,
+        )
+        return _error_response(
+            request_id,
+            -32602,
+            f"Invalid params for RPC method id '{method}': block span {span_blocks} "
+            f"exceeds the {window_blocks}-block window",
+        )
+
+    logger.debug(
+        "RPC relay approved method %s request_id=%r span=%d for %d address(es)",
+        method,
+        request_id,
+        span_blocks,
+        len(addresses),
+    )
+    return None
+
+
 async def _forward_json_rpc(
     upstream_rpc_url: str,
     payload: dict[str, Any],
@@ -322,14 +535,16 @@ def create_api(app: FastAPI) -> None:
     # RELAY_RPC_URL is the dedicated RPC endpoint for the relay.
     upstream_rpc_url = os.getenv("RELAY_RPC_URL", "").strip()
     upstream_timeout_seconds = _load_upstream_timeout_seconds()
+    getlogs_window_blocks = _load_getlogs_window_blocks()
 
     logger.info(
         "RPC relay configured with %d allowed method(s), %d allowed contract(s), "
-        "upstream=%s, timeout=%ss",
+        "upstream=%s, timeout=%ss, getlogs_window_blocks=%d",
         len(allowed_methods),
         len(allowed_contracts),
         "configured" if upstream_rpc_url else "missing",
         upstream_timeout_seconds,
+        getlogs_window_blocks,
     )
 
     @app.post("/rpc")
@@ -414,6 +629,13 @@ def create_api(app: FastAPI) -> None:
 
         if method in _CONTRACT_SCOPED_METHODS:
             policy_error = _validate_contract_scope(payload, allowed_contracts)
+            if policy_error is not None:
+                return JSONResponse(policy_error, status_code=403)
+
+        if method == _GETLOGS_METHOD:
+            policy_error = _validate_getlogs_scope(
+                payload, allowed_contracts, getlogs_window_blocks
+            )
             if policy_error is not None:
                 return JSONResponse(policy_error, status_code=403)
 

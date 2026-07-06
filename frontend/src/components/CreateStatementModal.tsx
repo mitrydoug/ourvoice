@@ -49,6 +49,7 @@ const CreateStatementModal: FC<CreateStatementModalProps> = ({
   const { hits, isLoading: isSearchLoading } = useSearch(
     text,
     forumContractAddress,
+    { mode: "similarity" },
   );
 
   // Fetch the current statement count so we can discard stale/invalid IDs
