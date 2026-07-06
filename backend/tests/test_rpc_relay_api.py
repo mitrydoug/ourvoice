@@ -330,5 +330,220 @@ class RpcRelayApiTests(unittest.TestCase):
         forward_mock.assert_not_awaited()
 
 
+class RpcRelayGetLogsTests(unittest.TestCase):
+    _ADDR_AA = "0x" + "aa" * 20
+    _ADDR_BB = "0x" + "bb" * 20
+
+    def client_for_env(self, env: dict[str, str]) -> TestClient:
+        with patch.dict(os.environ, env, clear=True):
+            app = FastAPI()
+            create_api(app)
+        return TestClient(app)
+
+    def _client(self, extra: dict[str, str] | None = None) -> TestClient:
+        env = {
+            "RELAY_RPC_URL": "https://rpc.example",
+            "RPC_RELAY_ALLOWED_METHODS": "eth_getLogs",
+            "RPC_RELAY_ALLOWED_CONTRACTS": self._ADDR_AA,
+        }
+        if extra:
+            env.update(extra)
+        return self.client_for_env(env)
+
+    @patch("symvolia.rpc_relay.api._forward_json_rpc", new_callable=AsyncMock)
+    def test_allows_allowlisted_address_and_bounded_range(
+        self, forward_mock: AsyncMock
+    ) -> None:
+        client = self._client()
+        forward_mock.return_value = {"jsonrpc": "2.0", "id": 1, "result": []}
+
+        response = client.post(
+            "/rpc",
+            json={
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "eth_getLogs",
+                "params": [
+                    {
+                        "address": self._ADDR_AA.upper(),
+                        "fromBlock": "0x0",
+                        "toBlock": "0x64",
+                    }
+                ],
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        forward_mock.assert_awaited_once()
+
+    @patch("symvolia.rpc_relay.api._forward_json_rpc", new_callable=AsyncMock)
+    def test_allows_list_of_allowlisted_addresses(
+        self, forward_mock: AsyncMock
+    ) -> None:
+        client = self._client(
+            {"RPC_RELAY_ALLOWED_CONTRACTS": f"{self._ADDR_AA},{self._ADDR_BB}"}
+        )
+        forward_mock.return_value = {"jsonrpc": "2.0", "id": 2, "result": []}
+
+        response = client.post(
+            "/rpc",
+            json={
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "eth_getLogs",
+                "params": [
+                    {
+                        "address": [self._ADDR_AA, self._ADDR_BB],
+                        # 1000 -> 1999: a full, window-aligned range.
+                        "fromBlock": "0x3e8",
+                        "toBlock": "0x7cf",
+                    }
+                ],
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        forward_mock.assert_awaited_once()
+
+    @patch("symvolia.rpc_relay.api._forward_json_rpc", new_callable=AsyncMock)
+    def test_blocks_non_allowlisted_address(self, forward_mock: AsyncMock) -> None:
+        client = self._client()
+
+        response = client.post(
+            "/rpc",
+            json={
+                "jsonrpc": "2.0",
+                "id": 3,
+                "method": "eth_getLogs",
+                "params": [
+                    {
+                        "address": self._ADDR_BB,
+                        "fromBlock": "0x0",
+                        "toBlock": "0x1",
+                    }
+                ],
+            },
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertIn("not allowed for contract", response.json()["error"]["message"])
+        forward_mock.assert_not_awaited()
+
+    @patch("symvolia.rpc_relay.api._forward_json_rpc", new_callable=AsyncMock)
+    def test_blocks_missing_address(self, forward_mock: AsyncMock) -> None:
+        client = self._client()
+
+        response = client.post(
+            "/rpc",
+            json={
+                "jsonrpc": "2.0",
+                "id": 4,
+                "method": "eth_getLogs",
+                "params": [{"fromBlock": "0x0", "toBlock": "0x1"}],
+            },
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertIn("address is required", response.json()["error"]["message"])
+        forward_mock.assert_not_awaited()
+
+    @patch("symvolia.rpc_relay.api._forward_json_rpc", new_callable=AsyncMock)
+    def test_blocks_named_block_tags(self, forward_mock: AsyncMock) -> None:
+        client = self._client()
+
+        response = client.post(
+            "/rpc",
+            json={
+                "jsonrpc": "2.0",
+                "id": 5,
+                "method": "eth_getLogs",
+                "params": [
+                    {
+                        "address": self._ADDR_AA,
+                        "fromBlock": "0x0",
+                        "toBlock": "latest",
+                    }
+                ],
+            },
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertIn("numeric block numbers", response.json()["error"]["message"])
+        forward_mock.assert_not_awaited()
+
+    @patch("symvolia.rpc_relay.api._forward_json_rpc", new_callable=AsyncMock)
+    def test_blocks_range_exceeding_maximum(self, forward_mock: AsyncMock) -> None:
+        client = self._client({"RPC_RELAY_GETLOGS_WINDOW_BLOCKS": "100"})
+
+        response = client.post(
+            "/rpc",
+            json={
+                "jsonrpc": "2.0",
+                "id": 6,
+                "method": "eth_getLogs",
+                "params": [
+                    {
+                        "address": self._ADDR_AA,
+                        "fromBlock": "0x0",
+                        "toBlock": "0x64",  # span 101 > 100
+                    }
+                ],
+            },
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertIn("exceeds the", response.json()["error"]["message"])
+        self.assertIn("window", response.json()["error"]["message"])
+        forward_mock.assert_not_awaited()
+
+    @patch("symvolia.rpc_relay.api._forward_json_rpc", new_callable=AsyncMock)
+    def test_blocks_unaligned_from_block(self, forward_mock: AsyncMock) -> None:
+        client = self._client()  # default window is 1000
+
+        response = client.post(
+            "/rpc",
+            json={
+                "jsonrpc": "2.0",
+                "id": 8,
+                "method": "eth_getLogs",
+                "params": [
+                    {
+                        "address": self._ADDR_AA,
+                        "fromBlock": "0x1f4",  # 500, not a multiple of 1000
+                        "toBlock": "0x258",  # 600
+                    }
+                ],
+            },
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertIn("aligned", response.json()["error"]["message"])
+        forward_mock.assert_not_awaited()
+
+    @patch("symvolia.rpc_relay.api._forward_json_rpc", new_callable=AsyncMock)
+    def test_blocks_inverted_range(self, forward_mock: AsyncMock) -> None:
+        client = self._client()
+
+        response = client.post(
+            "/rpc",
+            json={
+                "jsonrpc": "2.0",
+                "id": 7,
+                "method": "eth_getLogs",
+                "params": [
+                    {
+                        "address": self._ADDR_AA,
+                        "fromBlock": "0x64",
+                        "toBlock": "0x0",
+                    }
+                ],
+            },
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertIn("before fromBlock", response.json()["error"]["message"])
+        forward_mock.assert_not_awaited()
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -10,15 +10,23 @@ import {
   TextField,
   ToggleButton,
   ToggleButtonGroup,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import SettingsBrightnessIcon from "@mui/icons-material/SettingsBrightness";
+import CloudOutlinedIcon from "@mui/icons-material/CloudOutlined";
+import StorageOutlinedIcon from "@mui/icons-material/StorageOutlined";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { useColorScheme } from "@mui/material/styles";
 import { useWalletAuth } from "@/wallet";
 
 import useNickname from "@/hooks/useNickname";
+import {
+  useSearchEngineMode,
+  type SearchEngineMode,
+} from "@/hooks/useSearchEngineMode";
 import { metamaskIcon, shortenAddress } from "../util";
 import { targetChain } from "../wagmiConfig";
 import {
@@ -53,6 +61,7 @@ const Settings: FC = () => {
     kind: "idle",
   });
   const { mode, setMode, systemMode } = useColorScheme();
+  const [searchEngine, setSearchEngine] = useSearchEngineMode();
 
   useEffect(() => {
     setNicknameInput(nickname);
@@ -115,6 +124,13 @@ const Settings: FC = () => {
 
   const handleThemeModeChange = (_event: unknown, value: ThemeMode | null) => {
     if (value) setMode(value);
+  };
+
+  const handleSearchEngineChange = (
+    _event: unknown,
+    value: SearchEngineMode | null,
+  ) => {
+    if (value) setSearchEngine(value);
   };
 
   // A validated custom RPC is persisted and applied via a reload, because the
@@ -243,6 +259,58 @@ const Settings: FC = () => {
                     : `Optional. Overrides the built-in RPC for ${targetChain.name} (${targetChain.id}).`)}
               </FormHelperText>
             </Stack>
+          </Box>
+
+          <Box>
+            <Stack
+              direction="row"
+              spacing={0.5}
+              alignItems="center"
+              sx={{ mb: 1 }}
+            >
+              <Typography variant="subtitle1" fontWeight={700}>
+                Search
+              </Typography>
+              <Tooltip
+                title={
+                  "Browser-local search runs entirely in this browser — no search server, more privacy, and it keeps working if the backend is down. " +
+                  "It indexes only currently-ranked statements plus those engaged in the last day, so older or low-support statements may not appear. " +
+                  "Similarity is keyword-based (not semantic). Backend search covers every statement."
+                }
+                enterTouchDelay={0}
+                leaveTouchDelay={6000}
+              >
+                <InfoOutlinedIcon
+                  sx={{ fontSize: 16, color: "text.secondary", cursor: "help" }}
+                />
+              </Tooltip>
+            </Stack>
+            <ToggleButtonGroup
+              value={searchEngine}
+              exclusive
+              onChange={handleSearchEngineChange}
+              aria-label="Search engine"
+              size="small"
+              fullWidth
+            >
+              <ToggleButton value="backend" aria-label="Backend search">
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <CloudOutlinedIcon fontSize="small" />
+                  <span>Backend</span>
+                </Stack>
+              </ToggleButton>
+              <ToggleButton value="local" aria-label="Browser-local search">
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <StorageOutlinedIcon fontSize="small" />
+                  <span>Browser-local</span>
+                </Stack>
+              </ToggleButton>
+            </ToggleButtonGroup>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              {searchEngine === "local"
+                ? "Search runs in your browser. Covers ranked and recently-active statements only."
+                : "Search runs against the hosted search service. Covers all statements."}
+            </Typography>
           </Box>
 
           <Box>

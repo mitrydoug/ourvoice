@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { writeQueryToHash } from "@/state/Search";
+import { useSearchEngineMode } from "./useSearchEngineMode";
+import { useLocalSearch } from "@/state/LocalSearch";
+import type { SearchMode } from "@/localSearch/types";
 
-/** Maximum number of search results to fetch from the backend. */
+/** Maximum number of search results to fetch. */
 const configuredSearchResultsLimit = Number.parseInt(
   import.meta.env.VITE_SEARCH_RESULTS_LIMIT ?? "20",
   10,
@@ -18,7 +21,7 @@ export const SEARCH_RESULTS_LIMIT = configuredSearchResultsLimit;
 
 const SEARCH_URL = import.meta.env.VITE_SEARCH_URL ?? "http://localhost:8000";
 
-/** Debounce delay in milliseconds before hitting the search API. */
+/** Debounce delay in milliseconds before running a search. */
 const DEBOUNCE_MS = 300;
 
 export interface SearchHit {
@@ -32,17 +35,26 @@ interface UseSearchResult {
   isLoading: boolean;
 }
 
+interface UseSearchOptions {
+  updateUrl?: boolean;
+  /** Exclude this statement id from results (e.g. the statement being viewed). */
+  similarStatementId?: bigint;
+  /** Search behavior. Defaults to keyword. Only affects the local engine. */
+  mode?: SearchMode;
+}
+
 /**
- * Debounced full-text search against the backend `/search` endpoint.
+ * Debounced statement search. Routes to either the hosted backend search
+ * service or the browser-local search engine based on the user's Settings
+ * selection ({@link useSearchEngineMode}).
  *
- * Waits {@link DEBOUNCE_MS} after the last `query` change before firing the
- * request.  On a successful response the URL hash is updated so the query
- * is reflected in a copyable/bookmarkable URL.
+ * Waits {@link DEBOUNCE_MS} after the last `query` change before searching. On a
+ * successful search the URL hash is updated (when `updateUrl`) so the query is
+ * reflected in a copyable/bookmarkable URL.
  *
- * Returns an ordered list of statement IDs sorted by relevance.
- * When `query` is empty the result set is cleared immediately (no request)
- * and the URL is **not** touched (the caller handles clearing via
- * `clearQuery`).
+ * Returns an ordered list of statement IDs sorted by relevance. When `query` is
+ * empty the result set is cleared immediately (no request) and the URL is not
+ * touched (the caller handles clearing via `clearQuery`).
  */
 export function useSearch(
   query: string,
@@ -50,10 +62,14 @@ export function useSearch(
   {
     updateUrl = false,
     similarStatementId,
-  }: { updateUrl?: boolean; similarStatementId?: bigint } = {},
+    mode = "keyword",
+  }: UseSearchOptions = {},
 ): UseSearchResult {
   const [hits, setHits] = useState<SearchHit[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  const [engineMode] = useSearchEngineMode();
+  const localSearch = useLocalSearch();
 
   // Track the latest request so we can discard stale responses.
   const inflightRef = useRef(0);
@@ -71,51 +87,65 @@ export function useSearch(
     const timer = setTimeout(() => {
       const requestId = ++inflightRef.current;
 
-      const lexicalParams = new URLSearchParams({
-        statement_text: trimmed,
-        forum_address: forumAddress,
-      });
-
-      const similarParams =
-        similarStatementId === undefined
-          ? undefined
-          : new URLSearchParams({
-              statement_id: similarStatementId.toString(),
-              forum_address: forumAddress,
-              limit: SEARCH_RESULTS_LIMIT.toString(),
-            });
-
-      const fetchResults = async (): Promise<unknown> => {
-        if (similarParams !== undefined) {
-          const similarResponse = await fetch(
-            `${SEARCH_URL}/similar?${similarParams.toString()}`,
-          );
-          if (similarResponse.ok) {
-            return similarResponse.json();
-          }
-        }
-
-        const lexicalResponse = await fetch(
-          `${SEARCH_URL}/search?${lexicalParams.toString()}`,
+      const runLocal = async (): Promise<number[]> => {
+        const ids = await localSearch.search(
+          trimmed,
+          mode,
+          SEARCH_RESULTS_LIMIT,
         );
-        if (!lexicalResponse.ok) {
-          throw new Error("Search request failed");
-        }
-        return lexicalResponse.json();
+        return similarStatementId !== undefined
+          ? ids.filter((id) => id !== Number(similarStatementId))
+          : ids;
       };
 
-      fetchResults()
-        .then((data: unknown) => {
+      const runBackend = async (): Promise<number[]> => {
+        const lexicalParams = new URLSearchParams({
+          statement_text: trimmed,
+          forum_address: forumAddress,
+        });
+
+        const similarParams =
+          similarStatementId === undefined
+            ? undefined
+            : new URLSearchParams({
+                statement_id: similarStatementId.toString(),
+                forum_address: forumAddress,
+                limit: SEARCH_RESULTS_LIMIT.toString(),
+              });
+
+        const fetchResults = async (): Promise<unknown> => {
+          if (similarParams !== undefined) {
+            const similarResponse = await fetch(
+              `${SEARCH_URL}/similar?${similarParams.toString()}`,
+            );
+            if (similarResponse.ok) {
+              return similarResponse.json();
+            }
+          }
+
+          const lexicalResponse = await fetch(
+            `${SEARCH_URL}/search?${lexicalParams.toString()}`,
+          );
+          if (!lexicalResponse.ok) {
+            throw new Error("Search request failed");
+          }
+          return lexicalResponse.json();
+        };
+
+        const data = await fetchResults();
+        const results = Array.isArray(data) ? data : [];
+        return results
+          .slice(0, SEARCH_RESULTS_LIMIT)
+          .map((r: { statement_id: number }) => r.statement_id);
+      };
+
+      const run = engineMode === "local" ? runLocal : runBackend;
+
+      run()
+        .then((ids) => {
           if (requestId !== inflightRef.current) return;
 
-          const results = Array.isArray(data) ? data : [];
-          setHits(
-            results
-              .slice(0, SEARCH_RESULTS_LIMIT)
-              .map((r: { statement_id: number }) => ({
-                statementId: r.statement_id,
-              })),
-          );
+          setHits(ids.map((statementId) => ({ statementId })));
           setIsLoading(false);
 
           // Sync the successfully-searched query to the URL.
@@ -131,7 +161,15 @@ export function useSearch(
     }, DEBOUNCE_MS);
 
     return () => clearTimeout(timer);
-  }, [query, forumAddress, updateUrl, similarStatementId]);
+  }, [
+    query,
+    forumAddress,
+    updateUrl,
+    similarStatementId,
+    mode,
+    engineMode,
+    localSearch,
+  ]);
 
   return { hits, isLoading };
 }

@@ -108,10 +108,16 @@ INDEXER_MAX_STARTUP_LOOKBACK_SECONDS=14400
 
 # Optional constrained JSON-RPC relay for frontend read traffic.
 # Keep methods limited to what the frontend actually uses.
-RPC_RELAY_ALLOWED_METHODS=eth_chainId,eth_blockNumber,eth_getBlockByNumber,eth_getTransactionReceipt,eth_call,eth_estimateGas,eth_getCode
+# eth_getLogs powers the optional browser-local search engine.
+RPC_RELAY_ALLOWED_METHODS=eth_chainId,eth_blockNumber,eth_getBlockByNumber,eth_getTransactionByHash,eth_getTransactionReceipt,eth_call,eth_estimateGas,eth_getCode,eth_getLogs
 # Include forum contracts plus the registry contract for frontend reads.
 RPC_RELAY_ALLOWED_CONTRACTS="${relayAllowedContracts.join(",")}" 
 RPC_RELAY_UPSTREAM_TIMEOUT_SECONDS=15
+# eth_getLogs requests must start on a multiple of this many blocks and span at
+# most this many blocks. A fixed window keeps historical queries canonical (so
+# the upstream RPC can cache them) and bounds each request. Must match the
+# frontend local-search GETLOGS_WINDOW_BLOCKS (1000).
+RPC_RELAY_GETLOGS_WINDOW_BLOCKS=1000
 
 # Meilisearch connection
 # For Railway private networking, use: http://<meilisearch-service-name>.railway.internal:7700
