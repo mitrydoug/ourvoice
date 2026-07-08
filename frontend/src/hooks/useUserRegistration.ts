@@ -38,6 +38,12 @@ export interface UserRegistration {
    * - An ISO 3166-1 alpha-3 code (e.g. "USA", "CAN") otherwise
    */
   nationality: string | null;
+  /**
+   * The user's unique registry identifier (bytes32). This is stable across all
+   * wallet addresses linked to the same verified identity.
+   * - `null` when not registered
+   */
+  userId: `0x${string}` | null;
 }
 
 /**
@@ -88,6 +94,7 @@ export function useUserRegistration(): UserRegistration {
       isRegistered: false,
       isLoading: isWalletLoading || (!!address && isRegisteredLoading),
       nationality: null,
+      userId: null,
     };
   }
 
@@ -96,5 +103,6 @@ export function useUserRegistration(): UserRegistration {
     isRegistered: true,
     isLoading: isRegistrationLoading || !reg,
     nationality: reg?.nationality ?? null,
+    userId: reg?.uniqueIdentifier ?? null,
   };
 }

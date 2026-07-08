@@ -1,5 +1,4 @@
-import { FC, useMemo, useState } from "react";
-import { metamaskIcon } from "../util";
+import { FC, useState } from "react";
 import { useWalletAuth } from "@/wallet";
 import { Navigate, useNavigate } from "react-router-dom";
 import {
@@ -21,7 +20,7 @@ import { useUserVotes } from "../state/UserVotes";
 import { useCreditAllocation } from "@/hooks/useCreditAllocation";
 import { useUserRegistration } from "@/hooks/useUserRegistration";
 import { toAlpha2 } from "../countryCodeMap";
-import useNickname from "@/hooks/useNickname";
+import useUserIdentity from "@/hooks/useUserIdentity";
 import useGracefulLoading from "@/hooks/useGracefulLoading";
 
 // ── SVG Donut Chart ──────────────────────────────────────────────────────────
@@ -159,14 +158,9 @@ const UserProfile: FC = () => {
   const { isRegistered, nationality } = useUserRegistration();
   const allocation = useCreditAllocation();
 
-  const [nickname, setNickname] = useNickname();
+  const { nickname, setNickname, avatar, isVerified } = useUserIdentity();
   const [editingNickname, setEditingNickname] = useState(false);
   const [nicknameInput, setNicknameInput] = useState(nickname);
-
-  const avatar = useMemo(() => {
-    if (address) return metamaskIcon(address);
-    return null;
-  }, [address]);
 
   const handleSaveNickname = () => {
     setNickname(nicknameInput.trim());
@@ -181,22 +175,22 @@ const UserProfile: FC = () => {
   // Use the MUI theme palette so colors stay in sync with SupportAllocationBar
   const segments: DonutSegment[] = allocation
     ? [
-        {
-          value: allocation.allocated,
-          color: theme.palette.primary.main,
-          label: "Allocated",
-        },
-        {
-          value: allocation.staged,
-          color: theme.palette.warning.main,
-          label: "Staged",
-        },
-        {
-          value: allocation.unallocated,
-          color: theme.palette.success.main,
-          label: "Unallocated",
-        },
-      ]
+      {
+        value: allocation.allocated,
+        color: theme.palette.primary.main,
+        label: "Allocated",
+      },
+      {
+        value: allocation.staged,
+        color: theme.palette.warning.main,
+        label: "Staged",
+      },
+      {
+        value: allocation.unallocated,
+        color: theme.palette.success.main,
+        label: "Unallocated",
+      },
+    ]
     : [];
 
   const { isLoading: isLoadingReconnect, showSkeleton } =
@@ -230,8 +224,13 @@ const UserProfile: FC = () => {
           {/* Avatar */}
           <Avatar src={avatar ?? undefined} sx={{ width: 80, height: 80 }} />
 
-          {/* Nickname */}
-          {editingNickname ? (
+          {/* Nickname — only verified users have an editable display name.
+              Unverified users are shown as "Anonymous". */}
+          {!isVerified ? (
+            <Typography variant="h5" fontWeight={600} color="text.secondary">
+              Anonymous
+            </Typography>
+          ) : editingNickname ? (
             <Stack
               direction="row"
               spacing={1}

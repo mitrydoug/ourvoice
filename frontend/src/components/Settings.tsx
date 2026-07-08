@@ -1,4 +1,4 @@
-import { FC, useEffect, useMemo, useState } from "react";
+import { FC, useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import {
   Avatar,
@@ -22,12 +22,12 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { useColorScheme } from "@mui/material/styles";
 import { useWalletAuth } from "@/wallet";
 
-import useNickname from "@/hooks/useNickname";
+import useUserIdentity from "@/hooks/useUserIdentity";
 import {
   useSearchEngineMode,
   type SearchEngineMode,
 } from "@/hooks/useSearchEngineMode";
-import { metamaskIcon, shortenAddress } from "../util";
+import { shortenAddress } from "../util";
 import { targetChain } from "../wagmiConfig";
 import {
   RPC_URL_STORAGE_KEY,
@@ -47,7 +47,7 @@ type RpcValidation =
 
 const Settings: FC = () => {
   const { address } = useWalletAuth();
-  const [nickname, setNickname] = useNickname();
+  const { nickname, setNickname, avatar, isVerified } = useUserIdentity();
   const [nicknameInput, setNicknameInput] = useState(nickname);
   const [storedRpcUrl] = useState(() => {
     try {
@@ -100,11 +100,6 @@ const Settings: FC = () => {
       window.clearTimeout(handle);
     };
   }, [rpcUrlInput, storedRpcUrl]);
-
-  const avatar = useMemo(() => {
-    if (address) return metamaskIcon(address);
-    return null;
-  }, [address]);
 
   if (!address) return <Navigate to="/" replace />;
 
@@ -176,40 +171,48 @@ const Settings: FC = () => {
 
             <Divider sx={{ my: 2 }} />
 
-            <Stack spacing={1.5}>
-              <TextField
-                label="Display name"
-                value={nicknameInput}
-                onChange={(event) => setNicknameInput(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") handleSaveNickname();
-                }}
-                size="small"
-                fullWidth
-                slotProps={{ htmlInput: { maxLength: 32 } }}
-              />
-              <Typography variant="body2" color="text.secondary">
-                Your display name is stored locally in this browser and is not
-                written on-chain.
-              </Typography>
-              <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
-                <Button
-                  onClick={handleSaveNickname}
-                  disabled={!hasNicknameChange}
-                  sx={{ alignSelf: { sm: "flex-start" } }}
-                >
-                  Save display name
-                </Button>
-                <Button
-                  variant="outlined"
-                  onClick={handleClearNickname}
-                  disabled={!nickname}
-                  sx={{ alignSelf: { sm: "flex-start" } }}
-                >
-                  Clear
-                </Button>
+            {isVerified ? (
+              <Stack spacing={1.5}>
+                <TextField
+                  label="Display name"
+                  value={nicknameInput}
+                  onChange={(event) => setNicknameInput(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") handleSaveNickname();
+                  }}
+                  size="small"
+                  fullWidth
+                  slotProps={{ htmlInput: { maxLength: 32 } }}
+                />
+                <Typography variant="body2" color="text.secondary">
+                  Your display name is stored locally in this browser and is not
+                  written on-chain. It is linked to your verified identity, so
+                  it stays the same across every wallet you connect here.
+                </Typography>
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+                  <Button
+                    onClick={handleSaveNickname}
+                    disabled={!hasNicknameChange}
+                    sx={{ alignSelf: { sm: "flex-start" } }}
+                  >
+                    Save display name
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    onClick={handleClearNickname}
+                    disabled={!nickname}
+                    sx={{ alignSelf: { sm: "flex-start" } }}
+                  >
+                    Clear
+                  </Button>
+                </Stack>
               </Stack>
-            </Stack>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                Verify your identity to choose a display name. Until then you
+                appear as “Anonymous”.
+              </Typography>
+            )}
           </Box>
 
           <Box>

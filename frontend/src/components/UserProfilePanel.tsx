@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Avatar,
   Box,
@@ -25,14 +25,13 @@ import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import CreateIcon from "@mui/icons-material/Create";
 import { useNavigate } from "react-router-dom";
-import useNickname from "@/hooks/useNickname";
 import { useForumNavigate } from "@/hooks/useForumNavigate";
 import { useUserVotes } from "../state/UserVotes";
 import { useForum } from "../state/Forum";
 import { FORUMS } from "./ChooseForumModal";
 import { useUserRegistration } from "@/hooks/useUserRegistration";
 import { toAlpha2, toDemonym } from "../countryCodeMap";
-import { metamaskIcon, shortenAddress } from "../util";
+import useUserIdentity from "@/hooks/useUserIdentity";
 import { useCreditConversion } from "../hooks/useCreditConversion";
 import AnimatedCounter from "./AnimatedCounter";
 import IndeterminateCheckBoxIcon from "@mui/icons-material/IndeterminateCheckBox";
@@ -73,10 +72,10 @@ const CoinIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
 );
 
 const UserProfilePanel: React.FC = () => {
-  const { address, disconnect } = useWalletAuth();
+  const { disconnect } = useWalletAuth();
   const navigate = useForumNavigate();
   const rawNavigate = useNavigate();
-  const [nickname] = useNickname();
+  const { displayName, avatar } = useUserIdentity();
   const userVotes = useUserVotes();
   const { isUserVerified, isVerifiedLoading } = userVotes;
   const {
@@ -91,11 +90,6 @@ const UserProfilePanel: React.FC = () => {
   const isStatusLoading = isVerifiedLoading || isRegistrationLoading;
   const { showSkeleton } = useGracefulLoading(isStatusLoading);
 
-  const avatar = useMemo(() => {
-    if (address) return metamaskIcon(address);
-    return null;
-  }, [address]);
-
   const alpha2 = nationality ? toAlpha2(nationality) : null;
 
   const credits = isUserVerified
@@ -106,13 +100,13 @@ const UserProfilePanel: React.FC = () => {
     : false;
   const commitBusy = isUserVerified
     ? userVotes.state?.commitStatus !== undefined &&
-      userVotes.state?.commitStatus !== "idle"
+    userVotes.state?.commitStatus !== "idle"
     : false;
-  const commitChanges = isUserVerified ? userVotes.commitChanges : () => {};
+  const commitChanges = isUserVerified ? userVotes.commitChanges : () => { };
   const previewCommitChanges = isUserVerified
     ? userVotes.previewCommitChanges
     : undefined;
-  const resetChanges = isUserVerified ? userVotes.resetChanges : () => {};
+  const resetChanges = isUserVerified ? userVotes.resetChanges : () => { };
   const hasEnoughCredits = isUserVerified
     ? (userVotes.state?.hasEnoughCredits ?? true)
     : true;
@@ -219,7 +213,7 @@ const UserProfilePanel: React.FC = () => {
 
           <Box sx={{ minWidth: 0 }}>
             <Typography variant="subtitle1" fontWeight={700} noWrap>
-              {nickname || (address ? shortenAddress(address) : "")}
+              {displayName}
             </Typography>
 
             {/* Verified / Not Verified status */}
@@ -369,8 +363,8 @@ const UserProfilePanel: React.FC = () => {
                   letterSpacing: "0.05em",
                   ...(hasStagedChanges && !commitBusy
                     ? {
-                        animation: `${shimmer} 1.5s ease-in-out infinite`,
-                      }
+                      animation: `${shimmer} 1.5s ease-in-out infinite`,
+                    }
                     : {}),
                 }}
               >

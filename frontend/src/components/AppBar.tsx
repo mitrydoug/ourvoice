@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
 import Toolbar from "@mui/material/Toolbar";
@@ -10,9 +10,8 @@ import { useUserVotes } from "../state/UserVotes";
 import ChooseForumModal, { FORUMS } from "./ChooseForumModal";
 import ForumIcon from "./ForumIcon";
 import { useForum, forumToSlug } from "../state/Forum";
-import { metamaskIcon, shortenAddress } from "../util";
 import useIsMobile from "@/hooks/useIsMobile";
-import useNickname from "@/hooks/useNickname";
+import useUserIdentity from "@/hooks/useUserIdentity";
 import { theme } from "../theme";
 import { ProfileDrawer } from "./UserProfileMenu";
 import { useSearchQuery } from "@/state/Search";
@@ -65,7 +64,6 @@ const Logo: React.FC<LogoProps> = ({ isMobile, homePath }) => {
 export default function MenuAppBar() {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const [avatar, setAvatar] = useState<string | null>(null);
   const {
     address,
     connect,
@@ -78,22 +76,13 @@ export default function MenuAppBar() {
   const navigate = useForumNavigate();
   const rawNavigate = useNavigate();
   const forumPath = useForumPath();
-  const [nickname] = useNickname();
-  const displayName = nickname || (address ? shortenAddress(address) : "");
+  const { displayName, avatar } = useUserIdentity();
 
   const {
     query: localQuery,
     setQuery: setSearchQuery,
     clearQuery: clearSearch,
   } = useSearchQuery();
-
-  useEffect(() => {
-    if (address) {
-      setAvatar(metamaskIcon(address));
-    } else {
-      setAvatar(null);
-    }
-  }, [address]);
 
   const {
     isUserVerified,
@@ -168,7 +157,7 @@ export default function MenuAppBar() {
                       disconnect={doDisconnect}
                       username={displayName}
                       avatar={avatar}
-                      commitChanges={commitChanges ?? (() => {})}
+                      commitChanges={commitChanges ?? (() => { })}
                       hasStagedChanges={
                         userVoteState?.hasStagedChanges ?? false
                       }
