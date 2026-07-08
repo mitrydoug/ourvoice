@@ -1,4 +1,5 @@
 import jazzicon from "@metamask/jazzicon";
+import { keccak256, hexToNumber, type Hex } from "viem";
 
 /** Convert credit parts to display credits (rounded to nearest integer). */
 export const partsToCredits = (
@@ -19,9 +20,24 @@ export const creditsToParts = (
 export const shortenAddress = (address: string): string =>
   `${address.slice(0, 6)}…${address.slice(-4)}`;
 
-export const metamaskIcon = (address: string) => {
-  console.log(address);
-  const jazziconData = jazzicon(16, parseInt(address.slice(2, 10), 16));
+/**
+ * Fold an arbitrary-length hex string into an unsigned 32-bit integer using
+ * viem's `keccak256`. Every byte of the input contributes to the digest, so two
+ * ids that merely share a prefix do not collide — unlike naively truncating to
+ * the first few bytes. Jazzicon seeds a 32-bit PRNG, so we take the top 4 bytes
+ * of the 32-byte digest as a uniform seed.
+ */
+const hashHexToSeed = (hex: string): number =>
+  hexToNumber(keccak256(hex as Hex).slice(0, 10) as Hex);
+
+/**
+ * Generate a deterministic Jazzicon as a data URI from a hex seed
+ * (e.g. an Ethereum address or a registry `userId`). All bytes of the hex
+ * string are hashed into the seed, so the same input always yields the same
+ * icon and distinct inputs are extremely unlikely to collide.
+ */
+export const jazziconDataUri = (hexSeed: string): string => {
+  const jazziconData = jazzicon(16, hashHexToSeed(hexSeed));
   const jazziconSvg = new XMLSerializer().serializeToString(
     jazziconData.children[0],
   );

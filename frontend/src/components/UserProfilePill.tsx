@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Avatar,
   Box,
@@ -15,13 +15,12 @@ import {
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
 import { useNavigate } from "react-router-dom";
 import { useForumNavigate } from "../hooks/useForumNavigate";
-import useNickname from "@/hooks/useNickname";
+import useUserIdentity from "@/hooks/useUserIdentity";
 import { useUserVotes } from "../state/UserVotes";
 import { useForum } from "../state/Forum";
 import { FORUMS } from "./ChooseForumModal";
 import { useUserRegistration } from "@/hooks/useUserRegistration";
 import { toAlpha2, toDemonym } from "../countryCodeMap";
-import { metamaskIcon, shortenAddress } from "../util";
 import { useCreditConversion } from "../hooks/useCreditConversion";
 import AnimatedCounter from "./AnimatedCounter";
 import IndeterminateCheckBoxIcon from "@mui/icons-material/IndeterminateCheckBox";
@@ -61,21 +60,16 @@ const CoinIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
 );
 
 const UserProfilePanel: React.FC = () => {
-  const { address, disconnect } = useWalletAuth();
+  const { disconnect } = useWalletAuth();
   const navigate = useForumNavigate();
   const rawNavigate = useNavigate();
-  const [nickname] = useNickname();
+  const { displayName, avatar } = useUserIdentity();
   const userVotes = useUserVotes();
   const { isUserVerified } = userVotes;
   const { nationality, isRegistered } = useUserRegistration();
   const { name: forumName } = useForum();
   const { toCredits } = useCreditConversion();
   const forum = FORUMS[forumName];
-
-  const avatar = useMemo(() => {
-    if (address) return metamaskIcon(address);
-    return null;
-  }, [address]);
 
   const alpha2 = nationality ? toAlpha2(nationality) : null;
 
@@ -172,7 +166,7 @@ const UserProfilePanel: React.FC = () => {
 
           <Box sx={{ minWidth: 0 }}>
             <Typography variant="h6" fontWeight={700} noWrap>
-              {nickname || (address ? shortenAddress(address) : "")}
+              {displayName}
             </Typography>
 
             {/* Verified / Not Verified status */}
