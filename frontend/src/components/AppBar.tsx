@@ -157,7 +157,7 @@ export default function MenuAppBar() {
                       disconnect={doDisconnect}
                       username={displayName}
                       avatar={avatar}
-                      commitChanges={commitChanges ?? (() => { })}
+                      commitChanges={commitChanges ?? (() => {})}
                       hasStagedChanges={
                         userVoteState?.hasStagedChanges ?? false
                       }
