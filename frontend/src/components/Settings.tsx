@@ -186,7 +186,7 @@ const Settings: FC = () => {
                 />
                 <Typography variant="body2" color="text.secondary">
                   Your display name is stored locally in this browser and is not
-                  shared publicly. 
+                  shared publicly.
                 </Typography>
                 <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
                   <Button
@@ -304,7 +304,7 @@ const Settings: FC = () => {
             </Typography>
           </Box>
 
-           <Box>
+          <Box>
             <Typography variant="subtitle1" fontWeight={700} gutterBottom>
               RPC
             </Typography>

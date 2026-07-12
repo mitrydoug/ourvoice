@@ -452,9 +452,8 @@ export const StatementCard: FC<StatementCardProps> = ({
             />
           </Stack>
         </Tooltip>
-
       )}
-       <VoteToggle
+      <VoteToggle
         userSupport={userSupport}
         uncommittedSupport={hasUncommittedSupport}
         onUserVoteChange={handleSupportChange}
@@ -462,7 +461,6 @@ export const StatementCard: FC<StatementCardProps> = ({
         onClear={() => handleSupportChange(0)}
       />
     </Stack>
-   
   ) : undefined;
   const rightTopSlot = onSwitchSupport ? (
     <Tooltip title="Switch support to this statement" arrow>
