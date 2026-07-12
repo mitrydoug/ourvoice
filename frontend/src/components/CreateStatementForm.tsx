@@ -86,7 +86,12 @@ const CreateStatementForm: FC = () => {
                 width: "100%",
               }}
             />
-            <Stack direction="row" alignItems="center" justifyContent="flex-end" spacing={1}>
+            <Stack
+              direction="row"
+              alignItems="center"
+              justifyContent="flex-end"
+              spacing={1}
+            >
               <VoteToggle
                 userSupport={initialSupport}
                 uncommittedSupport={initialSupport !== 0}
@@ -99,7 +104,9 @@ const CreateStatementForm: FC = () => {
                 sx={{
                   textAlign: "right",
                   fontWeight:
-                    text.length < MAX_STATEMENT_LENGTH * 0.9 ? "normal" : "bold",
+                    text.length < MAX_STATEMENT_LENGTH * 0.9
+                      ? "normal"
+                      : "bold",
                 }}
                 color={
                   text.length < MAX_STATEMENT_LENGTH * 0.8
@@ -111,7 +118,6 @@ const CreateStatementForm: FC = () => {
               >
                 {text.length} / {MAX_STATEMENT_LENGTH}
               </Typography>
-              
             </Stack>
           </Stack>
 
@@ -120,9 +126,7 @@ const CreateStatementForm: FC = () => {
             alignItems="center"
             justifyContent="center"
             sx={{ flexShrink: 0 }}
-          >
-            
-          </Stack>
+          ></Stack>
         </Stack>
       </Card>
 
