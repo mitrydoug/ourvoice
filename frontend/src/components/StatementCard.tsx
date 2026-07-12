@@ -412,9 +412,26 @@ export const StatementCard: FC<StatementCardProps> = ({
           </Stack>
         </Tooltip>
       )}
+    </Stack>
+  );
 
-      <Stack sx={{ flexGrow: 1 }} />
+  const bookmarkSlot = onToggleBookmark ? (
+    <IconButton
+      size="small"
+      onClick={() => onToggleBookmark(Number(statement.id))}
+      aria-label={isBookmarked ? "Unstar" : "Star"}
+      sx={{ p: 0.25 }}
+    >
+      {isBookmarked ? (
+        <StarIcon sx={{ fontSize: 22, color: "#E8C84A" }} />
+      ) : (
+        <StarBorderIcon sx={{ fontSize: 22, color: "text.secondary" }} />
+      )}
+    </IconButton>
+  ) : undefined;
 
+  const voteControls = isUserVerified ? (
+    <Stack direction="row" alignItems="center" spacing={1}>
       {creditsAllocated > 0 && (
         <Tooltip
           title={`You have ${creditsAllocated} credits providing ${userSupport} support`}
@@ -435,33 +452,17 @@ export const StatementCard: FC<StatementCardProps> = ({
             />
           </Stack>
         </Tooltip>
+
       )}
+       <VoteToggle
+        userSupport={userSupport}
+        uncommittedSupport={hasUncommittedSupport}
+        onUserVoteChange={handleSupportChange}
+        direction="compact"
+        onClear={() => handleSupportChange(0)}
+      />
     </Stack>
-  );
-
-  const bookmarkSlot = onToggleBookmark ? (
-    <IconButton
-      size="small"
-      onClick={() => onToggleBookmark(Number(statement.id))}
-      aria-label={isBookmarked ? "Unstar" : "Star"}
-      sx={{ p: 0.25 }}
-    >
-      {isBookmarked ? (
-        <StarIcon sx={{ fontSize: 22, color: "#E8C84A" }} />
-      ) : (
-        <StarBorderIcon sx={{ fontSize: 22, color: "text.secondary" }} />
-      )}
-    </IconButton>
-  ) : undefined;
-
-  const voteControls = isUserVerified ? (
-    <VoteToggle
-      userSupport={userSupport}
-      uncommittedSupport={hasUncommittedSupport}
-      onUserVoteChange={handleSupportChange}
-      direction="compact"
-      onClear={() => handleSupportChange(0)}
-    />
+   
   ) : undefined;
   const rightTopSlot = onSwitchSupport ? (
     <Tooltip title="Switch support to this statement" arrow>
