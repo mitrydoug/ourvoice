@@ -186,8 +186,7 @@ const Settings: FC = () => {
                 />
                 <Typography variant="body2" color="text.secondary">
                   Your display name is stored locally in this browser and is not
-                  written on-chain. It is linked to your verified identity, so
-                  it stays the same across every wallet you connect here.
+                  shared publicly. 
                 </Typography>
                 <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
                   <Button
@@ -217,51 +216,40 @@ const Settings: FC = () => {
 
           <Box>
             <Typography variant="subtitle1" fontWeight={700} gutterBottom>
-              RPC
+              Theme
             </Typography>
-            <Stack spacing={1.5}>
-              <TextField
-                label="Custom RPC URL"
-                value={rpcUrlInput}
-                onChange={(event) => setRpcUrlInput(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" && canSaveRpcUrl) {
-                    handleSaveRpcUrl();
-                  }
-                }}
-                size="small"
-                fullWidth
-                placeholder="https://..."
-                error={rpcValidation.kind === "invalid"}
-              />
-              <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
-                <Button
-                  onClick={handleSaveRpcUrl}
-                  disabled={!canSaveRpcUrl}
-                  sx={{ alignSelf: { sm: "flex-start" } }}
-                >
-                  Save RPC URL
-                </Button>
-                <Button
-                  variant="outlined"
-                  onClick={handleRemoveRpcUrl}
-                  disabled={!hasStoredRpcUrl}
-                  sx={{ alignSelf: { sm: "flex-start" } }}
-                >
-                  Remove
-                </Button>
-              </Stack>
-              <FormHelperText error={rpcValidation.kind === "invalid"}>
-                {rpcValidation.kind === "checking" && "Checking chain ID..."}
-                {rpcValidation.kind === "valid" &&
-                  `Looks good — reports ${targetChain.name}.`}
-                {rpcValidation.kind === "invalid" && rpcValidation.message}
-                {rpcValidation.kind === "idle" &&
-                  (hasStoredRpcUrl
-                    ? `Using a custom RPC for ${targetChain.name}.`
-                    : `Optional. Overrides the built-in RPC for ${targetChain.name} (${targetChain.id}).`)}
-              </FormHelperText>
-            </Stack>
+            <ToggleButtonGroup
+              value={selectedThemeMode}
+              exclusive
+              onChange={handleThemeModeChange}
+              aria-label="Theme"
+              size="small"
+              fullWidth
+            >
+              <ToggleButton value="light" aria-label="Light theme">
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <LightModeIcon fontSize="small" />
+                  <span>Light</span>
+                </Stack>
+              </ToggleButton>
+              <ToggleButton value="dark" aria-label="Dark theme">
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <DarkModeIcon fontSize="small" />
+                  <span>Dark</span>
+                </Stack>
+              </ToggleButton>
+              <ToggleButton value="system" aria-label="System theme">
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <SettingsBrightnessIcon fontSize="small" />
+                  <span>System</span>
+                </Stack>
+              </ToggleButton>
+            </ToggleButtonGroup>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              {selectedThemeMode === "system" && systemMode
+                ? `Using your system ${systemMode} theme.`
+                : "Saved on this device."}
+            </Typography>
           </Box>
 
           <Box>
@@ -316,42 +304,53 @@ const Settings: FC = () => {
             </Typography>
           </Box>
 
-          <Box>
+           <Box>
             <Typography variant="subtitle1" fontWeight={700} gutterBottom>
-              Theme
+              RPC
             </Typography>
-            <ToggleButtonGroup
-              value={selectedThemeMode}
-              exclusive
-              onChange={handleThemeModeChange}
-              aria-label="Theme"
-              size="small"
-              fullWidth
-            >
-              <ToggleButton value="light" aria-label="Light theme">
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <LightModeIcon fontSize="small" />
-                  <span>Light</span>
-                </Stack>
-              </ToggleButton>
-              <ToggleButton value="dark" aria-label="Dark theme">
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <DarkModeIcon fontSize="small" />
-                  <span>Dark</span>
-                </Stack>
-              </ToggleButton>
-              <ToggleButton value="system" aria-label="System theme">
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <SettingsBrightnessIcon fontSize="small" />
-                  <span>System</span>
-                </Stack>
-              </ToggleButton>
-            </ToggleButtonGroup>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              {selectedThemeMode === "system" && systemMode
-                ? `Using your system ${systemMode} theme.`
-                : "Saved on this device."}
-            </Typography>
+            <Stack spacing={1.5}>
+              <TextField
+                label="Custom RPC URL"
+                value={rpcUrlInput}
+                onChange={(event) => setRpcUrlInput(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && canSaveRpcUrl) {
+                    handleSaveRpcUrl();
+                  }
+                }}
+                size="small"
+                fullWidth
+                placeholder="https://..."
+                error={rpcValidation.kind === "invalid"}
+              />
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+                <Button
+                  onClick={handleSaveRpcUrl}
+                  disabled={!canSaveRpcUrl}
+                  sx={{ alignSelf: { sm: "flex-start" } }}
+                >
+                  Save RPC URL
+                </Button>
+                <Button
+                  variant="outlined"
+                  onClick={handleRemoveRpcUrl}
+                  disabled={!hasStoredRpcUrl}
+                  sx={{ alignSelf: { sm: "flex-start" } }}
+                >
+                  Remove
+                </Button>
+              </Stack>
+              <FormHelperText error={rpcValidation.kind === "invalid"}>
+                {rpcValidation.kind === "checking" && "Checking chain ID..."}
+                {rpcValidation.kind === "valid" &&
+                  `Looks good — reports ${targetChain.name}.`}
+                {rpcValidation.kind === "invalid" && rpcValidation.message}
+                {rpcValidation.kind === "idle" &&
+                  (hasStoredRpcUrl
+                    ? `Using a custom RPC for ${targetChain.name}.`
+                    : `Optional. Overrides the built-in RPC for ${targetChain.name} (${targetChain.id}).`)}
+              </FormHelperText>
+            </Stack>
           </Box>
         </Stack>
       </Box>

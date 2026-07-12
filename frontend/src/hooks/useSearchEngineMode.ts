@@ -14,9 +14,9 @@ export function useSearchEngineMode(): [
 ] {
   const [raw, setRaw] = useLocalStorageValue(
     SEARCH_ENGINE_STORAGE_KEY,
-    "backend",
+    "local",
   );
-  const mode: SearchEngineMode = raw === "local" ? "local" : "backend";
+  const mode: SearchEngineMode = raw === "backend" ? "backend" : "local";
   return [mode, setRaw];
 }
 
