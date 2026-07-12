@@ -11,7 +11,6 @@ import {
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import MergeIcon from "@mui/icons-material/Merge";
-import UTurnLeftIcon from "@mui/icons-material/UTurnLeft";
 
 import { useForumNavigate } from "../hooks/useForumNavigate";
 
@@ -383,7 +382,7 @@ export const StatementCard: FC<StatementCardProps> = ({
     );
 
   const statsSlot = (
-    <Stack direction="row" alignItems="center" spacing={2} sx={{ mt: 0.5 }}>
+    <Stack direction="row" alignItems="center" spacing={2} sx={{ mt: 0.1 }}>
       <Tooltip title={`${globalSupport} total support`} arrow>
         <Typography
           variant="body2"
@@ -413,9 +412,26 @@ export const StatementCard: FC<StatementCardProps> = ({
           </Stack>
         </Tooltip>
       )}
+    </Stack>
+  );
 
-      <Stack sx={{ flexGrow: 1 }} />
+  const bookmarkSlot = onToggleBookmark ? (
+    <IconButton
+      size="small"
+      onClick={() => onToggleBookmark(Number(statement.id))}
+      aria-label={isBookmarked ? "Unstar" : "Star"}
+      sx={{ p: 0.25 }}
+    >
+      {isBookmarked ? (
+        <StarIcon sx={{ fontSize: 22, color: "#E8C84A" }} />
+      ) : (
+        <StarBorderIcon sx={{ fontSize: 22, color: "text.secondary" }} />
+      )}
+    </IconButton>
+  ) : undefined;
 
+  const voteControls = isUserVerified ? (
+    <Stack direction="row" alignItems="center" spacing={1}>
       {creditsAllocated > 0 && (
         <Tooltip
           title={`You have ${creditsAllocated} credits providing ${userSupport} support`}
@@ -437,31 +453,14 @@ export const StatementCard: FC<StatementCardProps> = ({
           </Stack>
         </Tooltip>
       )}
-
-      {onToggleBookmark && (
-        <IconButton
-          size="small"
-          onClick={() => onToggleBookmark(Number(statement.id))}
-          aria-label={isBookmarked ? "Unstar" : "Star"}
-          sx={{ p: 0 }}
-        >
-          {isBookmarked ? (
-            <StarIcon sx={{ fontSize: 22, color: "#E8C84A" }} />
-          ) : (
-            <StarBorderIcon sx={{ fontSize: 22, color: "text.secondary" }} />
-          )}
-        </IconButton>
-      )}
+      <VoteToggle
+        userSupport={userSupport}
+        uncommittedSupport={hasUncommittedSupport}
+        onUserVoteChange={handleSupportChange}
+        direction="compact"
+        onClear={() => handleSupportChange(0)}
+      />
     </Stack>
-  );
-
-  const voteControls = isUserVerified ? (
-    <VoteToggle
-      userSupport={userSupport}
-      uncommittedSupport={hasUncommittedSupport}
-      onUserVoteChange={handleSupportChange}
-      direction="vertical"
-    />
   ) : undefined;
   const rightTopSlot = onSwitchSupport ? (
     <Tooltip title="Switch support to this statement" arrow>
@@ -479,24 +478,6 @@ export const StatementCard: FC<StatementCardProps> = ({
       </ButtonBase>
     </Tooltip>
   ) : undefined;
-  const canClearSupport = userSupportParts !== 0;
-  const rightStatsSlot =
-    isUserVerified && canClearSupport ? (
-      <Tooltip title="Clear support" arrow>
-        <ButtonBase
-          aria-label="Clear support"
-          onClick={() => handleSupportChange(0)}
-          sx={{
-            width: 32,
-            height: 24,
-            color: "text.secondary",
-            "&:hover": { color: "text.primary" },
-          }}
-        >
-          <UTurnLeftIcon sx={{ fontSize: 21, transform: "rotate(90deg)" }} />
-        </ButtonBase>
-      </Tooltip>
-    ) : undefined;
 
   return (
     <StatementCardShell
@@ -504,8 +485,8 @@ export const StatementCard: FC<StatementCardProps> = ({
       text={statement.text}
       statsSlot={statsSlot}
       voteControls={voteControls}
+      topRightSlot={bookmarkSlot}
       rightTopSlot={rightTopSlot}
-      rightStatsSlot={rightStatsSlot}
       onClick={handleCardClick}
       sx={{
         cursor: "pointer",

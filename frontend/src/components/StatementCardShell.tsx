@@ -1,6 +1,5 @@
 import { FC, MouseEvent, ReactNode } from "react";
 import { Box, Card, Stack, SxProps, Theme, Typography } from "@mui/material";
-import useIsMobile from "@/hooks/useIsMobile";
 
 /** Prevent clicks inside interactive zones from bubbling to the card. */
 const stopPropagation = (e: MouseEvent) => e.stopPropagation();
@@ -24,10 +23,10 @@ interface StatementCardShellProps {
    * inline below the text on mobile, in the right column on desktop.
    */
   voteControls?: ReactNode;
-  /** Optional action aligned above the desktop vote column. */
+  /** Optional action rendered in the top-right corner, aligned with the text. */
+  topRightSlot?: ReactNode;
+  /** Optional action shown just before the vote controls (e.g. switch support). */
   rightTopSlot?: ReactNode;
-  /** Optional action aligned to the lower stats row and desktop vote column. */
-  rightStatsSlot?: ReactNode;
   /** Optional click handler for the entire card. */
   onClick?: () => void;
   sx?: SxProps<Theme>;
@@ -38,23 +37,23 @@ interface StatementCardShellProps {
  * StagedStatementCard.
  *
  * Layout:
- *   [ leftSlot (48px) ] [ text / mobileVote / statsSlot ] [ desktopVote ]
+ *   [ leftSlot (72px) ] [ text + topRight / stats + inline vote group ]
  */
 const StatementCardShell: FC<StatementCardShellProps> = ({
   leftSlot,
   text,
   statsSlot,
   voteControls,
+  topRightSlot,
   rightTopSlot,
-  rightStatsSlot,
   onClick,
   sx,
 }) => {
-  const isMobile = useIsMobile();
+  const hasVoteGroup = Boolean(voteControls || rightTopSlot);
 
   return (
-    <Card sx={{ p: 2, ...sx }} onClick={onClick}>
-      <Stack direction="row" spacing={2}>
+    <Card sx={{ p: 1.5, ...sx }} onClick={onClick}>
+      <Stack direction="row" spacing={1.5}>
         {/* Left column: rank or placeholder */}
         <Stack
           alignItems="center"
@@ -64,83 +63,38 @@ const StatementCardShell: FC<StatementCardShellProps> = ({
           {leftSlot}
         </Stack>
 
-        {/* Middle column: text + inline vote (mobile) + stats */}
-        <Stack
-          spacing={1.5}
-          sx={{ flex: 1, minWidth: 0 }}
-          justifyContent="space-between"
-        >
-          <Typography variant="h6" sx={{ fontWeight: 500 }}>
-            {text}
-          </Typography>
-
-          {/* Inline vote controls on mobile */}
-          {isMobile && voteControls && (
-            <div onClick={stopPropagation}>
-              {rightTopSlot ? (
-                <Stack alignItems="center" spacing={0.5}>
-                  {rightTopSlot}
-                  {voteControls}
-                </Stack>
-              ) : (
-                voteControls
-              )}
-            </div>
-          )}
-
-          <div onClick={stopPropagation}>
-            {isMobile && rightStatsSlot ? (
-              <Stack direction="row" alignItems="center" spacing={1}>
-                <Box sx={{ flex: 1, minWidth: 0 }}>{statsSlot}</Box>
-                {rightStatsSlot}
-              </Stack>
-            ) : (
-              statsSlot
+        {/* Middle column: text + stats row with inline vote controls */}
+        <Stack spacing={1} sx={{ flex: 1, minWidth: 0 }}>
+          <Stack direction="row" alignItems="flex-start" spacing={1}>
+            <Typography
+              variant="h6"
+              sx={{ fontWeight: 500, flex: 1, minWidth: 0 }}
+            >
+              {text}
+            </Typography>
+            {topRightSlot && (
+              <Box onClick={stopPropagation} sx={{ flexShrink: 0 }}>
+                {topRightSlot}
+              </Box>
             )}
-          </div>
-        </Stack>
+          </Stack>
 
-        {/* Right column: vertical vote controls on desktop */}
-        {!isMobile && (voteControls || rightTopSlot || rightStatsSlot) && (
-          <Stack
-            alignItems="center"
-            justifyContent="center"
-            onClick={stopPropagation}
-            sx={{
-              flexShrink: 0,
-              ml: "auto",
-              mr: 1,
-              alignSelf: "stretch",
-              position: "relative",
-            }}
-          >
-            <Stack alignItems="center" spacing={0.75}>
-              <Box
-                sx={{
-                  width: 32,
-                  height: 24,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Box sx={{ flex: 1, minWidth: 0 }}>{statsSlot}</Box>
+            {hasVoteGroup && (
+              <Stack
+                direction="row"
+                alignItems="center"
+                spacing={0.5}
+                onClick={stopPropagation}
+                sx={{ flexShrink: 0 }}
               >
                 {rightTopSlot}
-              </Box>
-              {voteControls}
-              <Box
-                sx={{
-                  width: 32,
-                  height: 24,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                {rightStatsSlot}
-              </Box>
-            </Stack>
+                {voteControls}
+              </Stack>
+            )}
           </Stack>
-        )}
+        </Stack>
       </Stack>
     </Card>
   );

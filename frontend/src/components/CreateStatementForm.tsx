@@ -86,23 +86,39 @@ const CreateStatementForm: FC = () => {
                 width: "100%",
               }}
             />
-            <Typography
-              variant="body2"
-              sx={{
-                textAlign: "right",
-                fontWeight:
-                  text.length < MAX_STATEMENT_LENGTH * 0.9 ? "normal" : "bold",
-              }}
-              color={
-                text.length < MAX_STATEMENT_LENGTH * 0.8
-                  ? "text.secondary"
-                  : text.length < MAX_STATEMENT_LENGTH * 0.9
-                    ? "DarkOrange"
-                    : "red"
-              }
+            <Stack
+              direction="row"
+              alignItems="center"
+              justifyContent="flex-end"
+              spacing={1}
             >
-              {text.length} / {MAX_STATEMENT_LENGTH}
-            </Typography>
+              <VoteToggle
+                userSupport={initialSupport}
+                uncommittedSupport={initialSupport !== 0}
+                onUserVoteChange={setInitialSupport}
+                direction="compact"
+                onClear={() => setInitialSupport(0)}
+              />
+              <Typography
+                variant="body2"
+                sx={{
+                  textAlign: "right",
+                  fontWeight:
+                    text.length < MAX_STATEMENT_LENGTH * 0.9
+                      ? "normal"
+                      : "bold",
+                }}
+                color={
+                  text.length < MAX_STATEMENT_LENGTH * 0.8
+                    ? "text.secondary"
+                    : text.length < MAX_STATEMENT_LENGTH * 0.9
+                      ? "DarkOrange"
+                      : "red"
+                }
+              >
+                {text.length} / {MAX_STATEMENT_LENGTH}
+              </Typography>
+            </Stack>
           </Stack>
 
           {/* Vertical vote toggle on the right */}
@@ -110,14 +126,7 @@ const CreateStatementForm: FC = () => {
             alignItems="center"
             justifyContent="center"
             sx={{ flexShrink: 0 }}
-          >
-            <VoteToggle
-              userSupport={initialSupport}
-              uncommittedSupport={initialSupport !== 0}
-              onUserVoteChange={setInitialSupport}
-              direction="vertical"
-            />
-          </Stack>
+          ></Stack>
         </Stack>
       </Card>
 

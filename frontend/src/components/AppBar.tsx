@@ -12,6 +12,7 @@ import ForumIcon from "./ForumIcon";
 import { useForum, forumToSlug } from "../state/Forum";
 import useIsMobile from "@/hooks/useIsMobile";
 import useUserIdentity from "@/hooks/useUserIdentity";
+import useLogoSrc from "@/hooks/useLogoSrc";
 import { theme } from "../theme";
 import { ProfileDrawer } from "./UserProfileMenu";
 import { useSearchQuery } from "@/state/Search";
@@ -45,10 +46,11 @@ interface LogoProps {
 }
 
 const Logo: React.FC<LogoProps> = ({ isMobile, homePath }) => {
+  const logoSrc = useLogoSrc();
   return (
     <Link to={homePath} style={{ textDecoration: "none" }}>
       <img
-        src="./symvolia-logo.svg"
+        src={logoSrc}
         alt="Symvolia"
         style={{
           height: isMobile

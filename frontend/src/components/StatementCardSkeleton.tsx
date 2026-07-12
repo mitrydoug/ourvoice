@@ -6,8 +6,8 @@ import { Card, Skeleton, Stack } from "@mui/material";
  * Renders a pulsing card with placeholders for rank, text, and stats.
  */
 const StatementCardSkeleton: FC = () => (
-  <Card sx={{ p: 2 }}>
-    <Stack direction="row" spacing={2}>
+  <Card sx={{ p: 1.5 }}>
+    <Stack direction="row" spacing={1.5}>
       {/* Left column: rank placeholder */}
       <Stack
         alignItems="center"
@@ -18,7 +18,7 @@ const StatementCardSkeleton: FC = () => (
       </Stack>
 
       {/* Middle column: text + stats */}
-      <Stack spacing={1.5} sx={{ flex: 1, minWidth: 0 }}>
+      <Stack spacing={1} sx={{ flex: 1, minWidth: 0 }}>
         <Skeleton variant="text" width="90%" height={28} />
         <Skeleton variant="text" width="60%" height={20} />
       </Stack>

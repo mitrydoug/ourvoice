@@ -20,6 +20,7 @@ import ForumIcon from "./ForumIcon";
 import AppVersionLabel from "./AppVersionLabel";
 import { useForum, forumToSlug } from "../state/Forum";
 import { useForumNavigate, useForumPath } from "../hooks/useForumNavigate";
+import useLogoSrc from "@/hooks/useLogoSrc";
 
 const NAV_ITEMS = [
   { label: "Home", href: "/", icon: <HomeIcon />, memberOnly: false },
@@ -56,6 +57,7 @@ const SideNav: FC = () => {
   const { isUserVerified, isVerifiedLoading } = useUserVotes();
   const { name: forumName, setForum } = useForum();
   const forumPath = useForumPath();
+  const logoSrc = useLogoSrc();
 
   const [chooseForumModalOpen, setChooseForumModalOpen] = useState(false);
 
@@ -75,7 +77,7 @@ const SideNav: FC = () => {
         <Box sx={{ mb: 0, display: "flex", justifyContent: "center" }}>
           <Link to={forumPath("/")} style={{ textDecoration: "none" }}>
             <img
-              src="./symvolia-logo.svg"
+              src={logoSrc}
               alt="Symvolia"
               style={{ height: "3.1rem", width: "auto" }}
             />
