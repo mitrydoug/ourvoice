@@ -382,7 +382,7 @@ export const StatementCard: FC<StatementCardProps> = ({
     );
 
   const statsSlot = (
-    <Stack direction="row" alignItems="center" spacing={2} sx={{ mt: 0.5 }}>
+    <Stack direction="row" alignItems="center" spacing={2} sx={{ mt: 0.1 }}>
       <Tooltip title={`${globalSupport} total support`} arrow>
         <Typography
           variant="body2"

@@ -92,11 +92,11 @@ const VoteToggle: FC<VoteToggleProps> = ({
           borderRadius: 999,
           bgcolor: "action.hover",
           border: "1px solid",
-          borderColor: uncommittedSupport ? "warning.main" : "transparent",
-          px: 0.25,
+          borderColor: "transparent",
+          px: 0.75,
         }}
       >
-        {canClear && (
+        {showClear && (
           <Box
             sx={{
               width: 14,
@@ -106,21 +106,19 @@ const VoteToggle: FC<VoteToggleProps> = ({
               flexShrink: 0,
             }}
           >
-            {showClear && (
-              <ButtonBase
-                aria-label="Clear support"
-                onClick={onClear}
-                sx={{
-                  width: 14,
-                  height: 14,
-                  borderRadius: "50%",
-                  color: "text.disabled",
-                  "&:hover": { color: "text.primary" },
-                }}
-              >
-                <CloseIcon sx={{ fontSize: 12 }} />
-              </ButtonBase>
-            )}
+            <ButtonBase
+              aria-label="Clear support"
+              onClick={onClear}
+              sx={{
+                width: 14,
+                height: 14,
+                borderRadius: "50%",
+                color: "text.disabled",
+                "&:hover": { color: "text.primary" },
+              }}
+            >
+              <CloseIcon sx={{ fontSize: 12 }} />
+            </ButtonBase>
           </Box>
         )}
         <ButtonBase
