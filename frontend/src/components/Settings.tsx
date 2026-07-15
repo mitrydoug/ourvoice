@@ -24,6 +24,7 @@ import { useWalletAuth } from "@/wallet";
 
 import useUserIdentity from "@/hooks/useUserIdentity";
 import {
+  hasBackendSearch,
   useSearchEngineMode,
   type SearchEngineMode,
 } from "@/hooks/useSearchEngineMode";
@@ -254,57 +255,63 @@ const Settings: FC = () => {
             </Typography>
           </Box>
 
-          <Box>
-            <Stack
-              direction="row"
-              spacing={0.5}
-              alignItems="center"
-              sx={{ mb: 1 }}
-            >
-              <Typography variant="subtitle1" fontWeight={700}>
-                Search
-              </Typography>
-              <Tooltip
-                title={
-                  "Browser-local search runs entirely in this browser — no search server, more privacy, and it keeps working if the backend is down. " +
-                  "It indexes only currently-ranked statements plus those engaged in the last day, so older or low-support statements may not appear. " +
-                  "Similarity is keyword-based (not semantic). Backend search covers every statement."
-                }
-                enterTouchDelay={0}
-                leaveTouchDelay={6000}
+          {hasBackendSearch ? (
+            <Box>
+              <Stack
+                direction="row"
+                spacing={0.5}
+                alignItems="center"
+                sx={{ mb: 1 }}
               >
-                <InfoOutlinedIcon
-                  sx={{ fontSize: 16, color: "text.secondary", cursor: "help" }}
-                />
-              </Tooltip>
-            </Stack>
-            <ToggleButtonGroup
-              value={searchEngine}
-              exclusive
-              onChange={handleSearchEngineChange}
-              aria-label="Search engine"
-              size="small"
-              fullWidth
-            >
-              <ToggleButton value="backend" aria-label="Backend search">
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <CloudOutlinedIcon fontSize="small" />
-                  <span>Backend</span>
-                </Stack>
-              </ToggleButton>
-              <ToggleButton value="local" aria-label="Browser-local search">
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <StorageOutlinedIcon fontSize="small" />
-                  <span>Browser-local</span>
-                </Stack>
-              </ToggleButton>
-            </ToggleButtonGroup>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              {searchEngine === "local"
-                ? "Search runs in your browser. Covers ranked and recently-active statements only."
-                : "Search runs against the hosted search service. Covers all statements."}
-            </Typography>
-          </Box>
+                <Typography variant="subtitle1" fontWeight={700}>
+                  Search
+                </Typography>
+                <Tooltip
+                  title={
+                    "Browser-local search runs entirely in this browser — no search server, more privacy, and it keeps working if the backend is down. " +
+                    "It indexes only currently-ranked statements plus those engaged in the last day, so older or low-support statements may not appear. " +
+                    "Similarity is keyword-based (not semantic). Backend search covers every statement."
+                  }
+                  enterTouchDelay={0}
+                  leaveTouchDelay={6000}
+                >
+                  <InfoOutlinedIcon
+                    sx={{ fontSize: 16, color: "text.secondary", cursor: "help" }}
+                  />
+                </Tooltip>
+              </Stack>
+              <ToggleButtonGroup
+                value={searchEngine}
+                exclusive
+                onChange={handleSearchEngineChange}
+                aria-label="Search engine"
+                size="small"
+                fullWidth
+              >
+                <ToggleButton value="backend" aria-label="Backend search">
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <CloudOutlinedIcon fontSize="small" />
+                    <span>Backend</span>
+                  </Stack>
+                </ToggleButton>
+                <ToggleButton value="local" aria-label="Browser-local search">
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <StorageOutlinedIcon fontSize="small" />
+                    <span>Browser-local</span>
+                  </Stack>
+                </ToggleButton>
+              </ToggleButtonGroup>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mt: 1 }}
+              >
+                {searchEngine === "local"
+                  ? "Search runs in your browser. Covers ranked and recently-active statements only."
+                  : "Search runs against the hosted search service. Covers all statements."}
+              </Typography>
+            </Box>
+          ) : null}
 
           <Box>
             <Typography variant="subtitle1" fontWeight={700} gutterBottom>
