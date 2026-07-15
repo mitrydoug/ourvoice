@@ -92,7 +92,20 @@ const SupportChart: FC<SupportChartProps> = ({ statementId }) => {
   };
 
   return (
-    <Box sx={{ width: "100%", height: 160 }}>
+    <Box
+      sx={{
+        width: "100%",
+        height: 160,
+        userSelect: "none",
+        WebkitUserSelect: "none",
+      }}
+      onMouseDown={(event) => {
+        event.preventDefault();
+      }}
+      onDragStart={(event) => {
+        event.preventDefault();
+      }}
+    >
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart
           data={data}

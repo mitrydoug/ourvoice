@@ -14,6 +14,29 @@ export const creditsToParts = (
 ): number => credits * creditMultiplier;
 
 /**
+ * Quadratic credits consumed by a given support level in display credits.
+ * Example: support 3 consumes 6 credits (1 + 2 + 3).
+ */
+export const supportCreditsToAllocatedCredits = (
+  supportCredits: number,
+): number => {
+  const absSupportCredits = Math.abs(supportCredits);
+  return (absSupportCredits * (absSupportCredits + 1)) / 2;
+};
+
+/**
+ * Quadratic credits consumed by a given support level, expressed in credit parts.
+ */
+export const supportCreditsToAllocatedParts = (
+  supportCredits: number,
+  creditMultiplier: number,
+): number =>
+  creditsToParts(
+    supportCreditsToAllocatedCredits(supportCredits),
+    creditMultiplier,
+  );
+
+/**
  * Truncate an Ethereum address to `0x1a2B…3c4D` format.
  * Shows the first 6 and last 4 hex characters (industry standard).
  */

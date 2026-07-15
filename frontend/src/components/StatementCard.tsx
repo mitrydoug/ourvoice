@@ -15,38 +15,13 @@ import MergeIcon from "@mui/icons-material/Merge";
 import { useForumNavigate } from "../hooks/useForumNavigate";
 
 import { SupportAdjustmentType, useUserVotes } from "../state/UserVotes";
-
-// ── Coin icon SVG ────────────────────────────────────────────────────────────
-const CoinIcon = ({ size = 14 }: { size?: number }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <circle cx="12" cy="12" r="10" fill="#FBBF24" />
-    <circle cx="12" cy="12" r="8" fill="#F59E0B" />
-    <text
-      x="12"
-      y="16.5"
-      textAnchor="middle"
-      fontSize="12"
-      fontWeight="bold"
-      fill="#FFFBEB"
-      fontFamily="Inter, sans-serif"
-    >
-      C
-    </text>
-  </svg>
-);
-import VoteToggle from "./VoteToggle";
-import AnimatedCounter from "./AnimatedCounter";
 import StatementCardShell from "./StatementCardShell";
+import SupportVoteControls from "./SupportVoteControls";
 import { useReadContract } from "wagmi";
 import { useBlockSync } from "../hooks/useBlockSync";
 import { useForum, FORUM_ABI } from "../state/Forum";
 import { useCreditConversion } from "../hooks/useCreditConversion";
+import { supportCreditsToAllocatedCredits } from "../util";
 import {
   AVG_BLOCK_TIME,
   PERIODS_BACK,
@@ -201,7 +176,7 @@ export const StatementCard: FC<StatementCardProps> = ({
     getOnChainSupport,
     hasAdjustment,
   } = useUserVotes();
-  const { forumContractAddress, creditMultiplier } = useForum();
+  const { forumContractAddress } = useForum();
   const { toCredits, toParts } = useCreditConversion();
 
   const { blockNumber } = useBlockSync(() => {});
@@ -286,12 +261,6 @@ export const StatementCard: FC<StatementCardProps> = ({
       : null;
 
   const globalSupport = toCredits(Number(statement.support));
-
-  const absUserSupportParts = Math.abs(userSupportParts);
-  const creditsAllocated = toCredits(
-    (absUserSupportParts * (absUserSupportParts + creditMultiplier)) /
-      (2 * creditMultiplier),
-  );
 
   const isHotRankChange =
     rankChange !== null &&
@@ -431,36 +400,13 @@ export const StatementCard: FC<StatementCardProps> = ({
   ) : undefined;
 
   const voteControls = isUserVerified ? (
-    <Stack direction="row" alignItems="center" spacing={1}>
-      {creditsAllocated > 0 && (
-        <Tooltip
-          title={`You have ${creditsAllocated} credits providing ${userSupport} support`}
-          arrow
-        >
-          <Stack direction="row" alignItems="center" spacing={0.5}>
-            <CoinIcon size={16} />
-            <AnimatedCounter
-              value={creditsAllocated}
-              typographyProps={{
-                variant: "body2",
-                fontWeight: 600,
-                sx: {
-                  fontVariantNumeric: "tabular-nums",
-                  color: "text.secondary",
-                },
-              }}
-            />
-          </Stack>
-        </Tooltip>
-      )}
-      <VoteToggle
-        userSupport={userSupport}
-        uncommittedSupport={hasUncommittedSupport}
-        onUserVoteChange={handleSupportChange}
-        direction="compact"
-        onClear={() => handleSupportChange(0)}
-      />
-    </Stack>
+    <SupportVoteControls
+      userSupport={userSupport}
+      uncommittedSupport={hasUncommittedSupport}
+      onUserVoteChange={handleSupportChange}
+      onClear={() => handleSupportChange(0)}
+      creditsTooltip={`You have ${supportCreditsToAllocatedCredits(userSupport)} credits providing ${userSupport} support`}
+    />
   ) : undefined;
   const rightTopSlot = onSwitchSupport ? (
     <Tooltip title="Switch support to this statement" arrow>

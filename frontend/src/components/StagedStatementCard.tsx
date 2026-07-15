@@ -3,8 +3,8 @@ import { IconButton, Stack, Typography } from "@mui/material";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
 import { StagedStatement } from "../state/UserVotes";
-import VoteToggle from "./VoteToggle";
 import StatementCardShell from "./StatementCardShell";
+import SupportVoteControls from "./SupportVoteControls";
 import { useCreditConversion } from "../hooks/useCreditConversion";
 
 interface StagedStatementCardProps {
@@ -13,6 +13,10 @@ interface StagedStatementCardProps {
   onUpdateSupport?: (tempId: string, newSupport: number) => void;
 }
 
+/**
+ * Card for a locally staged statement that has not been committed on-chain yet.
+ * These appear at the top of StatementList when `showStagedStatements` is true.
+ */
 const StagedStatementCard: FC<StagedStatementCardProps> = ({
   staged,
   onUnstage,
@@ -53,14 +57,14 @@ const StagedStatementCard: FC<StagedStatementCardProps> = ({
   );
 
   const voteControls = onUpdateSupport ? (
-    <VoteToggle
+    <SupportVoteControls
       userSupport={initialSupportCredits}
       uncommittedSupport={true}
       onUserVoteChange={(newCreditSupport) =>
         onUpdateSupport(staged.tempId, toParts(newCreditSupport))
       }
-      direction="compact"
       onClear={() => onUpdateSupport(staged.tempId, 0)}
+      creditsTooltip={`This pending statement will use ${(Math.abs(initialSupportCredits) * (Math.abs(initialSupportCredits) + 1)) / 2} credits for ${initialSupportCredits} support`}
     />
   ) : undefined;
 

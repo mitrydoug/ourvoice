@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { writeQueryToHash } from "@/state/Search";
-import { useSearchEngineMode } from "./useSearchEngineMode";
+import { backendSearchUrl, useSearchEngineMode } from "./useSearchEngineMode";
 import { useLocalSearch } from "@/state/LocalSearch";
 import type { SearchMode } from "@/localSearch/types";
 
@@ -18,8 +18,6 @@ if (
 }
 
 export const SEARCH_RESULTS_LIMIT = configuredSearchResultsLimit;
-
-const SEARCH_URL = import.meta.env.VITE_SEARCH_URL ?? "http://localhost:8000";
 
 /** Debounce delay in milliseconds before running a search. */
 const DEBOUNCE_MS = 300;
@@ -99,6 +97,10 @@ export function useSearch(
       };
 
       const runBackend = async (): Promise<number[]> => {
+        if (!backendSearchUrl) {
+          throw new Error("Backend search is not configured");
+        }
+
         const lexicalParams = new URLSearchParams({
           statement_text: trimmed,
           forum_address: forumAddress,
@@ -116,7 +118,7 @@ export function useSearch(
         const fetchResults = async (): Promise<unknown> => {
           if (similarParams !== undefined) {
             const similarResponse = await fetch(
-              `${SEARCH_URL}/similar?${similarParams.toString()}`,
+              `${backendSearchUrl}/similar?${similarParams.toString()}`,
             );
             if (similarResponse.ok) {
               return similarResponse.json();
@@ -124,7 +126,7 @@ export function useSearch(
           }
 
           const lexicalResponse = await fetch(
-            `${SEARCH_URL}/search?${lexicalParams.toString()}`,
+            `${backendSearchUrl}/search?${lexicalParams.toString()}`,
           );
           if (!lexicalResponse.ok) {
             throw new Error("Search request failed");

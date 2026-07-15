@@ -13,7 +13,7 @@ import { useActiveWallet } from "./useActiveWallet";
 export const useWalletAuth = () => {
   const { ready, authenticated, login, logout } = usePrivy();
   const { wallets, ready: walletsReady } = useWallets();
-  const { address, activeWallet } = useActiveWallet();
+  const { address, activeWallet, kind } = useActiveWallet();
   const { disconnect: disconnectWagmi } = useDisconnect();
 
   // Sign out if an authenticated user has no connected wallet (e.g. an external
@@ -43,6 +43,7 @@ export const useWalletAuth = () => {
 
   return {
     address,
+    kind,
     // "Stand by" while wallet state is unknown: Privy is initialising, or the
     // user is authenticated but the participant address hasn't resolved yet.
     // Consumers use it to hold loading state instead of showing "logged out".
