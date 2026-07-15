@@ -119,6 +119,10 @@ type BeginCommit = {
   type: "BEGIN_COMMIT";
 };
 
+type BeginSubmission = {
+  type: "BEGIN_SUBMISSION";
+};
+
 type CommitSubmitted = {
   type: "COMMIT_SUBMITTED";
   payload: { txHash: `0x${string}` };
@@ -175,6 +179,7 @@ type UserSupportAction =
   | SwitchUserSupport
   | ClearStagedSupport
   | BeginCommit
+  | BeginSubmission
   | CommitSubmitted
   | CommitConfirmed
   | CommitCancelled
@@ -201,7 +206,7 @@ const inverseTriangle = (
       creditMultiplier * creditMultiplier + 8 * creditMultiplier * creditCost,
     ) -
       creditMultiplier) /
-      2,
+    2,
   );
 };
 
@@ -481,6 +486,10 @@ const reducer = (
       newState.commitStatus = "awaiting-approval";
       break;
     }
+    case "BEGIN_SUBMISSION": {
+      newState.commitStatus = "pending-confirmation";
+      break;
+    }
     case "COMMIT_SUBMITTED": {
       newState.commitStatus = "pending-confirmation";
       newState.pendingTxHash = action.payload.txHash;
@@ -630,9 +639,9 @@ const reducer = (
     ...newState,
     staged: newState.staged
       ? {
-          ...newState.staged,
-          credits: stagedCredits,
-        }
+        ...newState.staged,
+        credits: stagedCredits,
+      }
       : undefined,
     hasStagedChanges,
     hasEnoughCredits: stagedCredits >= 0,
@@ -695,8 +704,11 @@ export const UserVoteProvider: FC<{
     pendingDraftCost: 0,
   });
   const { writeContract, previewNetworkFee } = useContractWrite();
-  const { address: participantAddress, isLoading: isWalletLoading } =
-    useWalletAuth();
+  const {
+    address: participantAddress,
+    isLoading: isWalletLoading,
+    kind: walletKind,
+  } = useWalletAuth();
   const publicClient = usePublicClient();
   const {
     forumContractAddress,
@@ -792,10 +804,10 @@ export const UserVoteProvider: FC<{
   const persistKey =
     chainFingerprint && participantAddress
       ? stagedStorageKey(
-          chainFingerprint,
-          forumName,
-          participantAddress.slice(0, 10),
-        )
+        chainFingerprint,
+        forumName,
+        participantAddress.slice(0, 10),
+      )
       : undefined;
   const restoredKeyRef = useRef<string | undefined>(undefined);
   useEffect(() => {
@@ -987,7 +999,11 @@ export const UserVoteProvider: FC<{
         publicClient &&
         participantAddress
       ) {
-        dispatch({ type: "BEGIN_COMMIT" });
+        if (walletKind === "external") {
+          dispatch({ type: "BEGIN_COMMIT" });
+        } else {
+          dispatch({ type: "BEGIN_SUBMISSION" });
+        }
 
         try {
           const request = await buildCommitRequest();
@@ -1019,6 +1035,7 @@ export const UserVoteProvider: FC<{
       buildCommitRequest,
       publicClient,
       participantAddress,
+      walletKind,
       dispatch,
     ],
   );

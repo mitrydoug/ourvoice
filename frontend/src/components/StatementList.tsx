@@ -106,7 +106,10 @@ const StatementList: FC<StatementListProps> = ({
   return (
     <>
       <Stack spacing={1}>
-        {/* Staged (pending) statements */}
+        {/*
+          Staged (pending) statements live only in UserVotes state until commit.
+          Their card UI is rendered by StagedStatementCard.
+        */}
         {hasStagedStatements &&
           stagedStatements.map((staged) => (
             <StagedStatementCard

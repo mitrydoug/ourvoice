@@ -162,7 +162,9 @@ const Settings: FC = () => {
                 sx={{ width: 48, height: 48 }}
               />
               <Box sx={{ minWidth: 0 }}>
-                <Typography fontWeight={700}>Local profile</Typography>
+                <Typography fontWeight={700}>
+                  {nickname || "Anonymous"}
+                </Typography>
                 <Typography variant="body2" color="text.secondary" noWrap>
                   {shortenAddress(address)}
                 </Typography>
