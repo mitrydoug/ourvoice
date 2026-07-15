@@ -5,7 +5,9 @@ import useLocalStorageValue from "./useLocalStorageValue";
 export type SearchEngineMode = "backend" | "local";
 
 export const SEARCH_ENGINE_STORAGE_KEY = "symvolia:settings:searchEngine";
-export const backendSearchUrl = optionalEnvValue(import.meta.env.VITE_SEARCH_URL);
+export const backendSearchUrl = optionalEnvValue(
+  import.meta.env.VITE_SEARCH_URL,
+);
 export const hasBackendSearch = backendSearchUrl !== undefined;
 
 /**

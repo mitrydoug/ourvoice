@@ -276,7 +276,11 @@ const Settings: FC = () => {
                   leaveTouchDelay={6000}
                 >
                   <InfoOutlinedIcon
-                    sx={{ fontSize: 16, color: "text.secondary", cursor: "help" }}
+                    sx={{
+                      fontSize: 16,
+                      color: "text.secondary",
+                      cursor: "help",
+                    }}
                   />
                 </Tooltip>
               </Stack>
@@ -301,11 +305,7 @@ const Settings: FC = () => {
                   </Stack>
                 </ToggleButton>
               </ToggleButtonGroup>
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{ mt: 1 }}
-              >
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                 {searchEngine === "local"
                   ? "Search runs in your browser. Covers ranked and recently-active statements only."
                   : "Search runs against the hosted search service. Covers all statements."}

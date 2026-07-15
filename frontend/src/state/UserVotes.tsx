@@ -206,7 +206,7 @@ const inverseTriangle = (
       creditMultiplier * creditMultiplier + 8 * creditMultiplier * creditCost,
     ) -
       creditMultiplier) /
-    2,
+      2,
   );
 };
 
@@ -639,9 +639,9 @@ const reducer = (
     ...newState,
     staged: newState.staged
       ? {
-        ...newState.staged,
-        credits: stagedCredits,
-      }
+          ...newState.staged,
+          credits: stagedCredits,
+        }
       : undefined,
     hasStagedChanges,
     hasEnoughCredits: stagedCredits >= 0,
@@ -804,10 +804,10 @@ export const UserVoteProvider: FC<{
   const persistKey =
     chainFingerprint && participantAddress
       ? stagedStorageKey(
-        chainFingerprint,
-        forumName,
-        participantAddress.slice(0, 10),
-      )
+          chainFingerprint,
+          forumName,
+          participantAddress.slice(0, 10),
+        )
       : undefined;
   const restoredKeyRef = useRef<string | undefined>(undefined);
   useEffect(() => {

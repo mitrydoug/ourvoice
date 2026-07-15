@@ -1,9 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { writeQueryToHash } from "@/state/Search";
-import {
-  backendSearchUrl,
-  useSearchEngineMode,
-} from "./useSearchEngineMode";
+import { backendSearchUrl, useSearchEngineMode } from "./useSearchEngineMode";
 import { useLocalSearch } from "@/state/LocalSearch";
 import type { SearchMode } from "@/localSearch/types";
 
@@ -113,10 +110,10 @@ export function useSearch(
           similarStatementId === undefined
             ? undefined
             : new URLSearchParams({
-              statement_id: similarStatementId.toString(),
-              forum_address: forumAddress,
-              limit: SEARCH_RESULTS_LIMIT.toString(),
-            });
+                statement_id: similarStatementId.toString(),
+                forum_address: forumAddress,
+                limit: SEARCH_RESULTS_LIMIT.toString(),
+              });
 
         const fetchResults = async (): Promise<unknown> => {
           if (similarParams !== undefined) {
