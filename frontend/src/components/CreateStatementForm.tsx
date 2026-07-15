@@ -1,9 +1,10 @@
-import { FC, useCallback, useEffect, useState } from "react";
+import { FC, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Box, Button, Card, InputBase, Stack, Typography } from "@mui/material";
 import { useForumNavigate } from "../hooks/useForumNavigate";
 
 import { useUserVotes } from "../state/UserVotes";
 import { useForum } from "../state/Forum";
+import { useWalletAuth } from "@/wallet";
 import SupportVoteControls from "./SupportVoteControls";
 import SimilarStatements from "./SimilarStatements";
 import {
@@ -13,15 +14,124 @@ import {
 } from "../util";
 
 const MAX_STATEMENT_LENGTH = 120;
+const DRAFT_SAVE_DEBOUNCE_MS = 300;
+
+interface PersistedCreateStatementDraft {
+  text: string;
+  initialSupport: number;
+}
+
+const createDraftStorageKey = (
+  chainFingerprint: string,
+  forumName: string,
+  addressKey: string,
+): string =>
+  `symvolia:create-draft:${chainFingerprint}:${forumName}:${addressKey}`;
+
+const loadDraftFromStorage = (
+  key: string,
+): PersistedCreateStatementDraft | null => {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw) as Partial<PersistedCreateStatementDraft>;
+    return {
+      text: typeof parsed.text === "string" ? parsed.text : "",
+      initialSupport: Number.isFinite(parsed.initialSupport)
+        ? Number(parsed.initialSupport)
+        : 0,
+    };
+  } catch {
+    return null;
+  }
+};
+
+const saveDraftToStorage = (
+  key: string,
+  draft: PersistedCreateStatementDraft,
+): void => {
+  try {
+    localStorage.setItem(key, JSON.stringify(draft));
+  } catch {
+    // Ignore localStorage write failures.
+  }
+};
+
+const clearDraftFromStorage = (key: string): void => {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    // Ignore localStorage removal failures.
+  }
+};
 
 const CreateStatementForm: FC = () => {
   const navigate = useForumNavigate();
   const [text, setText] = useState("");
   const [initialSupport, setInitialSupport] = useState(0);
+  const [hasHydratedDraft, setHasHydratedDraft] = useState(false);
+  const hydratedDraftKeyRef = useRef<string | undefined>(undefined);
 
   const { isUserVerified, stageStatement, setPendingDraftCost } =
     useUserVotes();
-  const { creditMultiplier } = useForum();
+  const { address } = useWalletAuth();
+  const { creditMultiplier, name: forumName, chainFingerprint } = useForum();
+  const draftStorageKey = useMemo(() => {
+    if (!chainFingerprint) return undefined;
+
+    return createDraftStorageKey(
+      chainFingerprint,
+      forumName,
+      address?.slice(0, 10) ?? "anon",
+    );
+  }, [address, chainFingerprint, forumName]);
+
+  useEffect(() => {
+    if (!draftStorageKey) {
+      hydratedDraftKeyRef.current = undefined;
+      setHasHydratedDraft(false);
+      return;
+    }
+
+    if (hydratedDraftKeyRef.current === draftStorageKey) {
+      return;
+    }
+
+    hydratedDraftKeyRef.current = draftStorageKey;
+
+    if (text !== "" || initialSupport !== 0) {
+      setHasHydratedDraft(true);
+      return;
+    }
+
+    const draft = loadDraftFromStorage(draftStorageKey);
+    if (draft) {
+      setText(draft.text.slice(0, MAX_STATEMENT_LENGTH));
+      setInitialSupport(draft.initialSupport);
+    }
+    setHasHydratedDraft(true);
+  }, [draftStorageKey, initialSupport, text]);
+
+  useEffect(() => {
+    if (!draftStorageKey || !hasHydratedDraft) return;
+
+    const handle = window.setTimeout(() => {
+      if (text.trim() === "" && initialSupport === 0) {
+        clearDraftFromStorage(draftStorageKey);
+        return;
+      }
+
+      saveDraftToStorage(draftStorageKey, {
+        text,
+        initialSupport,
+      });
+    }, DRAFT_SAVE_DEBOUNCE_MS);
+
+    return () => {
+      window.clearTimeout(handle);
+    };
+  }, [draftStorageKey, hasHydratedDraft, initialSupport, text]);
 
   // ── Handlers ───────────────────────────────────────────────────────────
   const updateText = useCallback((textVal: string) => {
@@ -43,10 +153,14 @@ const CreateStatementForm: FC = () => {
   const handleCreate = useCallback(() => {
     if (text.length > 0 && isUserVerified && stageStatement) {
       setPendingDraftCost(0);
+      if (draftStorageKey) {
+        clearDraftFromStorage(draftStorageKey);
+      }
       stageStatement(text, creditsToParts(initialSupport, creditMultiplier));
       void navigate("/my-statements");
     }
   }, [
+    draftStorageKey,
     text,
     initialSupport,
     isUserVerified,
@@ -58,8 +172,11 @@ const CreateStatementForm: FC = () => {
 
   const handleCancel = useCallback(() => {
     setPendingDraftCost(0);
+    if (draftStorageKey) {
+      clearDraftFromStorage(draftStorageKey);
+    }
     void navigate("/");
-  }, [setPendingDraftCost, navigate]);
+  }, [draftStorageKey, setPendingDraftCost, navigate]);
 
   return (
     <Box>
