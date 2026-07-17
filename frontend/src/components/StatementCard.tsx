@@ -2,6 +2,7 @@ import { FC } from "react";
 import {
   Box,
   ButtonBase,
+  Chip,
   CircularProgress,
   IconButton,
   Stack,
@@ -11,8 +12,11 @@ import {
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import MergeIcon from "@mui/icons-material/Merge";
+import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import { useNavigate } from "react-router-dom";
 
 import { useForumNavigate } from "../hooks/useForumNavigate";
+import { useWalletAuth } from "@/wallet";
 
 import { SupportAdjustmentType, useUserVotes } from "../state/UserVotes";
 import StatementCardShell from "./StatementCardShell";
@@ -166,20 +170,23 @@ export const StatementCard: FC<StatementCardProps> = ({
   onSwitchSupport,
 }) => {
   const navigate = useForumNavigate();
+  const rawNavigate = useNavigate();
   const handleCardClick = () => {
     void navigate(`/statement/${statement.id}`);
   };
   const {
     isUserVerified,
+    isVerifiedLoading,
     dispatch,
     getEffectiveSupport,
     getOnChainSupport,
     hasAdjustment,
   } = useUserVotes();
+  const { address, connect, isLoading: isWalletLoading } = useWalletAuth();
   const { forumContractAddress } = useForum();
   const { toCredits, toParts } = useCreditConversion();
 
-  const { blockNumber } = useBlockSync(() => {});
+  const { blockNumber } = useBlockSync(() => { });
 
   const { data: historicalData } = useReadContract({
     address: forumContractAddress,
@@ -233,13 +240,13 @@ export const StatementCard: FC<StatementCardProps> = ({
     const adjustment =
       newCreditSupport === 0
         ? {
-            value: 0,
-            adjustmentType: SupportAdjustmentType.SetTo,
-          }
+          value: 0,
+          adjustmentType: SupportAdjustmentType.SetTo,
+        }
         : {
-            value: toParts(newCreditSupport - onChainCredits),
-            adjustmentType: SupportAdjustmentType.Delta,
-          };
+          value: toParts(newCreditSupport - onChainCredits),
+          adjustmentType: SupportAdjustmentType.Delta,
+        };
     dispatch({
       type: "STAGE_USER_SUPPORT",
       payload: {
@@ -255,9 +262,9 @@ export const StatementCard: FC<StatementCardProps> = ({
   const rankingProgress =
     rankingThreshold !== undefined
       ? rankingProgressPercent(
-          Number(statement.support),
-          Number(rankingThreshold),
-        )
+        Number(statement.support),
+        Number(rankingThreshold),
+      )
       : null;
 
   const globalSupport = toCredits(Number(statement.support));
@@ -407,7 +414,46 @@ export const StatementCard: FC<StatementCardProps> = ({
       onClear={() => handleSupportChange(0)}
       creditsTooltip={`You have ${supportCreditsToAllocatedCredits(userSupport)} credits providing ${userSupport} support`}
     />
-  ) : undefined;
+  ) : isVerifiedLoading || isWalletLoading ? undefined : (
+    // Gentle affordance so a signed-out / unverified visitor can see that
+    // statements are interactive, and how to unlock supporting them.
+    <Tooltip
+      title={
+        address
+          ? "Verify you're human to support this statement"
+          : "Join in to support this statement"
+      }
+      arrow
+    >
+      <Chip
+        icon={<AddRoundedIcon sx={{ fontSize: 16 }} />}
+        label={address ? "Verify to support" : "Join in to support"}
+        size="small"
+        variant="outlined"
+        clickable
+        onClick={(e) => {
+          e.stopPropagation();
+          if (address) {
+            void rawNavigate("/verify");
+          } else {
+            connect();
+          }
+        }}
+        sx={{
+          color: "text.secondary",
+          borderColor: "divider",
+          fontWeight: 600,
+          "& .MuiChip-icon": { color: "text.secondary" },
+          "&:hover": {
+            color: "primary.main",
+            borderColor: "primary.main",
+            bgcolor: "action.hover",
+            "& .MuiChip-icon": { color: "primary.main" },
+          },
+        }}
+      />
+    </Tooltip>
+  );
   const rightTopSlot = onSwitchSupport ? (
     <Tooltip title="Switch support to this statement" arrow>
       <ButtonBase

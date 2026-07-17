@@ -1,8 +1,9 @@
 import { FC, useEffect, useState } from "react";
 import Box from "@mui/material/Box";
-import { Button, Fab } from "@mui/material";
+import { Button, CircularProgress, Fab } from "@mui/material";
 import { Outlet, useLocation, useParams } from "react-router-dom";
 import CreateIcon from "@mui/icons-material/Create";
+import LoginRoundedIcon from "@mui/icons-material/LoginRounded";
 
 import MenuAppBar from "./AppBar";
 import SideNav from "./SideNav";
@@ -39,9 +40,30 @@ const RightColumn: FC = () => {
 
   if (!address) {
     return (
-      <Button onClick={connect} size="medium" fullWidth disabled={isLoading}>
-        Connect Wallet
-      </Button>
+      <Box sx={{ display: "flex", justifyContent: "flex-start" }}>
+        <Button
+          onClick={connect}
+          disabled={isLoading}
+          size="medium"
+          startIcon={
+            isLoading ? (
+              <CircularProgress size={16} color="inherit" />
+            ) : (
+              <LoginRoundedIcon />
+            )
+          }
+          sx={{
+            borderRadius: 999,
+            px: 3,
+            py: 1,
+            fontWeight: 700,
+            fontSize: "0.95rem",
+            boxShadow: 2,
+          }}
+        >
+          {isLoading ? "Connecting…" : "Join In"}
+        </Button>
+      </Box>
     );
   }
 

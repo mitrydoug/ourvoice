@@ -213,6 +213,15 @@ const HowItWorks: FC = () => {
             Write a statement
           </Button>
         </Stack>
+
+        <Button
+          variant="text"
+          size="small"
+          onClick={() => void rawNavigate("/welcome")}
+          sx={{ alignSelf: "flex-start", color: "text.secondary" }}
+        >
+          Show the welcome screen
+        </Button>
       </Stack>
     </Box>
   );
