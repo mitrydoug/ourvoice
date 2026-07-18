@@ -9,7 +9,6 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
-  Divider,
   List,
   ListItemButton,
   ListItemIcon,
@@ -98,13 +97,13 @@ const UserProfilePanel: React.FC = () => {
     : false;
   const commitBusy = isUserVerified
     ? userVotes.state?.commitStatus !== undefined &&
-      userVotes.state?.commitStatus !== "idle"
+    userVotes.state?.commitStatus !== "idle"
     : false;
-  const commitChanges = isUserVerified ? userVotes.commitChanges : () => {};
+  const commitChanges = isUserVerified ? userVotes.commitChanges : () => { };
   const previewCommitChanges = isUserVerified
     ? userVotes.previewCommitChanges
     : undefined;
-  const resetChanges = isUserVerified ? userVotes.resetChanges : () => {};
+  const resetChanges = isUserVerified ? userVotes.resetChanges : () => { };
   const hasEnoughCredits = isUserVerified
     ? (userVotes.state?.hasEnoughCredits ?? true)
     : true;
@@ -125,6 +124,13 @@ const UserProfilePanel: React.FC = () => {
   const [commitPreviewError, setCommitPreviewError] = useState<string>();
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+
+  const showGetVerified = !isRegistered;
+  const showCitizenNote = Boolean(
+    isRegistered && !isUserVerified && forum?.countryCode,
+  );
+  const showCredits = credits !== null;
+  const hasActionPanel = showGetVerified || showCitizenNote || showCredits;
 
   useEffect(() => {
     if (!commitDialogOpen || !previewCommitChanges) return;
@@ -162,54 +168,78 @@ const UserProfilePanel: React.FC = () => {
 
   if (isStatusLoading) {
     return (
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          borderRadius: 4,
-          bgcolor: "action.hover",
-          px: 2,
-          pt: 2,
-          pb: 1,
-        }}
-      >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+      <>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1.5,
+            bgcolor: "action.hover",
+            borderRadius: 999,
+            pl: 1,
+            pr: 1.5,
+            py: 1,
+          }}
+        >
           <Skeleton variant="circular" width={36} height={36} />
           <Box sx={{ flex: 1 }}>
             <Skeleton variant="text" width="70%" height={24} />
             <Skeleton variant="text" width="50%" height={18} />
           </Box>
         </Box>
-        <Divider sx={{ my: 1.5 }} />
-        <Skeleton variant="rounded" width="100%" height={36} />
-      </Box>
+        <Box
+          sx={{
+            borderRadius: 4,
+            bgcolor: "action.hover",
+            p: 2,
+            mt: 1.5,
+          }}
+        >
+          <Skeleton variant="rounded" width="100%" height={36} />
+        </Box>
+      </>
     );
   }
 
   return (
     <>
+      {/* Account chip + menu — one connected surface */}
       <Box
         sx={{
-          display: "flex",
-          flexDirection: "column",
-          borderRadius: 4,
           bgcolor: "action.hover",
-          px: 2,
-          pt: 2,
-          pb: 1,
+          borderTopLeftRadius: "30px",
+          borderTopRightRadius: "30px",
+          borderBottomLeftRadius: menuOpen ? "16px" : "30px",
+          borderBottomRightRadius: menuOpen ? "16px" : "30px",
+          overflow: "hidden",
+          transition: (theme) =>
+            theme.transitions.create("border-radius", {
+              duration: theme.transitions.duration.shortest,
+            }),
         }}
       >
-        {/* Avatar + name row */}
+        {/* header row — toggles the account menu */}
         <Box
+          onClick={() => setMenuOpen((prev) => !prev)}
+          role="button"
+          aria-label={menuOpen ? "Collapse account menu" : "Open account menu"}
           sx={{
             display: "flex",
             alignItems: "center",
             gap: 1.5,
+            pl: 1,
+            pr: 1.5,
+            py: 0.5,
+            cursor: "pointer",
+            bgcolor: menuOpen ? "action.selected" : "transparent",
+            "&:hover": { bgcolor: "action.selected" },
+            borderBottomLeftRadius: "30px",
+            borderBottomRightRadius: "30px",
           }}
         >
           <Avatar src={avatar ?? undefined} sx={{ width: 36, height: 36 }} />
 
-          <Box sx={{ minWidth: 0 }}>
+          <Box sx={{ minWidth: 0, flex: 1, ml: 0.5 }}>
             <Typography variant="subtitle1" fontWeight={700} noWrap>
               {displayName}
             </Typography>
@@ -240,6 +270,7 @@ const UserProfilePanel: React.FC = () => {
                   display: "flex",
                   alignItems: "center",
                   gap: 0.75,
+                  ml: 0.5,
                 }}
               >
                 {alpha2 ? (
@@ -269,12 +300,90 @@ const UserProfilePanel: React.FC = () => {
               </Box>
             )}
           </Box>
+
+          {menuOpen ? (
+            <KeyboardArrowUpIcon
+              sx={{ color: "text.secondary", flexShrink: 0 }}
+            />
+          ) : (
+            <KeyboardArrowDownIcon
+              sx={{ color: "text.secondary", flexShrink: 0 }}
+            />
+          )}
         </Box>
 
-        {/* Credits / Join In section */}
-        {!isStatusLoading && !isRegistered && (
-          <>
-            <Divider sx={{ my: 1.5 }} />
+        {/* menu folds out underneath, sharing the chip surface */}
+        <Collapse in={menuOpen}>
+          <List disablePadding sx={{ px: 0.5, pb: 0.5, pt: 0.5 }}>
+            <ListItemButton
+              dense
+              onClick={() => void navigate("/profile")}
+              sx={{
+                borderRadius: 2,
+                py: 0.5,
+                "&:hover": { bgcolor: "action.selected" },
+              }}
+            >
+              <ListItemIcon sx={{ minWidth: 32 }}>
+                <PersonIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText
+                primary="Profile"
+                slotProps={{ primary: { variant: "body2" } }}
+              />
+            </ListItemButton>
+            <ListItemButton
+              dense
+              onClick={() => void navigate("/settings")}
+              sx={{
+                borderRadius: 2,
+                py: 0.5,
+                "&:hover": { bgcolor: "action.selected" },
+              }}
+            >
+              <ListItemIcon sx={{ minWidth: 32 }}>
+                <SettingsIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText
+                primary="Settings"
+                slotProps={{ primary: { variant: "body2" } }}
+              />
+            </ListItemButton>
+            <ListItemButton
+              dense
+              onClick={() => disconnect()}
+              sx={{
+                borderRadius: 2,
+                py: 0.5,
+                color: "#e57373",
+                "&:hover": { bgcolor: "action.selected" },
+              }}
+            >
+              <ListItemIcon sx={{ minWidth: 32, color: "inherit" }}>
+                <LogoutIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText
+                primary="Disconnect"
+                slotProps={{ primary: { variant: "body2" } }}
+              />
+            </ListItemButton>
+          </List>
+        </Collapse>
+      </Box>
+
+      {/* Actions panel — credits + verification actions */}
+      {hasActionPanel && (
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            borderRadius: 4,
+            bgcolor: "action.hover",
+            p: 2,
+            mt: 1.5,
+          }}
+        >
+          {showGetVerified && (
             <Button
               variant="contained"
               fullWidth
@@ -287,183 +396,124 @@ const UserProfilePanel: React.FC = () => {
             >
               Get Verified
             </Button>
-          </>
-        )}
-        {!isStatusLoading &&
-          isRegistered &&
-          !isUserVerified &&
-          forum?.countryCode && (
-            <>
-              <Divider sx={{ my: 1.5 }} />
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{ textAlign: "center" }}
-              >
-                Only {toDemonym(forum.countryCode) ?? forum.label} citizens can
-                participate in this Forum.
-              </Typography>
-            </>
           )}
-        {credits !== null && (
-          <>
-            <Divider sx={{ my: 1.5 }} />
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 0.75,
-                ...(isOverBudget && {
-                  bgcolor: "error.main",
-                  color: "error.contrastText",
-                  borderRadius: 100,
-                  px: 1.5,
-                  py: 0.25,
-                }),
-              }}
+          {isRegistered && !isUserVerified && forum?.countryCode && (
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ textAlign: "center" }}
             >
-              <CoinIcon size={20} />
-              <AnimatedCounter
-                value={credits}
-                typographyProps={{
-                  variant: "body1",
-                  fontWeight: 700,
-                  sx: {
-                    fontVariantNumeric: "tabular-nums",
-                    color: "inherit",
-                  },
-                }}
-              />
-              <Typography
-                variant="body2"
-                color={isOverBudget ? "inherit" : "text.secondary"}
-              >
-                Credits
-              </Typography>
-            </Box>
-
-            {/* Lock It In + Reset buttons */}
-            <Box sx={{ display: "flex", gap: 1, mt: 1.5 }}>
-              <Button
-                variant="contained"
-                size="small"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setCommitDialogOpen(true);
-                }}
-                disabled={!hasStagedChanges || commitBusy || !hasEnoughCredits}
+              Only {toDemonym(forum.countryCode) ?? forum.label} citizens can
+              participate in this Forum.
+            </Typography>
+          )}
+          {showCredits && (
+            <>
+              <Box
                 sx={{
-                  flex: 2,
-                  borderRadius: 2,
-                  fontWeight: 700,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
-                  ...(hasStagedChanges && !commitBusy
-                    ? {
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 0.75,
+                  ...(isOverBudget && {
+                    bgcolor: "error.main",
+                    color: "error.contrastText",
+                    borderRadius: 100,
+                    px: 1.5,
+                    py: 0.25,
+                  }),
+                }}
+              >
+                <CoinIcon size={20} />
+                <AnimatedCounter
+                  value={credits}
+                  typographyProps={{
+                    variant: "body1",
+                    fontWeight: 700,
+                    sx: {
+                      fontVariantNumeric: "tabular-nums",
+                      color: "inherit",
+                    },
+                  }}
+                />
+                <Typography
+                  variant="body2"
+                  color={isOverBudget ? "inherit" : "text.secondary"}
+                >
+                  Credits
+                </Typography>
+              </Box>
+
+              {/* Lock It In + Reset buttons */}
+              <Box sx={{ display: "flex", gap: 1, mt: 1.5 }}>
+                <Button
+                  variant="contained"
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCommitDialogOpen(true);
+                  }}
+                  disabled={
+                    !hasStagedChanges || commitBusy || !hasEnoughCredits
+                  }
+                  sx={{
+                    flex: 2,
+                    borderRadius: 2,
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                    ...(hasStagedChanges && !commitBusy
+                      ? {
                         animation: `${shimmer} 1.5s ease-in-out infinite`,
                       }
-                    : {}),
-                }}
-              >
-                Lock it in!
-              </Button>
+                      : {}),
+                  }}
+                >
+                  Lock it in!
+                </Button>
+                <Button
+                  variant="contained"
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setResetDialogOpen(true);
+                  }}
+                  disabled={!hasStagedChanges || commitBusy}
+                  sx={{
+                    flex: 1,
+                    borderRadius: 2,
+                    fontWeight: 700,
+                    textTransform: "none",
+                    backgroundColor: "grey.400",
+                    color: "white",
+                    "&:hover": {
+                      backgroundColor: "grey.500",
+                    },
+                  }}
+                >
+                  Reset
+                </Button>
+              </Box>
               <Button
                 variant="contained"
+                fullWidth
                 size="small"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setResetDialogOpen(true);
-                }}
-                disabled={!hasStagedChanges || commitBusy}
+                startIcon={<CreateIcon />}
+                onClick={() => void navigate("/write")}
                 sx={{
-                  flex: 1,
                   borderRadius: 2,
                   fontWeight: 700,
-                  textTransform: "none",
-                  backgroundColor: "grey.400",
-                  color: "white",
-                  "&:hover": {
-                    backgroundColor: "grey.500",
-                  },
+                  letterSpacing: "0.05em",
+                  mt: 1,
+                  textTransform: "uppercase",
                 }}
               >
-                Reset
+                Write
               </Button>
-            </Box>
-            <Button
-              variant="contained"
-              fullWidth
-              size="small"
-              startIcon={<CreateIcon />}
-              onClick={() => void navigate("/write")}
-              sx={{
-                borderRadius: 2,
-                fontWeight: 700,
-                letterSpacing: "0.05em",
-                mt: 1,
-                textTransform: "uppercase",
-              }}
-            >
-              Write
-            </Button>
-          </>
-        )}
-
-        <Divider sx={{ my: 1.5 }} />
-
-        <Collapse in={menuOpen}>
-          <List disablePadding dense>
-            <ListItemButton
-              onClick={() => void navigate("/profile")}
-              sx={{ borderRadius: 2 }}
-            >
-              <ListItemIcon sx={{ minWidth: 36 }}>
-                <PersonIcon fontSize="small" />
-              </ListItemIcon>
-              <ListItemText primary="Profile" />
-            </ListItemButton>
-            <ListItemButton
-              onClick={() => void navigate("/settings")}
-              sx={{ borderRadius: 2 }}
-            >
-              <ListItemIcon sx={{ minWidth: 36 }}>
-                <SettingsIcon fontSize="small" />
-              </ListItemIcon>
-              <ListItemText primary="Settings" />
-            </ListItemButton>
-            <ListItemButton
-              onClick={(e) => {
-                e.stopPropagation();
-                disconnect();
-              }}
-              sx={{ borderRadius: 2, color: "#e57373" }}
-            >
-              <ListItemIcon sx={{ minWidth: 36, color: "inherit" }}>
-                <LogoutIcon fontSize="small" />
-              </ListItemIcon>
-              <ListItemText primary="Disconnect" />
-            </ListItemButton>
-          </List>
-        </Collapse>
-
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "center",
-            cursor: "pointer",
-          }}
-          onClick={() => setMenuOpen((prev) => !prev)}
-          role="button"
-          aria-label={menuOpen ? "Collapse menu" : "Expand menu"}
-        >
-          {menuOpen ? (
-            <KeyboardArrowUpIcon sx={{ color: "text.secondary" }} />
-          ) : (
-            <KeyboardArrowDownIcon sx={{ color: "text.secondary" }} />
+            </>
           )}
         </Box>
-      </Box>
+      )}
 
       <CommitConfirmationDialog
         open={commitDialogOpen}
