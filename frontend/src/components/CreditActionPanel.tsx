@@ -255,8 +255,8 @@ const CreditActionPanel: React.FC = () => {
                   <Tooltip
                     title={
                       !hasEnoughCredits
-                        ? "Not enough credits to sync"
-                        : "Sync changes"
+                        ? "Not enough credits"
+                        : "Submit changes"
                     }
                   >
                     <span>
