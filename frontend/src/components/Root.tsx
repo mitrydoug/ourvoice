@@ -11,6 +11,7 @@ import BottomNav from "./BottomNav";
 import CreateStatementModal from "./CreateStatementModal";
 import SearchField from "./SearchField";
 import UserProfilePanel from "./UserProfilePanel";
+import CreditActionPanel from "./CreditActionPanel";
 import useIsMobile from "@/hooks/useIsMobile";
 import { useForumNavigate } from "@/hooks/useForumNavigate";
 import { useUserVotes } from "../state/UserVotes";
@@ -68,7 +69,12 @@ const RightColumn: FC = () => {
     );
   }
 
-  return <UserProfilePanel />;
+  return (
+    <>
+      <UserProfilePanel />
+      <CreditActionPanel />
+    </>
+  );
 };
 
 /* ── Desktop: 3-column layout ─────────────────────────────────────────── */
