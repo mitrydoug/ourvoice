@@ -4,16 +4,19 @@ import {
   Box,
   Button,
   Collapse,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
   DialogContentText,
   DialogTitle,
+  IconButton,
   List,
   ListItemButton,
   ListItemIcon,
   ListItemText,
   Skeleton,
+  Tooltip,
   Typography,
   keyframes,
 } from "@mui/material";
@@ -22,7 +25,9 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import LogoutIcon from "@mui/icons-material/Logout";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
-import CreateIcon from "@mui/icons-material/Create";
+import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
+import SendRoundedIcon from "@mui/icons-material/SendRounded";
+import ClearRoundedIcon from "@mui/icons-material/ClearRounded";
 import { useNavigate } from "react-router-dom";
 import { useForumNavigate } from "@/hooks/useForumNavigate";
 import { useUserVotes } from "../state/UserVotes";
@@ -131,6 +136,7 @@ const UserProfilePanel: React.FC = () => {
   );
   const showCredits = credits !== null;
   const hasActionPanel = showGetVerified || showCitizenNote || showCredits;
+  const pendingCount = stagedStatementCount + stagedSupportCount;
 
   useEffect(() => {
     if (!commitDialogOpen || !previewCommitChanges) return;
@@ -239,7 +245,7 @@ const UserProfilePanel: React.FC = () => {
         >
           <Avatar src={avatar ?? undefined} sx={{ width: 36, height: 36 }} />
 
-          <Box sx={{ minWidth: 0, flex: 1, ml: 0.5 }}>
+          <Box sx={{ minWidth: 0, flex: 1, ml: 0.5, mb: 0.25 }}>
             <Typography variant="subtitle1" fontWeight={700} noWrap>
               {displayName}
             </Typography>
@@ -409,107 +415,124 @@ const UserProfilePanel: React.FC = () => {
           )}
           {showCredits && (
             <>
+              {/* Info row — credits headline + status, constant height */}
               <Box
                 sx={{
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "center",
-                  gap: 0.75,
-                  ...(isOverBudget && {
-                    bgcolor: "error.main",
-                    color: "error.contrastText",
-                    borderRadius: 100,
-                    px: 1.5,
-                    py: 0.25,
-                  }),
+                  justifyContent: "space-between",
+                  gap: 1,
                 }}
               >
-                <CoinIcon size={20} />
-                <AnimatedCounter
-                  value={credits}
-                  typographyProps={{
-                    variant: "body1",
-                    fontWeight: 700,
-                    sx: {
-                      fontVariantNumeric: "tabular-nums",
-                      color: "inherit",
-                    },
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 0.75,
+                    minWidth: 0,
                   }}
-                />
-                <Typography
-                  variant="body2"
-                  color={isOverBudget ? "inherit" : "text.secondary"}
                 >
-                  Credits
-                </Typography>
-              </Box>
+                  <CoinIcon size={18} />
+                  <AnimatedCounter
+                    value={credits}
+                    typographyProps={{
+                      variant: "body1",
+                      fontWeight: 700,
+                      sx: {
+                        fontVariantNumeric: "tabular-nums",
+                        lineHeight: 1,
+                        color: isOverBudget ? "error.main" : "text.primary",
+                      },
+                    }}
+                  />
+                  <Typography variant="caption" color="text.secondary">
+                    credits
+                  </Typography>
+                </Box>
 
-              {/* Lock It In + Reset buttons */}
-              <Box sx={{ display: "flex", gap: 1, mt: 1.5 }}>
-                <Button
-                  variant="contained"
-                  size="small"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setCommitDialogOpen(true);
-                  }}
-                  disabled={
-                    !hasStagedChanges || commitBusy || !hasEnoughCredits
-                  }
-                  sx={{
-                    flex: 2,
-                    borderRadius: 2,
-                    fontWeight: 700,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em",
-                    ...(hasStagedChanges && !commitBusy
-                      ? {
-                        animation: `${shimmer} 1.5s ease-in-out infinite`,
+                {commitBusy || hasStagedChanges ? (
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 0.5,
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Tooltip
+                      title={
+                        !hasEnoughCredits
+                          ? "Not enough credits to sync"
+                          : "Sync changes"
                       }
-                      : {}),
-                  }}
-                >
-                  Lock it in!
-                </Button>
-                <Button
-                  variant="contained"
-                  size="small"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setResetDialogOpen(true);
-                  }}
-                  disabled={!hasStagedChanges || commitBusy}
-                  sx={{
-                    flex: 1,
-                    borderRadius: 2,
-                    fontWeight: 700,
-                    textTransform: "none",
-                    backgroundColor: "grey.400",
-                    color: "white",
-                    "&:hover": {
-                      backgroundColor: "grey.500",
-                    },
-                  }}
-                >
-                  Reset
-                </Button>
+                    >
+                      <span>
+                        <Button
+                          variant="contained"
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCommitDialogOpen(true);
+                          }}
+                          disabled={commitBusy || !hasEnoughCredits}
+                          sx={{
+                            minWidth: 0,
+                            borderRadius: 2,
+                            px: 1.25,
+                            py: 0.25,
+                            gap: 0.5,
+                            fontWeight: 700,
+                            fontVariantNumeric: "tabular-nums",
+                            ...(hasStagedChanges && !commitBusy
+                              ? {
+                                animation: `${shimmer} 1.5s ease-in-out infinite`,
+                              }
+                              : {}),
+                          }}
+                        >
+                          {commitBusy ? (
+                            <CircularProgress size={16} color="inherit" />
+                          ) : (
+                            <>
+                              {pendingCount}
+                              <SendRoundedIcon sx={{ fontSize: 16 }} />
+                            </>
+                          )}
+                        </Button>
+                      </span>
+                    </Tooltip>
+                    {!commitBusy && (
+                      <Tooltip title="Discard changes">
+                        <IconButton
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setResetDialogOpen(true);
+                          }}
+                          sx={{ color: "text.secondary" }}
+                        >
+                          <ClearRoundedIcon sx={{ fontSize: 18 }} />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                  </Box>
+                ) : (
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 0.5,
+                      color: "success.main",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <CheckCircleRoundedIcon sx={{ fontSize: 16 }} />
+                    <Typography variant="caption" fontWeight={600}>
+                      Synced
+                    </Typography>
+                  </Box>
+                )}
               </Box>
-              <Button
-                variant="contained"
-                fullWidth
-                size="small"
-                startIcon={<CreateIcon />}
-                onClick={() => void navigate("/write")}
-                sx={{
-                  borderRadius: 2,
-                  fontWeight: 700,
-                  letterSpacing: "0.05em",
-                  mt: 1,
-                  textTransform: "uppercase",
-                }}
-              >
-                Write
-              </Button>
             </>
           )}
         </Box>
@@ -531,9 +554,9 @@ const UserProfilePanel: React.FC = () => {
         }}
       />
 
-      {/* Reset confirmation dialog */}
+      {/* Discard confirmation dialog */}
       <Dialog open={resetDialogOpen} onClose={() => setResetDialogOpen(false)}>
-        <DialogTitle>Reset staged changes?</DialogTitle>
+        <DialogTitle>Discard staged changes?</DialogTitle>
         <DialogContent>
           <DialogContentText>
             {stagedStatementCount > 0 && stagedSupportCount > 0
@@ -552,7 +575,7 @@ const UserProfilePanel: React.FC = () => {
               setResetDialogOpen(false);
             }}
           >
-            Reset
+            Discard
           </Button>
         </DialogActions>
       </Dialog>

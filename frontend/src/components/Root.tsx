@@ -1,6 +1,6 @@
 import { FC, useEffect, useState } from "react";
 import Box from "@mui/material/Box";
-import { Button, CircularProgress, Fab } from "@mui/material";
+import { Button, CircularProgress, Fab, Tooltip } from "@mui/material";
 import { Outlet, useLocation, useParams } from "react-router-dom";
 import CreateIcon from "@mui/icons-material/Create";
 import LoginRoundedIcon from "@mui/icons-material/LoginRounded";
@@ -12,6 +12,7 @@ import CreateStatementModal from "./CreateStatementModal";
 import SearchField from "./SearchField";
 import UserProfilePanel from "./UserProfilePanel";
 import useIsMobile from "@/hooks/useIsMobile";
+import { useForumNavigate } from "@/hooks/useForumNavigate";
 import { useUserVotes } from "../state/UserVotes";
 import CommitSupportModal from "./CommitSupportModal";
 import { SearchProvider, useSearchQuery } from "@/state/Search";
@@ -74,6 +75,8 @@ const RightColumn: FC = () => {
 
 const DesktopLayout: FC = () => {
   const location = useLocation();
+  const forumNavigate = useForumNavigate();
+  const { isUserVerified } = useUserVotes();
   const {
     query: localQuery,
     setQuery: setSearchQuery,
@@ -83,6 +86,7 @@ const DesktopLayout: FC = () => {
   const hideSearch =
     location.pathname.endsWith("/write") ||
     location.pathname.endsWith("/settings") ||
+    location.pathname.endsWith("/profile") ||
     location.pathname.endsWith("/how-it-works") ||
     location.pathname.includes("/statement/");
 
@@ -129,13 +133,43 @@ const DesktopLayout: FC = () => {
       >
         {/* Fixed search header */}
         {!hideSearch && (
-          <Box sx={{ px: 3, pt: 3, pb: 1, flexShrink: 0 }}>
-            <SearchField
-              value={localQuery}
-              onChange={setSearchQuery}
-              onClear={clearSearch}
-              fullWidth
-            />
+          <Box
+            sx={{
+              px: 3,
+              pt: 3,
+              pb: 1,
+              flexShrink: 0,
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+            }}
+          >
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <SearchField
+                value={localQuery}
+                onChange={setSearchQuery}
+                onClear={clearSearch}
+                fullWidth
+              />
+            </Box>
+            <Tooltip title={isUserVerified ? "Write" : "Verify to write"}>
+              <span>
+                <Button
+                  variant="contained"
+                  aria-label="Write"
+                  disabled={!isUserVerified}
+                  onClick={() => void forumNavigate("/write")}
+                  sx={{
+                    borderRadius: 2,
+                    minWidth: 0,
+                    px: 1.5,
+                    flexShrink: 0,
+                  }}
+                >
+                  <CreateIcon />
+                </Button>
+              </span>
+            </Tooltip>
           </Box>
         )}
 
