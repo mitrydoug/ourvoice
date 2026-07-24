@@ -94,6 +94,16 @@ const peakRankIconSize = (rank: number): number => {
   return 14;
 };
 
+/** Shared style for the small uppercase stat labels (detail page only). */
+const statLabelSx = {
+  fontSize: "0.55rem",
+  fontWeight: 700,
+  letterSpacing: "0.06em",
+  textTransform: "uppercase" as const,
+  color: "text.disabled",
+  lineHeight: 1,
+};
+
 const clampPercent = (value: number): number =>
   Math.max(0, Math.min(100, value));
 
@@ -161,6 +171,8 @@ type StatementCardProps = {
   isBookmarked?: boolean;
   onToggleBookmark?: (statementId: number) => void;
   onSwitchSupport?: (statementId: number) => void;
+  /** Show small inline stat labels (Rank / Support / Peak / Credits). */
+  showLabels?: boolean;
 };
 
 export const StatementCard: FC<StatementCardProps> = ({
@@ -168,6 +180,7 @@ export const StatementCard: FC<StatementCardProps> = ({
   isBookmarked,
   onToggleBookmark,
   onSwitchSupport,
+  showLabels = false,
 }) => {
   const navigate = useForumNavigate();
   const rawNavigate = useNavigate();
@@ -186,7 +199,7 @@ export const StatementCard: FC<StatementCardProps> = ({
   const { forumContractAddress } = useForum();
   const { toCredits, toParts } = useCreditConversion();
 
-  const { blockNumber } = useBlockSync(() => {});
+  const { blockNumber } = useBlockSync(() => { });
 
   const { data: historicalData } = useReadContract({
     address: forumContractAddress,
@@ -240,13 +253,13 @@ export const StatementCard: FC<StatementCardProps> = ({
     const adjustment =
       newCreditSupport === 0
         ? {
-            value: 0,
-            adjustmentType: SupportAdjustmentType.SetTo,
-          }
+          value: 0,
+          adjustmentType: SupportAdjustmentType.SetTo,
+        }
         : {
-            value: toParts(newCreditSupport - onChainCredits),
-            adjustmentType: SupportAdjustmentType.Delta,
-          };
+          value: toParts(newCreditSupport - onChainCredits),
+          adjustmentType: SupportAdjustmentType.Delta,
+        };
     dispatch({
       type: "STAGE_USER_SUPPORT",
       payload: {
@@ -262,9 +275,9 @@ export const StatementCard: FC<StatementCardProps> = ({
   const rankingProgress =
     rankingThreshold !== undefined
       ? rankingProgressPercent(
-          Number(statement.support),
-          Number(rankingThreshold),
-        )
+        Number(statement.support),
+        Number(rankingThreshold),
+      )
       : null;
 
   const globalSupport = toCredits(Number(statement.support));
@@ -317,19 +330,26 @@ export const StatementCard: FC<StatementCardProps> = ({
 
   const leftSlot =
     currentRank !== null ? (
-      <Stack alignItems="center" spacing={1.35}>
-        {/* Rank number */}
-        <Typography
-          variant="h4"
-          sx={{
-            fontWeight: 700,
-            fontSize: rankFontSize(currentRank),
-            lineHeight: 1.1,
-            color: rankColor(currentRank) ?? "text.primary",
-          }}
-        >
-          {currentRank}
-        </Typography>
+      <Stack alignItems="center" spacing={0.75}>
+        <Stack alignItems="center" spacing={0.2}>
+          {/* Rank number */}
+          <Typography
+            variant="h4"
+            sx={{
+              fontWeight: 700,
+              fontSize: rankFontSize(currentRank),
+              lineHeight: 1.1,
+              color: rankColor(currentRank) ?? "text.primary",
+            }}
+          >
+            {currentRank}
+          </Typography>
+          {showLabels && (
+            <Typography component="span" sx={statLabelSx}>
+              Rank
+            </Typography>
+          )}
+        </Stack>
         {rankChangeIndicator}
       </Stack>
     ) : (
@@ -358,35 +378,53 @@ export const StatementCard: FC<StatementCardProps> = ({
     );
 
   const statsSlot = (
-    <Stack direction="row" alignItems="center" spacing={2} sx={{ mt: 0.1 }}>
-      <Tooltip title={`${globalSupport} total support`} arrow>
-        <Typography
-          variant="body2"
-          sx={{
-            fontWeight: 600,
-            color: "text.secondary",
-            fontVariantNumeric: "tabular-nums",
-          }}
-        >
-          {formatSupport(globalSupport)}
-        </Typography>
-      </Tooltip>
+    <Stack direction="row" alignItems="flex-start" spacing={2} sx={{ mt: 0.1 }}>
+      <Stack alignItems="center" spacing={0.25}>
+        <Box sx={{ height: 24, display: "flex", alignItems: "center" }}>
+          <Tooltip title={`${globalSupport} total support`} arrow>
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: 600,
+                color: "text.secondary",
+                fontVariantNumeric: "tabular-nums",
+              }}
+            >
+              {formatSupport(globalSupport)}
+            </Typography>
+          </Tooltip>
+        </Box>
+        {showLabels && (
+          <Typography component="span" sx={statLabelSx}>
+            Support
+          </Typography>
+        )}
+      </Stack>
 
       {peakRank !== null && (
-        <Tooltip title={`Peak rank: #${peakRank}`} arrow>
-          <Stack direction="row" alignItems="center" spacing={0.25}>
-            <Typography
-              sx={{ fontSize: peakRankIconSize(peakRank), lineHeight: 1 }}
-            >
-              {peakRankIcon(peakRank)}
+        <Stack alignItems="center" spacing={0.25}>
+          <Box sx={{ height: 24, display: "flex", alignItems: "center" }}>
+            <Tooltip title={`Peak rank: #${peakRank}`} arrow>
+              <Stack direction="row" alignItems="center" spacing={0.25}>
+                <Typography
+                  sx={{ fontSize: peakRankIconSize(peakRank), lineHeight: 1 }}
+                >
+                  {peakRankIcon(peakRank)}
+                </Typography>
+                {peakRank > 3 && (
+                  <Typography variant="body2" color="text.secondary">
+                    {peakRank}
+                  </Typography>
+                )}
+              </Stack>
+            </Tooltip>
+          </Box>
+          {showLabels && (
+            <Typography component="span" sx={statLabelSx}>
+              Peak
             </Typography>
-            {peakRank > 3 && (
-              <Typography variant="body2" color="text.secondary">
-                {peakRank}
-              </Typography>
-            )}
-          </Stack>
-        </Tooltip>
+          )}
+        </Stack>
       )}
     </Stack>
   );
@@ -413,6 +451,7 @@ export const StatementCard: FC<StatementCardProps> = ({
       onUserVoteChange={handleSupportChange}
       onClear={() => handleSupportChange(0)}
       creditsTooltip={`You have ${supportCreditsToAllocatedCredits(userSupport)} credits providing ${userSupport} support`}
+      showCreditsLabel={showLabels}
     />
   ) : isVerifiedLoading || isWalletLoading ? undefined : (
     // Gentle affordance so a signed-out / unverified visitor can see that

@@ -1,9 +1,18 @@
 import { FC } from "react";
-import { Stack, Tooltip } from "@mui/material";
+import { Box, Stack, Tooltip, Typography } from "@mui/material";
 
 import { supportCreditsToAllocatedCredits } from "../util";
 import AnimatedCounter from "./AnimatedCounter";
 import VoteToggle from "./VoteToggle";
+
+const labelSx = {
+  fontSize: "0.55rem",
+  fontWeight: 700,
+  letterSpacing: "0.06em",
+  textTransform: "uppercase" as const,
+  color: "text.disabled",
+  lineHeight: 1,
+};
 
 const CoinIcon = ({ size = 14 }: { size?: number }) => (
   <svg
@@ -35,6 +44,8 @@ type SupportVoteControlsProps = {
   onUserVoteChange: (newVoteCount: number) => void;
   onClear?: () => void;
   creditsTooltip?: string;
+  /** Show a small "credits" label next to the coin (detail page only). */
+  showCreditsLabel?: boolean;
 };
 
 const SupportVoteControls: FC<SupportVoteControlsProps> = ({
@@ -43,43 +54,62 @@ const SupportVoteControls: FC<SupportVoteControlsProps> = ({
   onUserVoteChange,
   onClear,
   creditsTooltip,
+  showCreditsLabel = false,
 }) => {
   const creditsAllocated = supportCreditsToAllocatedCredits(userSupport);
 
   return (
-    <Stack direction="row" alignItems="center" spacing={1}>
+    <Stack direction="row" alignItems="flex-start" spacing={1.5}>
       {creditsAllocated > 0 && (
-        <Tooltip
-          title={
-            creditsTooltip ??
-            `${creditsAllocated} credits providing ${userSupport} support`
-          }
-          arrow
-        >
-          <Stack direction="row" alignItems="center" spacing={0.5}>
-            <CoinIcon size={16} />
-            <AnimatedCounter
-              value={creditsAllocated}
-              typographyProps={{
-                variant: "body2",
-                fontWeight: 600,
-                sx: {
-                  fontVariantNumeric: "tabular-nums",
-                  color: "text.secondary",
-                },
-              }}
-            />
-          </Stack>
-        </Tooltip>
+        <Stack alignItems="center" spacing={0.5}>
+          <Tooltip
+            title={
+              creditsTooltip ??
+              `${creditsAllocated} credits providing ${userSupport} support`
+            }
+            arrow
+          >
+            <Box sx={{ height: 24, display: "flex", alignItems: "center" }}>
+              <Stack direction="row" alignItems="center" spacing={0.5}>
+                <CoinIcon size={16} />
+                <AnimatedCounter
+                  value={creditsAllocated}
+                  typographyProps={{
+                    variant: "body2",
+                    fontWeight: 600,
+                    sx: {
+                      fontVariantNumeric: "tabular-nums",
+                      color: "text.secondary",
+                    },
+                  }}
+                />
+              </Stack>
+            </Box>
+          </Tooltip>
+          {showCreditsLabel && (
+            <Typography component="span" sx={labelSx}>
+              Credits
+            </Typography>
+          )}
+        </Stack>
       )}
 
-      <VoteToggle
-        userSupport={userSupport}
-        uncommittedSupport={uncommittedSupport}
-        onUserVoteChange={onUserVoteChange}
-        direction="compact"
-        onClear={onClear}
-      />
+      <Stack alignItems="center" spacing={0.5}>
+        <Box sx={{ height: 24, display: "flex", alignItems: "center" }}>
+          <VoteToggle
+            userSupport={userSupport}
+            uncommittedSupport={uncommittedSupport}
+            onUserVoteChange={onUserVoteChange}
+            direction="compact"
+            onClear={onClear}
+          />
+        </Box>
+        {showCreditsLabel && (
+          <Typography component="span" sx={labelSx}>
+            Your Support
+          </Typography>
+        )}
+      </Stack>
     </Stack>
   );
 };
