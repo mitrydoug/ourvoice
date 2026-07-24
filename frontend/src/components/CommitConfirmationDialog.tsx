@@ -9,7 +9,7 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
+import SendRoundedIcon from "@mui/icons-material/SendRounded";
 import type { SponsoredNetworkFeeEstimate } from "@/wallet";
 
 type CommitConfirmationDialogProps = {
@@ -59,11 +59,11 @@ const CommitConfirmationDialog = ({
               flexShrink: 0,
             }}
           >
-            <SaveOutlinedIcon fontSize="small" />
+            <SendRoundedIcon fontSize="small" />
           </Box>
           <Box>
             <Typography variant="h5" sx={{ fontWeight: 600, mb: 0.5 }}>
-              Save your changes?
+              Submit your changes?
             </Typography>
           </Box>
         </Stack>
