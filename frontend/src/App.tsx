@@ -22,6 +22,7 @@ import GlobalErrorBoundary, {
 } from "./components/GlobalErrorBoundary.tsx";
 import Settings from "./components/Settings.tsx";
 import HowItWorks from "./components/HowItWorks.tsx";
+import Welcome from "./components/Welcome.tsx";
 
 import { theme, THEME_MODE_STORAGE_KEY } from "./theme.ts";
 import {
@@ -29,14 +30,19 @@ import {
   getStoredForumSlug,
   slugToForum,
 } from "./state/Forum.tsx";
+import { hasSeenWelcome } from "./state/welcome.ts";
 import { LocalSearchProvider } from "./state/LocalSearch.tsx";
 import Profile from "./components/UserProfile.tsx";
 
 /**
  * Redirects bare `/` to the last-visited forum slug (from localStorage),
- * falling back to the "earth" (global) forum.
+ * falling back to the "earth" (global) forum. First-time visitors are sent to
+ * the full-page welcome screen instead.
  */
 const RootRedirect: FC = () => {
+  if (!hasSeenWelcome()) {
+    return <Navigate to="/welcome" replace />;
+  }
   const slug = getStoredForumSlug();
   return <Navigate to={`/${slug}`} replace />;
 };
@@ -101,6 +107,11 @@ const router = createHashRouter([
   {
     path: "/verify",
     Component: GetVerified,
+    errorElement: <RouteErrorBoundary />,
+  },
+  {
+    path: "/welcome",
+    Component: Welcome,
     errorElement: <RouteErrorBoundary />,
   },
   {

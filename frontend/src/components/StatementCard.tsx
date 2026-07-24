@@ -2,6 +2,7 @@ import { FC } from "react";
 import {
   Box,
   ButtonBase,
+  Chip,
   CircularProgress,
   IconButton,
   Stack,
@@ -11,8 +12,11 @@ import {
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import MergeIcon from "@mui/icons-material/Merge";
+import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import { useNavigate } from "react-router-dom";
 
 import { useForumNavigate } from "../hooks/useForumNavigate";
+import { useWalletAuth } from "@/wallet";
 
 import { SupportAdjustmentType, useUserVotes } from "../state/UserVotes";
 import StatementCardShell from "./StatementCardShell";
@@ -90,6 +94,16 @@ const peakRankIconSize = (rank: number): number => {
   return 14;
 };
 
+/** Shared style for the small uppercase stat labels (detail page only). */
+const statLabelSx = {
+  fontSize: "0.55rem",
+  fontWeight: 700,
+  letterSpacing: "0.06em",
+  textTransform: "uppercase" as const,
+  color: "text.disabled",
+  lineHeight: 1,
+};
+
 const clampPercent = (value: number): number =>
   Math.max(0, Math.min(100, value));
 
@@ -157,6 +171,8 @@ type StatementCardProps = {
   isBookmarked?: boolean;
   onToggleBookmark?: (statementId: number) => void;
   onSwitchSupport?: (statementId: number) => void;
+  /** Show small inline stat labels (Rank / Support / Peak / Credits). */
+  showLabels?: boolean;
 };
 
 export const StatementCard: FC<StatementCardProps> = ({
@@ -164,18 +180,22 @@ export const StatementCard: FC<StatementCardProps> = ({
   isBookmarked,
   onToggleBookmark,
   onSwitchSupport,
+  showLabels = false,
 }) => {
   const navigate = useForumNavigate();
+  const rawNavigate = useNavigate();
   const handleCardClick = () => {
     void navigate(`/statement/${statement.id}`);
   };
   const {
     isUserVerified,
+    isVerifiedLoading,
     dispatch,
     getEffectiveSupport,
     getOnChainSupport,
     hasAdjustment,
   } = useUserVotes();
+  const { address, connect, isLoading: isWalletLoading } = useWalletAuth();
   const { forumContractAddress } = useForum();
   const { toCredits, toParts } = useCreditConversion();
 
@@ -310,19 +330,26 @@ export const StatementCard: FC<StatementCardProps> = ({
 
   const leftSlot =
     currentRank !== null ? (
-      <Stack alignItems="center" spacing={1.35}>
-        {/* Rank number */}
-        <Typography
-          variant="h4"
-          sx={{
-            fontWeight: 700,
-            fontSize: rankFontSize(currentRank),
-            lineHeight: 1.1,
-            color: rankColor(currentRank) ?? "text.primary",
-          }}
-        >
-          {currentRank}
-        </Typography>
+      <Stack alignItems="center" spacing={0.75}>
+        <Stack alignItems="center" spacing={0.2}>
+          {/* Rank number */}
+          <Typography
+            variant="h4"
+            sx={{
+              fontWeight: 700,
+              fontSize: rankFontSize(currentRank),
+              lineHeight: 1.1,
+              color: rankColor(currentRank) ?? "text.primary",
+            }}
+          >
+            {currentRank}
+          </Typography>
+          {showLabels && (
+            <Typography component="span" sx={statLabelSx}>
+              Rank
+            </Typography>
+          )}
+        </Stack>
         {rankChangeIndicator}
       </Stack>
     ) : (
@@ -351,35 +378,53 @@ export const StatementCard: FC<StatementCardProps> = ({
     );
 
   const statsSlot = (
-    <Stack direction="row" alignItems="center" spacing={2} sx={{ mt: 0.1 }}>
-      <Tooltip title={`${globalSupport} total support`} arrow>
-        <Typography
-          variant="body2"
-          sx={{
-            fontWeight: 600,
-            color: "text.secondary",
-            fontVariantNumeric: "tabular-nums",
-          }}
-        >
-          {formatSupport(globalSupport)}
-        </Typography>
-      </Tooltip>
+    <Stack direction="row" alignItems="flex-start" spacing={2} sx={{ mt: 0.1 }}>
+      <Stack alignItems="center" spacing={0.25}>
+        <Box sx={{ height: 24, display: "flex", alignItems: "center" }}>
+          <Tooltip title={`${globalSupport} total support`} arrow>
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: 600,
+                color: "text.secondary",
+                fontVariantNumeric: "tabular-nums",
+              }}
+            >
+              {formatSupport(globalSupport)}
+            </Typography>
+          </Tooltip>
+        </Box>
+        {showLabels && (
+          <Typography component="span" sx={statLabelSx}>
+            Support
+          </Typography>
+        )}
+      </Stack>
 
       {peakRank !== null && (
-        <Tooltip title={`Peak rank: #${peakRank}`} arrow>
-          <Stack direction="row" alignItems="center" spacing={0.25}>
-            <Typography
-              sx={{ fontSize: peakRankIconSize(peakRank), lineHeight: 1 }}
-            >
-              {peakRankIcon(peakRank)}
+        <Stack alignItems="center" spacing={0.25}>
+          <Box sx={{ height: 24, display: "flex", alignItems: "center" }}>
+            <Tooltip title={`Peak rank: #${peakRank}`} arrow>
+              <Stack direction="row" alignItems="center" spacing={0.25}>
+                <Typography
+                  sx={{ fontSize: peakRankIconSize(peakRank), lineHeight: 1 }}
+                >
+                  {peakRankIcon(peakRank)}
+                </Typography>
+                {peakRank > 3 && (
+                  <Typography variant="body2" color="text.secondary">
+                    {peakRank}
+                  </Typography>
+                )}
+              </Stack>
+            </Tooltip>
+          </Box>
+          {showLabels && (
+            <Typography component="span" sx={statLabelSx}>
+              Peak
             </Typography>
-            {peakRank > 3 && (
-              <Typography variant="body2" color="text.secondary">
-                {peakRank}
-              </Typography>
-            )}
-          </Stack>
-        </Tooltip>
+          )}
+        </Stack>
       )}
     </Stack>
   );
@@ -406,8 +451,48 @@ export const StatementCard: FC<StatementCardProps> = ({
       onUserVoteChange={handleSupportChange}
       onClear={() => handleSupportChange(0)}
       creditsTooltip={`You have ${supportCreditsToAllocatedCredits(userSupport)} credits providing ${userSupport} support`}
+      showCreditsLabel={showLabels}
     />
-  ) : undefined;
+  ) : isVerifiedLoading || isWalletLoading ? undefined : (
+    // Gentle affordance so a signed-out / unverified visitor can see that
+    // statements are interactive, and how to unlock supporting them.
+    <Tooltip
+      title={
+        address
+          ? "Verify you're human to support this statement"
+          : "Join in to support this statement"
+      }
+      arrow
+    >
+      <Chip
+        icon={<AddRoundedIcon sx={{ fontSize: 16 }} />}
+        label={address ? "Verify to support" : "Join in to support"}
+        size="small"
+        variant="outlined"
+        clickable
+        onClick={(e) => {
+          e.stopPropagation();
+          if (address) {
+            void rawNavigate("/verify");
+          } else {
+            connect();
+          }
+        }}
+        sx={{
+          color: "text.secondary",
+          borderColor: "divider",
+          fontWeight: 600,
+          "& .MuiChip-icon": { color: "text.secondary" },
+          "&:hover": {
+            color: "primary.main",
+            borderColor: "primary.main",
+            bgcolor: "action.hover",
+            "& .MuiChip-icon": { color: "primary.main" },
+          },
+        }}
+      />
+    </Tooltip>
+  );
   const rightTopSlot = onSwitchSupport ? (
     <Tooltip title="Switch support to this statement" arrow>
       <ButtonBase
