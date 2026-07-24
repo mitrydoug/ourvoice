@@ -95,7 +95,7 @@ const SupportChart: FC<SupportChartProps> = ({ statementId }) => {
     <Box
       sx={{
         width: "100%",
-        height: 160,
+        height: 240,
         userSelect: "none",
         WebkitUserSelect: "none",
       }}
@@ -109,7 +109,7 @@ const SupportChart: FC<SupportChartProps> = ({ statementId }) => {
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart
           data={data}
-          margin={{ top: 16, right: 12, bottom: 0, left: 0 }}
+          margin={{ top: 16, right: 12, bottom: 0, left: -15 }}
         >
           <defs>
             <linearGradient id="supportGradient" x1="0" y1="0" x2="0" y2="1">
