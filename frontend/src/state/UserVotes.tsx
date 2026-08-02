@@ -31,6 +31,10 @@ interface StatementSupport {
 interface UserSupport {
   credits: number;
   statementSupport: Map<number, number>;
+  /** Timestamp of the caller's most recent credit-affecting on-chain action
+   *  (`Forum.getUserLastUpdated`). Strictly increases on every commit, so it
+   *  is the authoritative signal that this user's on-chain state changed. */
+  lastUpdated: bigint;
 }
 
 export enum SupportAdjustmentType {
@@ -66,18 +70,22 @@ export type CommitStatus =
 
 interface UserSupportState {
   onChain?: UserSupport;
-  /** Snapshot of onChain at freeze time. While set, getEffectiveSupport
-   *  reads from this instead of onChain so the UI stays consistent until
-   *  we confirm the chain has synced past the committed block. */
-  frozenOnChain?: UserSupport;
   staged?: StagedSupport;
+  /** `onChain.lastUpdated` captured while staged was empty; staged edits are
+   *  measured against it. If the synced value advances past it with no local
+   *  submit in flight, the user's on-chain state changed elsewhere (e.g. from
+   *  another device) and local changes are outdated. */
+  stagedBaselineLastUpdated?: bigint;
   hasStagedChanges: boolean;
   hasEnoughCredits: boolean;
   commitStatus: CommitStatus;
   pendingTxHash?: `0x${string}`;
-  confirmedBlockNumber?: bigint;
-  /** Block number of the most recent SYNC_ONCHAIN_STATE update. */
-  latestSyncBlockNumber?: bigint;
+  /** `onChain.lastUpdated` captured at submit time. When the synced value moves
+   *  past it, our submitted commit has landed and staged can be cleared. */
+  submittedFromLastUpdated?: bigint;
+  /** True when a foreign on-chain change was detected while local staged
+   *  changes exist; drives the "Keep or Abandon" dialog. */
+  isOutdated: boolean;
   /** Credit cost of the in-progress draft statement (before it is staged). */
   pendingDraftCost: number;
 }
@@ -89,7 +97,7 @@ export type CommitPreview = {
 };
 
 type CommitChangesOptions = {
-  showWalletUIs?: boolean;
+  selfFunded?: boolean;
 };
 
 type SyncOnChainState = {
@@ -97,7 +105,7 @@ type SyncOnChainState = {
   payload: {
     credits: bigint;
     statementSupport: StatementSupport[];
-    blockNumber?: bigint;
+    lastUpdated: bigint;
   };
 };
 
@@ -128,9 +136,8 @@ type CommitSubmitted = {
   payload: { txHash: `0x${string}` };
 };
 
-type CommitConfirmed = {
-  type: "COMMIT_CONFIRMED";
-  payload: { blockNumber: bigint };
+type CommitReverted = {
+  type: "COMMIT_REVERTED";
 };
 
 type CommitCancelled = {
@@ -143,6 +150,22 @@ type CommitError = {
 
 type ResetCommitStatus = {
   type: "RESET_COMMIT_STATUS";
+};
+
+type RestorePendingCommit = {
+  type: "RESTORE_PENDING_COMMIT";
+  payload: {
+    txHash: `0x${string}`;
+    submittedFromLastUpdated: bigint;
+  };
+};
+
+type KeepOutdatedChanges = {
+  type: "KEEP_OUTDATED_CHANGES";
+};
+
+type AbandonOutdatedChanges = {
+  type: "ABANDON_OUTDATED_CHANGES";
 };
 
 type StageStatement = {
@@ -170,6 +193,7 @@ type RestoreStaged = {
   payload: {
     supportAdjustments: Map<number, StagedSupportAdjustment>;
     stagedStatements: StagedStatement[];
+    baselineLastUpdated?: bigint;
   };
 };
 
@@ -181,10 +205,13 @@ type UserSupportAction =
   | BeginCommit
   | BeginSubmission
   | CommitSubmitted
-  | CommitConfirmed
+  | CommitReverted
   | CommitCancelled
   | CommitError
   | ResetCommitStatus
+  | RestorePendingCommit
+  | KeepOutdatedChanges
+  | AbandonOutdatedChanges
   | StageStatement
   | UnstageStatement
   | UpdateStagedInitialSupport
@@ -253,6 +280,8 @@ type PersistedSupportAdjustment = number | StagedSupportAdjustment;
 interface PersistedStaged {
   supportAdjustments: [number, PersistedSupportAdjustment][];
   stagedStatements: StagedStatement[];
+  /** `stagedBaselineLastUpdated` serialized as a string (bigint). */
+  baselineLastUpdated?: string;
 }
 
 const normalizeSupportAdjustment = (
@@ -280,11 +309,16 @@ const stagedStorageKey = (
   addrKey: string,
 ): string => `symvolia:staged:${chainFingerprint}:${forumName}:${addrKey}`;
 
-const saveStagedToStorage = (key: string, staged: StagedSupport): void => {
+const saveStagedToStorage = (
+  key: string,
+  staged: StagedSupport,
+  baselineLastUpdated?: bigint,
+): void => {
   try {
     const data: PersistedStaged = {
       supportAdjustments: [...staged.supportAdjustments.entries()],
       stagedStatements: staged.stagedStatements,
+      baselineLastUpdated: baselineLastUpdated?.toString(),
     };
     localStorage.setItem(key, JSON.stringify(data));
   } catch {
@@ -297,6 +331,7 @@ const loadStagedFromStorage = (
 ): {
   supportAdjustments: Map<number, StagedSupportAdjustment>;
   stagedStatements: StagedStatement[];
+  baselineLastUpdated?: bigint;
 } | null => {
   try {
     const raw = localStorage.getItem(key);
@@ -310,6 +345,10 @@ const loadStagedFromStorage = (
         ]),
       ),
       stagedStatements: data.stagedStatements ?? [],
+      baselineLastUpdated:
+        data.baselineLastUpdated !== undefined
+          ? BigInt(data.baselineLastUpdated)
+          : undefined,
     };
   } catch {
     return null;
@@ -324,29 +363,74 @@ const clearStagedStorage = (key: string): void => {
   }
 };
 
-/**
- * If both conditions are met — (a) we have a confirmed tx block number,
- * and (b) the latest sync block is at or past that block — atomically
- * clear the freeze, clear staged support, and transition to "confirmed".
- */
-const tryUnfreeze = (s: UserSupportState): void => {
-  if (
-    s.frozenOnChain &&
-    s.confirmedBlockNumber !== undefined &&
-    s.latestSyncBlockNumber !== undefined &&
-    s.latestSyncBlockNumber >= s.confirmedBlockNumber &&
-    s.onChain
-  ) {
-    s.frozenOnChain = undefined;
-    s.staged = {
-      credits: s.onChain.credits,
-      supportAdjustments: new Map(),
-      stagedStatements: [],
+// ── localStorage helpers for pending-commit persistence ──────────────────────
+
+interface PersistedPendingCommit {
+  txHash: `0x${string}`;
+  /** `submittedFromLastUpdated` serialized as a string (bigint). */
+  submittedFromLastUpdated: string;
+}
+
+const pendingCommitStorageKey = (
+  chainFingerprint: string,
+  forumName: string,
+  addrKey: string,
+): string =>
+  `symvolia:pendingCommit:${chainFingerprint}:${forumName}:${addrKey}`;
+
+const savePendingCommitToStorage = (
+  key: string,
+  txHash: `0x${string}`,
+  submittedFromLastUpdated: bigint,
+): void => {
+  try {
+    const data: PersistedPendingCommit = {
+      txHash,
+      submittedFromLastUpdated: submittedFromLastUpdated.toString(),
     };
-    s.commitStatus = "confirmed";
-    s.confirmedBlockNumber = undefined;
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch {
+    // quota exceeded or localStorage unavailable
   }
 };
+
+const loadPendingCommitFromStorage = (
+  key: string,
+): { txHash: `0x${string}`; submittedFromLastUpdated: bigint } | null => {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const data = JSON.parse(raw) as PersistedPendingCommit;
+    if (!data.txHash || data.submittedFromLastUpdated === undefined)
+      return null;
+    return {
+      txHash: data.txHash,
+      submittedFromLastUpdated: BigInt(data.submittedFromLastUpdated),
+    };
+  } catch {
+    return null;
+  }
+};
+
+const clearPendingCommitStorage = (key: string): void => {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    // ignore
+  }
+};
+
+/** Build an empty staged bucket seeded with the given available credits. */
+const emptyStaged = (credits: number): StagedSupport => ({
+  credits,
+  supportAdjustments: new Map(),
+  stagedStatements: [],
+});
+
+/** True when staged holds any support adjustment or new statement. */
+const stagedHasContent = (staged?: StagedSupport): boolean =>
+  (staged?.supportAdjustments.size ?? 0) > 0 ||
+  (staged?.stagedStatements.length ?? 0) > 0;
 
 const reducer = (
   state: UserSupportState,
@@ -360,27 +444,49 @@ const reducer = (
       action.payload.statementSupport.forEach((s) => {
         _supportMap.set(Number(s.statementId), Number(s.support));
       });
-      const onChainState = {
+      const onChainState: UserSupport = {
         credits: Number(action.payload.credits),
         statementSupport: _supportMap,
+        lastUpdated: action.payload.lastUpdated,
       };
-      // Always update onChain (even while frozen — rendering reads
-      // from frozenOnChain instead, so this is invisible until unfreeze).
       newState.onChain = onChainState;
 
-      if (action.payload.blockNumber !== undefined) {
-        newState.latestSyncBlockNumber = action.payload.blockNumber;
-      }
-
       if (!newState.staged) {
-        newState.staged = {
-          credits: onChainState.credits,
-          supportAdjustments: new Map(),
-          stagedStatements: [],
-        };
+        newState.staged = emptyStaged(onChainState.credits);
       }
 
-      tryUnfreeze(newState);
+      const hadStaged = stagedHasContent(newState.staged);
+
+      // Reconcile local state against the authoritative on-chain lastUpdated.
+      if (
+        newState.submittedFromLastUpdated !== undefined &&
+        onChainState.lastUpdated > newState.submittedFromLastUpdated
+      ) {
+        // Our submitted commit landed: clear staged silently and confirm.
+        newState.staged = emptyStaged(onChainState.credits);
+        newState.submittedFromLastUpdated = undefined;
+        newState.pendingTxHash = undefined;
+        newState.isOutdated = false;
+        newState.commitStatus = "confirmed";
+      } else if (
+        hadStaged &&
+        newState.submittedFromLastUpdated === undefined &&
+        newState.stagedBaselineLastUpdated !== undefined &&
+        onChainState.lastUpdated > newState.stagedBaselineLastUpdated
+      ) {
+        // On-chain state changed for this user without a local submit in
+        // flight (e.g. an action from another device). Flag it so the user
+        // can keep or abandon their local changes.
+        newState.isOutdated = true;
+      }
+
+      // While there are no staged changes, keep the baseline tracking the
+      // live value so the next edit is measured against current on-chain
+      // state (and a landed commit never looks "outdated").
+      if (!stagedHasContent(newState.staged)) {
+        newState.stagedBaselineLastUpdated = onChainState.lastUpdated;
+      }
+
       break;
     }
     case "STAGE_USER_SUPPORT": {
@@ -414,7 +520,7 @@ const reducer = (
           "Cannot switch support before on-chain state is synced",
         );
       }
-      const baseSupportState = newState.frozenOnChain ?? newState.onChain;
+      const baseSupportState = newState.onChain;
 
       newState.staged = {
         ...state.staged,
@@ -475,11 +581,11 @@ const reducer = (
       break;
     }
     case "CLEAR_STAGED_SUPPORT": {
-      newState.staged = {
-        credits: newState.onChain ? newState.onChain.credits : 0,
-        supportAdjustments: new Map(),
-        stagedStatements: [],
-      };
+      newState.staged = emptyStaged(
+        newState.onChain ? newState.onChain.credits : 0,
+      );
+      newState.isOutdated = false;
+      newState.stagedBaselineLastUpdated = newState.onChain?.lastUpdated;
       break;
     }
     case "BEGIN_COMMIT": {
@@ -493,55 +599,66 @@ const reducer = (
     case "COMMIT_SUBMITTED": {
       newState.commitStatus = "pending-confirmation";
       newState.pendingTxHash = action.payload.txHash;
-      // Freeze: snapshot current on-chain state so rendering stays
-      // consistent while we wait for the tx to be included and synced.
-      newState.frozenOnChain = newState.onChain;
+      // Snapshot the current on-chain lastUpdated. When the synced value moves
+      // past it, we know this commit landed and clear staged.
+      newState.submittedFromLastUpdated = newState.onChain?.lastUpdated;
+      newState.isOutdated = false;
       break;
     }
-    case "COMMIT_CONFIRMED": {
-      // Store the confirmed block number. If latestSyncBlockNumber already
-      // covers this block, tryUnfreeze will atomically clear the freeze,
-      // clear staged, and set commitStatus to "confirmed".
-      // Otherwise we stay in "pending-confirmation" until the next
-      // SYNC_ONCHAIN_STATE brings us past this block.
-      newState.confirmedBlockNumber = action.payload.blockNumber;
+    case "RESTORE_PENDING_COMMIT": {
+      // Resume watching a tx submitted before a reload so the spinner and
+      // lastUpdated reconciliation pick up where they left off.
+      newState.pendingTxHash = action.payload.txHash;
+      newState.submittedFromLastUpdated =
+        action.payload.submittedFromLastUpdated;
+      newState.commitStatus = "pending-confirmation";
+      break;
+    }
+    case "COMMIT_REVERTED": {
+      // The submitted tx reverted on-chain (lastUpdated will not advance), so
+      // keep staged changes for retry and surface the failure.
+      newState.commitStatus = "error";
       newState.pendingTxHash = undefined;
-      tryUnfreeze(newState);
+      newState.submittedFromLastUpdated = undefined;
       break;
     }
     case "COMMIT_CANCELLED": {
       newState.commitStatus = "cancelled";
       newState.pendingTxHash = undefined;
-      newState.frozenOnChain = undefined;
+      newState.submittedFromLastUpdated = undefined;
       break;
     }
     case "COMMIT_ERROR": {
       newState.commitStatus = "error";
-      newState.pendingTxHash = undefined;
-      newState.confirmedBlockNumber = undefined;
-      newState.frozenOnChain = undefined;
-      // Clear staged support so user re-syncs cleanly from chain
-      newState.staged = {
-        credits: newState.onChain ? newState.onChain.credits : 0,
-        supportAdjustments: new Map(),
-        stagedStatements: [],
-      };
+      // Keep staged changes (no work lost) and keep pendingTxHash +
+      // submittedFromLastUpdated so a late-landing tx still reconciles via
+      // lastUpdated. Pre-submission errors have neither set, so this is a
+      // no-op beyond the status change.
       break;
     }
     case "RESET_COMMIT_STATUS": {
-      // If the freeze hasn't resolved yet, clear it as a fallback to
-      // avoid lingering committed adjustments.
-      if (newState.frozenOnChain) {
-        newState.frozenOnChain = undefined;
-        newState.staged = {
-          credits: newState.onChain ? newState.onChain.credits : 0,
-          supportAdjustments: new Map(),
-          stagedStatements: [],
-        };
-      }
+      // The user dismissed the terminal-state modal. Return to idle and stop
+      // watching the tx, but KEEP staged changes so work is not lost. If a
+      // dismissed tx lands later, the lastUpdated baseline surfaces it as an
+      // outdated change the user can keep or abandon.
       newState.commitStatus = "idle";
       newState.pendingTxHash = undefined;
-      newState.confirmedBlockNumber = undefined;
+      newState.submittedFromLastUpdated = undefined;
+      break;
+    }
+    case "KEEP_OUTDATED_CHANGES": {
+      // Rebase staged intents onto the fresh on-chain state; the credit
+      // validation below recomputes sufficiency against the new baseline.
+      newState.isOutdated = false;
+      newState.stagedBaselineLastUpdated = newState.onChain?.lastUpdated;
+      break;
+    }
+    case "ABANDON_OUTDATED_CHANGES": {
+      newState.staged = emptyStaged(
+        newState.onChain ? newState.onChain.credits : 0,
+      );
+      newState.isOutdated = false;
+      newState.stagedBaselineLastUpdated = newState.onChain?.lastUpdated;
       break;
     }
     case "STAGE_STATEMENT": {
@@ -599,6 +716,9 @@ const reducer = (
         supportAdjustments: action.payload.supportAdjustments,
         stagedStatements: action.payload.stagedStatements,
       };
+      if (action.payload.baselineLastUpdated !== undefined) {
+        newState.stagedBaselineLastUpdated = action.payload.baselineLastUpdated;
+      }
       break;
     }
   }
@@ -666,6 +786,8 @@ type UserNotVerifiedContextValue = {
   stageStatement: undefined;
   unstageStatement: undefined;
   updateStagedInitialSupport: undefined;
+  keepOutdatedChanges: undefined;
+  abandonOutdatedChanges: undefined;
   setPendingDraftCost: (cost: number) => void;
 };
 
@@ -685,6 +807,8 @@ type UserSupportContextValue = {
   stageStatement: (text: string, initialSupport?: number) => void;
   unstageStatement: (tempId: string) => void;
   updateStagedInitialSupport: (tempId: string, newSupport: number) => void;
+  keepOutdatedChanges: () => void;
+  abandonOutdatedChanges: () => void;
   setPendingDraftCost: (cost: number) => void;
 };
 
@@ -701,6 +825,7 @@ export const UserVoteProvider: FC<{
     hasStagedChanges: false,
     hasEnoughCredits: true,
     commitStatus: "idle",
+    isOutdated: false,
     pendingDraftCost: 0,
   });
   const { writeContract, previewNetworkFee } = useContractWrite();
@@ -767,36 +892,56 @@ export const UserVoteProvider: FC<{
     },
   );
 
+  const { data: onChainUserLastUpdated, refetch: refetchLastUpdated } =
+    useReadContract({
+      address: forumContractAddress,
+      abi: FORUM_ABI,
+      account: participantAddress,
+      functionName: "getUserLastUpdated",
+      args: [],
+      query: {
+        enabled: Boolean(participantAddress && isUserVerified),
+      },
+    });
+
   const refetch = useCallback(() => {
     void refetchIsMember();
     if (isUserVerified) {
       void refetchSupport();
       void refetchBalance();
+      void refetchLastUpdated();
     }
-  }, [refetchIsMember, refetchSupport, refetchBalance, isUserVerified]);
+  }, [
+    refetchIsMember,
+    refetchSupport,
+    refetchBalance,
+    refetchLastUpdated,
+    isUserVerified,
+  ]);
 
   // Sync with blockchain on every new block
-  const { blockNumber: latestBlockNumber, triggerSync } = useBlockSync(refetch);
+  const { triggerSync } = useBlockSync(refetch);
 
   useEffect(() => {
     // Load state from blockchain
     if (
       onChainUserStatementSupport !== undefined &&
-      onChainUserBalance !== undefined
+      onChainUserBalance !== undefined &&
+      onChainUserLastUpdated !== undefined
     ) {
       dispatch({
         type: "SYNC_ONCHAIN_STATE",
         payload: {
           credits: onChainUserBalance,
           statementSupport: [...onChainUserStatementSupport],
-          blockNumber: latestBlockNumber,
+          lastUpdated: onChainUserLastUpdated,
         },
       });
     }
   }, [
     onChainUserStatementSupport,
     onChainUserBalance,
-    latestBlockNumber,
+    onChainUserLastUpdated,
     dispatch,
   ]);
 
@@ -830,9 +975,53 @@ export const UserVoteProvider: FC<{
     ) {
       clearStagedStorage(persistKey);
     } else {
-      saveStagedToStorage(persistKey, state.staged);
+      saveStagedToStorage(
+        persistKey,
+        state.staged,
+        state.stagedBaselineLastUpdated,
+      );
     }
-  }, [persistKey, state.staged]);
+  }, [persistKey, state.staged, state.stagedBaselineLastUpdated]);
+
+  // ── Pending-commit persistence ──────────────────────────────────────────
+  // Persist the in-flight tx so a reload can resume watching it and reconcile
+  // via lastUpdated instead of losing track of a submitted commit.
+  const pendingCommitKey =
+    chainFingerprint && participantAddress
+      ? pendingCommitStorageKey(
+          chainFingerprint,
+          forumName,
+          participantAddress.slice(0, 10),
+        )
+      : undefined;
+  const restoredPendingKeyRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (!pendingCommitKey || restoredPendingKeyRef.current === pendingCommitKey)
+      return;
+    restoredPendingKeyRef.current = pendingCommitKey;
+    const saved = loadPendingCommitFromStorage(pendingCommitKey);
+    if (saved) {
+      dispatch({
+        type: "RESTORE_PENDING_COMMIT",
+        payload: {
+          txHash: saved.txHash,
+          submittedFromLastUpdated: saved.submittedFromLastUpdated,
+        },
+      });
+    }
+  }, [pendingCommitKey, dispatch]);
+  useEffect(() => {
+    if (!pendingCommitKey) return;
+    if (state.pendingTxHash && state.submittedFromLastUpdated !== undefined) {
+      savePendingCommitToStorage(
+        pendingCommitKey,
+        state.pendingTxHash,
+        state.submittedFromLastUpdated,
+      );
+    } else {
+      clearPendingCommitStorage(pendingCommitKey);
+    }
+  }, [pendingCommitKey, state.pendingTxHash, state.submittedFromLastUpdated]);
 
   // Wait for transaction receipt once a tx hash is available
   const { data: txReceipt } = useWaitForTransactionReceipt({
@@ -843,41 +1032,35 @@ export const UserVoteProvider: FC<{
     },
   });
 
-  // When receipt arrives, extract authored statement IDs from logs and
-  // dispatch COMMIT_CONFIRMED with the block number.
+  // When the receipt arrives, either record a revert or capture authored
+  // statement IDs and trigger a sync. On success we do NOT clear staged here —
+  // SYNC_ONCHAIN_STATE reconciles via lastUpdated once the fresh state loads.
+  const processedReceiptRef = useRef<`0x${string}` | undefined>(undefined);
   useEffect(() => {
-    if (
-      txReceipt &&
-      state.commitStatus === "pending-confirmation" &&
-      state.confirmedBlockNumber === undefined
-    ) {
-      // Decode StatementAdded events to get the actual on-chain IDs
-      const statementEvents = parseEventLogs({
-        abi: FORUM_ABI,
-        logs: txReceipt.logs,
-        eventName: "StatementAdded",
-      });
-      for (const event of statementEvents) {
-        addAuthoredStatement(Number(event.args.id));
-      }
+    if (!txReceipt) return;
+    if (processedReceiptRef.current === txReceipt.transactionHash) return;
+    processedReceiptRef.current = txReceipt.transactionHash;
 
-      dispatch({
-        type: "COMMIT_CONFIRMED",
-        payload: { blockNumber: txReceipt.blockNumber },
-      });
-
-      // Trigger an immediate sync so SYNC_ONCHAIN_STATE fires with a current
-      // block number and fresh contract data, without waiting for the next poll.
-      triggerSync();
+    if (txReceipt.status === "reverted") {
+      dispatch({ type: "COMMIT_REVERTED" });
+      return;
     }
-  }, [
-    txReceipt,
-    state.commitStatus,
-    state.confirmedBlockNumber,
-    addAuthoredStatement,
-    triggerSync,
-    dispatch,
-  ]);
+
+    // Decode StatementAdded events to get the actual on-chain IDs.
+    const statementEvents = parseEventLogs({
+      abi: FORUM_ABI,
+      logs: txReceipt.logs,
+      eventName: "StatementAdded",
+    });
+    for (const event of statementEvents) {
+      addAuthoredStatement(Number(event.args.id));
+    }
+
+    // Trigger an immediate sync so SYNC_ONCHAIN_STATE fires with fresh
+    // contract data (advancing lastUpdated), which clears staged and marks
+    // the commit confirmed.
+    triggerSync();
+  }, [txReceipt, addAuthoredStatement, triggerSync, dispatch]);
 
   // Timeout: if commit is in-flight for more than 30 seconds, treat as error
   const commitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1013,7 +1196,8 @@ export const UserVoteProvider: FC<{
 
           const txHash = await writeContract({
             ...request,
-            uiOptions: { showWalletUIs: options?.showWalletUIs ?? false },
+            selfFunded: options?.selfFunded ?? false,
+            uiOptions: { showWalletUIs: false },
           });
 
           dispatch({ type: "COMMIT_SUBMITTED", payload: { txHash } });
@@ -1044,9 +1228,9 @@ export const UserVoteProvider: FC<{
     dispatch({ type: "RESET_COMMIT_STATUS" });
   }, [dispatch]);
 
-  // While frozen, rendering reads from the snapshot so the UI stays
-  // consistent until the sync catches up to the confirmed block.
-  const renderOnChain = state.frozenOnChain ?? state.onChain;
+  // Rendering reads directly from live on-chain state; staged adjustments are
+  // layered on top in getEffectiveSupport.
+  const renderOnChain = state.onChain;
 
   // Helper function to get effective support (on-chain + adjustment)
   const getEffectiveSupport = useCallback(
@@ -1130,6 +1314,16 @@ export const UserVoteProvider: FC<{
     dispatch({ type: "CLEAR_STAGED_SUPPORT" });
   }, [dispatch]);
 
+  // Rebase local staged changes onto the fresh on-chain state.
+  const keepOutdatedChanges = useCallback(() => {
+    dispatch({ type: "KEEP_OUTDATED_CHANGES" });
+  }, [dispatch]);
+
+  // Discard local staged changes in favour of the fresh on-chain state.
+  const abandonOutdatedChanges = useCallback(() => {
+    dispatch({ type: "ABANDON_OUTDATED_CHANGES" });
+  }, [dispatch]);
+
   // Verification is still loading if the query is in-flight OR the wallet
   // address hasn't resolved yet (the query won't even start without it).
   const isVerifiedStillLoading =
@@ -1154,6 +1348,8 @@ export const UserVoteProvider: FC<{
           stageStatement,
           unstageStatement,
           updateStagedInitialSupport,
+          keepOutdatedChanges,
+          abandonOutdatedChanges,
           setPendingDraftCost,
         }}
       >
@@ -1179,6 +1375,8 @@ export const UserVoteProvider: FC<{
           stageStatement: undefined,
           unstageStatement: undefined,
           updateStagedInitialSupport: undefined,
+          keepOutdatedChanges: undefined,
+          abandonOutdatedChanges: undefined,
           setPendingDraftCost,
         }}
       >
