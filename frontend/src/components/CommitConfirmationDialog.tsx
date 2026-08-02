@@ -1,15 +1,21 @@
 import {
+  Alert,
   Box,
   Button,
+  Checkbox,
   Divider,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormControlLabel,
   Stack,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
+import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
+import { useEffect, useState } from "react";
 import type { SponsoredNetworkFeeEstimate } from "@/wallet";
 
 type CommitConfirmationDialogProps = {
@@ -33,14 +39,32 @@ const CommitConfirmationDialog = ({
   onClose,
   onConfirm,
 }: CommitConfirmationDialogProps) => {
+  const [feeAcknowledged, setFeeAcknowledged] = useState(false);
+  // Reset the acknowledgement whenever the dialog closes so a fresh open always
+  // starts unchecked.
+  useEffect(() => {
+    if (!open) setFeeAcknowledged(false);
+  }, [open]);
+
   const networkFeeValue = isNetworkFeeLoading
     ? "Checking..."
     : networkFeeError || networkFee?.label || "Not checked";
+  // Self-funded transactions charge the user's own wallet, so require an
+  // explicit fee acknowledgement before confirming.
+  const requiresFeeAcknowledgement = networkFee?.kind === "self-funded";
   const canConfirm =
     !isNetworkFeeLoading &&
     !networkFeeError &&
     networkFee !== null &&
-    networkFee.kind !== "unavailable";
+    networkFee.kind !== "unavailable" &&
+    (!requiresFeeAcknowledgement || feeAcknowledged);
+  // A self-funded estimate that carries a warning or reason means sponsorship
+  // was expected but failed (paymaster declined or errored). External-wallet
+  // users are self-funded by design and carry neither, so they keep the normal
+  // confirmation wording.
+  const isSponsorshipFallback =
+    networkFee?.kind === "self-funded" &&
+    Boolean(networkFee.warning || networkFee.reason);
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs">
@@ -115,13 +139,29 @@ const CommitConfirmationDialog = ({
                   <Typography variant="body2" color="text.secondary">
                     Network fee
                   </Typography>
-                  <Typography
-                    variant="body2"
-                    fontWeight={700}
-                    textAlign="right"
+                  <Stack
+                    direction="row"
+                    spacing={0.5}
+                    alignItems="center"
+                    justifyContent="flex-end"
                   >
-                    {networkFeeValue}
-                  </Typography>
+                    <Typography
+                      variant="body2"
+                      fontWeight={700}
+                      textAlign="right"
+                    >
+                      {networkFeeValue}
+                    </Typography>
+                    {!isNetworkFeeLoading && networkFee?.warning && (
+                      <Tooltip title={networkFee.warning}>
+                        <WarningAmberRoundedIcon
+                          fontSize="small"
+                          sx={{ color: "warning.main", cursor: "help" }}
+                          aria-label={networkFee.warning}
+                        />
+                      </Tooltip>
+                    )}
+                  </Stack>
                 </Stack>
               </Stack>
 
@@ -138,10 +178,33 @@ const CommitConfirmationDialog = ({
             </Stack>
           </Box>
 
-          <Typography variant="caption" color="text.secondary">
-            No funds are being moved. Wallet confirmation may be required
-            depending on how the network fee is handled.
-          </Typography>
+          {isSponsorshipFallback && (
+            <Alert severity="warning" sx={{ borderRadius: 2 }}>
+              An error occurred, so your transaction cannot be sponsored by
+              Symvolia. Click Continue to proceed with a self-funded
+              transaction, or try again later.
+            </Alert>
+          )}
+
+          {requiresFeeAcknowledgement && (
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={feeAcknowledged}
+                  onChange={(event) => setFeeAcknowledged(event.target.checked)}
+                  size="small"
+                  sx={{ py: 0 }}
+                />
+              }
+              label={
+                <Typography variant="body2" color="text.secondary">
+                  I understand I will pay a small network fee (&lt; $0.01) for
+                  this action.
+                </Typography>
+              }
+              sx={{ alignItems: "flex-start", m: 0, gap: 1 }}
+            />
+          )}
         </Stack>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2.5, pt: 1.5 }}>

@@ -149,6 +149,59 @@ contract ForumTest is Test {
         );
     }
 
+    function testGetUserLastUpdatedTracksActions() external registeredMember {
+        // No credit-affecting action yet: raw stored lastUpdated is 0.
+        assertEq(
+            forum.getUserLastUpdated(),
+            0,
+            "lastUpdated should be 0 before any action"
+        );
+
+        // Adding a statement with initial support bumps lastUpdated.
+        forum.addStatement("Hello, world!", 1);
+        uint afterAdd = forum.getUserLastUpdated();
+        assertEq(
+            afterAdd,
+            block.timestamp,
+            "lastUpdated should equal block.timestamp after addStatement"
+        );
+        assertGt(afterAdd, 0, "lastUpdated should be non-zero after an action");
+
+        // Adjusting support on a later block advances lastUpdated again.
+        _nextBlock();
+        _addStatementSupport(0, 1);
+        assertEq(
+            forum.getUserLastUpdated(),
+            block.timestamp,
+            "lastUpdated should equal block.timestamp after adjustSupport"
+        );
+        assertGt(
+            forum.getUserLastUpdated(),
+            afterAdd,
+            "lastUpdated should strictly increase across actions"
+        );
+    }
+
+    function testGetUserLastUpdatedBumpsOnZeroSupportStatement()
+        external
+        registeredMember
+    {
+        assertEq(
+            forum.getUserLastUpdated(),
+            0,
+            "lastUpdated should be 0 before any action"
+        );
+
+        // Adding a statement with zero initial support must still advance
+        // lastUpdated so clients can detect the on-chain change.
+        forum.addStatement("No initial support", 0);
+        assertEq(
+            forum.getUserLastUpdated(),
+            block.timestamp,
+            "lastUpdated should advance after a zero-support statement add"
+        );
+    }
+
     function testUserBalanceAllowance() external registeredMember {
         uint initialBalance = forum.getUserBalance();
         vm.warp(

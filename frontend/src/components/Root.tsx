@@ -16,6 +16,7 @@ import useIsMobile from "@/hooks/useIsMobile";
 import { useForumNavigate } from "@/hooks/useForumNavigate";
 import { useUserVotes } from "../state/UserVotes";
 import CommitSupportModal from "./CommitSupportModal";
+import OutdatedChangesModal from "./OutdatedChangesModal";
 import { SearchProvider, useSearchQuery } from "@/state/Search";
 import { useForum } from "../state/Forum";
 import { useWalletAuth } from "@/wallet";
@@ -273,7 +274,12 @@ const MobileLayout: FC = () => {
 
 const Root: FC = () => {
   const isMobile = useIsMobile();
-  const { state: userVoteState, resetCommitStatus } = useUserVotes();
+  const {
+    state: userVoteState,
+    resetCommitStatus,
+    keepOutdatedChanges,
+    abandonOutdatedChanges,
+  } = useUserVotes();
   useForumSlugSync();
 
   return (
@@ -283,6 +289,13 @@ const Root: FC = () => {
         <CommitSupportModal
           commitStatus={userVoteState.commitStatus}
           onReset={resetCommitStatus}
+        />
+      )}
+      {userVoteState && keepOutdatedChanges && abandonOutdatedChanges && (
+        <OutdatedChangesModal
+          open={userVoteState.isOutdated}
+          onKeep={keepOutdatedChanges}
+          onAbandon={abandonOutdatedChanges}
         />
       )}
     </SearchProvider>

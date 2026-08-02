@@ -341,7 +341,7 @@ const CreditActionPanel: React.FC = () => {
         onConfirm={() => {
           setCommitDialogOpen(false);
           void commitChanges({
-            showWalletUIs: commitPreview?.networkFee.kind === "self-funded",
+            selfFunded: commitPreview?.networkFee.kind === "self-funded",
           });
         }}
       />
