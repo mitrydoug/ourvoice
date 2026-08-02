@@ -372,11 +372,17 @@ contract Forum is Multicall {
             lastEngagementEventTimestamp: 0
         });
 
-        if (_initialSupport != 0) {
-            if (!symvoliaRegistry.isRegistered(msg.sender))
-                revert UserNotRegistered(msg.sender);
-            bytes32 _userId = symvoliaRegistry.getUserIdentifier(msg.sender);
+        // Bring the caller's credit balance current on every statement
+        // addition (not only when initial support is set) so that
+        // `userCredits[_userId].lastUpdated` always advances. Clients rely on
+        // that timestamp to detect that on-chain state changed for this user.
+        // `onlyMembers` guarantees the caller is registered, and
+        // `getUserIdentifier` reverts otherwise.
+        bytes32 _userId = symvoliaRegistry.getUserIdentifier(msg.sender);
+        UserBalance storage _userBalance = userCredits[_userId];
+        _updateUserBalanceToBeCurrent(_userBalance);
 
+        if (_initialSupport != 0) {
             // Apply initial support to statement and user support map
             statements[statementCount].support.value = _initialSupport;
             userSupportMap[_userId][statementCount] = Support({
@@ -387,8 +393,6 @@ contract Forum is Multicall {
 
             // Charge credits (old cost is 0 since this is a new statement)
             uint _cost = _costOfUserSupport(_initialSupport);
-            UserBalance storage _userBalance = userCredits[_userId];
-            _updateUserBalanceToBeCurrent(_userBalance);
             if (_userBalance.credits < _cost)
                 revert InsufficientCredits(_userBalance.credits, int(_cost));
             _userBalance.credits -= _cost;
@@ -405,6 +409,19 @@ contract Forum is Multicall {
         bytes32 userId = symvoliaRegistry.getUserIdentifier(msg.sender);
         UserBalance memory _balance = userCredits[userId];
         return _getCurrentUserBalance(_balance);
+    }
+
+    /**
+     * @notice Timestamp of the caller's most recent credit-affecting action.
+     * @dev Returns the raw stored `lastUpdated`, which is 0 until the user's
+     * first action and is then set to `block.timestamp` (strictly increasing)
+     * on every `addStatement` and `adjustSupport` via
+     * `_updateUserBalanceToBeCurrent`. Clients use it to detect that on-chain
+     * state changed for this user (e.g. to reconcile locally staged changes).
+     */
+    function getUserLastUpdated() external view onlyMembers returns (uint) {
+        bytes32 userId = symvoliaRegistry.getUserIdentifier(msg.sender);
+        return userCredits[userId].lastUpdated;
     }
 
     function getUserStatementSupport()
