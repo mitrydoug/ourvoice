@@ -104,6 +104,13 @@ export const privyConfig = {
     ethereum: {
       createOnLogin: "users-without-wallets",
     },
+    // Sign transactions headlessly. Every write is gated behind our own
+    // CommitConfirmationDialog, so Privy's default "Sign message" prompt is
+    // redundant. This is also the only public lever that suppresses that modal
+    // on the headless self-funded (paymaster-off) send path, where we call the
+    // unwrapped `sendUserOperation` and Privy's internal `hideWalletUIs` ref is
+    // never toggled for us.
+    showWalletUIs: false,
   },
 } satisfies PrivyClientConfig;
 

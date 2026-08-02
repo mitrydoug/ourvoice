@@ -1,4 +1,5 @@
 import {
+  Alert,
   Box,
   Button,
   Divider,
@@ -7,9 +8,11 @@ import {
   DialogContent,
   DialogTitle,
   Stack,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
+import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 import type { SponsoredNetworkFeeEstimate } from "@/wallet";
 
 type CommitConfirmationDialogProps = {
@@ -41,6 +44,13 @@ const CommitConfirmationDialog = ({
     !networkFeeError &&
     networkFee !== null &&
     networkFee.kind !== "unavailable";
+  // A self-funded estimate that carries a warning or reason means sponsorship
+  // was expected but failed (paymaster declined or errored). External-wallet
+  // users are self-funded by design and carry neither, so they keep the normal
+  // confirmation wording.
+  const isSponsorshipFallback =
+    networkFee?.kind === "self-funded" &&
+    Boolean(networkFee.warning || networkFee.reason);
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs">
@@ -115,13 +125,29 @@ const CommitConfirmationDialog = ({
                   <Typography variant="body2" color="text.secondary">
                     Network fee
                   </Typography>
-                  <Typography
-                    variant="body2"
-                    fontWeight={700}
-                    textAlign="right"
+                  <Stack
+                    direction="row"
+                    spacing={0.5}
+                    alignItems="center"
+                    justifyContent="flex-end"
                   >
-                    {networkFeeValue}
-                  </Typography>
+                    <Typography
+                      variant="body2"
+                      fontWeight={700}
+                      textAlign="right"
+                    >
+                      {networkFeeValue}
+                    </Typography>
+                    {!isNetworkFeeLoading && networkFee?.warning && (
+                      <Tooltip title={networkFee.warning}>
+                        <WarningAmberRoundedIcon
+                          fontSize="small"
+                          sx={{ color: "warning.main", cursor: "help" }}
+                          aria-label={networkFee.warning}
+                        />
+                      </Tooltip>
+                    )}
+                  </Stack>
                 </Stack>
               </Stack>
 
@@ -138,10 +164,13 @@ const CommitConfirmationDialog = ({
             </Stack>
           </Box>
 
-          <Typography variant="caption" color="text.secondary">
-            No funds are being moved. Wallet confirmation may be required
-            depending on how the network fee is handled.
-          </Typography>
+          {isSponsorshipFallback && (
+            <Alert severity="warning" sx={{ borderRadius: 2 }}>
+              An error occurred, so your transaction cannot be sponsored by
+              Symvolia. Click Continue to proceed with a self-funded
+              transaction, or try again later.
+            </Alert>
+          )}
         </Stack>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2.5, pt: 1.5 }}>

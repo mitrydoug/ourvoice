@@ -16,7 +16,14 @@ export type WalletKind = "none" | "external" | "embedded" | "smart";
 export type SponsoredNetworkFeeEstimate = {
   kind: "sponsored" | "self-funded" | "unavailable";
   label: string;
+  /** Informational secondary text shown beneath the fee, in a muted colour. */
   reason?: string;
+  /**
+   * When present, the transaction fell back from gas sponsorship to a
+   * self-funded flow because sponsorship errored. The UI surfaces this as an
+   * amber warning icon with the string as its tooltip.
+   */
+  warning?: string;
 };
 
 export type ContractWriteRequest = {
@@ -26,4 +33,10 @@ export type ContractWriteRequest = {
   args?: readonly unknown[];
   gas?: bigint;
   uiOptions?: SendTransactionModalUIOptions;
+  /**
+   * When true, the fee preview already determined this operation will not be
+   * sponsored, so the sponsored attempt is skipped and the smart wallet pays
+   * its own gas directly.
+   */
+  selfFunded?: boolean;
 };
