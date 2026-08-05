@@ -2,14 +2,14 @@
 pragma solidity ^0.8.28;
 
 import "./ISymvoliaRegistry.sol";
+import "./IRateLimiter.sol";
 import "./StringUtils.sol";
 import "./DecayUtils.sol";
-import "@openzeppelin/contracts/utils/Multicall.sol";
 
 // All credit values are denominated in fractional parts (e.g. microcredits).
 // The creditMultiplier parameter defines the number of parts per whole credit.
 
-contract Forum is Multicall {
+contract Forum {
     // Custom errors
     error NotMember();
     error RankOutOfBounds(uint rank, uint rankedCount);
@@ -45,6 +45,21 @@ contract Forum is Multicall {
     uint public immutable decaySpeedupFactor;
 
     ASymvoliaRegistry public symvoliaRegistry;
+
+    /// @notice Rate limiter that meters gas-sponsored actions per human.
+    IRateLimiter public immutable rateLimiter;
+
+    // Rate-limit weight charged per sponsored action, in whole limiter units.
+    // Only the sponsored `submitSponsored` entrypoint consumes budget; the plain
+    // addStatement/adjustSupport/submit paths (used when self-funded) do not.
+    uint256 public constant STATEMENT_WEIGHT = 1;
+    uint256 public constant SUPPORT_WEIGHT = 1;
+
+    /// @notice A statement to create via the sponsored batch entrypoint.
+    struct NewStatement {
+        string text;
+        int initialSupport;
+    }
 
     struct ForumConfig {
         uint maxRankedStatements;
@@ -133,10 +148,12 @@ contract Forum is Multicall {
 
     constructor(
         ASymvoliaRegistry _symvoliaRegistry,
+        IRateLimiter _rateLimiter,
         string memory _nationality,
         ForumConfig memory _config
     ) {
         symvoliaRegistry = _symvoliaRegistry;
+        rateLimiter = _rateLimiter;
         nationality = _nationality;
         maxRankedStatements = _config.maxRankedStatements;
         creditAllowanceIntervalSeconds = _config.creditAllowanceIntervalSeconds;
@@ -353,6 +370,17 @@ contract Forum is Multicall {
         string calldata _statementText,
         int _initialSupport
     ) external onlyMembers returns (uint) {
+        // `onlyMembers` guarantees the caller is registered, and
+        // `getUserIdentifier` reverts otherwise.
+        bytes32 _userId = symvoliaRegistry.getUserIdentifier(msg.sender);
+        return _addStatement(_userId, _statementText, _initialSupport);
+    }
+
+    function _addStatement(
+        bytes32 _userId,
+        string calldata _statementText,
+        int _initialSupport
+    ) internal returns (uint) {
         if (bytes(_statementText).length > maxStatementLength)
             revert StatementTooLong(
                 bytes(_statementText).length,
@@ -361,7 +389,6 @@ contract Forum is Multicall {
 
         // Ensure the statement is not empty
         // check for duplicate statements if necessary
-        // may want to do some rate-limiting here
         statements[statementCount] = StatementImpl({
             id: statementCount,
             text: _statementText,
@@ -376,9 +403,6 @@ contract Forum is Multicall {
         // addition (not only when initial support is set) so that
         // `userCredits[_userId].lastUpdated` always advances. Clients rely on
         // that timestamp to detect that on-chain state changed for this user.
-        // `onlyMembers` guarantees the caller is registered, and
-        // `getUserIdentifier` reverts otherwise.
-        bytes32 _userId = symvoliaRegistry.getUserIdentifier(msg.sender);
         UserBalance storage _userBalance = userCredits[_userId];
         _updateUserBalanceToBeCurrent(_userBalance);
 
@@ -590,7 +614,13 @@ contract Forum is Multicall {
         if (!symvoliaRegistry.isRegistered(msg.sender))
             revert UserNotRegistered(msg.sender);
         bytes32 _userId = symvoliaRegistry.getUserIdentifier(msg.sender);
+        _adjustSupport(_userId, _supportAdjustments);
+    }
 
+    function _adjustSupport(
+        bytes32 _userId,
+        SupportAdjustment[] calldata _supportAdjustments
+    ) internal {
         UserBalance storage _userBalance = userCredits[_userId];
         _updateUserBalanceToBeCurrent(_userBalance);
 
@@ -660,5 +690,55 @@ contract Forum is Multicall {
         _userBalance.credits = uint(
             int(_userBalance.credits) - _totalCostChange
         );
+    }
+
+    /// @notice Batch entrypoint: create statements and apply support adjustments
+    ///         in one call. Unmetered — used when the caller pays their own gas.
+    /// @dev Shares its implementation with `submitSponsored`; the only difference
+    ///      is that this variant does not charge the rate limiter.
+    function submit(
+        NewStatement[] calldata _newStatements,
+        SupportAdjustment[] calldata _supportAdjustments
+    ) external onlyMembers {
+        bytes32 _userId = symvoliaRegistry.getUserIdentifier(msg.sender);
+        _submitBatch(_userId, _newStatements, _supportAdjustments);
+    }
+
+    /// @notice Gas-sponsored batch entrypoint: same as `submit`, but additionally
+    ///         charges the caller's per-human rate-limit budget.
+    /// @dev This is the ONLY Forum write the sponsorship webhook approves. Users
+    ///      paying their own gas call `submit` (or addStatement/adjustSupport
+    ///      directly), which are unmetered — so self-funded activity never
+    ///      consumes budget. The weight is derived on-chain from the batch shape
+    ///      (not user-supplied), so the webhook can reproduce it exactly for its
+    ///      pre-flight check.
+    function submitSponsored(
+        NewStatement[] calldata _newStatements,
+        SupportAdjustment[] calldata _supportAdjustments
+    ) external onlyMembers {
+        bytes32 _userId = symvoliaRegistry.getUserIdentifier(msg.sender);
+        _submitBatch(_userId, _newStatements, _supportAdjustments);
+
+        uint256 _weight = _newStatements.length * STATEMENT_WEIGHT +
+            _supportAdjustments.length * SUPPORT_WEIGHT;
+        rateLimiter.consume(_userId, _weight);
+    }
+
+    function _submitBatch(
+        bytes32 _userId,
+        NewStatement[] calldata _newStatements,
+        SupportAdjustment[] calldata _supportAdjustments
+    ) internal {
+        for (uint i = 0; i < _newStatements.length; i++) {
+            _addStatement(
+                _userId,
+                _newStatements[i].text,
+                _newStatements[i].initialSupport
+            );
+        }
+
+        if (_supportAdjustments.length > 0) {
+            _adjustSupport(_userId, _supportAdjustments);
+        }
     }
 }

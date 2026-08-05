@@ -9,6 +9,7 @@ import type {
  *
  * @param m                          - The Ignition module builder.
  * @param registry                   - A Future resolving to the SymvoliaRegistry (or mock) contract.
+ * @param rateLimiter                - A Future resolving to the SponsorshipRateLimiter contract.
  * @param forumNames                 - The list of forum identifiers to deploy (e.g. ["global", "USA"]).
  *                                     "global" is special-cased to pass an empty nationality string.
  * @param creditAllowanceIntervalSeconds - Duration (in seconds) of a single credit allowance interval.
@@ -27,6 +28,7 @@ import type {
 export function deployForums(
   m: IgnitionModuleBuilder,
   registry: ContractFuture<string>,
+  rateLimiter: ContractFuture<string>,
   forumNames: string[],
   creditAllowanceIntervalSeconds: number,
   engagementWindowSeconds: number,
@@ -49,6 +51,7 @@ export function deployForums(
         "Forum",
         [
           registry,
+          rateLimiter,
           forum === "global" ? "" : forum,
           {
             maxRankedStatements,

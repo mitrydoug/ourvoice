@@ -6,6 +6,8 @@ import { createForumMockedModule } from "../ignition/modules/ForumMockedRegistry
 import {
   getDeploymentConfig,
   requireDeploymentProfile,
+  DEFAULT_RATE_LIMIT_CAPACITY_UNITS,
+  DEFAULT_RATE_LIMIT_LEAK_UNITS_PER_DAY,
 } from "../ignition/config/deployments.js";
 
 /** Minimal contract shape we need for post-deploy output generation. */
@@ -33,6 +35,11 @@ async function main() {
     `Deploying profile "${deploymentProfile}" to network "${networkName}" in "${config.mode}" mode…`,
   );
   console.log(`Forums: ${config.forums.join(", ")}`);
+
+  const rateLimitCapacityUnits =
+    config.rateLimitCapacityUnits ?? DEFAULT_RATE_LIMIT_CAPACITY_UNITS;
+  const rateLimitLeakUnitsPerDay =
+    config.rateLimitLeakUnitsPerDay ?? DEFAULT_RATE_LIMIT_LEAK_UNITS_PER_DAY;
 
   let registry: DeployedContract;
   let forums: Record<string, DeployedContract>;
@@ -65,6 +72,8 @@ async function main() {
       config.creditMultiplier,
       config.refundPenaltyBps,
       config.decaySpeedupFactor,
+      rateLimitCapacityUnits,
+      rateLimitLeakUnitsPerDay,
     );
     const deployResult = await ignition.deploy(module);
     ({ registry, ...forums } = deployResult);
@@ -82,6 +91,8 @@ async function main() {
       config.creditMultiplier,
       config.refundPenaltyBps,
       config.decaySpeedupFactor,
+      rateLimitCapacityUnits,
+      rateLimitLeakUnitsPerDay,
     );
     const parametersPath = path.resolve(
       import.meta.dirname,

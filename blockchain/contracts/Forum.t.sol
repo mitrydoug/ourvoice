@@ -8,14 +8,17 @@ import {console} from "forge-std/console.sol";
 import {Forum} from "./Forum.sol";
 import {MockSymvoliaRegistry} from "./MockSymvoliaRegistry.sol";
 import {ASymvoliaRegistry} from "./ISymvoliaRegistry.sol";
+import {IRateLimiter} from "./IRateLimiter.sol";
+import {SponsorshipRateLimiter} from "./SponsorshipRateLimiter.sol";
 
 // Test harness to expose internal methods for testing
 contract ForumHarness is Forum {
     constructor(
         ASymvoliaRegistry _symvoliaRegistry,
+        IRateLimiter _rateLimiter,
         string memory _nationality,
         Forum.ForumConfig memory _config
-    ) Forum(_symvoliaRegistry, _nationality, _config) {}
+    ) Forum(_symvoliaRegistry, _rateLimiter, _nationality, _config) {}
 
     function exposed_costOfUserSupport(
         int _userSupport
@@ -36,14 +39,19 @@ contract ForumTest is Test {
     uint constant HALF_LIFE = 604800; // 1 week in seconds
     uint constant ONE_PERCENT_DECAY_SECONDS = 8770;
     MockSymvoliaRegistry mockRegistry;
+    SponsorshipRateLimiter rateLimiter;
     ForumHarness forum;
 
     function setUp() public {
         vm.warp(MOCK_TEST_TIMESTAMP);
 
         mockRegistry = new MockSymvoliaRegistry();
+        // Generous limiter budget so the existing (unmetered) tests are unaffected;
+        // dedicated tests below exercise the rate-limit behavior directly.
+        rateLimiter = new SponsorshipRateLimiter(1_000_000, 1_000_000);
         forum = new ForumHarness(
             mockRegistry,
+            rateLimiter,
             "",
             Forum.ForumConfig({
                 maxRankedStatements: 3,
@@ -59,6 +67,10 @@ contract ForumTest is Test {
                 decaySpeedupFactor: 1
             })
         );
+
+        address[] memory authorized = new address[](1);
+        authorized[0] = address(forum);
+        rateLimiter.initialize(authorized);
     }
 
     /// @dev Advance block.timestamp by minAdjustmentIntervalSeconds to avoid
@@ -70,6 +82,108 @@ contract ForumTest is Test {
     modifier registeredMember() {
         mockRegistry.register("");
         _;
+    }
+
+    // --- sponsored (metered) entrypoint --------------------------------------
+
+    function _memberUserId() internal view returns (bytes32) {
+        // MockSymvoliaRegistry derives userId as keccak256(abi.encode(sender)).
+        return keccak256(abi.encode(address(this)));
+    }
+
+    function _newStatements(
+        string memory _text,
+        int _initialSupport
+    ) internal pure returns (Forum.NewStatement[] memory) {
+        Forum.NewStatement[] memory news = new Forum.NewStatement[](1);
+        news[0] = Forum.NewStatement({
+            text: _text,
+            initialSupport: _initialSupport
+        });
+        return news;
+    }
+
+    function testSubmitSponsoredAddsStatementAndMeters()
+        external
+        registeredMember
+    {
+        Forum.SupportAdjustment[]
+            memory noAdjustments = new Forum.SupportAdjustment[](0);
+
+        forum.submitSponsored(_newStatements("Sponsored", 0), noAdjustments);
+
+        assertEq(forum.statementCount(), 1, "statement added");
+        assertEq(
+            rateLimiter.usageOf(_memberUserId()),
+            forum.STATEMENT_WEIGHT() * 1e18,
+            "one statement worth of budget consumed"
+        );
+    }
+
+    function testSubmitSponsoredMetersStatementsAndAdjustments()
+        external
+        registeredMember
+    {
+        Forum.SupportAdjustment[]
+            memory noAdjustments = new Forum.SupportAdjustment[](0);
+        forum.submitSponsored(_newStatements("First", 0), noAdjustments);
+
+        Forum.SupportAdjustment[]
+            memory adjustments = new Forum.SupportAdjustment[](1);
+        adjustments[0] = _setToSupportAdjustment(0, 2);
+        forum.submitSponsored(_newStatements("Second", 0), adjustments);
+
+        uint256 expected = (2 * forum.STATEMENT_WEIGHT() +
+            forum.SUPPORT_WEIGHT()) * 1e18;
+        assertEq(
+            rateLimiter.usageOf(_memberUserId()),
+            expected,
+            "two statements + one adjustment consumed"
+        );
+    }
+
+    function testSubmitSponsoredRevertsWhenRateLimited()
+        external
+        registeredMember
+    {
+        // Dedicated forum whose limiter only allows a single unit of burst.
+        SponsorshipRateLimiter tightLimiter = new SponsorshipRateLimiter(1, 0);
+        ForumHarness tightForum = new ForumHarness(
+            mockRegistry,
+            tightLimiter,
+            "",
+            Forum.ForumConfig({
+                maxRankedStatements: 3,
+                creditAllowanceIntervalSeconds: CREDIT_ALLOWANCE_INTERVAL_SECONDS,
+                engagementWindowSeconds: 60,
+                maxStatementLength: 120,
+                userCreditAllowancePerInterval: 25,
+                userStartingCredits: 1000,
+                minStatementSupportToRank: 2,
+                minAdjustmentIntervalSeconds: 12,
+                creditMultiplier: 1,
+                refundPenaltyBps: 0,
+                decaySpeedupFactor: 1
+            })
+        );
+        address[] memory authorized = new address[](1);
+        authorized[0] = address(tightForum);
+        tightLimiter.initialize(authorized);
+
+        // Two statements => weight 2 > capacity 1.
+        Forum.NewStatement[] memory news = new Forum.NewStatement[](2);
+        news[0] = Forum.NewStatement({text: "a", initialSupport: 0});
+        news[1] = Forum.NewStatement({text: "b", initialSupport: 0});
+        Forum.SupportAdjustment[]
+            memory noAdjustments = new Forum.SupportAdjustment[](0);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                SponsorshipRateLimiter.RateLimited.selector,
+                _memberUserId()
+            )
+        );
+        tightForum.submitSponsored(news, noAdjustments);
     }
 
     function _getStatementById(
@@ -302,6 +416,7 @@ contract ForumTest is Test {
     {
         ForumHarness fractionalForum = new ForumHarness(
             mockRegistry,
+            rateLimiter,
             "",
             Forum.ForumConfig({
                 maxRankedStatements: 3,
@@ -815,6 +930,7 @@ contract ForumTest is Test {
     {
         ForumHarness fractionalForum = new ForumHarness(
             mockRegistry,
+            rateLimiter,
             "",
             Forum.ForumConfig({
                 maxRankedStatements: 3,
@@ -1708,35 +1824,32 @@ contract ForumTest is Test {
     }
 
     // ======================================================================
-    // Multicall tests (reproducing frontend flow)
+    // Batched submit tests (reproducing frontend flow)
     // ======================================================================
 
-    function testMulticallAdjustSupport() external registeredMember {
+    function testSubmitAdjustSupport() external registeredMember {
         // Step 1: Create a statement directly
         forum.addStatement("Test statement", 1);
         _nextBlock();
 
-        // Step 2: Adjust support via multicall (exactly how the frontend does it)
+        // Step 2: Adjust support via submit (exactly how the frontend does it)
         Forum.SupportAdjustment[]
             memory adjustments = new Forum.SupportAdjustment[](1);
         adjustments[0] = _deltaSupportAdjustment(0, 1);
 
-        bytes[] memory calls = new bytes[](1);
-        calls[0] = abi.encodeCall(Forum.adjustSupport, (adjustments));
-
-        forum.multicall(calls);
+        forum.submit(new Forum.NewStatement[](0), adjustments);
 
         // Verify the support was applied
         Forum.Statement memory stmt = _getStatementById(0);
         assertTrue(stmt.support > 1, "Support should have increased");
     }
 
-    function testMulticallAddStatementThenAdjustSupport()
+    function testSubmitAddStatementThenAdjustSupport()
         external
         registeredMember
     {
         // When the frontend commits both a new statement and support
-        // adjustments in the same multicall, the adjustSupport targets
+        // adjustments in the same submit, the adjustSupport targets
         // EXISTING statements, not the just-created one (which would
         // hit DuplicateAdjustment because lastUpdated == block.timestamp).
         forum.addStatement("Pre-existing statement", 1);
@@ -1747,33 +1860,24 @@ contract ForumTest is Test {
         );
         _nextBlock();
 
-        bytes[] memory calls = new bytes[](2);
-
-        // Call 1: addStatement (new statement)
-        calls[0] = abi.encodeCall(
-            Forum.addStatement,
-            ("Multicall statement", 0)
-        );
-
-        // Call 2: adjustSupport on statement 0 (the pre-existing one)
+        // New statement plus an adjustment to statement 0 (the pre-existing one)
         Forum.SupportAdjustment[]
             memory adjustments = new Forum.SupportAdjustment[](1);
         adjustments[0] = _deltaSupportAdjustment(0, 1);
-        calls[1] = abi.encodeCall(Forum.adjustSupport, (adjustments));
 
-        forum.multicall(calls);
+        forum.submit(_newStatements("Batched statement", 0), adjustments);
 
         Forum.Statement memory stmt = _getStatementById(0);
         assertEq(
             stmt.support,
             2,
-            "Multicall adjustment should increase support from 1 to 2"
+            "Batched adjustment should increase support from 1 to 2"
         );
     }
 
-    function testMulticallAdjustSupportAfterDelay() external registeredMember {
+    function testSubmitAdjustSupportAfterDelay() external registeredMember {
         // Create statement and wait significant time before adjusting
-        // via multicall — tests the decay path with large elapsedSeconds
+        // via submit — tests the decay path with large elapsedSeconds
         forum.addStatement("Decay test", 44);
 
         int initialSupport = _getStatementById(0).support;
@@ -1786,30 +1890,24 @@ contract ForumTest is Test {
         assertLt(
             decayedSupport,
             initialSupport,
-            "Support should visibly decay before multicall adjustment"
+            "Support should visibly decay before batched adjustment"
         );
 
         Forum.SupportAdjustment[]
             memory adjustments = new Forum.SupportAdjustment[](1);
         adjustments[0] = _deltaSupportAdjustment(0, 1);
 
-        bytes[] memory calls = new bytes[](1);
-        calls[0] = abi.encodeCall(Forum.adjustSupport, (adjustments));
+        forum.submit(new Forum.NewStatement[](0), adjustments);
 
-        forum.multicall(calls);
-
-        int supportAfterMulticall = _getStatementById(0).support;
+        int supportAfterSubmit = _getStatementById(0).support;
         assertGt(
-            supportAfterMulticall,
+            supportAfterSubmit,
             decayedSupport,
-            "Multicall adjustment should increase decayed support"
+            "Batched adjustment should increase decayed support"
         );
     }
 
-    function testMulticallAdjustSupportAfterLongDelay()
-        external
-        registeredMember
-    {
+    function testSubmitAdjustSupportAfterLongDelay() external registeredMember {
         // Create statement and wait a very long time
         forum.addStatement("Long decay test", 5);
 
@@ -1820,10 +1918,7 @@ contract ForumTest is Test {
             memory adjustments = new Forum.SupportAdjustment[](1);
         adjustments[0] = _deltaSupportAdjustment(0, 1);
 
-        bytes[] memory calls = new bytes[](1);
-        calls[0] = abi.encodeCall(Forum.adjustSupport, (adjustments));
-
-        forum.multicall(calls);
+        forum.submit(new Forum.NewStatement[](0), adjustments);
     }
 }
 
@@ -1836,13 +1931,16 @@ contract ForumRefundPenaltyTest is Test {
     uint constant CREDIT_ALLOWANCE_INTERVAL_SECONDS = 60;
     uint constant HALF_LIFE = 604800;
     MockSymvoliaRegistry mockRegistry;
+    SponsorshipRateLimiter rateLimiter;
     ForumHarness forum;
 
     function setUp() public {
         vm.warp(MOCK_TEST_TIMESTAMP);
         mockRegistry = new MockSymvoliaRegistry();
+        rateLimiter = new SponsorshipRateLimiter(1_000_000, 1_000_000);
         forum = new ForumHarness(
             mockRegistry,
+            rateLimiter,
             "",
             Forum.ForumConfig({
                 maxRankedStatements: 3,
@@ -1858,6 +1956,10 @@ contract ForumRefundPenaltyTest is Test {
                 decaySpeedupFactor: 1
             })
         );
+
+        address[] memory authorized = new address[](1);
+        authorized[0] = address(forum);
+        rateLimiter.initialize(authorized);
     }
 
     function _nextBlock() internal {
