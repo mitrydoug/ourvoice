@@ -18,8 +18,7 @@ export type SponsorshipEligibility = {
   retryAfterSeconds?: number;
 };
 
-const RATE_LIMITED_WARNING =
-  "Symvolia has hit its sponsorship limit for now.";
+const RATE_LIMITED_WARNING = "Symvolia has hit its sponsorship limit for now.";
 
 /**
  * viem prepares user operations with `bigint` gas/nonce fields, which are not
