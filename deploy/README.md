@@ -139,6 +139,35 @@ The generated contract values should usually be copied as-is. They include
 `REGISTRY_MODE`, `REGISTRY_ADDRESS`, `FORUM_CONTRACT_ADDRESSES`,
 and `GAS_SPONSORSHIP_REGISTRY_SIGNATURES`.
 
+#### Gas sponsorship metering (optional)
+
+To meter gas-sponsored actions per human with the off-chain leaky bucket, attach
+a Railway **Volume** to the backend service and point the SQLite path at it:
+
+Attach a Railway volume at:
+
+```text
+/data
+```
+
+Then set:
+
+```env
+ALCHEMY_GAS_SPONSORSHIP_INSPECT_APPROVE=true
+GAS_SPONSORSHIP_RATE_LIMIT_DB=/data/sponsorship.db
+GAS_SPONSORSHIP_RATE_LIMIT_CAPACITY_GAS=5000000
+GAS_SPONSORSHIP_RATE_LIMIT_LEAK_GAS_PER_DAY=20000000
+GAS_SPONSORSHIP_RPC_URL=https://replace-with-your-http-rpc
+# Production registry mode only (proof-based registration):
+ZKPASSPORT_VERIFIER_ADDRESS=0xREPLACE_WITH_ZKPASSPORT_VERIFIER_ADDRESS
+```
+
+The database is tiny (~1 MB at 10k users), so a 1 GB volume is ample and well
+within the Railway Hobby plan's included volume allowance. Leave
+`GAS_SPONSORSHIP_RATE_LIMIT_DB` unset to sponsor purely by function selector
+without per-human limits. See [backend/README.md](../backend/README.md) for how
+each action type is attributed to a zkPassport id.
+
 Start with semantic search disabled:
 
 ```env
