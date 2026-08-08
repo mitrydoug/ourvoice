@@ -48,13 +48,18 @@ const UserProfilePanel: React.FC = () => {
           alignItems: "center",
           gap: 1.5,
           bgcolor: "action.hover",
-          borderRadius: 999,
+          borderRadius: 3,
           pl: 1,
           pr: 1.5,
           py: 1,
         }}
       >
-        <Skeleton variant="circular" width={36} height={36} />
+        <Skeleton
+          variant="rounded"
+          width={36}
+          height={36}
+          sx={{ borderRadius: 2 }}
+        />
         <Box sx={{ flex: 1 }}>
           <Skeleton variant="text" width="70%" height={24} />
           <Skeleton variant="text" width="50%" height={18} />
@@ -68,10 +73,7 @@ const UserProfilePanel: React.FC = () => {
     <Box
       sx={{
         bgcolor: "action.hover",
-        borderTopLeftRadius: "30px",
-        borderTopRightRadius: "30px",
-        borderBottomLeftRadius: menuOpen ? "16px" : "30px",
-        borderBottomRightRadius: menuOpen ? "16px" : "30px",
+        borderRadius: 3,
         overflow: "hidden",
         transition: (theme) =>
           theme.transitions.create("border-radius", {
@@ -94,11 +96,14 @@ const UserProfilePanel: React.FC = () => {
           cursor: "pointer",
           bgcolor: menuOpen ? "action.selected" : "transparent",
           "&:hover": { bgcolor: "action.selected" },
-          borderBottomLeftRadius: "30px",
-          borderBottomRightRadius: "30px",
+          borderBottomLeftRadius: "12px",
+          borderBottomRightRadius: "12px",
         }}
       >
-        <Avatar src={avatar ?? undefined} sx={{ width: 36, height: 36 }} />
+        <Avatar
+          src={avatar ?? undefined}
+          sx={{ width: 36, height: 36, borderRadius: 2.5 }}
+        />
 
         <Box sx={{ minWidth: 0, flex: 1, ml: 0.5, mb: 0.25 }}>
           <Typography variant="subtitle1" fontWeight={700} noWrap>

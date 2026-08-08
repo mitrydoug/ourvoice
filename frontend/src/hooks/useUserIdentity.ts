@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import useLocalStorageValue from "./useLocalStorageValue";
 import { useUserRegistration } from "./useUserRegistration";
-import { jazziconDataUri } from "../util";
+import { boringAvatarDataUri } from "../util";
 
 /** Name shown for users who have not verified their identity. */
 export const ANONYMOUS_NAME = "Anonymous";
@@ -65,7 +65,7 @@ export function useUserIdentity(): UserIdentity {
 
   const displayName = isVerified ? nickname || ANONYMOUS_NAME : ANONYMOUS_NAME;
 
-  const avatar = isVerified && userId ? jazziconDataUri(userId) : null;
+  const avatar = isVerified && userId ? boringAvatarDataUri(userId) : null;
 
   return {
     userId,
