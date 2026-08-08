@@ -5,10 +5,17 @@ import useLocalStorageValue from "./useLocalStorageValue";
 export type SearchEngineMode = "backend" | "local";
 
 export const SEARCH_ENGINE_STORAGE_KEY = "symvolia:settings:searchEngine";
-export const backendSearchUrl = optionalEnvValue(
-  import.meta.env.VITE_SEARCH_URL,
-);
-export const hasBackendSearch = backendSearchUrl !== undefined;
+
+/** Base URL for backend HTTP APIs (search, gas-sponsorship eligibility, …). */
+export const backendApiUrl = optionalEnvValue(import.meta.env.VITE_BACKEND_URL);
+
+/** Whether the backend text-search UI is offered (independent of the URL). */
+export const backendSearchEnabled =
+  import.meta.env.VITE_ENABLE_BACKEND_SEARCH === "true";
+
+/** Backend search is usable only when explicitly enabled and a URL is set. */
+export const hasBackendSearch =
+  backendSearchEnabled && backendApiUrl !== undefined;
 
 /**
  * The user's selected search engine, persisted per browser. When backend

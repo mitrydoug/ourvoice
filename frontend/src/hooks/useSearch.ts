@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { writeQueryToHash } from "@/state/Search";
-import { backendSearchUrl, useSearchEngineMode } from "./useSearchEngineMode";
+import { backendApiUrl, useSearchEngineMode } from "./useSearchEngineMode";
 import { useLocalSearch } from "@/state/LocalSearch";
 import type { SearchMode } from "@/localSearch/types";
 
@@ -97,7 +97,7 @@ export function useSearch(
       };
 
       const runBackend = async (): Promise<number[]> => {
-        if (!backendSearchUrl) {
+        if (!backendApiUrl) {
           throw new Error("Backend search is not configured");
         }
 
@@ -118,7 +118,7 @@ export function useSearch(
         const fetchResults = async (): Promise<unknown> => {
           if (similarParams !== undefined) {
             const similarResponse = await fetch(
-              `${backendSearchUrl}/similar?${similarParams.toString()}`,
+              `${backendApiUrl}/similar?${similarParams.toString()}`,
             );
             if (similarResponse.ok) {
               return similarResponse.json();
@@ -126,7 +126,7 @@ export function useSearch(
           }
 
           const lexicalResponse = await fetch(
-            `${backendSearchUrl}/search?${lexicalParams.toString()}`,
+            `${backendApiUrl}/search?${lexicalParams.toString()}`,
           );
           if (!lexicalResponse.ok) {
             throw new Error("Search request failed");
