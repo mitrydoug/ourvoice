@@ -186,7 +186,8 @@ Set the deployed backend URL, RPC relay, and gas policy there — these values a
 non-secret and live in source, not GitHub Variables:
 
 ```env
-VITE_SEARCH_URL=https://replace-with-your-backend-domain
+VITE_BACKEND_URL=https://replace-with-your-backend-domain
+VITE_ENABLE_BACKEND_SEARCH=false
 VITE_RPC_URL=https://replace-with-your-backend-domain/rpc
 VITE_ALCHEMY_GAS_POLICY_ID=<Alchemy Gas Manager policy ID>
 ```

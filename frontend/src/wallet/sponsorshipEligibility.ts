@@ -1,4 +1,4 @@
-import { backendSearchUrl } from "@/hooks/useSearchEngineMode";
+import { backendApiUrl } from "@/hooks/useSearchEngineMode";
 import type { SponsoredNetworkFeeEstimate } from "./types";
 
 /**
@@ -48,10 +48,10 @@ export const fetchSponsorshipEligibility = async (
   userOperation: Record<string, unknown>,
   userId?: string | null,
 ): Promise<SponsorshipEligibility | undefined> => {
-  if (!backendSearchUrl || !userId) return undefined;
+  if (!backendApiUrl || !userId) return undefined;
   try {
     const response = await fetch(
-      `${backendSearchUrl}/alchemy/gas-policy/eligibility`,
+      `${backendApiUrl}/alchemy/gas-policy/eligibility`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

@@ -34,8 +34,15 @@ interface ImportMetaEnv {
   /** Alchemy Gas Manager policy ID used by Privy smart wallets. */
   readonly VITE_ALCHEMY_GAS_POLICY_ID?: string;
 
-  /** Base URL for the search API. Defaults to http://localhost:8000 for local dev. */
-  readonly VITE_SEARCH_URL?: string;
+  /** Base URL for backend HTTP APIs (search, gas-sponsorship eligibility, …). */
+  readonly VITE_BACKEND_URL?: string;
+
+  /**
+   * Enables the backend text-search UI when set to "true". Independent of
+   * VITE_BACKEND_URL so the backend can serve other endpoints (e.g. gas
+   * sponsorship eligibility) while search is turned off.
+   */
+  readonly VITE_ENABLE_BACKEND_SEARCH?: string;
 
   /**
    * How often (in seconds) the frontend polls the chain for a new block
