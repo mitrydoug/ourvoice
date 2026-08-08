@@ -468,5 +468,222 @@ class GasSponsorshipMeteringTests(unittest.TestCase):
         self.assertEqual(response.json(), {"approved": False})
 
 
+class GasSponsorshipEligibilityTests(unittest.TestCase):
+    def setUp(self) -> None:
+        app = FastAPI()
+        create_api(app)
+        self.client = TestClient(app)
+        directory = tempfile.mkdtemp()
+        self.db_path = os.path.join(directory, "sponsorship.db")
+        self.sender = "0x0000000000000000000000000000000000000abc"
+        # The webhook meters this sender against its reproduced mock id; the
+        # preview must pass the same id so both hit the same bucket.
+        self.user_id = identity.mock_registration_user_id(self.sender)
+
+    def _payload(self, call_data: str, nonce: str, *, gas: int = 200_000) -> dict:
+        call_gas = gas // 2
+        verification_gas = gas // 4
+        pre_verification_gas = gas - call_gas - verification_gas
+        return {
+            "userOperation": {
+                "sender": self.sender,
+                "nonce": nonce,
+                "callData": call_data,
+                "callGasLimit": hex(call_gas),
+                "verificationGasLimit": hex(verification_gas),
+                "preVerificationGas": hex(pre_verification_gas),
+            },
+        }
+
+    def _eligibility_payload(
+        self,
+        call_data: str,
+        nonce: str,
+        *,
+        gas: int = 200_000,
+        user_id: str | None = None,
+    ) -> dict:
+        payload = self._payload(call_data, nonce, gas=gas)
+        payload["userId"] = self.user_id if user_id is None else user_id
+        return payload
+
+    def _mocked_register_call_data(self) -> str:
+        return _execute_call_data(
+            REGISTRY_ADDRESS,
+            _selector("register(string)") + encode(["string"], ["USA"]),
+        )
+
+    def test_eligibility_reports_sponsored_without_consuming(self) -> None:
+        call_data = self._mocked_register_call_data()
+        env = {
+            "ALCHEMY_GAS_SPONSORSHIP_INSPECT_APPROVE": "true",
+            "REGISTRY_ADDRESS": REGISTRY_ADDRESS,
+            "REGISTRY_MODE": "mocked",
+            "GAS_SPONSORSHIP_RATE_LIMIT_DB": self.db_path,
+            "GAS_SPONSORSHIP_RATE_LIMIT_CAPACITY_GAS": "800000",
+            "GAS_SPONSORSHIP_RATE_LIMIT_LEAK_GAS_PER_DAY": "0",
+        }
+        with patch.dict(os.environ, env, clear=True):
+            # Capacity only covers four 200000-gas actions, but peeking never
+            # consumes, so every preview stays sponsored.
+            previews = [
+                self.client.post(
+                    "/alchemy/gas-policy/eligibility",
+                    json=self._eligibility_payload(call_data, hex(nonce)),
+                ).json()
+                for nonce in range(10)
+            ]
+            # The bucket is untouched, so live metering still grants four actions.
+            approvals = [
+                self.client.post(
+                    "/alchemy/gas-policy/inspect",
+                    json=self._payload(call_data, hex(nonce)),
+                ).json()["approved"]
+                for nonce in range(100, 105)
+            ]
+
+        self.assertTrue(all(p["status"] == "sponsored" for p in previews))
+        self.assertEqual(approvals, [True, True, True, True, False])
+
+    def test_eligibility_reports_rate_limited_when_budget_exhausted(self) -> None:
+        call_data = self._mocked_register_call_data()
+        env = {
+            "ALCHEMY_GAS_SPONSORSHIP_INSPECT_APPROVE": "true",
+            "REGISTRY_ADDRESS": REGISTRY_ADDRESS,
+            "REGISTRY_MODE": "mocked",
+            "GAS_SPONSORSHIP_RATE_LIMIT_DB": self.db_path,
+            "GAS_SPONSORSHIP_RATE_LIMIT_CAPACITY_GAS": "300000",
+            # 1 gas/second leak keeps retry_after finite and positive.
+            "GAS_SPONSORSHIP_RATE_LIMIT_LEAK_GAS_PER_DAY": "86400",
+        }
+        with patch.dict(os.environ, env, clear=True):
+            # Consume the whole 300000-gas bucket with a real sponsored action.
+            first = self.client.post(
+                "/alchemy/gas-policy/inspect",
+                json=self._payload(call_data, "0x1", gas=300_000),
+            )
+            self.assertTrue(first.json()["approved"])
+            # A preview for another 300000-gas action no longer fits.
+            preview = self.client.post(
+                "/alchemy/gas-policy/eligibility",
+                json=self._eligibility_payload(call_data, "0x2", gas=300_000),
+            ).json()
+
+        self.assertEqual(preview["status"], "rate_limited")
+        self.assertIsNotNone(preview["retry_after_seconds"])
+        self.assertGreater(preview["retry_after_seconds"], 0)
+
+    def test_eligibility_reports_ineligible_for_unsponsored_target(self) -> None:
+        # A call to a contract that is neither the registry nor a forum.
+        call_data = _execute_call_data(
+            "0x00000000000000000000000000000000000000cc",
+            _selector("register(string)") + encode(["string"], ["USA"]),
+        )
+        env = {
+            "ALCHEMY_GAS_SPONSORSHIP_INSPECT_APPROVE": "true",
+            "REGISTRY_ADDRESS": REGISTRY_ADDRESS,
+            "REGISTRY_MODE": "mocked",
+            "GAS_SPONSORSHIP_RATE_LIMIT_DB": self.db_path,
+            "GAS_SPONSORSHIP_RATE_LIMIT_CAPACITY_GAS": "800000",
+            "GAS_SPONSORSHIP_RATE_LIMIT_LEAK_GAS_PER_DAY": "0",
+        }
+        with patch.dict(os.environ, env, clear=True):
+            preview = self.client.post(
+                "/alchemy/gas-policy/eligibility",
+                json=self._payload(call_data, "0x1"),
+            ).json()
+
+        self.assertEqual(preview["status"], "ineligible")
+
+    def test_eligibility_requires_user_id(self) -> None:
+        # Without a client-supplied userId the endpoint must not resolve identity
+        # server-side (which would trigger a registry RPC); it errors instead.
+        call_data = _execute_call_data(
+            FORUM_ADDRESS,
+            _add_statement_call_data("hello", 1),
+        )
+        env = {
+            "ALCHEMY_GAS_SPONSORSHIP_INSPECT_APPROVE": "true",
+            "REGISTRY_ADDRESS": REGISTRY_ADDRESS,
+            "FORUM_CONTRACT_ADDRESSES": FORUM_ADDRESS,
+            "REGISTRY_MODE": "production",
+            "GAS_SPONSORSHIP_RATE_LIMIT_DB": self.db_path,
+            "GAS_SPONSORSHIP_RPC_URL": "http://rpc.invalid",
+        }
+        resolver = AsyncMock(return_value="0x" + "44" * 32)
+        with patch.dict(os.environ, env, clear=True), patch.object(
+            identity, "resolve_forum_user_id", resolver
+        ):
+            preview = self.client.post(
+                "/alchemy/gas-policy/eligibility",
+                json=self._payload(call_data, "0x1"),
+            ).json()
+
+        self.assertEqual(preview["status"], "error")
+        resolver.assert_not_awaited()
+
+    def test_eligibility_uses_client_user_id_hint_without_rpc(self) -> None:
+        # A forum action would normally resolve the id via RPC; a valid client
+        # hint lets the preview meter directly and skip that call entirely.
+        call_data = _execute_call_data(
+            FORUM_ADDRESS,
+            _add_statement_call_data("hello", 1),
+        )
+        env = {
+            "ALCHEMY_GAS_SPONSORSHIP_INSPECT_APPROVE": "true",
+            "REGISTRY_ADDRESS": REGISTRY_ADDRESS,
+            "FORUM_CONTRACT_ADDRESSES": FORUM_ADDRESS,
+            "REGISTRY_MODE": "production",
+            "GAS_SPONSORSHIP_RATE_LIMIT_DB": self.db_path,
+            "GAS_SPONSORSHIP_RATE_LIMIT_CAPACITY_GAS": "800000",
+            "GAS_SPONSORSHIP_RATE_LIMIT_LEAK_GAS_PER_DAY": "0",
+            "GAS_SPONSORSHIP_RPC_URL": "http://rpc.invalid",
+        }
+        resolver = AsyncMock(return_value=None)
+        payload = self._payload(call_data, "0x1")
+        payload["userId"] = "0x" + "22" * 32
+        with patch.dict(os.environ, env, clear=True), patch.object(
+            identity, "resolve_forum_user_id", resolver
+        ):
+            preview = self.client.post(
+                "/alchemy/gas-policy/eligibility",
+                json=payload,
+            ).json()
+
+        self.assertEqual(preview["status"], "sponsored")
+        resolver.assert_not_awaited()
+
+    def test_eligibility_rejects_malformed_client_user_id(self) -> None:
+        # A malformed userId is discarded (so it can't key a junk bucket) and,
+        # with no server-side resolution, the endpoint errors without any RPC.
+        call_data = _execute_call_data(
+            FORUM_ADDRESS,
+            _add_statement_call_data("hello", 1),
+        )
+        env = {
+            "ALCHEMY_GAS_SPONSORSHIP_INSPECT_APPROVE": "true",
+            "REGISTRY_ADDRESS": REGISTRY_ADDRESS,
+            "FORUM_CONTRACT_ADDRESSES": FORUM_ADDRESS,
+            "REGISTRY_MODE": "production",
+            "GAS_SPONSORSHIP_RATE_LIMIT_DB": self.db_path,
+            "GAS_SPONSORSHIP_RATE_LIMIT_CAPACITY_GAS": "800000",
+            "GAS_SPONSORSHIP_RATE_LIMIT_LEAK_GAS_PER_DAY": "0",
+            "GAS_SPONSORSHIP_RPC_URL": "http://rpc.invalid",
+        }
+        resolver = AsyncMock(return_value="0x" + "33" * 32)
+        payload = self._payload(call_data, "0x1")
+        payload["userId"] = "not-a-bytes32"
+        with patch.dict(os.environ, env, clear=True), patch.object(
+            identity, "resolve_forum_user_id", resolver
+        ):
+            preview = self.client.post(
+                "/alchemy/gas-policy/eligibility",
+                json=payload,
+            ).json()
+
+        self.assertEqual(preview["status"], "error")
+        resolver.assert_not_awaited()
+
+
 if __name__ == "__main__":
     unittest.main()

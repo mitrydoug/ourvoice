@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Box,
   Button,
@@ -81,13 +81,13 @@ const CreditActionPanel: React.FC = () => {
     : false;
   const commitBusy = isUserVerified
     ? userVotes.state?.commitStatus !== undefined &&
-      userVotes.state?.commitStatus !== "idle"
+    userVotes.state?.commitStatus !== "idle"
     : false;
-  const commitChanges = isUserVerified ? userVotes.commitChanges : () => {};
+  const commitChanges = isUserVerified ? userVotes.commitChanges : () => { };
   const previewCommitChanges = isUserVerified
     ? userVotes.previewCommitChanges
     : undefined;
-  const resetChanges = isUserVerified ? userVotes.resetChanges : () => {};
+  const resetChanges = isUserVerified ? userVotes.resetChanges : () => { };
   const hasEnoughCredits = isUserVerified
     ? (userVotes.state?.hasEnoughCredits ?? true)
     : true;
@@ -116,15 +116,25 @@ const CreditActionPanel: React.FC = () => {
   const hasActionPanel = showGetVerified || showCitizenNote || showCredits;
   const pendingCount = stagedStatementCount + stagedSupportCount;
 
+  // Capture the latest preview function in a ref so the effect below runs
+  // exactly once per dialog open, instead of re-firing every time the callback
+  // identity churns (e.g. Privy handing back a fresh smart-wallet client on its
+  // own re-render cadence). Staged changes can't change while the modal is
+  // open, so a single preview is correct.
+  const previewCommitChangesRef = useRef(previewCommitChanges);
+  previewCommitChangesRef.current = previewCommitChanges;
+
   useEffect(() => {
-    if (!commitDialogOpen || !previewCommitChanges) return;
+    if (!commitDialogOpen) return;
+    const runPreview = previewCommitChangesRef.current;
+    if (!runPreview) return;
 
     let isCancelled = false;
     setCommitPreview(null);
     setCommitPreviewError(undefined);
     setCommitPreviewLoading(true);
 
-    void previewCommitChanges()
+    void runPreview()
       .then((preview) => {
         if (isCancelled) return;
         if (preview) {
@@ -135,11 +145,10 @@ const CreditActionPanel: React.FC = () => {
       })
       .catch((error: unknown) => {
         if (isCancelled) return;
-        setCommitPreviewError(
-          error instanceof Error
-            ? error.message
-            : "Unable to check the network fee.",
-        );
+        // Show a friendly message; the raw error (often serialized JSON from
+        // viem/Alchemy) is logged for debugging rather than shown to the user.
+        console.error("Failed to preview commit network fee", error);
+        setCommitPreviewError("Unable to check the network fee.");
       })
       .finally(() => {
         if (!isCancelled) setCommitPreviewLoading(false);
@@ -148,7 +157,7 @@ const CreditActionPanel: React.FC = () => {
     return () => {
       isCancelled = true;
     };
-  }, [commitDialogOpen, previewCommitChanges]);
+  }, [commitDialogOpen]);
 
   if (!address) return null;
 
@@ -278,8 +287,8 @@ const CreditActionPanel: React.FC = () => {
                           fontVariantNumeric: "tabular-nums",
                           ...(hasStagedChanges && !commitBusy
                             ? {
-                                animation: `${shimmer} 1.5s ease-in-out infinite`,
-                              }
+                              animation: `${shimmer} 1.5s ease-in-out infinite`,
+                            }
                             : {}),
                         }}
                       >

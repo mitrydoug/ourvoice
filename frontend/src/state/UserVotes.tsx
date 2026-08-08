@@ -16,6 +16,7 @@ import { encodeFunctionData, parseEventLogs, BaseError } from "viem";
 import { FORUM_ABI, useForum } from "./Forum";
 import useBlockSync from "@/hooks/useBlockSync";
 import useLocalStorageSet from "@/hooks/useLocalStorageSet";
+import { useUserRegistration } from "@/hooks/useUserRegistration";
 import {
   type ContractWriteRequest,
   type SponsoredNetworkFeeEstimate,
@@ -233,7 +234,7 @@ const inverseTriangle = (
       creditMultiplier * creditMultiplier + 8 * creditMultiplier * creditCost,
     ) -
       creditMultiplier) /
-      2,
+    2,
   );
 };
 
@@ -759,9 +760,9 @@ const reducer = (
     ...newState,
     staged: newState.staged
       ? {
-          ...newState.staged,
-          credits: stagedCredits,
-        }
+        ...newState.staged,
+        credits: stagedCredits,
+      }
       : undefined,
     hasStagedChanges,
     hasEnoughCredits: stagedCredits >= 0,
@@ -834,6 +835,7 @@ export const UserVoteProvider: FC<{
     isLoading: isWalletLoading,
     kind: walletKind,
   } = useWalletAuth();
+  const { userId } = useUserRegistration();
   const publicClient = usePublicClient();
   const {
     forumContractAddress,
@@ -949,10 +951,10 @@ export const UserVoteProvider: FC<{
   const persistKey =
     chainFingerprint && participantAddress
       ? stagedStorageKey(
-          chainFingerprint,
-          forumName,
-          participantAddress.slice(0, 10),
-        )
+        chainFingerprint,
+        forumName,
+        participantAddress.slice(0, 10),
+      )
       : undefined;
   const restoredKeyRef = useRef<string | undefined>(undefined);
   useEffect(() => {
@@ -989,10 +991,10 @@ export const UserVoteProvider: FC<{
   const pendingCommitKey =
     chainFingerprint && participantAddress
       ? pendingCommitStorageKey(
-          chainFingerprint,
-          forumName,
-          participantAddress.slice(0, 10),
-        )
+        chainFingerprint,
+        forumName,
+        participantAddress.slice(0, 10),
+      )
       : undefined;
   const restoredPendingKeyRef = useRef<string | undefined>(undefined);
   useEffect(() => {
@@ -1169,9 +1171,9 @@ export const UserVoteProvider: FC<{
     return {
       statementCount: state.staged.stagedStatements.length,
       supportAdjustmentCount: state.staged.supportAdjustments.size,
-      networkFee: await previewNetworkFee(request),
+      networkFee: await previewNetworkFee(request, { userId }),
     };
-  }, [buildCommitRequest, previewNetworkFee, state.staged]);
+  }, [buildCommitRequest, previewNetworkFee, state.staged, userId]);
 
   const commitChanges = useCallback(
     async (options?: CommitChangesOptions) => {

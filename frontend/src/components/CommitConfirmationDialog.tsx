@@ -48,7 +48,9 @@ const CommitConfirmationDialog = ({
 
   const networkFeeValue = isNetworkFeeLoading
     ? "Checking..."
-    : networkFeeError || networkFee?.label || "Not checked";
+    : networkFeeError
+      ? "Couldn't estimate"
+      : networkFee?.label || "Not checked";
   // Self-funded transactions charge the user's own wallet, so require an
   // explicit fee acknowledgement before confirming.
   const requiresFeeAcknowledgement = networkFee?.kind === "self-funded";
@@ -175,14 +177,21 @@ const CommitConfirmationDialog = ({
                   {networkFee.reason}
                 </Typography>
               )}
+              {networkFeeError && (
+                <Typography variant="caption" color="error">
+                  We couldn&apos;t estimate the network fee. Please try again.
+                </Typography>
+              )}
             </Stack>
           </Box>
 
           {isSponsorshipFallback && (
             <Alert severity="warning" sx={{ borderRadius: 2 }}>
-              An error occurred, so your transaction cannot be sponsored by
-              Symvolia. Click Continue to proceed with a self-funded
-              transaction, or try again later.
+              {networkFee?.warning ||
+                networkFee?.reason ||
+                "This transaction cannot be sponsored by Symvolia."}{" "}
+              Click Continue to proceed with a self-funded transaction, or try
+              again later.
             </Alert>
           )}
 

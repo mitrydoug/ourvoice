@@ -9,17 +9,18 @@ import {
   SELF_FUNDED_NETWORK_FEE_ESTIMATE,
   SPONSORED_NETWORK_FEE_ESTIMATE,
   SPONSORSHIP_UNAVAILABLE_NETWORK_FEE_ESTIMATE,
-  classifySponsorshipWarning,
   contractWriteData,
   formatUsdFee,
   isPaymasterError,
-  isSponsoredUserOperation,
   selfFundedLabel,
-  smartWalletCalls,
   sponsoredTransactionUiOptions,
   unsponsoredUserOperationRequest,
   userOperationFeeWei,
 } from "./sponsoredWrite";
+import {
+  eligibilityFeeExtra,
+  fetchSponsorshipEligibility,
+} from "./sponsorshipEligibility";
 import type {
   ContractWriteRequest,
   SponsoredNetworkFeeEstimate,
@@ -41,6 +42,7 @@ export const useContractWrite = () => {
   const previewNetworkFee = useCallback(
     async (
       request: ContractWriteRequest,
+      options?: { userId?: string | null },
     ): Promise<SponsoredNetworkFeeEstimate> => {
       if (!isSponsored) {
         return SELF_FUNDED_NETWORK_FEE_ESTIMATE;
@@ -62,65 +64,49 @@ export const useContractWrite = () => {
         };
       }
 
-      // Builds a self-funded estimate through the smart wallet (identity stays
-      // the same). Prices an unsponsored user operation when one isn't already
-      // available, degrading to a label without a dollar figure if it cannot be
-      // prepared or priced.
-      const buildSelfFundedEstimate = async (
-        userOperation: Record<string, unknown> | undefined,
-        extra: Pick<SponsoredNetworkFeeEstimate, "reason" | "warning">,
-      ): Promise<SponsoredNetworkFeeEstimate> => {
-        let operation = userOperation;
-        if (!operation) {
-          try {
-            operation = (await smartWalletClient.prepareUserOperation(
-              unsponsoredUserOperationRequest(request) as unknown as Parameters<
-                typeof smartWalletClient.prepareUserOperation
-              >[0],
-            )) as Record<string, unknown>;
-          } catch {
-            operation = undefined;
-          }
-        }
-
-        const feeWei = operation ? userOperationFeeWei(operation) : undefined;
-        const ethUsdPrice = publicClient
-          ? await fetchEthUsdPrice(publicClient)
-          : undefined;
-        const feeUsd =
-          feeWei !== undefined && ethUsdPrice !== undefined
-            ? formatUsdFee(feeWei, ethUsdPrice)
-            : "";
-
-        return {
-          kind: "self-funded",
-          label: selfFundedLabel(feeUsd),
-          ...extra,
-        };
-      };
-
+      // Prepare and price an *unsponsored* user operation. This deliberately
+      // never requests paymaster sponsorship, so previewing the fee invokes no
+      // Alchemy paymaster webhook and consumes no sponsorship budget — only a
+      // real submit hits the paymaster.
+      let unsponsoredOp: Record<string, unknown> | undefined;
       try {
-        const userOperation = (await smartWalletClient.prepareUserOperation({
-          calls: smartWalletCalls(request),
-        })) as Record<string, unknown>;
-
-        if (isSponsoredUserOperation(userOperation)) {
-          return SPONSORED_NETWORK_FEE_ESTIMATE;
-        }
-
-        // Prepared successfully but the paymaster declined to sponsor: the
-        // smart wallet will pay, so price the operation we already have.
-        return await buildSelfFundedEstimate(userOperation, {
-          reason:
-            "The paymaster did not sponsor this operation. The app will keep using your smart wallet so your participant identity stays the same.",
-        });
-      } catch (error) {
-        // The paymaster errored (e.g. policy limits exhausted). Fall back to a
-        // self-funded flow and surface the reason as a warning.
-        return await buildSelfFundedEstimate(undefined, {
-          warning: classifySponsorshipWarning(error),
-        });
+        unsponsoredOp = (await smartWalletClient.prepareUserOperation(
+          unsponsoredUserOperationRequest(request) as unknown as Parameters<
+            typeof smartWalletClient.prepareUserOperation
+          >[0],
+        )) as Record<string, unknown>;
+      } catch {
+        unsponsoredOp = undefined;
       }
+
+      const feeWei = unsponsoredOp
+        ? userOperationFeeWei(unsponsoredOp)
+        : undefined;
+      const ethUsdPrice = publicClient
+        ? await fetchEthUsdPrice(publicClient)
+        : undefined;
+      const feeUsd =
+        feeWei !== undefined && ethUsdPrice !== undefined
+          ? formatUsdFee(feeWei, ethUsdPrice)
+          : "";
+
+      // Ask our own meter (never the paymaster) whether this op would be
+      // sponsored. When it can't answer (no backend, no userId, or a transient
+      // error), optimistically assume sponsorship: the real submit will hit the
+      // paymaster and gracefully fall back to self-funded if it is declined.
+      const eligibility = unsponsoredOp
+        ? await fetchSponsorshipEligibility(unsponsoredOp, options?.userId)
+        : undefined;
+
+      if (!eligibility || eligibility.status === "sponsored") {
+        return SPONSORED_NETWORK_FEE_ESTIMATE;
+      }
+
+      return {
+        kind: "self-funded",
+        label: selfFundedLabel(feeUsd),
+        ...(eligibilityFeeExtra(eligibility) ?? {}),
+      };
     },
     [isSponsored, getClientForChain, publicClient],
   );
