@@ -60,7 +60,7 @@ export const boringAvatarDataUri = (seed: string): string => {
       size: 80,
       variant: "marble",
       square: true,
-      colors: ["#d699cb", "#510778", "#ffb969", "#eaf27e", "#3b8c88"],
+      colors: ["#e6626f","#efae78","#f5e19c","#a2ca8e","#66af91"],
     }),
   );
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
