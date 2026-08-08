@@ -110,10 +110,10 @@ export function useSearch(
           similarStatementId === undefined
             ? undefined
             : new URLSearchParams({
-              statement_id: similarStatementId.toString(),
-              forum_address: forumAddress,
-              limit: SEARCH_RESULTS_LIMIT.toString(),
-            });
+                statement_id: similarStatementId.toString(),
+                forum_address: forumAddress,
+                limit: SEARCH_RESULTS_LIMIT.toString(),
+              });
 
         const fetchResults = async (): Promise<unknown> => {
           if (similarParams !== undefined) {
