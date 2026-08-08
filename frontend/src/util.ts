@@ -1,5 +1,6 @@
-import jazzicon from "@metamask/jazzicon";
-import { keccak256, hexToNumber, type Hex } from "viem";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import Avatar from "boring-avatars";
 
 /** Convert credit parts to display credits (rounded to nearest integer). */
 export const partsToCredits = (
@@ -44,25 +45,23 @@ export const shortenAddress = (address: string): string =>
   `${address.slice(0, 6)}…${address.slice(-4)}`;
 
 /**
- * Fold an arbitrary-length hex string into an unsigned 32-bit integer using
- * viem's `keccak256`. Every byte of the input contributes to the digest, so two
- * ids that merely share a prefix do not collide — unlike naively truncating to
- * the first few bytes. Jazzicon seeds a 32-bit PRNG, so we take the top 4 bytes
- * of the 32-byte digest as a uniform seed.
+ * Generate a deterministic Boring Avatar as an SVG data URI from an arbitrary
+ * seed string (e.g. a registry `userId`). The avatar is rendered entirely
+ * client-side — there is no network or API dependency. The same seed always
+ * yields the same avatar, and distinct seeds yield distinct avatars.
+ *
+ * A square variant is used so the surrounding UI can clip the corners to the
+ * desired radius (see the `MuiAvatar` rounded default in the theme).
  */
-const hashHexToSeed = (hex: string): number =>
-  hexToNumber(keccak256(hex as Hex).slice(0, 10) as Hex);
-
-/**
- * Generate a deterministic Jazzicon as a data URI from a hex seed
- * (e.g. an Ethereum address or a registry `userId`). All bytes of the hex
- * string are hashed into the seed, so the same input always yields the same
- * icon and distinct inputs are extremely unlikely to collide.
- */
-export const jazziconDataUri = (hexSeed: string): string => {
-  const jazziconData = jazzicon(16, hashHexToSeed(hexSeed));
-  const jazziconSvg = new XMLSerializer().serializeToString(
-    jazziconData.children[0],
+export const boringAvatarDataUri = (seed: string): string => {
+  const svg = renderToStaticMarkup(
+    createElement(Avatar, {
+      name: seed,
+      size: 80,
+      variant: "marble",
+      square: true,
+      colors: ["#e6626f", "#efae78", "#f5e19c", "#a2ca8e", "#66af91"],
+    }),
   );
-  return `data:image/svg+xml,${encodeURIComponent(jazziconSvg)}`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 };

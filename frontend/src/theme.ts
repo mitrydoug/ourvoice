@@ -110,6 +110,10 @@ export const theme = createTheme({
       },
     },
     MuiAvatar: {
+      defaultProps: {
+        // Square avatars with softly rounded corners (no longer circular).
+        variant: "rounded",
+      },
       styleOverrides: {
         root: ({ theme }) => ({
           width: 40,

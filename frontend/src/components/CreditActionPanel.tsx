@@ -165,7 +165,7 @@ const CreditActionPanel: React.FC = () => {
     return (
       <Box
         sx={{
-          borderRadius: 4,
+          borderRadius: 3,
           bgcolor: "action.hover",
           p: 2,
           mt: 1.5,
@@ -185,7 +185,7 @@ const CreditActionPanel: React.FC = () => {
         sx={{
           display: "flex",
           flexDirection: "column",
-          borderRadius: 4,
+          borderRadius: 3,
           bgcolor: "action.hover",
           p: 2,
           mt: 1.5,
