@@ -85,7 +85,9 @@ const registryMode = deployment.registryMode ?? "production";
 const registrySponsorshipSignatures =
   registryMode === "mocked"
     ? ["register(string)"]
-    : ["register((bytes32,(bytes32,bytes,bytes32[]),bytes,(uint256,string,string,bool)))"];
+    : [
+      "registerSponsored((bytes32,(bytes32,bytes,bytes32[]),bytes,(uint256,string,string,bool)))",
+    ];
 const label =
   networkName === "localhost"
     ? "the local Hardhat development network (chain 31337)"

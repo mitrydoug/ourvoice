@@ -74,7 +74,9 @@ const loadDeployment = (networkName) => {
 const registrySponsorshipSignatures = (registryMode) =>
   registryMode === "mocked"
     ? ["register(string)"]
-    : ["register((bytes32,(bytes32,bytes,bytes32[]),bytes,(uint256,string,string,bool)))"];
+    : [
+      "registerSponsored((bytes32,(bytes32,bytes,bytes32[]),bytes,(uint256,string,string,bool)))",
+    ];
 
 const backendEnvText = (networkName, deployment, forumOrder) => {
   const registryMode = deployment.registryMode ?? "production";

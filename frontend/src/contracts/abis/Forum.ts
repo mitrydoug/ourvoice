@@ -10,6 +10,11 @@ export default [
         "type": "address"
       },
       {
+        "internalType": "contract IRateLimiter",
+        "name": "_rateLimiter",
+        "type": "address"
+      },
+      {
         "internalType": "string",
         "name": "_nationality",
         "type": "string"
@@ -83,28 +88,12 @@ export default [
   {
     "inputs": [
       {
-        "internalType": "address",
-        "name": "target",
-        "type": "address"
-      }
-    ],
-    "name": "AddressEmptyCode",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
         "internalType": "uint256",
         "name": "statementId",
         "type": "uint256"
       }
     ],
     "name": "DuplicateAdjustment",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "FailedCall",
     "type": "error"
   },
   {
@@ -270,6 +259,32 @@ export default [
     ],
     "name": "StatementRankChanged",
     "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "STATEMENT_WEIGHT",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "SUPPORT_WEIGHT",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
     "inputs": [
@@ -665,25 +680,6 @@ export default [
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "bytes[]",
-        "name": "data",
-        "type": "bytes[]"
-      }
-    ],
-    "name": "multicall",
-    "outputs": [
-      {
-        "internalType": "bytes[]",
-        "name": "results",
-        "type": "bytes[]"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
     "inputs": [],
     "name": "nationality",
     "outputs": [
@@ -704,6 +700,19 @@ export default [
         "internalType": "uint256",
         "name": "",
         "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "rateLimiter",
+    "outputs": [
+      {
+        "internalType": "contract IRateLimiter",
+        "name": "",
+        "type": "address"
       }
     ],
     "stateMutability": "view",
@@ -813,6 +822,100 @@ export default [
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "string",
+            "name": "text",
+            "type": "string"
+          },
+          {
+            "internalType": "int256",
+            "name": "initialSupport",
+            "type": "int256"
+          }
+        ],
+        "internalType": "struct Forum.NewStatement[]",
+        "name": "_newStatements",
+        "type": "tuple[]"
+      },
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "statementId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "int256",
+            "name": "value",
+            "type": "int256"
+          },
+          {
+            "internalType": "enum Forum.SupportAdjustmentType",
+            "name": "adjustmentType",
+            "type": "uint8"
+          }
+        ],
+        "internalType": "struct Forum.SupportAdjustment[]",
+        "name": "_supportAdjustments",
+        "type": "tuple[]"
+      }
+    ],
+    "name": "submit",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "string",
+            "name": "text",
+            "type": "string"
+          },
+          {
+            "internalType": "int256",
+            "name": "initialSupport",
+            "type": "int256"
+          }
+        ],
+        "internalType": "struct Forum.NewStatement[]",
+        "name": "_newStatements",
+        "type": "tuple[]"
+      },
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "statementId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "int256",
+            "name": "value",
+            "type": "int256"
+          },
+          {
+            "internalType": "enum Forum.SupportAdjustmentType",
+            "name": "adjustmentType",
+            "type": "uint8"
+          }
+        ],
+        "internalType": "struct Forum.SupportAdjustment[]",
+        "name": "_supportAdjustments",
+        "type": "tuple[]"
+      }
+    ],
+    "name": "submitSponsored",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {

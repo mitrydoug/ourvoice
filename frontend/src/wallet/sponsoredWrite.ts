@@ -22,48 +22,51 @@ export const SELF_FUNDED_NETWORK_FEE_ESTIMATE: SponsoredNetworkFeeEstimate = {
 };
 
 export const SPONSORSHIP_UNAVAILABLE_NETWORK_FEE_ESTIMATE: SponsoredNetworkFeeEstimate =
-  {
-    kind: "unavailable",
-    label: "Sponsorship unavailable",
-  };
+{
+  kind: "unavailable",
+  label: "Sponsorship unavailable",
+};
 
 const DEFAULT_SPONSORED_TRANSACTION_UI_OPTIONS: SendTransactionModalUIOptions =
-  {
-    description:
-      "This publishes an update to Symvolia. The app sponsors the network fee, and this transaction does not transfer funds.",
-    buttonText: "Continue",
-    transactionInfo: {
-      title: "What happens",
-      action: "Publish update",
-      contractInfo: {
-        name: "Symvolia",
-      },
+{
+  description:
+    "This publishes an update to Symvolia. The app sponsors the network fee, and this transaction does not transfer funds.",
+  buttonText: "Continue",
+  transactionInfo: {
+    title: "What happens",
+    action: "Publish update",
+    contractInfo: {
+      name: "Symvolia",
     },
-    successHeader: "Update submitted",
-    successDescription: "Your update is now being confirmed on-chain.",
-    isCancellable: true,
-  };
+  },
+  successHeader: "Update submitted",
+  successDescription: "Your update is now being confirmed on-chain.",
+  isCancellable: true,
+};
+
+const REGISTER_TRANSACTION_UI_OPTIONS: SendTransactionModalUIOptions = {
+  description:
+    "This completes your Symvolia registration. The app sponsors the network fee, and this transaction does not transfer funds.",
+  buttonText: "Complete registration",
+  transactionInfo: {
+    title: "",
+    action: "Register identity",
+    contractInfo: {
+      name: "Symvolia Registry",
+    },
+  },
+  successHeader: "Registration submitted",
+  successDescription: "Your registration is now being confirmed on-chain.",
+  isCancellable: true,
+};
 
 const SPONSORED_TRANSACTION_UI_OPTIONS_BY_FUNCTION_NAME: Record<
   string,
   SendTransactionModalUIOptions
 > = {
-  register: {
-    description:
-      "This completes your Symvolia registration. The app sponsors the network fee, and this transaction does not transfer funds.",
-    buttonText: "Complete registration",
-    transactionInfo: {
-      title: "",
-      action: "Register identity",
-      contractInfo: {
-        name: "Symvolia Registry",
-      },
-    },
-    successHeader: "Registration submitted",
-    successDescription: "Your registration is now being confirmed on-chain.",
-    isCancellable: true,
-  },
-  multicall: {
+  register: REGISTER_TRANSACTION_UI_OPTIONS,
+  registerSponsored: REGISTER_TRANSACTION_UI_OPTIONS,
+  submitSponsored: {
     description:
       "This publishes your staged statements and support changes. The app sponsors the network fee, and this transaction does not transfer funds.",
     buttonText: "Lock It In",
@@ -112,6 +115,19 @@ export const contractWriteData = (request: ContractWriteRequest) =>
     args: request.args,
   });
 
+/**
+ * Calldata for the *self-funded* variant of a request. Falls back to the
+ * unmetered contract function (`selfFundedFunctionName`/`selfFundedArgs`) when
+ * provided, so paying your own gas never touches the sponsored rate-limit
+ * budget. Defaults to the primary function when no self-funded variant is set.
+ */
+export const selfFundedContractWriteData = (request: ContractWriteRequest) =>
+  encodeFunctionData({
+    abi: request.abi,
+    functionName: request.selfFundedFunctionName ?? request.functionName,
+    args: request.selfFundedArgs ?? request.args,
+  });
+
 export const smartWalletCalls = (request: ContractWriteRequest) => [
   {
     to: request.address,
@@ -120,10 +136,34 @@ export const smartWalletCalls = (request: ContractWriteRequest) => [
   },
 ];
 
+export const selfFundedSmartWalletCalls = (request: ContractWriteRequest) => [
+  {
+    to: request.address,
+    value: 0n,
+    data: selfFundedContractWriteData(request),
+  },
+];
+
+/**
+ * A request rewritten to call its unmetered self-funded function directly.
+ * Used for wallets that always pay their own gas (external / embedded EOA), so
+ * self-funded activity never consumes the sponsored rate-limit budget.
+ */
+export const selfFundedWriteRequest = (
+  request: ContractWriteRequest,
+): ContractWriteRequest => ({
+  ...request,
+  functionName: request.selfFundedFunctionName ?? request.functionName,
+  args: request.selfFundedArgs ?? request.args,
+});
+
 /**
  * Parameters that ask the smart wallet to build/send a user operation *without*
  * the paymaster, so the smart wallet pays its own gas. Used to fall back from a
  * failed sponsored transaction while keeping the same participant identity.
+ *
+ * Encodes the unmetered self-funded variant of the call so the fallback does
+ * not re-invoke the metered sponsored entrypoint.
  *
  * `paymaster: false` disables the client-configured paymaster at runtime; viem
  * omits `false` from the parameter's type union, so callers pass this through a
@@ -132,7 +172,7 @@ export const smartWalletCalls = (request: ContractWriteRequest) => [
 export const unsponsoredUserOperationRequest = (
   request: ContractWriteRequest,
 ) => ({
-  calls: smartWalletCalls(request),
+  calls: selfFundedSmartWalletCalls(request),
   paymaster: false as const,
 });
 
@@ -264,5 +304,5 @@ export const isSponsoredUserOperation = (
 ) =>
   (isNonZeroUserOperationValue(userOperation.maxFeePerGas) === false &&
     isNonZeroUserOperationValue(userOperation.maxPriorityFeePerGas) ===
-      false) ||
+    false) ||
   hasPaymasterFields(userOperation);

@@ -39,4 +39,16 @@ export type ContractWriteRequest = {
    * its own gas directly.
    */
   selfFunded?: boolean;
+  /**
+   * Self-funded variant of this write. Whenever the transaction is not
+   * sponsored — an external wallet, a preview that priced it self-funded, or a
+   * fallback after sponsorship was declined — the wallet calls this *unmetered*
+   * contract function (e.g. `submit`/`register`) instead of the metered
+   * sponsored entrypoint (`submitSponsored`/`registerSponsored`). Calling the
+   * metered function while self-funded would consume — and possibly be blocked
+   * by — the very rate-limit budget we're falling back from. Defaults to
+   * `functionName`/`args` when not provided.
+   */
+  selfFundedFunctionName?: string;
+  selfFundedArgs?: readonly unknown[];
 };
