@@ -12,7 +12,7 @@ import {
   useReadContract,
   useWaitForTransactionReceipt,
 } from "wagmi";
-import { parseEventLogs, BaseError } from "viem";
+import { encodeFunctionData, parseEventLogs, BaseError } from "viem";
 import { FORUM_ABI, useForum } from "./Forum";
 import useBlockSync from "@/hooks/useBlockSync";
 import useLocalStorageSet from "@/hooks/useLocalStorageSet";
@@ -233,7 +233,7 @@ const inverseTriangle = (
       creditMultiplier * creditMultiplier + 8 * creditMultiplier * creditCost,
     ) -
       creditMultiplier) /
-    2,
+      2,
   );
 };
 
@@ -759,9 +759,9 @@ const reducer = (
     ...newState,
     staged: newState.staged
       ? {
-        ...newState.staged,
-        credits: stagedCredits,
-      }
+          ...newState.staged,
+          credits: stagedCredits,
+        }
       : undefined,
     hasStagedChanges,
     hasEnoughCredits: stagedCredits >= 0,
@@ -949,10 +949,10 @@ export const UserVoteProvider: FC<{
   const persistKey =
     chainFingerprint && participantAddress
       ? stagedStorageKey(
-        chainFingerprint,
-        forumName,
-        participantAddress.slice(0, 10),
-      )
+          chainFingerprint,
+          forumName,
+          participantAddress.slice(0, 10),
+        )
       : undefined;
   const restoredKeyRef = useRef<string | undefined>(undefined);
   useEffect(() => {
@@ -989,10 +989,10 @@ export const UserVoteProvider: FC<{
   const pendingCommitKey =
     chainFingerprint && participantAddress
       ? pendingCommitStorageKey(
-        chainFingerprint,
-        forumName,
-        participantAddress.slice(0, 10),
-      )
+          chainFingerprint,
+          forumName,
+          participantAddress.slice(0, 10),
+        )
       : undefined;
   const restoredPendingKeyRef = useRef<string | undefined>(undefined);
   useEffect(() => {
@@ -1100,17 +1100,24 @@ export const UserVoteProvider: FC<{
     ) {
       const hasSupportAdjustments = state.staged.supportAdjustments.size > 0;
 
-      const newStatements = state.staged.stagedStatements.map((stmt) => ({
-        text: stmt.text,
-        initialSupport: BigInt(stmt.initialSupport),
-      }));
+      const calls: `0x${string}`[] = [];
 
-      const supportAdjustments: {
-        statementId: bigint;
-        value: bigint;
-        adjustmentType: number;
-      }[] = [];
+      for (const stmt of state.staged.stagedStatements) {
+        calls.push(
+          encodeFunctionData({
+            abi: FORUM_ABI,
+            functionName: "addStatement",
+            args: [stmt.text, BigInt(stmt.initialSupport)],
+          }),
+        );
+      }
+
       if (hasSupportAdjustments) {
+        const supportAdjustments: {
+          statementId: bigint;
+          value: bigint;
+          adjustmentType: number;
+        }[] = [];
         for (const [statementId, adjustment] of state.staged
           .supportAdjustments) {
           supportAdjustments.push({
@@ -1119,30 +1126,28 @@ export const UserVoteProvider: FC<{
             adjustmentType: adjustment.adjustmentType,
           });
         }
+        calls.push(
+          encodeFunctionData({
+            abi: FORUM_ABI,
+            functionName: "adjustSupport",
+            args: [supportAdjustments],
+          }),
+        );
       }
 
-      const args = [newStatements, supportAdjustments] as const;
-
-      // Estimate against the unmetered `submit`: gas is within a single SSTORE
-      // of `submitSponsored`, and `submit` never reverts on rate-limit, so the
-      // preview still works when the sponsored budget is exhausted (which is
-      // exactly when we fall back to self-funding).
       const gasEstimate = await publicClient.estimateContractGas({
         address: forumContractAddress,
         abi: FORUM_ABI,
-        functionName: "submit",
-        args,
+        functionName: "multicall",
+        args: [calls],
         account: participantAddress,
       });
 
       return {
         address: forumContractAddress,
         abi: FORUM_ABI,
-        functionName: "submitSponsored",
-        args,
-        // Self-funded fallback (external wallet, or sponsorship declined) calls
-        // the unmetered `submit` so it never consumes the rate-limit budget.
-        selfFundedFunctionName: "submit",
+        functionName: "multicall",
+        args: [calls],
         gas: (gasEstimate * 120n) / 100n,
       };
     }

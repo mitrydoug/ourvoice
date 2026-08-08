@@ -1,470 +1,359 @@
 // Auto-extracted from blockchain/artifacts/contracts/SymvoliaRegistry.sol/SymvoliaRegistry.json
-// Do not edit manually -- re-extract from Hardhat artifacts when contracts change.
+// Do not edit manually — re-extract from Hardhat artifacts when contracts change.
 
 export default [
   {
-    "inputs": [
+    inputs: [
       {
-        "internalType": "string",
-        "name": "_scope",
-        "type": "string"
+        internalType: "string",
+        name: "_scope",
+        type: "string",
       },
       {
-        "internalType": "string",
-        "name": "_domain",
-        "type": "string"
+        internalType: "string",
+        name: "_domain",
+        type: "string",
       },
       {
-        "internalType": "address",
-        "name": "_verifierAddress",
-        "type": "address"
+        internalType: "address",
+        name: "_verifierAddress",
+        type: "address",
       },
       {
-        "internalType": "bool",
-        "name": "_devMode",
-        "type": "bool"
+        internalType: "bool",
+        name: "_devMode",
+        type: "bool",
+      },
+    ],
+    stateMutability: "nonpayable",
+    type: "constructor",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "user",
+        type: "address",
       },
       {
-        "internalType": "contract IRateLimiter",
-        "name": "_rateLimiter",
-        "type": "address"
-      }
+        internalType: "bytes32",
+        name: "existingId",
+        type: "bytes32",
+      },
     ],
-    "stateMutability": "nonpayable",
-    "type": "constructor"
+    name: "AddressAlreadyRegistered",
+    type: "error",
   },
   {
-    "inputs": [
+    inputs: [],
+    name: "DevProofsNotAllowed",
+    type: "error",
+  },
+  {
+    inputs: [
       {
-        "internalType": "address",
-        "name": "user",
-        "type": "address"
+        internalType: "string",
+        name: "expectedDomain",
+        type: "string",
       },
       {
-        "internalType": "bytes32",
-        "name": "existingId",
-        "type": "bytes32"
-      }
+        internalType: "string",
+        name: "expectedScope",
+        type: "string",
+      },
     ],
-    "name": "AddressAlreadyRegistered",
-    "type": "error"
+    name: "InvalidScope",
+    type: "error",
   },
   {
-    "inputs": [],
-    "name": "DevProofsNotAllowed",
-    "type": "error"
-  },
-  {
-    "inputs": [
+    inputs: [
       {
-        "internalType": "string",
-        "name": "expectedDomain",
-        "type": "string"
+        internalType: "string",
+        name: "existing",
+        type: "string",
       },
       {
-        "internalType": "string",
-        "name": "expectedScope",
-        "type": "string"
-      }
-    ],
-    "name": "InvalidScope",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "string",
-        "name": "existing",
-        "type": "string"
+        internalType: "string",
+        name: "provided",
+        type: "string",
       },
-      {
-        "internalType": "string",
-        "name": "provided",
-        "type": "string"
-      }
     ],
-    "name": "NationalityMismatch",
-    "type": "error"
+    name: "NationalityMismatch",
+    type: "error",
   },
   {
-    "inputs": [],
-    "name": "ProofInvalid",
-    "type": "error"
+    inputs: [],
+    name: "ProofInvalid",
+    type: "error",
   },
   {
-    "inputs": [
+    inputs: [
       {
-        "internalType": "address",
-        "name": "user",
-        "type": "address"
-      }
+        internalType: "address",
+        name: "user",
+        type: "address",
+      },
     ],
-    "name": "UserNotRegistered",
-    "type": "error"
+    name: "UserNotRegistered",
+    type: "error",
   },
   {
-    "inputs": [],
-    "name": "REGISTRATION_WEIGHT",
-    "outputs": [
+    inputs: [],
+    name: "devMode",
+    outputs: [
       {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
+        internalType: "bool",
+        name: "",
+        type: "bool",
+      },
     ],
-    "stateMutability": "view",
-    "type": "function"
+    stateMutability: "view",
+    type: "function",
   },
   {
-    "inputs": [],
-    "name": "devMode",
-    "outputs": [
+    inputs: [],
+    name: "domain",
+    outputs: [
       {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
+        internalType: "string",
+        name: "",
+        type: "string",
+      },
     ],
-    "stateMutability": "view",
-    "type": "function"
+    stateMutability: "view",
+    type: "function",
   },
   {
-    "inputs": [],
-    "name": "domain",
-    "outputs": [
+    inputs: [
       {
-        "internalType": "string",
-        "name": "",
-        "type": "string"
-      }
+        internalType: "address",
+        name: "_userAddress",
+        type: "address",
+      },
     ],
-    "stateMutability": "view",
-    "type": "function"
+    name: "getUserIdentifier",
+    outputs: [
+      {
+        internalType: "bytes32",
+        name: "",
+        type: "bytes32",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
   },
   {
-    "inputs": [
+    inputs: [
       {
-        "internalType": "address",
-        "name": "_userAddress",
-        "type": "address"
-      }
+        internalType: "address",
+        name: "_userAddress",
+        type: "address",
+      },
     ],
-    "name": "getUserIdentifier",
-    "outputs": [
+    name: "getUserRegistration",
+    outputs: [
       {
-        "internalType": "bytes32",
-        "name": "",
-        "type": "bytes32"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_userAddress",
-        "type": "address"
-      }
-    ],
-    "name": "getUserRegistration",
-    "outputs": [
-      {
-        "components": [
+        components: [
           {
-            "internalType": "bytes32",
-            "name": "uniqueIdentifier",
-            "type": "bytes32"
+            internalType: "bytes32",
+            name: "uniqueIdentifier",
+            type: "bytes32",
           },
           {
-            "internalType": "string",
-            "name": "nationality",
-            "type": "string"
+            internalType: "string",
+            name: "nationality",
+            type: "string",
           },
           {
-            "internalType": "address[]",
-            "name": "registeredAddresses",
-            "type": "address[]"
+            internalType: "address[]",
+            name: "registeredAddresses",
+            type: "address[]",
           },
           {
-            "internalType": "uint256",
-            "name": "registrationTimestamp",
-            "type": "uint256"
-          }
+            internalType: "uint256",
+            name: "registrationTimestamp",
+            type: "uint256",
+          },
         ],
-        "internalType": "struct Registration",
-        "name": "",
-        "type": "tuple"
-      }
+        internalType: "struct Registration",
+        name: "",
+        type: "tuple",
+      },
     ],
-    "stateMutability": "view",
-    "type": "function"
+    stateMutability: "view",
+    type: "function",
   },
   {
-    "inputs": [
+    inputs: [
       {
-        "internalType": "address",
-        "name": "_userAddress",
-        "type": "address"
-      }
+        internalType: "address",
+        name: "_userAddress",
+        type: "address",
+      },
     ],
-    "name": "isRegistered",
-    "outputs": [
+    name: "isRegistered",
+    outputs: [
       {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
+        internalType: "bool",
+        name: "",
+        type: "bool",
+      },
     ],
-    "stateMutability": "view",
-    "type": "function"
+    stateMutability: "view",
+    type: "function",
   },
   {
-    "inputs": [],
-    "name": "rateLimiter",
-    "outputs": [
+    inputs: [
       {
-        "internalType": "contract IRateLimiter",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "components": [
+        components: [
           {
-            "internalType": "bytes32",
-            "name": "version",
-            "type": "bytes32"
+            internalType: "bytes32",
+            name: "version",
+            type: "bytes32",
           },
           {
-            "components": [
+            components: [
               {
-                "internalType": "bytes32",
-                "name": "vkeyHash",
-                "type": "bytes32"
+                internalType: "bytes32",
+                name: "vkeyHash",
+                type: "bytes32",
               },
               {
-                "internalType": "bytes",
-                "name": "proof",
-                "type": "bytes"
+                internalType: "bytes",
+                name: "proof",
+                type: "bytes",
               },
               {
-                "internalType": "bytes32[]",
-                "name": "publicInputs",
-                "type": "bytes32[]"
-              }
+                internalType: "bytes32[]",
+                name: "publicInputs",
+                type: "bytes32[]",
+              },
             ],
-            "internalType": "struct ProofVerificationData",
-            "name": "proofVerificationData",
-            "type": "tuple"
+            internalType: "struct ProofVerificationData",
+            name: "proofVerificationData",
+            type: "tuple",
           },
           {
-            "internalType": "bytes",
-            "name": "committedInputs",
-            "type": "bytes"
+            internalType: "bytes",
+            name: "committedInputs",
+            type: "bytes",
           },
           {
-            "components": [
+            components: [
               {
-                "internalType": "uint256",
-                "name": "validityPeriodInSeconds",
-                "type": "uint256"
+                internalType: "uint256",
+                name: "validityPeriodInSeconds",
+                type: "uint256",
               },
               {
-                "internalType": "string",
-                "name": "domain",
-                "type": "string"
+                internalType: "string",
+                name: "domain",
+                type: "string",
               },
               {
-                "internalType": "string",
-                "name": "scope",
-                "type": "string"
+                internalType: "string",
+                name: "scope",
+                type: "string",
               },
               {
-                "internalType": "bool",
-                "name": "devMode",
-                "type": "bool"
-              }
+                internalType: "bool",
+                name: "devMode",
+                type: "bool",
+              },
             ],
-            "internalType": "struct ServiceConfig",
-            "name": "serviceConfig",
-            "type": "tuple"
-          }
+            internalType: "struct ServiceConfig",
+            name: "serviceConfig",
+            type: "tuple",
+          },
         ],
-        "internalType": "struct ProofVerificationParams",
-        "name": "_params",
-        "type": "tuple"
-      }
+        internalType: "struct ProofVerificationParams",
+        name: "_params",
+        type: "tuple",
+      },
     ],
-    "name": "register",
-    "outputs": [
+    name: "register",
+    outputs: [
       {
-        "internalType": "bytes32",
-        "name": "",
-        "type": "bytes32"
-      }
+        internalType: "bytes32",
+        name: "",
+        type: "bytes32",
+      },
     ],
-    "stateMutability": "nonpayable",
-    "type": "function"
+    stateMutability: "nonpayable",
+    type: "function",
   },
   {
-    "inputs": [
+    inputs: [],
+    name: "scope",
+    outputs: [
       {
-        "components": [
-          {
-            "internalType": "bytes32",
-            "name": "version",
-            "type": "bytes32"
-          },
-          {
-            "components": [
-              {
-                "internalType": "bytes32",
-                "name": "vkeyHash",
-                "type": "bytes32"
-              },
-              {
-                "internalType": "bytes",
-                "name": "proof",
-                "type": "bytes"
-              },
-              {
-                "internalType": "bytes32[]",
-                "name": "publicInputs",
-                "type": "bytes32[]"
-              }
-            ],
-            "internalType": "struct ProofVerificationData",
-            "name": "proofVerificationData",
-            "type": "tuple"
-          },
-          {
-            "internalType": "bytes",
-            "name": "committedInputs",
-            "type": "bytes"
-          },
-          {
-            "components": [
-              {
-                "internalType": "uint256",
-                "name": "validityPeriodInSeconds",
-                "type": "uint256"
-              },
-              {
-                "internalType": "string",
-                "name": "domain",
-                "type": "string"
-              },
-              {
-                "internalType": "string",
-                "name": "scope",
-                "type": "string"
-              },
-              {
-                "internalType": "bool",
-                "name": "devMode",
-                "type": "bool"
-              }
-            ],
-            "internalType": "struct ServiceConfig",
-            "name": "serviceConfig",
-            "type": "tuple"
-          }
-        ],
-        "internalType": "struct ProofVerificationParams",
-        "name": "_params",
-        "type": "tuple"
-      }
+        internalType: "string",
+        name: "",
+        type: "string",
+      },
     ],
-    "name": "registerSponsored",
-    "outputs": [
-      {
-        "internalType": "bytes32",
-        "name": "",
-        "type": "bytes32"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "function"
+    stateMutability: "view",
+    type: "function",
   },
   {
-    "inputs": [],
-    "name": "scope",
-    "outputs": [
+    inputs: [
       {
-        "internalType": "string",
-        "name": "",
-        "type": "string"
-      }
+        internalType: "address",
+        name: "",
+        type: "address",
+      },
     ],
-    "stateMutability": "view",
-    "type": "function"
+    name: "userIdFromAddress",
+    outputs: [
+      {
+        internalType: "bytes32",
+        name: "",
+        type: "bytes32",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
   },
   {
-    "inputs": [
+    inputs: [
       {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
+        internalType: "bytes32",
+        name: "",
+        type: "bytes32",
+      },
     ],
-    "name": "userIdFromAddress",
-    "outputs": [
+    name: "userRegistrations",
+    outputs: [
       {
-        "internalType": "bytes32",
-        "name": "",
-        "type": "bytes32"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "",
-        "type": "bytes32"
-      }
-    ],
-    "name": "userRegistrations",
-    "outputs": [
-      {
-        "internalType": "bytes32",
-        "name": "uniqueIdentifier",
-        "type": "bytes32"
+        internalType: "bytes32",
+        name: "uniqueIdentifier",
+        type: "bytes32",
       },
       {
-        "internalType": "string",
-        "name": "nationality",
-        "type": "string"
+        internalType: "string",
+        name: "nationality",
+        type: "string",
       },
       {
-        "internalType": "uint256",
-        "name": "registrationTimestamp",
-        "type": "uint256"
-      }
+        internalType: "uint256",
+        name: "registrationTimestamp",
+        type: "uint256",
+      },
     ],
-    "stateMutability": "view",
-    "type": "function"
+    stateMutability: "view",
+    type: "function",
   },
   {
-    "inputs": [],
-    "name": "zkPassportVerifier",
-    "outputs": [
+    inputs: [],
+    name: "zkPassportVerifier",
+    outputs: [
       {
-        "internalType": "contract IZKPassportVerifier",
-        "name": "",
-        "type": "address"
-      }
+        internalType: "contract IZKPassportVerifier",
+        name: "",
+        type: "address",
+      },
     ],
-    "stateMutability": "view",
-    "type": "function"
-  }
+    stateMutability: "view",
+    type: "function",
+  },
 ] as const;

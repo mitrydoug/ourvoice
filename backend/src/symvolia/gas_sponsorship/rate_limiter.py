@@ -1,9 +1,8 @@
 """SQLite-backed leaky-bucket rate limiter for gas-sponsored actions.
 
-This is the off-chain replacement for the retired on-chain
-``SponsorshipRateLimiter`` contract. Metering lives here, in the sponsorship
-webhook decision path, so the smart contracts no longer need a metered/unmetered
-function split: the self-funded path is simply "the webhook declined to sponsor".
+Metering lives off-chain, here in the sponsorship webhook decision path, so the
+smart contracts need no metered/unmetered function split: the self-funded path
+is simply "the webhook declined to sponsor".
 
 Model — linear leaky bucket, keyed by the zkPassport unique identifier so a human
 shares one budget across registration and every forum, regardless of how many

@@ -121,27 +121,27 @@ const NavButtons: FC<{
   nextDisabled = false,
   backLabel = "Back",
 }) => (
-    <Stack direction="row" justifyContent="space-between" sx={{ mt: 4 }}>
+  <Stack direction="row" justifyContent="space-between" sx={{ mt: 4 }}>
+    <Button
+      variant="text"
+      startIcon={<ArrowBackIcon />}
+      onClick={onBack}
+      size="medium"
+    >
+      {backLabel}
+    </Button>
+    {onNext && (
       <Button
-        variant="text"
-        startIcon={<ArrowBackIcon />}
-        onClick={onBack}
+        endIcon={<ArrowForwardIcon />}
+        onClick={onNext}
+        disabled={nextDisabled}
         size="medium"
       >
-        {backLabel}
+        {nextLabel}
       </Button>
-      {onNext && (
-        <Button
-          endIcon={<ArrowForwardIcon />}
-          onClick={onNext}
-          disabled={nextDisabled}
-          size="medium"
-        >
-          {nextLabel}
-        </Button>
-      )}
-    </Stack>
-  );
+    )}
+  </Stack>
+);
 
 // ─── Step 0: Why Verify ──────────────────────────────────────────────────────
 
@@ -731,12 +731,12 @@ const StepScanVerify: FC<{
         onReject,
         onError,
       } = revealNationality
-          ? queryBuilder
+        ? queryBuilder
             .gte("age", 18)
             .disclose("nationality")
             .bind("chain", "ethereum_sepolia")
             .done()
-          : queryBuilder.gte("age", 18).bind("chain", "ethereum_sepolia").done();
+        : queryBuilder.gte("age", 18).bind("chain", "ethereum_sepolia").done();
 
       let proof: ProofResult;
 
@@ -795,10 +795,7 @@ const StepScanVerify: FC<{
     if (verifierParams) {
       void submitTx({
         ...registryContractConfig,
-        functionName: "registerSponsored",
-        // Self-funded fallback (external wallet, or sponsorship declined) calls
-        // the unmetered `register` so it never consumes the rate-limit budget.
-        selfFundedFunctionName: "register",
+        functionName: "register",
         // The zkpassport SDK types `version` as `string` rather than
         // `0x${string}`, causing a mismatch with the on-chain ABI.
         // The runtime value is always a valid hex string.

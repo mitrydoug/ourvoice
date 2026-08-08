@@ -18,21 +18,13 @@ export function createForumMockedModule(
   creditMultiplier: number,
   refundPenaltyBps: number,
   decaySpeedupFactor: number,
-  rateLimitCapacityUnits: number,
-  rateLimitLeakUnitsPerDay: number,
 ) {
   return buildModule("ForumMockedRegistryModule", (m) => {
     const mockedZKRegistry = m.contract("MockSymvoliaRegistry");
 
-    const rateLimiter = m.contract("SponsorshipRateLimiter", [
-      rateLimitCapacityUnits,
-      rateLimitLeakUnitsPerDay,
-    ]);
-
     const { forums } = deployForums(
       m,
       mockedZKRegistry,
-      rateLimiter,
       forumNames,
       creditAllowanceIntervalSeconds,
       engagementWindowSeconds,
@@ -46,10 +38,6 @@ export function createForumMockedModule(
       refundPenaltyBps,
       decaySpeedupFactor,
     );
-
-    // Freeze the authorized-caller set: only the forums meter usage here, since
-    // MockSymvoliaRegistry does not charge the rate limiter on registration.
-    m.call(rateLimiter, "initialize", [Object.values(forums)]);
 
     return { registry: mockedZKRegistry, ...forums };
   });

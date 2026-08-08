@@ -17,10 +17,7 @@ REGISTRY_ADDRESS = "0x00000000000000000000000000000000000000aa"
 FORUM_ADDRESS = "0x00000000000000000000000000000000000000bb"
 
 REGISTER_PRODUCTION_SIGNATURE = (
-    "registerSponsored((bytes32,(bytes32,bytes,bytes32[]),bytes,(uint256,string,string,bool)))"
-)
-SUBMIT_SPONSORED_SIGNATURE = (
-    "submitSponsored((string,int256)[],(uint256,int256,uint8)[])"
+    "register((bytes32,(bytes32,bytes,bytes32[]),bytes,(uint256,string,string,bool)))"
 )
 
 
@@ -35,13 +32,15 @@ def _execute_call_data(target: str, inner_call_data: bytes) -> str:
     ).hex()
 
 
-def _submit_sponsored_call_data(
-    statements: list[tuple[str, int]],
-    adjustments: list[tuple[int, int, int]],
-) -> bytes:
-    return _selector(SUBMIT_SPONSORED_SIGNATURE) + encode(
-        ["(string,int256)[]", "(uint256,int256,uint8)[]"],
-        [statements, adjustments],
+def _add_statement_call_data(text: str, weight: int) -> bytes:
+    return _selector("addStatement(string,int256)") + encode(
+        ["string", "int256"], [text, weight]
+    )
+
+
+def _adjust_support_call_data(adjustments: list[tuple[int, int, int]]) -> bytes:
+    return _selector("adjustSupport((uint256,int256,uint8)[])") + encode(
+        ["(uint256,int256,uint8)[]"], [adjustments]
     )
 
 
@@ -97,10 +96,10 @@ class GasSponsorshipApiTests(unittest.TestCase):
         },
         clear=True,
     )
-    def test_forum_submit_sponsored_is_sponsored(self) -> None:
+    def test_forum_add_statement_is_sponsored(self) -> None:
         self.payload["userOperation"]["callData"] = _execute_call_data(
             FORUM_ADDRESS,
-            _submit_sponsored_call_data([("hello", 1)], [(0, 1, 0)]),
+            _add_statement_call_data("hello", 1),
         )
 
         response = self.client.post("/alchemy/gas-policy/inspect", json=self.payload)
@@ -118,17 +117,57 @@ class GasSponsorshipApiTests(unittest.TestCase):
         },
         clear=True,
     )
-    def test_unmetered_forum_submit_is_not_sponsored(self) -> None:
-        # The self-funded `submit` path must never be gas-sponsored, otherwise
-        # it would bypass the on-chain rate limiter that `submitSponsored`
-        # enforces.
+    def test_forum_adjust_support_is_sponsored(self) -> None:
         self.payload["userOperation"]["callData"] = _execute_call_data(
             FORUM_ADDRESS,
-            _selector("submit((string,int256)[],(uint256,int256,uint8)[])")
-            + encode(
-                ["(string,int256)[]", "(uint256,int256,uint8)[]"],
-                [[("hello", 1)], []],
-            ),
+            _adjust_support_call_data([(0, 1, 0)]),
+        )
+
+        response = self.client.post("/alchemy/gas-policy/inspect", json=self.payload)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"approved": True})
+
+    @patch.dict(
+        os.environ,
+        {
+            "ALCHEMY_GAS_SPONSORSHIP_INSPECT_APPROVE": "true",
+            "REGISTRY_ADDRESS": REGISTRY_ADDRESS,
+            "FORUM_CONTRACT_ADDRESSES": FORUM_ADDRESS,
+            "REGISTRY_MODE": "production",
+        },
+        clear=True,
+    )
+    def test_forum_multicall_of_writes_is_sponsored(self) -> None:
+        multicall = _selector("multicall(bytes[])") + encode(
+            ["bytes[]"],
+            [[_add_statement_call_data("hello", 1), _adjust_support_call_data([(0, 1, 0)])]],
+        )
+        self.payload["userOperation"]["callData"] = _execute_call_data(
+            FORUM_ADDRESS, multicall
+        )
+
+        response = self.client.post("/alchemy/gas-policy/inspect", json=self.payload)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"approved": True})
+
+    @patch.dict(
+        os.environ,
+        {
+            "ALCHEMY_GAS_SPONSORSHIP_INSPECT_APPROVE": "true",
+            "REGISTRY_ADDRESS": REGISTRY_ADDRESS,
+            "FORUM_CONTRACT_ADDRESSES": FORUM_ADDRESS,
+            "REGISTRY_MODE": "production",
+        },
+        clear=True,
+    )
+    def test_unknown_forum_selector_is_not_sponsored(self) -> None:
+        # Only addStatement / adjustSupport (and multicalls of them) are
+        # sponsored; any other forum selector must fail closed.
+        self.payload["userOperation"]["callData"] = _execute_call_data(
+            FORUM_ADDRESS,
+            _selector("setOwner(address)") + encode(["address"], [FORUM_ADDRESS]),
         )
 
         response = self.client.post("/alchemy/gas-policy/inspect", json=self.payload)
@@ -145,7 +184,7 @@ class GasSponsorshipApiTests(unittest.TestCase):
         },
         clear=True,
     )
-    def test_production_register_sponsored_selector_is_sponsored(self) -> None:
+    def test_production_register_selector_is_sponsored(self) -> None:
         # The webhook approves by selector; the four-byte selector is what
         # matters, so an empty argument body is sufficient to exercise routing.
         self.payload["userOperation"]["callData"] = _execute_call_data(
@@ -167,11 +206,13 @@ class GasSponsorshipApiTests(unittest.TestCase):
         },
         clear=True,
     )
-    def test_production_unmetered_register_is_not_sponsored(self) -> None:
+    def test_removed_register_sponsored_selector_is_not_sponsored(self) -> None:
+        # The old on-chain sponsored variant no longer exists on the deployed
+        # registry, so its selector must not be sponsored.
         self.payload["userOperation"]["callData"] = _execute_call_data(
             REGISTRY_ADDRESS,
             _selector(
-                "register((bytes32,(bytes32,bytes,bytes32[]),bytes,(uint256,string,string,bool)))"
+                "registerSponsored((bytes32,(bytes32,bytes,bytes32[]),bytes,(uint256,string,string,bool)))"
             ),
         )
 
@@ -320,7 +361,7 @@ class GasSponsorshipMeteringTests(unittest.TestCase):
     def test_forum_submit_metered_and_approved(self) -> None:
         call_data = _execute_call_data(
             FORUM_ADDRESS,
-            _submit_sponsored_call_data([("hello", 1)], [(0, 1, 0)]),
+            _add_statement_call_data("hello", 1),
         )
         env = {
             "ALCHEMY_GAS_SPONSORSHIP_INSPECT_APPROVE": "true",
@@ -345,7 +386,7 @@ class GasSponsorshipMeteringTests(unittest.TestCase):
     def test_forum_submit_rejected_when_over_capacity(self) -> None:
         call_data = _execute_call_data(
             FORUM_ADDRESS,
-            _submit_sponsored_call_data([("hello", 1)], [(0, 1, 0)]),
+            _add_statement_call_data("hello", 1),
         )
         env = {
             "ALCHEMY_GAS_SPONSORSHIP_INSPECT_APPROVE": "true",
@@ -371,7 +412,7 @@ class GasSponsorshipMeteringTests(unittest.TestCase):
     def test_forum_submit_rejected_when_gas_fields_missing(self) -> None:
         call_data = _execute_call_data(
             FORUM_ADDRESS,
-            _submit_sponsored_call_data([("hello", 1)], []),
+            _add_statement_call_data("hello", 1),
         )
         env = {
             "ALCHEMY_GAS_SPONSORSHIP_INSPECT_APPROVE": "true",
@@ -404,7 +445,7 @@ class GasSponsorshipMeteringTests(unittest.TestCase):
     def test_forum_submit_rejected_when_user_id_unresolvable(self) -> None:
         call_data = _execute_call_data(
             FORUM_ADDRESS,
-            _submit_sponsored_call_data([("hello", 1)], []),
+            _add_statement_call_data("hello", 1),
         )
         env = {
             "ALCHEMY_GAS_SPONSORSHIP_INSPECT_APPROVE": "true",

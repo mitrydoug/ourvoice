@@ -7,7 +7,7 @@ budget we recover that id per action:
 * **Forum actions** — the sender is already registered, so
   ``registry.getUserIdentifier(sender)`` returns their id via ``eth_call``.
 * **Production registration** — the id is not on chain yet; it is embedded in the
-  proof. ``registerSponsored((...))`` and ``verify((...))`` take the identical
+  proof. ``register((...))`` and ``verify((...))`` take the identical
   ProofVerificationParams tuple, so we swap the 4-byte selector and ``eth_call``
   the verifier to read back ``uniqueIdentifier``. ``verify`` is state-mutating,
   but ``eth_call`` simulates it without persisting side effects, so this is a
@@ -30,7 +30,7 @@ _GET_USER_IDENTIFIER_SELECTOR = function_signature_to_4byte_selector(
     "getUserIdentifier(address)"
 )
 
-# ProofVerificationParams tuple shared by registerSponsored(...) and verify(...).
+# ProofVerificationParams tuple shared by register(...) and verify(...).
 _PROOF_PARAMS_TUPLE = (
     "(bytes32,(bytes32,bytes,bytes32[]),bytes,(uint256,string,string,bool))"
 )
@@ -86,7 +86,7 @@ async def resolve_registration_user_id(
 ) -> str | None:
     """Recover a registration's zkPassport id by ``eth_call``-ing ``verify``.
 
-    *register_inner_calldata* is the ``registerSponsored((...))`` calldata; its
+    *register_inner_calldata* is the ``register((...))`` calldata; its
     argument encoding is identical to ``verify((...))`` so only the selector is
     swapped. Returns ``None`` when the proof does not verify or the call fails.
     """

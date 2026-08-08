@@ -15,7 +15,6 @@ import {
   isPaymasterError,
   isSponsoredUserOperation,
   selfFundedLabel,
-  selfFundedWriteRequest,
   smartWalletCalls,
   sponsoredTransactionUiOptions,
   unsponsoredUserOperationRequest,
@@ -129,9 +128,7 @@ export const useContractWrite = () => {
   const writeContract = useCallback(
     async (request: ContractWriteRequest): Promise<Hex> => {
       if (!isSponsored) {
-        // External / embedded EOA wallets always pay their own gas, so call the
-        // unmetered self-funded function rather than the sponsored entrypoint.
-        return await writeContractAsync(selfFundedWriteRequest(request));
+        return await writeContractAsync(request);
       }
 
       if (!alchemyGasPolicyId) {

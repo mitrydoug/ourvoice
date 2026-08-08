@@ -75,7 +75,7 @@ const registrySponsorshipSignatures = (registryMode) =>
   registryMode === "mocked"
     ? ["register(string)"]
     : [
-      "registerSponsored((bytes32,(bytes32,bytes,bytes32[]),bytes,(uint256,string,string,bool)))",
+      "register((bytes32,(bytes32,bytes,bytes32[]),bytes,(uint256,string,string,bool)))",
     ];
 
 const backendEnvText = (networkName, deployment, forumOrder) => {

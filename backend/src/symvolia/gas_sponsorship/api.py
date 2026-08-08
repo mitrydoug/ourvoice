@@ -49,14 +49,14 @@ GAS_LIMIT_FIELDS = (
 DEFAULT_REGISTRY_SIGNATURES_BY_MODE = {
     "mocked": ["register(string)"],
     "production": [
-        "registerSponsored((bytes32,(bytes32,bytes,bytes32[]),bytes,(uint256,string,string,bool)))"
+        "register((bytes32,(bytes32,bytes,bytes32[]),bytes,(uint256,string,string,bool)))"
     ],
 }
 
 # Selector for the proof-based registration variant, so the metering layer knows
 # to recover the human's id from the proof (rather than from the sender address).
 _PRODUCTION_REGISTER_SELECTOR = function_signature_to_4byte_selector(
-    "registerSponsored((bytes32,(bytes32,bytes,bytes32[]),bytes,(uint256,string,string,bool)))"
+    "register((bytes32,(bytes32,bytes,bytes32[]),bytes,(uint256,string,string,bool)))"
 ).hex()
 
 
@@ -66,13 +66,16 @@ def _selector(signature: str) -> str:
 
 SMART_ACCOUNT_EXECUTE_SELECTOR = _selector("execute(address,uint256,bytes)")
 
-# The only Forum entrypoint eligible for gas sponsorship. It meters every action
-# against the caller's per-human rate-limit budget on-chain; the unmetered
-# `submit`/`addStatement`/`adjustSupport` paths are strictly self-funded.
-FORUM_SUBMIT_SPONSORED_SIGNATURE = (
-    "submitSponsored((string,int256)[],(uint256,int256,uint8)[])"
-)
-FORUM_SUBMIT_SPONSORED_SELECTOR = _selector(FORUM_SUBMIT_SPONSORED_SIGNATURE)
+# Forum write entrypoints eligible for gas sponsorship. Metering now happens
+# off-chain (see _apply_rate_limit), so the plain write functions are sponsored
+# directly, and a batched multicall of them is sponsored as a single action.
+FORUM_MULTICALL_SELECTOR = _selector("multicall(bytes[])")
+FORUM_WRITE_SELECTORS = {
+    _selector("addStatement(string,int256)"): "addStatement(string,int256)",
+    _selector(
+        "adjustSupport((uint256,int256,uint8)[])"
+    ): "adjustSupport(SupportAdjustment[])",
+}
 
 
 def _env_flag(name: str, default: bool = False) -> bool:
@@ -199,6 +202,31 @@ def _decode_execute_call(call_data: Any) -> tuple[str, int, bytes] | None:
     return target, value, inner_data
 
 
+def _decode_multicall_calls(inner_data: bytes) -> list[bytes] | None:
+    if len(inner_data) < 4 + 32 or inner_data[:4].hex() != FORUM_MULTICALL_SELECTOR:
+        return None
+
+    args_offset = 4
+    array_offset = _read_uint256(inner_data, args_offset)
+    if array_offset is None:
+        return None
+    array_start = args_offset + array_offset
+    call_count = _read_uint256(inner_data, array_start)
+    if call_count is None:
+        return None
+
+    calls: list[bytes] = []
+    for index in range(call_count):
+        call_offset = _read_uint256(inner_data, array_start + 32 + index * 32)
+        if call_offset is None:
+            return None
+        call = _decode_dynamic_bytes(inner_data, array_start + 32, call_offset)
+        if call is None:
+            return None
+        calls.append(call)
+    return calls
+
+
 @dataclass(frozen=True)
 class MeteredAction:
     """A sponsored action to charge against a human's leaky-bucket budget.
@@ -287,13 +315,40 @@ def _sponsorship_decision(
         return True, f"registry.{function_name}", MeteredAction(kind, sender, inner_data)
 
     if target in forum_addresses:
-        if inner_selector == FORUM_SUBMIT_SPONSORED_SELECTOR:
+        if inner_selector in FORUM_WRITE_SELECTORS:
             return (
                 True,
-                "forum.submitSponsored(NewStatement[],SupportAdjustment[])",
+                f"forum.{FORUM_WRITE_SELECTORS[inner_selector]}",
                 MeteredAction("forum", sender, inner_data),
             )
-        return False, f"forum selector 0x{inner_selector} is not sponsored", None
+        if inner_selector != FORUM_MULTICALL_SELECTOR:
+            return False, f"forum selector 0x{inner_selector} is not sponsored", None
+
+        calls = _decode_multicall_calls(inner_data)
+        if calls is None:
+            return False, "forum multicall could not be decoded", None
+        if not calls:
+            return False, "empty forum multicall is not sponsored", None
+
+        call_names: list[str] = []
+        for call in calls:
+            if len(call) < 4:
+                return False, "nested multicall item is missing a selector", None
+            call_selector = call[:4].hex()
+            call_name = FORUM_WRITE_SELECTORS.get(call_selector)
+            if call_name is None:
+                return (
+                    False,
+                    f"nested forum selector 0x{call_selector} is not sponsored",
+                    None,
+                )
+            call_names.append(call_name)
+
+        return (
+            True,
+            "forum.multicall(" + ",".join(call_names) + ")",
+            MeteredAction("forum", sender, inner_data),
+        )
 
     return False, f"target {target} is not a sponsored contract", None
 

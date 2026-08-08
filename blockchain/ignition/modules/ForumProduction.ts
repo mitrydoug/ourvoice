@@ -32,8 +32,6 @@ export function createForumProductionModule(
   creditMultiplier: number,
   refundPenaltyBps: number,
   decaySpeedupFactor: number,
-  rateLimitCapacityUnits: number,
-  rateLimitLeakUnitsPerDay: number,
 ) {
   return buildModule("ForumProductionModule", (m) => {
     const verifierAddress = m.getParameter<string>("verifierAddress");
@@ -46,23 +44,16 @@ export function createForumProductionModule(
       verifierAddress,
     );
 
-    const rateLimiter = m.contract("SponsorshipRateLimiter", [
-      rateLimitCapacityUnits,
-      rateLimitLeakUnitsPerDay,
-    ]);
-
     const registry = m.contract("SymvoliaRegistry", [
       scope,
       domain,
       ZKPassportVerifier,
       devMode,
-      rateLimiter,
     ]);
 
     const { forums } = deployForums(
       m,
       registry,
-      rateLimiter,
       forumNames,
       creditAllowanceIntervalSeconds,
       engagementWindowSeconds,
@@ -76,10 +67,6 @@ export function createForumProductionModule(
       refundPenaltyBps,
       decaySpeedupFactor,
     );
-
-    // Freeze the authorized-caller set: the registry meters registrations and
-    // each forum meters its sponsored submissions.
-    m.call(rateLimiter, "initialize", [[registry, ...Object.values(forums)]]);
 
     return { registry, ...forums };
   });

@@ -20,10 +20,6 @@ type MockedDeploymentConfig = {
   creditMultiplier: number;
   refundPenaltyBps: number;
   decaySpeedupFactor: number;
-  // Sponsorship rate-limit bucket. Optional; a generous dev default is applied
-  // when omitted (see DEFAULT_RATE_LIMIT_* below).
-  rateLimitCapacityUnits?: number;
-  rateLimitLeakUnitsPerDay?: number;
 };
 
 type ProductionDeploymentConfig = {
@@ -40,8 +36,6 @@ type ProductionDeploymentConfig = {
   creditMultiplier: number;
   refundPenaltyBps: number;
   decaySpeedupFactor: number;
-  rateLimitCapacityUnits?: number;
-  rateLimitLeakUnitsPerDay?: number;
   parametersFile: string;
 };
 
@@ -51,14 +45,6 @@ export type DeploymentConfig =
 
 /** 1 credit = 10^6 microcredits. All credit values use this unit on-chain. */
 export const CRED_MULT = 1_000_000;
-
-/**
- * Default sponsorship rate-limit bucket, applied when a profile omits explicit
- * values. Deliberately generous so local/dev/stress-test flows are never
- * throttled; the real Base networks below set tight, policy-driven limits.
- */
-export const DEFAULT_RATE_LIMIT_CAPACITY_UNITS = 1_000_000;
-export const DEFAULT_RATE_LIMIT_LEAK_UNITS_PER_DAY = 1_000_000;
 
 const deploymentConfigs: Record<string, DeploymentConfig> = {
   /** Local native Hardhat node with mock data. */
@@ -127,8 +113,6 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
     creditMultiplier: CRED_MULT,
     refundPenaltyBps: 2000,
     decaySpeedupFactor: 1,
-    rateLimitCapacityUnits: 20,
-    rateLimitLeakUnitsPerDay: 40,
     parametersFile: "base.json",
   },
 
@@ -147,8 +131,6 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
     creditMultiplier: CRED_MULT,
     refundPenaltyBps: 2000,
     decaySpeedupFactor: 1,
-    rateLimitCapacityUnits: 20,
-    rateLimitLeakUnitsPerDay: 40,
   },
 };
 
