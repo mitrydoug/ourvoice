@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Avatar,
   Box,
@@ -108,15 +108,25 @@ const UserProfilePanel: React.FC = () => {
   const [commitPreviewError, setCommitPreviewError] = useState<string>();
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
 
+  // Capture the latest preview function in a ref so the effect below runs
+  // exactly once per dialog open, instead of re-firing every time the callback
+  // identity churns (e.g. Privy handing back a fresh smart-wallet client on its
+  // own re-render cadence). Staged changes can't change while the modal is
+  // open, so a single preview is correct.
+  const previewCommitChangesRef = useRef(previewCommitChanges);
+  previewCommitChangesRef.current = previewCommitChanges;
+
   useEffect(() => {
-    if (!commitDialogOpen || !previewCommitChanges) return;
+    if (!commitDialogOpen) return;
+    const runPreview = previewCommitChangesRef.current;
+    if (!runPreview) return;
 
     let isCancelled = false;
     setCommitPreview(null);
     setCommitPreviewError(undefined);
     setCommitPreviewLoading(true);
 
-    void previewCommitChanges()
+    void runPreview()
       .then((preview) => {
         if (isCancelled) return;
         if (preview) {
@@ -127,11 +137,10 @@ const UserProfilePanel: React.FC = () => {
       })
       .catch((error: unknown) => {
         if (isCancelled) return;
-        setCommitPreviewError(
-          error instanceof Error
-            ? error.message
-            : "Unable to check the network fee.",
-        );
+        // Show a friendly message; the raw error (often serialized JSON from
+        // viem/Alchemy) is logged for debugging rather than shown to the user.
+        console.error("Failed to preview commit network fee", error);
+        setCommitPreviewError("Unable to check the network fee.");
       })
       .finally(() => {
         if (!isCancelled) setCommitPreviewLoading(false);
@@ -140,7 +149,7 @@ const UserProfilePanel: React.FC = () => {
     return () => {
       isCancelled = true;
     };
-  }, [commitDialogOpen, previewCommitChanges]);
+  }, [commitDialogOpen]);
 
   return (
     <>

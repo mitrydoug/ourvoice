@@ -13,8 +13,7 @@
 set -euo pipefail
 
 if [ -z "${INDEXER_RPC_URL:-}" ]; then
-  echo "❌ INDEXER_RPC_URL must be set to an HTTP JSON-RPC endpoint."
-  exit 1
+  echo "ℹ️  INDEXER_RPC_URL is empty — indexing disabled (search API still served)."
 fi
 
 if [ -z "${MEILI_URL:-}" ]; then
@@ -54,7 +53,9 @@ wait_for_meili() {
   done
 }
 
-wait_for_rpc
+if [ -n "${INDEXER_RPC_URL:-}" ]; then
+  wait_for_rpc
+fi
 wait_for_meili
 
 # Wait for generated deployment artifacts.

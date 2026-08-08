@@ -46,6 +46,12 @@ GAS_LIMIT_FIELDS = (
     "paymasterPostOpGasLimit",
 )
 
+# Fallback weight for the read-only eligibility preview when a caller's
+# userOperation carries no gas-limit fields yet (e.g. it wasn't fully prepared).
+# A forum submit is well under this, so it's a conservative "typical action"
+# stand-in that keeps the preview answerable without a real estimate.
+NOMINAL_ELIGIBILITY_GAS = 500_000.0
+
 DEFAULT_REGISTRY_SIGNATURES_BY_MODE = {
     "mocked": ["register(string)"],
     "production": [
@@ -430,9 +436,28 @@ def _idempotency_key(user_operation: dict[str, Any]) -> str:
     return hashlib.sha256(f"{sender}|{nonce}|{call_data}".encode()).hexdigest()
 
 
+def _format_usage(usage: float | None, capacity: float | None) -> str | None:
+    """Render bucket usage as ``%<pct> (<usage>/<capacity>)`` for logs."""
+    if usage is None or capacity is None:
+        return None
+    pct = round(usage / capacity * 100) if capacity > 0 else 0
+    return f"%{pct} ({usage:.0f}/{capacity:.0f})"
+
+
+@dataclass
+class MeteringOutcome:
+    """Result of metering an approved action, with detail for decision logs."""
+
+    approved: bool
+    reason: str
+    user_id: str | None = None
+    usage_gas: float | None = None
+    capacity_gas: float | None = None
+
+
 async def _apply_rate_limit(
     user_operation: dict[str, Any], action: MeteredAction, reason: str
-) -> tuple[bool, str]:
+) -> MeteringOutcome:
     """Meter an approved action by its gas cost; returns the final decision.
 
     Both failure paths below return without calling ``try_consume``, so a
@@ -441,15 +466,19 @@ async def _apply_rate_limit(
     """
     limiter = _get_rate_limiter()
     if limiter is None:
-        return True, reason
+        return MeteringOutcome(True, reason)
 
     weight = _gas_weight(user_operation)
     if weight is None:
-        return False, f"{reason}: userOperation is missing gas-limit fields"
+        return MeteringOutcome(
+            False, f"{reason}: userOperation is missing gas-limit fields"
+        )
 
     user_id = await _resolve_user_id(action)
     if user_id is None:
-        return False, f"{reason}: could not resolve zkPassport id for metering"
+        return MeteringOutcome(
+            False, f"{reason}: could not resolve zkPassport id for metering"
+        )
 
     decision = await asyncio.to_thread(
         limiter.try_consume,
@@ -458,12 +487,21 @@ async def _apply_rate_limit(
         idempotency_key=_idempotency_key(user_operation),
     )
     if not decision.allowed:
-        return False, f"{reason}: gas budget exceeded (gas={weight:.0f})"
-    return (
+        return MeteringOutcome(
+            False,
+            f"{reason}: gas budget exceeded (gas={weight:.0f})",
+            user_id=user_id,
+            usage_gas=decision.usage_after,
+            capacity_gas=decision.capacity,
+        )
+    return MeteringOutcome(
         True,
         f"{reason}: metered gas={weight:.0f} "
         f"usage={decision.usage_after:.0f}/{decision.capacity:.0f}"
         + (" (replayed)" if decision.replayed else ""),
+        user_id=user_id,
+        usage_gas=decision.usage_after,
+        capacity_gas=decision.capacity,
     )
 
 
@@ -482,8 +520,179 @@ class GasSponsorshipDecision(BaseModel):
     approved: bool
 
 
+class GasSponsorshipEligibilityRequest(BaseModel):
+    """Preview payload: the smart-wallet userOperation the client just prepared.
+
+    The frontend prepares this via Alchemy's bundler (``prepareUserOperation``),
+    so its gas-limit fields come from the same estimator the sponsorship webhook
+    will meter against at submit time.
+    """
+
+    model_config = ConfigDict(extra="allow")
+
+    userOperation: dict[str, Any] = Field(default_factory=dict)
+    userId: str | None = None
+    """The caller's zkPassport id (bytes32 hex), supplied by the frontend.
+
+    Required in practice: the preview meters against it directly. The endpoint
+    never resolves identity server-side, so it can't be coerced into a registry
+    RPC. It is only trusted for this read-only *peek* — the webhook re-resolves
+    the id authoritatively before any budget is consumed, so a spoofed value
+    cannot overspend another human's allowance.
+    """
+
+
+def _normalize_client_user_id(value: str | None) -> str | None:
+    """Shape-check a client-supplied zkPassport id so it can key a bucket.
+
+    Returns the ``0x``-prefixed, lowercase, 32-byte hex id, or ``None`` when the
+    value is absent or malformed (the eligibility preview then reports an error
+    rather than resolving server-side). Metering ids produced on the backend are
+    ``"0x" + <64 hex>`` (see ``identity``), so a valid value maps to the same
+    bucket the webhook will charge.
+    """
+    if not value:
+        return None
+    text = value.strip().lower()
+    if not text.startswith("0x") or len(text) != 66:
+        return None
+    try:
+        int(text, 16)
+    except ValueError:
+        return None
+    return text
+
+
+class GasSponsorshipEligibility(BaseModel):
+    """Read-only sponsorship outlook for a prepared userOperation.
+
+    ``status`` is one of:
+
+    * ``sponsored`` — the action qualifies and the human is within budget.
+    * ``rate_limited`` — the action qualifies but the human's gas budget is
+      currently exhausted (a clean "take a break", not an error).
+    * ``ineligible`` — the action is not sponsorable (unknown selector/target,
+      sponsorship disabled, etc.).
+    * ``error`` — eligibility could not be determined (e.g. identity metering
+      lookup failed); the caller should retry or fall back to self-funding.
+    """
+
+    status: str
+    detail: str | None = None
+    usage_gas: float | None = None
+    capacity_gas: float | None = None
+    retry_after_seconds: float | None = None
+
+
+async def _evaluate_eligibility(
+    request: "GasSponsorshipEligibilityRequest",
+    user_operation: dict[str, Any],
+) -> tuple["GasSponsorshipEligibility", str | None]:
+    """Compute the eligibility preview verdict without consuming budget.
+
+    Returns the verdict plus the metering ``user_id`` used (or ``None`` when no
+    metering was performed) so the route can log it without exposing the id in
+    the response body.
+    """
+    approved, reason, action = _sponsorship_decision(user_operation)
+    if not approved or action is None:
+        return GasSponsorshipEligibility(status="ineligible", detail=reason), None
+
+    limiter = _get_rate_limiter()
+    if limiter is None:
+        # Metering disabled: any sponsorable action is unconditionally in. Still
+        # surface the client-supplied id (when present) for log correlation.
+        return (
+            GasSponsorshipEligibility(status="sponsored", detail=reason),
+            _normalize_client_user_id(request.userId),
+        )
+
+    weight = _gas_weight(user_operation)
+    if weight is None:
+        weight = NOMINAL_ELIGIBILITY_GAS
+
+    # This preview is only ever called by the frontend, which already holds
+    # the caller's zkPassport id. Require it and meter against it directly:
+    # the endpoint never resolves identity server-side, so an
+    # unauthenticated caller can't force a registry RPC (a cost/DoS abuse
+    # vector). The webhook remains the authoritative, RPC-backed metering
+    # path at submit time.
+    user_id = _normalize_client_user_id(request.userId)
+    if user_id is None:
+        return (
+            GasSponsorshipEligibility(
+                status="error",
+                detail=f"{reason}: a valid userId is required for a metering preview",
+            ),
+            None,
+        )
+
+    decision = await asyncio.to_thread(limiter.peek, user_id, weight)
+    if decision.allowed:
+        return (
+            GasSponsorshipEligibility(
+                status="sponsored",
+                detail=reason,
+                usage_gas=decision.usage_after,
+                capacity_gas=decision.capacity,
+            ),
+            user_id,
+        )
+
+    # Rejected: report how long until enough budget leaks back to fit this
+    # action, so the UI can offer a concrete "try again in ~N" hint.
+    over = decision.usage_after + weight - decision.capacity
+    retry_after = over / limiter.leak_per_second if limiter.leak_per_second > 0 else None
+    return (
+        GasSponsorshipEligibility(
+            status="rate_limited",
+            detail=f"{reason}: gas budget exceeded (gas={weight:.0f})",
+            usage_gas=decision.usage_after,
+            capacity_gas=decision.capacity,
+            retry_after_seconds=retry_after,
+        ),
+        user_id,
+    )
+
+
 def create_api(app: FastAPI) -> None:
     """Register gas sponsorship routes on *app*."""
+
+    @app.post("/alchemy/gas-policy/eligibility")
+    async def check_gas_sponsorship_eligibility(
+        request: GasSponsorshipEligibilityRequest,
+    ) -> GasSponsorshipEligibility:
+        """Preview whether a prepared userOperation would be sponsored.
+
+        Mirrors the webhook's decision + metering logic but *peeks* the
+        rate-limit bucket instead of consuming it, so the confirmation dialog can
+        distinguish a clean rate-limit decline from a genuine error before the
+        user submits. It never charges budget: the authoritative decision remains
+        the webhook (`/alchemy/gas-policy/inspect`) at submit time.
+        """
+        user_operation = request.userOperation
+        logger.info(
+            "Gas sponsorship eligibility request: sender=%s user_operation_keys=%s "
+            "call_data=%s user_id_present=%s",
+            user_operation.get("sender"),
+            sorted(user_operation.keys()),
+            _summarize_hex(user_operation.get("callData")),
+            request.userId is not None,
+        )
+
+        result, metering_user_id = await _evaluate_eligibility(
+            request, user_operation
+        )
+        logger.info(
+            "Gas sponsorship eligibility decision: status=%s detail=%s sender=%s "
+            "user_id=%s usage=%s",
+            result.status,
+            result.detail,
+            user_operation.get("sender"),
+            metering_user_id,
+            _format_usage(result.usage_gas, result.capacity_gas),
+        )
+        return result
 
     @app.post("/alchemy/gas-policy/inspect")
     async def inspect_alchemy_gas_policy(
@@ -515,12 +724,19 @@ def create_api(app: FastAPI) -> None:
             ),
         )
         approved, reason, action = _sponsorship_decision(user_operation)
+        outcome: MeteringOutcome | None = None
         if approved and action is not None:
-            approved, reason = await _apply_rate_limit(user_operation, action, reason)
+            outcome = await _apply_rate_limit(user_operation, action, reason)
+            approved, reason = outcome.approved, outcome.reason
         logger.info(
-            "Alchemy gas policy decision: approved=%s reason=%s sender=%s",
+            "Alchemy gas policy decision: approved=%s reason=%s sender=%s "
+            "user_id=%s usage=%s",
             approved,
             reason,
             user_operation.get("sender"),
+            outcome.user_id if outcome else None,
+            _format_usage(outcome.usage_gas, outcome.capacity_gas)
+            if outcome
+            else None,
         )
         return GasSponsorshipDecision(approved=approved)

@@ -189,3 +189,43 @@ class LeakyBucketRateLimiter:
                 )
             finally:
                 connection.close()
+
+    def peek(
+        self,
+        user_id: str,
+        weight: float,
+        *,
+        now: float | None = None,
+    ) -> RateLimitDecision:
+        """Return the decision for *weight* **without** charging the bucket.
+
+        Mirrors :meth:`try_consume`'s projection math but performs no writes, so
+        it can back a read-only eligibility preview without consuming a human's
+        budget. ``usage_after`` reports the *current* decayed level (the weight
+        is not added on a rejection, and only hypothetically added when it would
+        be allowed), and ``replayed`` is always ``False``.
+        """
+        if now is None:
+            now = time.time()
+        weight = float(weight)
+
+        with self._lock:
+            connection = self._connect()
+            try:
+                row = connection.execute(
+                    "SELECT usage, updated_at FROM sponsorship_bucket"
+                    " WHERE user_id = ?",
+                    (user_id,),
+                ).fetchone()
+                usage, updated_at = row if row is not None else (0.0, now)
+                decayed = max(0.0, usage - self.leak_per_second * (now - updated_at))
+                projected = decayed + weight
+                allowed = projected <= self.capacity
+                return RateLimitDecision(
+                    allowed=allowed,
+                    usage_after=projected if allowed else decayed,
+                    capacity=self.capacity,
+                    replayed=False,
+                )
+            finally:
+                connection.close()
