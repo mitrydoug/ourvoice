@@ -34,25 +34,60 @@ uvicorn symvolia.combined:app --host 0.0.0.0 --port 8000 --app-dir src
 
 **Environment variables:**
 
-| Variable                                  | Required | Default                | Description                                                                           |
-| ----------------------------------------- | -------- | ---------------------- | ------------------------------------------------------------------------------------- |
-| `MEILI_URL`                               | Yes      | —                      | Meilisearch URL                                                                       |
-| `MEILI_API_KEY`                           | Yes      | —                      | Meilisearch API key                                                                   |
-| `FORUM_CONTRACT_ADDRESSES`                | Yes      | —                      | Comma-separated forum contract addresses                                              |
-| `INDEXER_RPC_URL`                         | No       | —                      | HTTP RPC URL for indexer polling (indexer disabled if unset)                          |
-| `RELAY_RPC_URL`                           | No       | —                      | Upstream HTTP RPC URL the `POST /rpc` relay forwards reads to (relay errors if unset) |
-| `LOG_LEVEL`                               | No       | `INFO`                 | Python logging level                                                                  |
-| `INDEXER_POLL_INTERVAL_SECONDS`           | No       | `60`                   | Poll interval between new log queries                                                 |
-| `INDEXER_MAX_BLOCKS_PER_REQUEST`          | No       | `600`                  | Maximum block span per `eth_getLogs` call                                             |
-| `INDEXER_MAX_STARTUP_LOOKBACK_SECONDS`    | No       | `14400`                | Startup catch-up cap (4 hours)                                                        |
-| `RPC_RELAY_ALLOWED_METHODS`               | No       | frontend-safe defaults | Comma-separated JSON-RPC methods allowed on `POST /rpc`                               |
-| `RPC_RELAY_ALLOWED_CONTRACTS`             | No       | forum contracts        | Comma-separated contract addresses allowed for `eth_call`/`eth_estimateGas`           |
-| `RPC_RELAY_UPSTREAM_TIMEOUT_SECONDS`      | No       | `15`                   | Timeout when proxying allowed JSON-RPC requests upstream                              |
-| `MEILI_SEMANTIC_SEARCH_ENABLED`           | No       | `false`                | Configure Meilisearch `/similar` semantic search                                      |
-| `MEILI_SEMANTIC_EMBEDDER_NAME`            | No       | `statement-text`       | Meilisearch embedder name for `/similar`                                              |
-| `MEILI_SEMANTIC_EMBEDDER_MODEL`           | No       | multilingual MiniLM    | Hugging Face model used by Meilisearch                                                |
-| `MEILI_TASK_TIMEOUT_MS`                   | No       | `300000`               | Max wait for Meilisearch setup/indexing tasks                                         |
-| `ALCHEMY_GAS_SPONSORSHIP_INSPECT_APPROVE` | No       | `false`                | Temporary: approve Alchemy Gas Manager inspection requests                            |
+| Variable                                      | Required | Default                | Description                                                                                          |
+| --------------------------------------------- | -------- | ---------------------- | ---------------------------------------------------------------------------------------------------- |
+| `MEILI_URL`                                   | Yes      | —                      | Meilisearch URL                                                                                      |
+| `MEILI_API_KEY`                               | Yes      | —                      | Meilisearch API key                                                                                  |
+| `FORUM_CONTRACT_ADDRESSES`                    | Yes      | —                      | Comma-separated forum contract addresses                                                             |
+| `INDEXER_RPC_URL`                             | No       | —                      | HTTP RPC URL for indexer polling (indexer disabled if unset)                                         |
+| `RELAY_RPC_URL`                               | No       | —                      | Upstream HTTP RPC URL the `POST /rpc` relay forwards reads to (relay errors if unset)                |
+| `LOG_LEVEL`                                   | No       | `INFO`                 | Python logging level                                                                                 |
+| `INDEXER_POLL_INTERVAL_SECONDS`               | No       | `60`                   | Poll interval between new log queries                                                                |
+| `INDEXER_MAX_BLOCKS_PER_REQUEST`              | No       | `600`                  | Maximum block span per `eth_getLogs` call                                                            |
+| `INDEXER_MAX_STARTUP_LOOKBACK_SECONDS`        | No       | `14400`                | Startup catch-up cap (4 hours)                                                                       |
+| `RPC_RELAY_ALLOWED_METHODS`                   | No       | frontend-safe defaults | Comma-separated JSON-RPC methods allowed on `POST /rpc`                                              |
+| `RPC_RELAY_ALLOWED_CONTRACTS`                 | No       | forum contracts        | Comma-separated contract addresses allowed for `eth_call`/`eth_estimateGas`                          |
+| `RPC_RELAY_UPSTREAM_TIMEOUT_SECONDS`          | No       | `15`                   | Timeout when proxying allowed JSON-RPC requests upstream                                             |
+| `MEILI_SEMANTIC_SEARCH_ENABLED`               | No       | `false`                | Configure Meilisearch `/similar` semantic search                                                     |
+| `MEILI_SEMANTIC_EMBEDDER_NAME`                | No       | `statement-text`       | Meilisearch embedder name for `/similar`                                                             |
+| `MEILI_SEMANTIC_EMBEDDER_MODEL`               | No       | multilingual MiniLM    | Hugging Face model used by Meilisearch                                                               |
+| `MEILI_TASK_TIMEOUT_MS`                       | No       | `300000`               | Max wait for Meilisearch setup/indexing tasks                                                        |
+| `ALCHEMY_GAS_SPONSORSHIP_INSPECT_APPROVE`     | No       | `false`                | Approve Alchemy Gas Manager webhook sponsorship requests                                             |
+| `GAS_SPONSORSHIP_RATE_LIMIT_DB`               | No       | —                      | Path to the SQLite leaky-bucket DB. Metering is off unless this is set (e.g. `/data/sponsorship.db`) |
+| `GAS_SPONSORSHIP_RATE_LIMIT_CAPACITY_GAS`     | No       | `5000000`              | Per-human burst capacity, in gas                                                                     |
+| `GAS_SPONSORSHIP_RATE_LIMIT_LEAK_GAS_PER_DAY` | No       | `20000000`             | Steady-state refill rate, in gas per day                                                             |
+| `GAS_SPONSORSHIP_RPC_URL`                     | No       | `INDEXER_RPC_URL`      | RPC used to resolve a userOperation's zkPassport id when metering                                    |
+| `ZKPASSPORT_VERIFIER_ADDRESS`                 | No       | —                      | zkPassport verifier address; required to meter production (proof-based) registrations                |
+
+## Gas sponsorship metering (off-chain leaky bucket)
+
+The `POST /alchemy/gas-policy/inspect` endpoint answers Alchemy Gas Manager
+webhook policy requests: it approves a userOperation for sponsorship only when
+(1) it targets a sponsored contract via an approved function selector, and
+(2) the human's leaky-bucket budget has room. Rejections are expected — the
+frontend falls back to a self-funded transaction — so declining is safe.
+
+Metering is **optional and off by default**; it activates only when
+`GAS_SPONSORSHIP_RATE_LIMIT_DB` points at a writable path (put this on a
+persistent volume). The bucket is denominated in **gas**: each sponsored
+userOperation costs the sum of its gas-limit fields (`callGasLimit`,
+`verificationGasLimit`, `preVerificationGas`, and the v0.7 paymaster limits),
+so a human's budget tracks the compute actually sponsored on their behalf.
+Buckets are keyed by the zkPassport unique identifier so a human shares one
+budget across registration and every forum:
+
+- **Forum actions** resolve `registry.getUserIdentifier(sender)` via `eth_call`.
+- **Production registration** swaps the calldata selector to `verify(...)` and
+  `eth_call`s the verifier to read the `uniqueIdentifier` (simulated, so no
+  on-chain side effects); requires `ZKPASSPORT_VERIFIER_ADDRESS`.
+- **Mocked registration** reproduces `keccak256(abi.encode(sender))` locally.
+
+The Gas Manager webhook may fire more than once per userOperation (gas
+estimation and the final paymaster request), so decisions are made idempotent
+per `(sender, nonce, callData)` and cached briefly to avoid double-charging.
+There is no post-submission confirmation webhook from the gas policy itself; if
+you later want to reconcile the bucket against on-chain outcomes, wire up
+Alchemy's separate Mined/Dropped Transaction notifications.
 
 `INDEXER_RPC_URL` must be an HTTP RPC endpoint. The indexer uses pull-based
 `eth_getLogs` polling with capped request ranges and persisted cursors.
