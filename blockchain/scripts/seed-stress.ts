@@ -23,7 +23,7 @@ type EnvValues = Record<string, string>;
 type UserVotePlan = Map<number, number>;
 
 const USER_COUNT = 1_000;
-const TARGET_FORUM = process.env.STRESS_FORUM ?? "USA";
+const TARGET_FORUM = process.env.STRESS_FORUM ?? "global";
 const TOP_STATEMENT_SUPPORT = 3_200;
 const TARGET_TOP_SHARE = 0.8;
 const CONCURRENCY = 25;
