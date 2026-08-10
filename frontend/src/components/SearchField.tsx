@@ -1,5 +1,11 @@
 import React from "react";
-import { IconButton, InputAdornment, TextField } from "@mui/material";
+import {
+  CircularProgress,
+  IconButton,
+  InputAdornment,
+  Tooltip,
+  TextField,
+} from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 
@@ -8,6 +14,10 @@ interface SearchFieldProps {
   onChange: (value: string) => void;
   onClear: () => void;
   fullWidth?: boolean;
+  /** Show a spinner (e.g. while the semantic index is building on first use). */
+  busy?: boolean;
+  /** Tooltip shown on the busy spinner. */
+  busyTitle?: string;
 }
 
 const SearchField: React.FC<SearchFieldProps> = ({
@@ -15,6 +25,8 @@ const SearchField: React.FC<SearchFieldProps> = ({
   onChange,
   onClear,
   fullWidth = false,
+  busy = false,
+  busyTitle = "Preparing search…",
 }) => (
   <TextField
     placeholder="Search..."
@@ -28,13 +40,26 @@ const SearchField: React.FC<SearchFieldProps> = ({
             <SearchIcon fontSize="small" sx={{ color: "text.secondary" }} />
           </InputAdornment>
         ),
-        endAdornment: value ? (
-          <InputAdornment position="end">
-            <IconButton size="small" onClick={onClear} edge="end">
-              <ClearIcon fontSize="small" />
-            </IconButton>
-          </InputAdornment>
-        ) : undefined,
+        endAdornment:
+          busy || value ? (
+            <InputAdornment position="end">
+              {busy && (
+                <Tooltip title={busyTitle} enterTouchDelay={0}>
+                  <CircularProgress
+                    size={16}
+                    thickness={5}
+                    aria-label={busyTitle}
+                    sx={{ color: "text.secondary", mr: 0.5 }}
+                  />
+                </Tooltip>
+              )}
+              {value && (
+                <IconButton size="small" onClick={onClear} edge="end">
+                  <ClearIcon fontSize="small" />
+                </IconButton>
+              )}
+            </InputAdornment>
+          ) : undefined,
         sx: {
           height: 40,
           fontSize: "0.875rem",

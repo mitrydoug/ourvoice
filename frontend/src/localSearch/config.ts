@@ -25,3 +25,11 @@ export const RANKED_PAGE_SIZE = 100;
 
 /** Maximum number of per-forum indexes kept alive in the worker (LRU). */
 export const MAX_FORUM_INDEXES = 5;
+
+/**
+ * Embedding model for the hybrid (semantic) engine: 384-dim English MiniLM,
+ * ~30 MB quantized. Defined here (a dependency-free module) so the main thread
+ * can reference it without pulling in the Transformers.js runtime, which lives
+ * only in the hybrid worker.
+ */
+export const EMBEDDING_MODEL = "Xenova/all-MiniLM-L6-v2";
