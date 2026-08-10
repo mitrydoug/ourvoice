@@ -1,0 +1,230 @@
+{
+  "generatedAt": "2026-08-09T20:27:09.220Z",
+  "dataset": "/Users/mitchell/software/Symvolia/frontend/scripts/eval/datasets/topic-clusters",
+  "experiment": {
+    "id": "bm25-b-low",
+    "label": "BM25 b=0.3",
+    "hypothesis": "Less length normalization; short generic docs get less of a boost."
+  },
+  "params": {
+    "similarityOptions": {
+      "combineWith": "OR",
+      "fuzzy": 0.1,
+      "bm25": {
+        "k": 1.2,
+        "b": 0.3,
+        "d": 0.5
+      }
+    },
+    "extraStopWords": [],
+    "minTermLength": 2
+  },
+  "overall": {
+    "precisionAt5": 0.5210000000000004,
+    "ndcgAt10": 0.4897773077833157,
+    "recallAt10": 0.27967466743782576,
+    "mrr": 0.7669166308154212,
+    "map": 0.361969570176526,
+    "queries": 200
+  },
+  "perTopic": {
+    "healthcare": {
+      "precisionAt5": 0.6200000000000001,
+      "ndcgAt10": 0.5932413032999553,
+      "recallAt10": 0.30789473684210533,
+      "mrr": 0.7368055555555555,
+      "map": 0.47993673280941557,
+      "queries": 20
+    },
+    "guns": {
+      "precisionAt5": 0.5400000000000001,
+      "ndcgAt10": 0.4907484494538439,
+      "recallAt10": 0.22894736842105265,
+      "mrr": 0.788125,
+      "map": 0.28808517997063604,
+      "queries": 20
+    },
+    "iran": {
+      "precisionAt5": 0.6100000000000001,
+      "ndcgAt10": 0.5688930350108243,
+      "recallAt10": 0.26578947368421046,
+      "mrr": 0.925,
+      "map": 0.5198908598792193,
+      "queries": 20
+    },
+    "space": {
+      "precisionAt5": 0.57,
+      "ndcgAt10": 0.5254398392004099,
+      "recallAt10": 0.25,
+      "mrr": 0.8166666666666667,
+      "map": 0.3487547655487873,
+      "queries": 20
+    },
+    "budget": {
+      "precisionAt5": 0.5000000000000001,
+      "ndcgAt10": 0.5120393886031357,
+      "recallAt10": 0.25263157894736843,
+      "mrr": 0.8041666666666666,
+      "map": 0.30723271565858584,
+      "queries": 20
+    },
+    "processed-foods": {
+      "precisionAt5": 0.6000000000000002,
+      "ndcgAt10": 0.5787437313649565,
+      "recallAt10": 0.4065934065934066,
+      "mrr": 0.8928571428571429,
+      "map": 0.4542802380481891,
+      "queries": 14
+    },
+    "climate": {
+      "precisionAt5": 0.3142857142857144,
+      "ndcgAt10": 0.24965027663929518,
+      "recallAt10": 0.1703296703296704,
+      "mrr": 0.4934523809523809,
+      "map": 0.2079723303569894,
+      "queries": 14
+    },
+    "ukraine": {
+      "precisionAt5": 0.3714285714285714,
+      "ndcgAt10": 0.3520709892482606,
+      "recallAt10": 0.2527472527472528,
+      "mrr": 0.6163419913419913,
+      "map": 0.2713058740931461,
+      "queries": 14
+    },
+    "church-state": {
+      "precisionAt5": 0.3285714285714286,
+      "ndcgAt10": 0.3415734782130948,
+      "recallAt10": 0.24725274725274723,
+      "mrr": 0.5853174603174603,
+      "map": 0.23344628083046462,
+      "queries": 14
+    },
+    "political-reform": {
+      "precisionAt5": 0.32000000000000006,
+      "ndcgAt10": 0.2699626247963298,
+      "recallAt10": 0.14285714285714285,
+      "mrr": 0.6369083723922433,
+      "map": 0.14812259605074135,
+      "queries": 15
+    },
+    "us-canada": {
+      "precisionAt5": 0.49999999999999994,
+      "ndcgAt10": 0.413559312561401,
+      "recallAt10": 0.25274725274725274,
+      "mrr": 0.7987755102040816,
+      "map": 0.2763566378738947,
+      "queries": 14
+    },
+    "world-cup": {
+      "precisionAt5": 0.8666666666666666,
+      "ndcgAt10": 0.8666941893984474,
+      "recallAt10": 0.6047619047619047,
+      "mrr": 1,
+      "map": 0.7391340640249067,
+      "queries": 15
+    }
+  },
+  "worst": [
+    {
+      "queryId": 28,
+      "topic": "guns",
+      "text": "Concealed carry rules should balance personal defense with public safety in crowded spaces.",
+      "precision": 0,
+      "ndcg": 0,
+      "recall": 0,
+      "rr": 0.0625,
+      "ap": 0.044332871652816255
+    },
+    {
+      "queryId": 96,
+      "topic": "budget",
+      "text": "Entitlement reform should protect current retirees and avoid pushing seniors into poverty.",
+      "precision": 0,
+      "ndcg": 0,
+      "recall": 0,
+      "rr": 0,
+      "ap": 0
+    },
+    {
+      "queryId": 138,
+      "topic": "ukraine",
+      "text": "Ukraine's civilian infrastructure needs air defense, repair funding, and international protection.",
+      "precision": 0,
+      "ndcg": 0,
+      "recall": 0,
+      "rr": 0.045454545454545456,
+      "ap": 0.10444638851454674
+    },
+    {
+      "queryId": 146,
+      "topic": "church-state",
+      "text": "Taxpayer money should not fund programs that discriminate on the basis of religion.",
+      "precision": 0,
+      "ndcg": 0,
+      "recall": 0,
+      "rr": 0.08333333333333333,
+      "ap": 0.055240912933220615
+    },
+    {
+      "queryId": 163,
+      "topic": "political-reform",
+      "text": "Term limits for committee leadership could reduce entrenched power without discarding experienced lawmakers.",
+      "precision": 0,
+      "ndcg": 0,
+      "recall": 0,
+      "rr": 0.07692307692307693,
+      "ap": 0.024145299145299146
+    },
+    {
+      "queryId": 168,
+      "topic": "political-reform",
+      "text": "Public financing of campaigns could help ordinary citizens compete with wealthy donors.",
+      "precision": 0,
+      "ndcg": 0,
+      "recall": 0,
+      "rr": 0.03225806451612903,
+      "ap": 0.002304147465437788
+    },
+    {
+      "queryId": 169,
+      "topic": "political-reform",
+      "text": "The Electoral College should be reformed or replaced so every presidential vote carries equal weight.",
+      "precision": 0,
+      "ndcg": 0,
+      "recall": 0,
+      "rr": 0,
+      "ap": 0
+    },
+    {
+      "queryId": 175,
+      "topic": "us-canada",
+      "text": "The Great Lakes require joint protection because their water, ecosystems, and economies are shared.",
+      "precision": 0,
+      "ndcg": 0,
+      "recall": 0,
+      "rr": 0.04,
+      "ap": 0.003076923076923077
+    },
+    {
+      "queryId": 10,
+      "topic": "healthcare",
+      "text": "Healthcare should be treated as public infrastructure, like roads, schools, and clean water.",
+      "precision": 0,
+      "ndcg": 0.06625422345438903,
+      "recall": 0.05263157894736842,
+      "rr": 0.1111111111111111,
+      "ap": 0.2964751761252061
+    },
+    {
+      "queryId": 161,
+      "topic": "political-reform",
+      "text": "Congress should ban stock trading by members and strengthen conflict-of-interest rules.",
+      "precision": 0,
+      "ndcg": 0.06625422345438903,
+      "recall": 0.07142857142857142,
+      "rr": 0.1111111111111111,
+      "ap": 0.018140589569160998
+    }
+  ]
+}

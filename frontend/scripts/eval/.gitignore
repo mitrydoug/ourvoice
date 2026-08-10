@@ -1,0 +1,7 @@
+# Cached BEIR downloads/extractions (large, re-downloadable).
+datasets/.cache/
+
+# Imported external datasets (large, regenerated via `npm run eval:import:*`).
+datasets/quora/
+datasets/arguana/
+datasets/cqadupstack-*/
