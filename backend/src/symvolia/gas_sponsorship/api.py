@@ -53,15 +53,19 @@ GAS_LIMIT_FIELDS = (
 NOMINAL_ELIGIBILITY_GAS = 500_000.0
 
 DEFAULT_REGISTRY_SIGNATURES_BY_MODE = {
-    "mocked": ["register(string)"],
+    "dev": ["register(string)"],
+    "mock": [
+        "register((bytes32,(bytes32,bytes,bytes32[]),bytes,(uint256,string,string,bool)))"
+    ],
     "production": [
         "register((bytes32,(bytes32,bytes,bytes32[]),bytes,(uint256,string,string,bool)))"
     ],
 }
 
-# Selector for the proof-based registration variant, so the metering layer knows
-# to recover the human's id from the proof (rather than from the sender address).
-_PRODUCTION_REGISTER_SELECTOR = function_signature_to_4byte_selector(
+# Selector for the proof-based registration variant (shared by mock &
+# production), so the metering layer knows to recover the human's id from the
+# proof params rather than from the sender address.
+_PROOF_REGISTER_SELECTOR = function_signature_to_4byte_selector(
     "register((bytes32,(bytes32,bytes,bytes32[]),bytes,(uint256,string,string,bool)))"
 ).hex()
 
@@ -139,11 +143,14 @@ def _parse_signature_list(value: str | None) -> list[str]:
     return [signature.strip() for signature in value.split(";") if signature.strip()]
 
 
+def _registry_mode() -> str:
+    return os.getenv("REGISTRY_MODE", "production")
+
+
 def _registry_selectors() -> dict[str, str]:
     signatures = _parse_signature_list(os.getenv("GAS_SPONSORSHIP_REGISTRY_SIGNATURES"))
     if not signatures:
-        registry_mode = os.getenv("REGISTRY_MODE", "production")
-        signatures = DEFAULT_REGISTRY_SIGNATURES_BY_MODE.get(registry_mode, [])
+        signatures = DEFAULT_REGISTRY_SIGNATURES_BY_MODE.get(_registry_mode(), [])
     return {_selector(signature): signature for signature in signatures}
 
 
@@ -239,8 +246,9 @@ class MeteredAction:
 
     ``kind`` selects how the zkPassport id is recovered:
     ``"forum"`` (registry.getUserIdentifier(sender)),
-    ``"registration_proof"`` (verify(...) eth_call) or
-    ``"registration_mocked"`` (keccak256(abi.encode(sender))).
+    ``"registration_proof"`` (production: verify(...) eth_call),
+    ``"registration_mock_proof"`` (mock: parse publicInputs[len-2] from
+    calldata) or ``"registration_dev"`` (keccak256(abi.encode(sender))).
 
     The charged weight is the userOperation's gas cost, computed at metering time
     from its gas-limit fields, so it is not carried on the action itself.
@@ -312,12 +320,19 @@ def _sponsorship_decision(
         function_name = _registry_selectors().get(inner_selector)
         if function_name is None:
             return False, f"registry selector 0x{inner_selector} is not sponsored", None
-        if inner_selector == _PRODUCTION_REGISTER_SELECTOR:
-            kind = "registration_proof"
+        if inner_selector == _PROOF_REGISTER_SELECTOR:
+            # The proof-based register(params) is shared by mock & production.
+            # Production recovers the id by eth_call-ing the on-chain verifier;
+            # mock has no verifier, so it parses the id from the proof params.
+            kind = (
+                "registration_mock_proof"
+                if _registry_mode() == "mock"
+                else "registration_proof"
+            )
         else:
-            # Mocked register(string) or a custom-configured signature we can
+            # Dev register(string) or a custom-configured signature we can
             # approve but not attribute via a proof; meter by sender-derived id.
-            kind = "registration_mocked"
+            kind = "registration_dev"
         return True, f"registry.{function_name}", MeteredAction(kind, sender, inner_data)
 
     if target in forum_addresses:
@@ -392,10 +407,16 @@ async def _resolve_user_id(action: MeteredAction) -> str | None:
     if not action.sender:
         return None
 
-    if action.kind == "registration_mocked":
-        # No proof and not yet registered: reproduce the mock registry's id
+    if action.kind == "registration_dev":
+        # No proof and not yet registered: reproduce the dev registry's id
         # locally so it matches the id forum actions will later meter against.
-        return identity.mock_registration_user_id(action.sender)
+        return identity.dev_registration_user_id(action.sender)
+
+    if action.kind == "registration_mock_proof":
+        # Mock has no on-chain verifier: recover the scoped nullifier by
+        # decoding the proof params locally (no RPC), matching what the mock
+        # registry stores and what forum actions later meter against.
+        return identity.mock_registration_user_id(action.inner_data)
 
     rpc_url = _rate_limit_rpc_url()
     if rpc_url is None:

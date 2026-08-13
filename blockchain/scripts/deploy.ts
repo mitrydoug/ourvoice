@@ -2,7 +2,8 @@ import hre from "hardhat";
 import path from "path";
 import { mkdirSync, writeFileSync } from "fs";
 import { createForumProductionModule } from "../ignition/modules/ForumProduction.js";
-import { createForumMockedModule } from "../ignition/modules/ForumMockedRegistry.js";
+import { createForumDevModule } from "../ignition/modules/ForumDevRegistry.js";
+import { createForumMockModule } from "../ignition/modules/ForumMockRegistry.js";
 import {
   getDeploymentConfig,
   requireDeploymentProfile,
@@ -51,9 +52,28 @@ async function main() {
     }
   }
 
-  if (config.mode === "mocked") {
-    const module = createForumMockedModule(
+  if (config.mode === "dev") {
+    const module = createForumDevModule(
       config.forums,
+      config.creditAllowanceIntervalSeconds,
+      config.engagementWindowSeconds,
+      config.maxRankedStatements,
+      config.minStatementSupportToRank,
+      config.maxStatementLength,
+      config.userCreditAllowancePerInterval,
+      config.userStartingCredits,
+      config.minAdjustmentIntervalSeconds,
+      config.creditMultiplier,
+      config.refundPenaltyBps,
+      config.decaySpeedupFactor,
+    );
+    const deployResult = await ignition.deploy(module);
+    ({ registry, ...forums } = deployResult);
+  } else if (config.mode === "mock") {
+    const module = createForumMockModule(
+      config.forums,
+      config.scope,
+      config.devMode,
       config.creditAllowanceIntervalSeconds,
       config.engagementWindowSeconds,
       config.maxRankedStatements,

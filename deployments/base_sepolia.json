@@ -4,7 +4,7 @@
   "deployNetwork": "base_sepolia",
   "deploymentProfile": "base-sepolia",
   "chainId": 84532,
-  "registryMode": "mocked",
+  "registryMode": "dev",
   "registryAddress": "0x16CEBcFb37Cb8Ec1D1C2D80596C2131352aa0944",
   "forumOrder": [
     "global",

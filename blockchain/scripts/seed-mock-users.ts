@@ -5,14 +5,14 @@ import {
   loadAbi,
   loadDeploymentEnv,
   repoRoot,
-  requireMockedRegistry,
+  requireDevRegistry,
   requireWalletCount,
 } from "./seed/shared.js";
 
 async function main() {
   const connection = await hre.network.connect();
   const deployment = loadDeploymentEnv();
-  requireMockedRegistry(deployment.registryMode);
+  requireDevRegistry(deployment.registryMode);
 
   const publicClient = await connection.viem.getPublicClient();
   const walletClients = await connection.viem.getWalletClients();
@@ -24,7 +24,7 @@ async function main() {
   const registryAbi = loadAbi(
     path.join(
       repoRoot,
-      "blockchain/artifacts/contracts/MockSymvoliaRegistry.sol/MockSymvoliaRegistry.json",
+      "blockchain/artifacts/contracts/DevSymvoliaRegistry.sol/DevSymvoliaRegistry.json",
     ),
   );
 

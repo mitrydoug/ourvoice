@@ -28,7 +28,7 @@ type DeploymentArtifact = {
   deployNetwork: string;
   deploymentProfile: string;
   chainId: number;
-  registryMode: "mocked" | "production";
+  registryMode: "dev" | "mock" | "production";
   registryAddress: Address;
   forumOrder: string[];
   forums: Record<string, Address>;

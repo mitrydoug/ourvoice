@@ -6,7 +6,7 @@ import {Vm} from "forge-std/Vm.sol";
 import {console} from "forge-std/console.sol";
 
 import {Forum} from "./Forum.sol";
-import {MockSymvoliaRegistry} from "./MockSymvoliaRegistry.sol";
+import {DevSymvoliaRegistry} from "./DevSymvoliaRegistry.sol";
 import {ASymvoliaRegistry} from "./ISymvoliaRegistry.sol";
 
 // Test harness to expose internal methods for testing
@@ -35,13 +35,13 @@ contract ForumTest is Test {
     uint constant CREDIT_ALLOWANCE_INTERVAL_SECONDS = 60;
     uint constant HALF_LIFE = 604800; // 1 week in seconds
     uint constant ONE_PERCENT_DECAY_SECONDS = 8770;
-    MockSymvoliaRegistry mockRegistry;
+    DevSymvoliaRegistry mockRegistry;
     ForumHarness forum;
 
     function setUp() public {
         vm.warp(MOCK_TEST_TIMESTAMP);
 
-        mockRegistry = new MockSymvoliaRegistry();
+        mockRegistry = new DevSymvoliaRegistry();
         forum = new ForumHarness(
             mockRegistry,
             "",
@@ -839,8 +839,7 @@ contract ForumTest is Test {
         fractionalForum.adjustSupport(adjustments);
 
         int supportBefore = fractionalForum
-            .getStatementsById(_oneId(0))[0]
-            .support;
+        .getStatementsById(_oneId(0))[0].support;
         assertEq(
             supportBefore,
             100,
@@ -1835,12 +1834,12 @@ contract ForumRefundPenaltyTest is Test {
     uint constant MOCK_TEST_TIMESTAMP = 1767572100;
     uint constant CREDIT_ALLOWANCE_INTERVAL_SECONDS = 60;
     uint constant HALF_LIFE = 604800;
-    MockSymvoliaRegistry mockRegistry;
+    DevSymvoliaRegistry mockRegistry;
     ForumHarness forum;
 
     function setUp() public {
         vm.warp(MOCK_TEST_TIMESTAMP);
-        mockRegistry = new MockSymvoliaRegistry();
+        mockRegistry = new DevSymvoliaRegistry();
         forum = new ForumHarness(
             mockRegistry,
             "",

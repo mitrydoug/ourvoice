@@ -82,10 +82,10 @@ export function forumAddressForName(
   return forumAddress;
 }
 
-export function requireMockedRegistry(registryMode: string): void {
-  if (registryMode !== "mocked") {
+export function requireDevRegistry(registryMode: string): void {
+  if (registryMode !== "dev") {
     throw new Error(
-      `Mock seeding requires REGISTRY_MODE=mocked, got ${registryMode}`,
+      `Mock seeding requires REGISTRY_MODE=dev, got ${registryMode}`,
     );
   }
 }

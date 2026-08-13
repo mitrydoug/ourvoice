@@ -26,8 +26,8 @@ npx hardhat compile --build-profile production
 ## Local Deployments
 
 Local development workflows are normally launched from the repository root with
-`make local-mocked`, `make local-forked`, `make local-stress-test`, or
-`make base-sepolia`.
+`make local-dev`, `make local-mocked`, `make local-forked`,
+`make local-stress-test`, or `make base-sepolia`.
 
 For direct local contract work:
 
@@ -35,7 +35,7 @@ For direct local contract work:
 make deploy
 ```
 
-This deploys the local mocked-registry topology to a local Hardhat network and
+This deploys the local dev-registry topology to a local Hardhat network and
 regenerates `deployments/localhost.json` plus frontend/backend runtime artifacts.
 
 ## Base Sepolia Break-Glass Deployment

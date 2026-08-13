@@ -1,4 +1,4 @@
-# Local development — mocked registry (no public-network fork).
+# Local development — mock registry (full zkPassport proof flow, no verifier).
 # Launched via: make local-mocked
 #
 # Meilisearch runs in Docker under Overmind. Everything else runs natively.

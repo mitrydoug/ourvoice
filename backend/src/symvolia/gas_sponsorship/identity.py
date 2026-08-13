@@ -12,7 +12,11 @@ budget we recover that id per action:
   the verifier to read back ``uniqueIdentifier``. ``verify`` is state-mutating,
   but ``eth_call`` simulates it without persisting side effects, so this is a
   safe read that never consumes the proof's on-chain nullifier.
-* **Mocked registration** — ``MockSymvoliaRegistry`` derives the id as
+* **Mock registration** — ``MockSymvoliaRegistry`` recovers the id by
+  disassembling the same ProofVerificationParams tuple (the scoped nullifier is
+  ``publicInputs[len - 2]``). We reproduce that locally with no RPC, since no
+  on-chain verifier exists on mock networks.
+* **Dev registration** — ``DevSymvoliaRegistry`` derives the id as
   ``keccak256(abi.encode(sender))``, which we reproduce locally with no RPC.
 """
 
@@ -20,7 +24,7 @@ from __future__ import annotations
 
 import logging
 
-from eth_abi import encode
+from eth_abi import decode, encode
 from eth_utils import function_signature_to_4byte_selector, keccak
 from web3 import AsyncHTTPProvider, AsyncWeb3
 
@@ -48,10 +52,30 @@ def _client(rpc_url: str) -> AsyncWeb3:
     return client
 
 
-def mock_registration_user_id(sender: str) -> str:
-    """Reproduce ``MockSymvoliaRegistry``'s ``keccak256(abi.encode(sender))``."""
+def dev_registration_user_id(sender: str) -> str:
+    """Reproduce ``DevSymvoliaRegistry``'s ``keccak256(abi.encode(sender))``."""
     checksum_sender = AsyncWeb3.to_checksum_address(sender)
     return "0x" + keccak(encode(["address"], [checksum_sender])).hex()
+
+
+def mock_registration_user_id(register_inner_calldata: bytes) -> str | None:
+    """Recover a mock registration's id from ``register((...))`` calldata.
+
+    Mirrors ``MockZKPassportParser.getScopedNullifier``: the scoped nullifier is
+    the second-to-last public input. The register argument is the same
+    ProofVerificationParams tuple used by production, so we decode it locally
+    (no RPC) and read ``publicInputs[len - 2]``. Returns ``None`` when the
+    calldata cannot be decoded or carries too few public inputs.
+    """
+    try:
+        (params,) = decode([_PROOF_PARAMS_TUPLE], register_inner_calldata[4:])
+    except Exception as error:  # noqa: BLE001 — malformed calldata => cannot meter
+        logger.warning("could not decode mock registration calldata: %s", error)
+        return None
+    public_inputs = params[1][2]
+    if len(public_inputs) < 2:
+        return None
+    return "0x" + bytes(public_inputs[-2]).hex()
 
 
 async def resolve_forum_user_id(

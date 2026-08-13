@@ -1,55 +1,7 @@
-// Auto-extracted from blockchain/artifacts/contracts/MockSymvoliaRegistry.sol/MockSymvoliaRegistry.json
+// Auto-extracted from blockchain/artifacts/contracts/DevSymvoliaRegistry.sol/DevSymvoliaRegistry.json
 // Do not edit manually — re-extract from Hardhat artifacts when contracts change.
 
 export default [
-  {
-    "inputs": [
-      {
-        "internalType": "string",
-        "name": "_scope",
-        "type": "string"
-      },
-      {
-        "internalType": "bool",
-        "name": "_devMode",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "constructor"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "user",
-        "type": "address"
-      },
-      {
-        "internalType": "bytes32",
-        "name": "existingId",
-        "type": "bytes32"
-      }
-    ],
-    "name": "AddressAlreadyRegistered",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "DevProofsNotAllowed",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "string",
-        "name": "expectedScope",
-        "type": "string"
-      }
-    ],
-    "name": "InvalidScope",
-    "type": "error"
-  },
   {
     "inputs": [
       {
@@ -76,19 +28,6 @@ export default [
     ],
     "name": "UserNotRegistered",
     "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "devMode",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
   },
   {
     "inputs": [
@@ -172,70 +111,9 @@ export default [
   {
     "inputs": [
       {
-        "components": [
-          {
-            "internalType": "bytes32",
-            "name": "version",
-            "type": "bytes32"
-          },
-          {
-            "components": [
-              {
-                "internalType": "bytes32",
-                "name": "vkeyHash",
-                "type": "bytes32"
-              },
-              {
-                "internalType": "bytes",
-                "name": "proof",
-                "type": "bytes"
-              },
-              {
-                "internalType": "bytes32[]",
-                "name": "publicInputs",
-                "type": "bytes32[]"
-              }
-            ],
-            "internalType": "struct ProofVerificationData",
-            "name": "proofVerificationData",
-            "type": "tuple"
-          },
-          {
-            "internalType": "bytes",
-            "name": "committedInputs",
-            "type": "bytes"
-          },
-          {
-            "components": [
-              {
-                "internalType": "uint256",
-                "name": "validityPeriodInSeconds",
-                "type": "uint256"
-              },
-              {
-                "internalType": "string",
-                "name": "domain",
-                "type": "string"
-              },
-              {
-                "internalType": "string",
-                "name": "scope",
-                "type": "string"
-              },
-              {
-                "internalType": "bool",
-                "name": "devMode",
-                "type": "bool"
-              }
-            ],
-            "internalType": "struct ServiceConfig",
-            "name": "serviceConfig",
-            "type": "tuple"
-          }
-        ],
-        "internalType": "struct ProofVerificationParams",
-        "name": "_params",
-        "type": "tuple"
+        "internalType": "string",
+        "name": "nationality",
+        "type": "string"
       }
     ],
     "name": "register",
@@ -247,19 +125,6 @@ export default [
       }
     ],
     "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "scope",
-    "outputs": [
-      {
-        "internalType": "string",
-        "name": "",
-        "type": "string"
-      }
-    ],
-    "stateMutability": "view",
     "type": "function"
   },
   {
