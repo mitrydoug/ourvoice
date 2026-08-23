@@ -122,27 +122,27 @@ const NavButtons: FC<{
   nextDisabled = false,
   backLabel = "Back",
 }) => (
-    <Stack direction="row" justifyContent="space-between" sx={{ mt: 4 }}>
+  <Stack direction="row" justifyContent="space-between" sx={{ mt: 4 }}>
+    <Button
+      variant="text"
+      startIcon={<ArrowBackIcon />}
+      onClick={onBack}
+      size="medium"
+    >
+      {backLabel}
+    </Button>
+    {onNext && (
       <Button
-        variant="text"
-        startIcon={<ArrowBackIcon />}
-        onClick={onBack}
+        endIcon={<ArrowForwardIcon />}
+        onClick={onNext}
+        disabled={nextDisabled}
         size="medium"
       >
-        {backLabel}
+        {nextLabel}
       </Button>
-      {onNext && (
-        <Button
-          endIcon={<ArrowForwardIcon />}
-          onClick={onNext}
-          disabled={nextDisabled}
-          size="medium"
-        >
-          {nextLabel}
-        </Button>
-      )}
-    </Stack>
-  );
+    )}
+  </Stack>
+);
 
 // ─── Step 0: Why Verify ──────────────────────────────────────────────────────
 
@@ -743,22 +743,17 @@ const StepScanVerify: FC<{
         devMode: isDevMode,
       });
 
-      const {
-        url,
-        onGeneratingProof,
-        onProofGenerated,
-        onReject,
-        onError,
-      } = revealNationality
+      const { url, onGeneratingProof, onProofGenerated, onReject, onError } =
+        revealNationality
           ? queryBuilder
-            .gte("age", 18)
-            .disclose("nationality")
-            .bind("chain", "ethereum_sepolia")
-            .done()
+              .gte("age", 18)
+              .disclose("nationality")
+              .bind("chain", "ethereum_sepolia")
+              .done()
           : queryBuilder
-            .gte("age", 18)
-            .bind("chain", "ethereum_sepolia")
-            .done();
+              .gte("age", 18)
+              .bind("chain", "ethereum_sepolia")
+              .done();
 
       onProofGenerated((proofResult) => {
         // Format the proof for on-chain submission the moment it arrives. We
