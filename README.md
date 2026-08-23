@@ -3,8 +3,12 @@ A platform to reflect public sentiment on important issues, ranking them by quad
 
 ## Base Sepolia Development
 
-Base Sepolia currently uses `MockSymvoliaRegistry` because zkPassport has not
-deployed its verifier there. Shared deployment state is tracked in
+Base Sepolia (`test.symvolia.org`) uses the `mock` registry mode
+(`MockSymvoliaRegistry`): it runs the full zkPassport proof flow but recovers the
+identity and nationality by parsing the proof parameters instead of calling an
+on-chain verifier, because zkPassport has not deployed its verifier there. A
+`dev` registry mode (`DevSymvoliaRegistry`, instant `register(string)`) is used
+for fast local iteration. Shared deployment state is tracked in
 `deployments/base_sepolia.json`; generated frontend bindings are tracked in
 `frontend/src/contracts/networks/base_sepolia.ts`; and Hardhat Ignition state is
 tracked under `blockchain/ignition/deployments/chain-84532`.
@@ -96,10 +100,8 @@ artifact names may still use underscores where the surrounding toolchain expects
 them; for example, the `base-sepolia` deployment profile deploys through the
 `base_sepolia` Hardhat network and writes `deployments/base_sepolia.json`.
 
-The `local-base-sepolia-fork` deployment profile uses a Base Sepolia fork with
-the same mocked-registry topology as Base Sepolia. This keeps local forked
-development aligned with the current test network without depending on live app
-state.
+The `local-base-sepolia-fork` deployment profile uses a Base Sepolia fork with a
+local `dev` registry for fast iteration, so it does not depend on live app state.
 
 Contract deployment and artifact generation are a dedicated Overmind process:
 `contracts: bash scripts/dev/contracts.sh <profile>`. Frontend and backend
@@ -110,7 +112,7 @@ used accidentally.
 For Base Sepolia, `make base-sepolia` defaults to the non-deploy strategy: the
 `contracts` process reads `deployments/base_sepolia.json` and regenerates runtime
 artifacts from that existing deployment state. Use `make base-sepolia-break-glass`
-only when you explicitly want to deploy fresh mock-registry contracts and discard
+only when you explicitly want to deploy fresh dev-registry contracts and discard
 the old Base Sepolia app state.
 
 The backend can start without `INDEXER_RPC_URL`, but live indexing is disabled

@@ -80,7 +80,10 @@ budget across registration and every forum:
 - **Production registration** swaps the calldata selector to `verify(...)` and
   `eth_call`s the verifier to read the `uniqueIdentifier` (simulated, so no
   on-chain side effects); requires `ZKPASSPORT_VERIFIER_ADDRESS`.
-- **Mocked registration** reproduces `keccak256(abi.encode(sender))` locally.
+- **Mock registration** decodes the proof params from the `register((...))`
+  calldata locally and reads the scoped nullifier (`publicInputs[len - 2]`), so
+  no verifier RPC is needed.
+- **Dev registration** reproduces `keccak256(abi.encode(sender))` locally.
 
 The Gas Manager webhook may fire more than once per userOperation (gas
 estimation and the final paymaster request), so decisions are made idempotent
@@ -124,7 +127,7 @@ MEILI_URL=http://... MEILI_API_KEY=... \
 From the repo root:
 
 ```bash
-make local-mocked
+make local-dev
 ```
 
 This starts:

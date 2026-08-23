@@ -1,4 +1,4 @@
-# Local development — Base Sepolia fork with mocked registry topology.
+# Local development — Base Sepolia fork with dev-registry topology.
 # Launched via: make local-forked
 #
 # Requires BASE_SEPOLIA_RPC_URL in .env.local (gitignored).

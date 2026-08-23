@@ -217,9 +217,9 @@ async function main() {
     process.env.DEPLOYMENT_PROFILE,
   );
   const config = getDeploymentConfig(deploymentProfile);
-  if (config.mode !== "mocked") {
+  if (config.mode !== "dev") {
     throw new Error(
-      `Stress seeding requires a mocked deployment, got ${config.mode}`,
+      `Stress seeding requires a dev deployment, got ${config.mode}`,
     );
   }
 
@@ -247,7 +247,7 @@ async function main() {
   const registryAbi = loadAbi(
     path.join(
       repoRoot,
-      "blockchain/artifacts/contracts/MockSymvoliaRegistry.sol/MockSymvoliaRegistry.json",
+      "blockchain/artifacts/contracts/DevSymvoliaRegistry.sol/DevSymvoliaRegistry.json",
     ),
   );
   const forumAbi = loadAbi(

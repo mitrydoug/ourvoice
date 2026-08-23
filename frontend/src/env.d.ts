@@ -5,11 +5,15 @@ interface ImportMetaEnv {
   readonly VITE_APP_VERSION?: string;
 
   /**
-   * Which SymvoliaRegistry ABI to use at build time.
-   *   - `"mocked"` (default) — `MockSymvoliaRegistry`, accepts a plain string
+   * Which SymvoliaRegistry ABI/flow to use at build time.
+   *   - `"dev"` (default) — `DevSymvoliaRegistry`, accepts a plain string via an
+   *     instant address-derived quick-register flow
+   *   - `"mock"` — `MockSymvoliaRegistry`, runs the full ZKPassport proof flow
+   *     but parses the proof params instead of calling an on-chain verifier
    *   - `"production"` — `SymvoliaRegistry`, requires `ProofVerificationParams`
+   *     verified by the on-chain ZKPassport verifier
    */
-  readonly VITE_REGISTRY_MODE: "mocked" | "production";
+  readonly VITE_REGISTRY_MODE: "dev" | "mock" | "production";
 
   /**
    * Which network address file to load from `src/contracts/networks/`.

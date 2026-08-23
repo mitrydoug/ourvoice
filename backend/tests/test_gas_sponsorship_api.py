@@ -71,7 +71,7 @@ class GasSponsorshipApiTests(unittest.TestCase):
         {
             "ALCHEMY_GAS_SPONSORSHIP_INSPECT_APPROVE": "true",
             "REGISTRY_ADDRESS": REGISTRY_ADDRESS,
-            "REGISTRY_MODE": "mocked",
+            "REGISTRY_MODE": "dev",
         },
         clear=True,
     )
@@ -298,9 +298,9 @@ class GasSponsorshipMeteringTests(unittest.TestCase):
             },
         }
 
-    def test_mocked_registration_meters_by_reproduced_user_id(self) -> None:
+    def test_dev_registration_meters_by_reproduced_user_id(self) -> None:
         # capacity 800000 gas, 200000 gas/op => four succeed, the fifth is
-        # rejected, all keyed by the same reproduced mock user id (no RPC).
+        # rejected, all keyed by the same reproduced dev user id (no RPC).
         call_data = _execute_call_data(
             REGISTRY_ADDRESS,
             _selector("register(string)") + encode(["string"], ["USA"]),
@@ -308,7 +308,7 @@ class GasSponsorshipMeteringTests(unittest.TestCase):
         env = {
             "ALCHEMY_GAS_SPONSORSHIP_INSPECT_APPROVE": "true",
             "REGISTRY_ADDRESS": REGISTRY_ADDRESS,
-            "REGISTRY_MODE": "mocked",
+            "REGISTRY_MODE": "dev",
             "GAS_SPONSORSHIP_RATE_LIMIT_DB": self.db_path,
             "GAS_SPONSORSHIP_RATE_LIMIT_CAPACITY_GAS": "800000",
             "GAS_SPONSORSHIP_RATE_LIMIT_LEAK_GAS_PER_DAY": "0",
@@ -332,7 +332,7 @@ class GasSponsorshipMeteringTests(unittest.TestCase):
         env = {
             "ALCHEMY_GAS_SPONSORSHIP_INSPECT_APPROVE": "true",
             "REGISTRY_ADDRESS": REGISTRY_ADDRESS,
-            "REGISTRY_MODE": "mocked",
+            "REGISTRY_MODE": "dev",
             "GAS_SPONSORSHIP_RATE_LIMIT_DB": self.db_path,
             "GAS_SPONSORSHIP_RATE_LIMIT_CAPACITY_GAS": "800000",
             "GAS_SPONSORSHIP_RATE_LIMIT_LEAK_GAS_PER_DAY": "0",
@@ -357,6 +357,52 @@ class GasSponsorshipMeteringTests(unittest.TestCase):
 
         # 200000 (deduped) + 200000*3 = 800000 fits; the fourth distinct op does not.
         self.assertEqual(distinct, [True, True, True, False])
+
+    @staticmethod
+    def _mock_register_call_data(nullifier: bytes) -> bytes:
+        # Mock mode's register(params) shares production's tuple; the scoped
+        # nullifier the registry stores is publicInputs[len - 2].
+        public_inputs = [b"\x00" * 32] * 6 + [nullifier, b"\x00" * 32]
+        params = (
+            b"\x00" * 32,
+            (b"\x00" * 32, b"", public_inputs),
+            b"",
+            (0, "", "", False),
+        )
+        params_type = (
+            "(bytes32,(bytes32,bytes,bytes32[]),bytes,(uint256,string,string,bool))"
+        )
+        return _selector(REGISTER_PRODUCTION_SIGNATURE) + encode(
+            [params_type], [params]
+        )
+
+    def test_mock_registration_meters_by_parsed_nullifier(self) -> None:
+        # Mock mode has no on-chain verifier: the id is parsed from the proof
+        # params locally (publicInputs[len - 2], no RPC), so five ops keyed by
+        # that same nullifier exhaust an 800000-gas / 200000-per-op bucket after
+        # four.
+        nullifier = bytes.fromhex("ab" * 32)
+        call_data = _execute_call_data(
+            REGISTRY_ADDRESS, self._mock_register_call_data(nullifier)
+        )
+        env = {
+            "ALCHEMY_GAS_SPONSORSHIP_INSPECT_APPROVE": "true",
+            "REGISTRY_ADDRESS": REGISTRY_ADDRESS,
+            "REGISTRY_MODE": "mock",
+            "GAS_SPONSORSHIP_RATE_LIMIT_DB": self.db_path,
+            "GAS_SPONSORSHIP_RATE_LIMIT_CAPACITY_GAS": "800000",
+            "GAS_SPONSORSHIP_RATE_LIMIT_LEAK_GAS_PER_DAY": "0",
+        }
+        with patch.dict(os.environ, env, clear=True):
+            results = [
+                self.client.post(
+                    "/alchemy/gas-policy/inspect",
+                    json=self._payload(call_data, hex(nonce)),
+                ).json()["approved"]
+                for nonce in range(5)
+            ]
+
+        self.assertEqual(results, [True, True, True, True, False])
 
     def test_forum_submit_metered_and_approved(self) -> None:
         call_data = _execute_call_data(
@@ -476,9 +522,9 @@ class GasSponsorshipEligibilityTests(unittest.TestCase):
         directory = tempfile.mkdtemp()
         self.db_path = os.path.join(directory, "sponsorship.db")
         self.sender = "0x0000000000000000000000000000000000000abc"
-        # The webhook meters this sender against its reproduced mock id; the
+        # The webhook meters this sender against its reproduced dev id; the
         # preview must pass the same id so both hit the same bucket.
-        self.user_id = identity.mock_registration_user_id(self.sender)
+        self.user_id = identity.dev_registration_user_id(self.sender)
 
     def _payload(self, call_data: str, nonce: str, *, gas: int = 200_000) -> dict:
         call_gas = gas // 2
@@ -507,18 +553,18 @@ class GasSponsorshipEligibilityTests(unittest.TestCase):
         payload["userId"] = self.user_id if user_id is None else user_id
         return payload
 
-    def _mocked_register_call_data(self) -> str:
+    def _dev_register_call_data(self) -> str:
         return _execute_call_data(
             REGISTRY_ADDRESS,
             _selector("register(string)") + encode(["string"], ["USA"]),
         )
 
     def test_eligibility_reports_sponsored_without_consuming(self) -> None:
-        call_data = self._mocked_register_call_data()
+        call_data = self._dev_register_call_data()
         env = {
             "ALCHEMY_GAS_SPONSORSHIP_INSPECT_APPROVE": "true",
             "REGISTRY_ADDRESS": REGISTRY_ADDRESS,
-            "REGISTRY_MODE": "mocked",
+            "REGISTRY_MODE": "dev",
             "GAS_SPONSORSHIP_RATE_LIMIT_DB": self.db_path,
             "GAS_SPONSORSHIP_RATE_LIMIT_CAPACITY_GAS": "800000",
             "GAS_SPONSORSHIP_RATE_LIMIT_LEAK_GAS_PER_DAY": "0",
@@ -546,11 +592,11 @@ class GasSponsorshipEligibilityTests(unittest.TestCase):
         self.assertEqual(approvals, [True, True, True, True, False])
 
     def test_eligibility_reports_rate_limited_when_budget_exhausted(self) -> None:
-        call_data = self._mocked_register_call_data()
+        call_data = self._dev_register_call_data()
         env = {
             "ALCHEMY_GAS_SPONSORSHIP_INSPECT_APPROVE": "true",
             "REGISTRY_ADDRESS": REGISTRY_ADDRESS,
-            "REGISTRY_MODE": "mocked",
+            "REGISTRY_MODE": "dev",
             "GAS_SPONSORSHIP_RATE_LIMIT_DB": self.db_path,
             "GAS_SPONSORSHIP_RATE_LIMIT_CAPACITY_GAS": "300000",
             # 1 gas/second leak keeps retry_after finite and positive.
@@ -582,7 +628,7 @@ class GasSponsorshipEligibilityTests(unittest.TestCase):
         env = {
             "ALCHEMY_GAS_SPONSORSHIP_INSPECT_APPROVE": "true",
             "REGISTRY_ADDRESS": REGISTRY_ADDRESS,
-            "REGISTRY_MODE": "mocked",
+            "REGISTRY_MODE": "dev",
             "GAS_SPONSORSHIP_RATE_LIMIT_DB": self.db_path,
             "GAS_SPONSORSHIP_RATE_LIMIT_CAPACITY_GAS": "800000",
             "GAS_SPONSORSHIP_RATE_LIMIT_LEAK_GAS_PER_DAY": "0",

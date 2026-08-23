@@ -5,16 +5,16 @@ import useBlockSync from "./useBlockSync";
 import { blockPollingIntervalMs } from "../wagmiConfig";
 import {
   isDevMode,
-  mockRegistryContractConfig,
+  devRegistryContractConfig,
   registryContractConfig,
 } from "../contracts";
 
-// Both registry variants (production & mock) share the same read interface.
-// Use the production ABI for reads — it's a superset of the mock ABI — paired
-// with whichever address is active.
+// All registry variants (dev, mock & production) share the same read
+// interface. Use the active registry ABI for reads — each includes the shared
+// read functions — paired with whichever address is active.
 const registryReadConfig = {
   address: isDevMode
-    ? mockRegistryContractConfig.address
+    ? devRegistryContractConfig.address
     : registryContractConfig.address,
   abi: registryContractConfig.abi,
 } as const;

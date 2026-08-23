@@ -6,7 +6,7 @@ import {
   loadAbi,
   loadDeploymentEnv,
   repoRoot,
-  requireMockedRegistry,
+  requireDevRegistry,
   requireWalletCount,
 } from "./seed/shared.js";
 import { getDeploymentConfig } from "../ignition/config/deployments.js";
@@ -14,12 +14,12 @@ import { getDeploymentConfig } from "../ignition/config/deployments.js";
 async function main() {
   const connection = await hre.network.connect();
   const deployment = loadDeploymentEnv();
-  requireMockedRegistry(deployment.registryMode);
+  requireDevRegistry(deployment.registryMode);
 
   const config = getDeploymentConfig(deployment.deploymentProfile);
-  if (config.mode !== "mocked") {
+  if (config.mode !== "dev") {
     throw new Error(
-      `Mock content seeding requires a mocked deployment profile, got ${config.mode}`,
+      `Mock content seeding requires a dev deployment profile, got ${config.mode}`,
     );
   }
 

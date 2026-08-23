@@ -2,10 +2,12 @@ import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import { deployForums } from "./helpers/deployForums.js";
 
 /**
- * Creates a mocked Ignition module that deploys a MockSymvoliaRegistry
- * (allowing unverified user registration) and a set of Forum contracts.
+ * Creates a dev Ignition module that deploys a DevSymvoliaRegistry
+ * (allowing instant address-derived registration) and a set of Forum
+ * contracts. Used for fast local iteration where a Hardhat signer can
+ * self-register without a ZKPassport proof.
  */
-export function createForumMockedModule(
+export function createForumDevModule(
   forumNames: string[],
   creditAllowanceIntervalSeconds: number,
   engagementWindowSeconds: number,
@@ -19,12 +21,12 @@ export function createForumMockedModule(
   refundPenaltyBps: number,
   decaySpeedupFactor: number,
 ) {
-  return buildModule("ForumMockedRegistryModule", (m) => {
-    const mockedZKRegistry = m.contract("MockSymvoliaRegistry");
+  return buildModule("ForumDevRegistryModule", (m) => {
+    const devZKRegistry = m.contract("DevSymvoliaRegistry");
 
     const { forums } = deployForums(
       m,
-      mockedZKRegistry,
+      devZKRegistry,
       forumNames,
       creditAllowanceIntervalSeconds,
       engagementWindowSeconds,
@@ -39,6 +41,6 @@ export function createForumMockedModule(
       decaySpeedupFactor,
     );
 
-    return { registry: mockedZKRegistry, ...forums };
+    return { registry: devZKRegistry, ...forums };
   });
 }

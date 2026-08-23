@@ -42,7 +42,7 @@
     "@privy-io/react-auth": "^3.28.0",
     "@privy-io/wagmi": "^4.0.10",
     "@tanstack/react-query": "^5.87.4",
-    "@zkpassport/sdk": "^0.12.4",
+    "@zkpassport/sdk": "^0.16.1",
     "boring-avatars": "^2.0.4",
     "buffer": "^6.0.3",
     "esbuild": "^0.27.3",

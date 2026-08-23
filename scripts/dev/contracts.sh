@@ -114,7 +114,7 @@ cd "${REPO_ROOT}"
 clear_ready_marker
 
 case "${PROFILE}" in
-  local-mocked | local-forked | local-stress-test)
+  local-dev | local-mocked | local-forked | local-stress-test)
     wait_for_rpc
     clear_generated_artifacts "${VITE_NETWORK}"
 
