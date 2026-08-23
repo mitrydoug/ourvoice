@@ -6,8 +6,28 @@
  * to ignition/parameters/) supplies the module's runtime parameters.
  */
 
-type MockedDeploymentConfig = {
-  mode: "mocked";
+type DevDeploymentConfig = {
+  mode: "dev";
+  forums: string[];
+  creditAllowanceIntervalSeconds: number;
+  engagementWindowSeconds: number;
+  maxRankedStatements: number;
+  minStatementSupportToRank: number;
+  maxStatementLength: number;
+  userCreditAllowancePerInterval: number;
+  userStartingCredits: number;
+  minAdjustmentIntervalSeconds: number;
+  creditMultiplier: number;
+  refundPenaltyBps: number;
+  decaySpeedupFactor: number;
+};
+
+type MockDeploymentConfig = {
+  mode: "mock";
+  /** ZKPassport subscope committed into the proof (the app scope). */
+  scope: string;
+  /** Allow dev/mock ZKPassport proofs (true for testnets). */
+  devMode: boolean;
   forums: string[];
   creditAllowanceIntervalSeconds: number;
   engagementWindowSeconds: number;
@@ -40,7 +60,8 @@ type ProductionDeploymentConfig = {
 };
 
 export type DeploymentConfig =
-  | MockedDeploymentConfig
+  | DevDeploymentConfig
+  | MockDeploymentConfig
   | ProductionDeploymentConfig;
 
 /** 1 credit = 10^6 microcredits. All credit values use this unit on-chain. */
@@ -48,8 +69,8 @@ export const CRED_MULT = 1_000_000;
 
 const deploymentConfigs: Record<string, DeploymentConfig> = {
   /** Local native Hardhat node with mock data. */
-  "local-mocked": {
-    mode: "mocked",
+  "local-dev": {
+    mode: "dev",
     forums: ["global", "USA", "CAN"],
     creditAllowanceIntervalSeconds: 60,
     engagementWindowSeconds: 300,
@@ -66,7 +87,7 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
 
   /** Local native Hardhat node with mock registry and larger stress-test limits. */
   "local-stress-test": {
-    mode: "mocked",
+    mode: "dev",
     forums: ["global", "USA", "CAN"],
     creditAllowanceIntervalSeconds: 60,
     engagementWindowSeconds: 300,
@@ -83,7 +104,7 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
 
   /** Local Base Sepolia fork using the same mocked-registry topology as Base Sepolia. */
   "local-base-sepolia-fork": {
-    mode: "mocked",
+    mode: "dev",
     forums: ["global", "USA", "CAN"],
     creditAllowanceIntervalSeconds: 60,
     engagementWindowSeconds: 300,
@@ -116,9 +137,17 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
     parametersFile: "base.json",
   },
 
-  /** Base Sepolia testnet deployment with mock registry until zkPassport verifier is available. */
+  /**
+   * Base Sepolia testnet deployment (test.symvolia.org). Runs the proof-parsing
+   * mock registry: the full zkPassport proof flow without an on-chain verifier
+   * (zkPassport has not deployed its verifier to Base Sepolia). The service
+   * scope (domain) is not enforced, so the same deployment accepts proofs
+   * generated from any host (e.g. test.symvolia.org or 127.0.0.1).
+   */
   "base-sepolia": {
-    mode: "mocked",
+    mode: "mock",
+    scope: "symvolia-verify",
+    devMode: true,
     forums: ["global", "USA", "CAN"],
     creditAllowanceIntervalSeconds: 14400,
     engagementWindowSeconds: 86400,
@@ -131,6 +160,25 @@ const deploymentConfigs: Record<string, DeploymentConfig> = {
     creditMultiplier: CRED_MULT,
     refundPenaltyBps: 2000,
     decaySpeedupFactor: 1,
+  },
+
+  /** Local native Hardhat node exercising the proof-parsing mock registry. */
+  "local-mocked": {
+    mode: "mock",
+    scope: "symvolia-verify",
+    devMode: true,
+    forums: ["global", "USA", "CAN"],
+    creditAllowanceIntervalSeconds: 60,
+    engagementWindowSeconds: 300,
+    maxRankedStatements: 10,
+    minStatementSupportToRank: 3 * CRED_MULT,
+    maxStatementLength: 120,
+    userCreditAllowancePerInterval: 25 * CRED_MULT,
+    userStartingCredits: 1000 * CRED_MULT,
+    minAdjustmentIntervalSeconds: 12,
+    creditMultiplier: CRED_MULT,
+    refundPenaltyBps: 2000,
+    decaySpeedupFactor: 2016,
   },
 };
 

@@ -83,15 +83,21 @@ const orderedForumAddresses = forumOrder.map((forumName) => deployment.forums[fo
 const relayAllowedContracts = [...orderedForumAddresses, deployment.registryAddress];
 const registryMode = deployment.registryMode ?? "production";
 const registrySponsorshipSignatures =
-  registryMode === "mocked"
+  registryMode === "dev"
     ? ["register(string)"]
     : ["register((bytes32,(bytes32,bytes,bytes32[]),bytes,(uint256,string,string,bool)))"];
+const registryContractLabel =
+  registryMode === "dev"
+    ? "DevSymvoliaRegistry"
+    : registryMode === "mock"
+      ? "MockSymvoliaRegistry"
+      : "SymvoliaRegistry";
 const label =
   networkName === "localhost"
     ? "the local Hardhat development network (chain 31337)"
-    : registryMode === "mocked"
-      ? `the ${networkName} network with MockSymvoliaRegistry`
-      : `the ${networkName} network`;
+    : registryMode === "production"
+      ? `the ${networkName} network`
+      : `the ${networkName} network with ${registryContractLabel}`;
 
 const networksDir = path.join(repoRoot, "frontend/src/contracts/networks");
 mkdirSync(networksDir, { recursive: true });

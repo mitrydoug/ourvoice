@@ -1,7 +1,7 @@
 import { FC, useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
-import { ZKPassport, ProofResult } from "@zkpassport/sdk";
+import { ZKPassport } from "@zkpassport/sdk";
 import {
   Accordion,
   AccordionDetails,
@@ -33,8 +33,9 @@ import { useWaitForTransactionReceipt } from "wagmi";
 import { useContractWrite } from "@/wallet";
 import {
   registryContractConfig,
-  mockRegistryContractConfig,
+  devRegistryContractConfig,
   isDevMode,
+  isQuickRegisterMode,
 } from "../contracts";
 
 // Icons
@@ -658,7 +659,27 @@ const StepScanVerify: FC<{
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [verifierParams, setVerifierParams] = useState<any>(null); // eslint-disable-line @typescript-eslint/no-unsafe-assignment
 
-  const zkPassport = useMemo(() => new ZKPassport(), []);
+  const zkPassport = useMemo(() => {
+    const zk = new ZKPassport();
+    // Skip the SDK's in-browser proof verification (Barretenberg / @aztec/bb.js).
+    // That path needs SharedArrayBuffer + cross-origin isolation (COOP/COEP),
+    // which conflicts with our wallet provider, and it hangs without isolation.
+    // The on-chain SymvoliaRegistry verifies the proof itself, so the local
+    // check is redundant — the contract is the single source of truth. This
+    // override stops the SDK from ever loading bb.js and lets its internal
+    // result handling complete without local verification. We resolve with
+    // verified:false so the SDK skips its optional dashboard proof submission;
+    // our registration flow is driven entirely by onProofGenerated below.
+    /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access */
+    (zk as any).verify = () =>
+      Promise.resolve({
+        uniqueIdentifier: undefined,
+        uniqueIdentifierType: undefined,
+        verified: false,
+      });
+    /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access */
+    return zk;
+  }, []);
   const { writeContract } = useContractWrite();
 
   // Wait for on-chain confirmation once we have a tx hash
@@ -705,7 +726,7 @@ const StepScanVerify: FC<{
 
   const devModeRegister = useCallback(() => {
     void submitTx({
-      ...mockRegistryContractConfig,
+      ...devRegistryContractConfig,
       functionName: "register",
       args: [""],
     });
@@ -722,62 +743,40 @@ const StepScanVerify: FC<{
         devMode: isDevMode,
       });
 
-      const {
-        url,
-        onRequestReceived,
-        onGeneratingProof,
-        onProofGenerated,
-        onResult,
-        onReject,
-        onError,
-      } = revealNationality
-        ? queryBuilder
-            .gte("age", 18)
-            .disclose("nationality")
-            .bind("chain", "ethereum_sepolia")
-            .done()
-        : queryBuilder.gte("age", 18).bind("chain", "ethereum_sepolia").done();
-
-      let proof: ProofResult;
+      const { url, onGeneratingProof, onProofGenerated, onReject, onError } =
+        revealNationality
+          ? queryBuilder
+              .gte("age", 18)
+              .disclose("nationality")
+              .bind("chain", "ethereum_sepolia")
+              .done()
+          : queryBuilder
+              .gte("age", 18)
+              .bind("chain", "ethereum_sepolia")
+              .done();
 
       onProofGenerated((proofResult) => {
-        console.log("Proof generated:", proofResult);
-        proof = proofResult;
-        setVerifyPhase("PROOF_GENERATED");
-      });
-
-      onResult(({ uniqueIdentifier, verified, result }) => {
-        console.log("Result received:", uniqueIdentifier, verified, result);
-
-        if (!verified) {
-          console.log("Proof is not verified");
-          setVerifyPhase("REJECTED");
-          return;
-        }
-
+        // Format the proof for on-chain submission the moment it arrives. We
+        // deliberately do NOT wait for onResult — that only fires after the
+        // SDK's local bb.js verification, which we skip (see the verify()
+        // override where the ZKPassport instance is created). The
+        // SymvoliaRegistry contract performs the real verification on-chain
+        // when these parameters are submitted, so it is the source of truth.
         const params = zkPassport.getSolidityVerifierParameters({
-          proof,
+          proof: proofResult,
           scope: MY_SCOPE,
           devMode: isDevMode,
         });
-
-        // Store params and wait for user to click "Register" button
         setVerifierParams(params);
         setVerifyPhase("PROOF_GENERATED");
       });
 
-      onRequestReceived(() => {
-        console.log("Request received");
-      });
-
       onGeneratingProof(() => {
         setVerifyPhase("GENERATING_PROOF");
-        console.log("Generating proof...");
       });
 
       onReject(() => {
         setVerifyPhase("REJECTED");
-        console.log("Rejected");
       });
 
       onError((error) => {
@@ -974,7 +973,7 @@ const StepScanVerify: FC<{
         )}
 
         {/* Dev mode shortcut */}
-        {isDevMode && verifyPhase === "PRE_SCAN" && (
+        {isQuickRegisterMode && verifyPhase === "PRE_SCAN" && (
           <Button
             variant="text"
             size="small"
