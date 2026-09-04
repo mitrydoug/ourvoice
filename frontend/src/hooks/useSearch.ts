@@ -67,7 +67,7 @@ export function useSearch(
   const [isLoading, setIsLoading] = useState(false);
 
   const [engineMode] = useSearchEngineMode();
-  const localSearch = useLocalSearch();
+  const { search: localSearchFn } = useLocalSearch();
 
   // Track the latest request so we can discard stale responses.
   const inflightRef = useRef(0);
@@ -86,11 +86,7 @@ export function useSearch(
       const requestId = ++inflightRef.current;
 
       const runLocal = async (): Promise<number[]> => {
-        const ids = await localSearch.search(
-          trimmed,
-          mode,
-          SEARCH_RESULTS_LIMIT,
-        );
+        const ids = await localSearchFn(trimmed, mode, SEARCH_RESULTS_LIMIT);
         return similarStatementId !== undefined
           ? ids.filter((id) => id !== Number(similarStatementId))
           : ids;
@@ -110,10 +106,10 @@ export function useSearch(
           similarStatementId === undefined
             ? undefined
             : new URLSearchParams({
-                statement_id: similarStatementId.toString(),
-                forum_address: forumAddress,
-                limit: SEARCH_RESULTS_LIMIT.toString(),
-              });
+              statement_id: similarStatementId.toString(),
+              forum_address: forumAddress,
+              limit: SEARCH_RESULTS_LIMIT.toString(),
+            });
 
         const fetchResults = async (): Promise<unknown> => {
           if (similarParams !== undefined) {
@@ -170,7 +166,7 @@ export function useSearch(
     similarStatementId,
     mode,
     engineMode,
-    localSearch,
+    localSearchFn,
   ]);
 
   return { hits, isLoading };

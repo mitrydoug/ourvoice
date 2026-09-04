@@ -12,6 +12,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -352,10 +353,20 @@ export const LocalSearchProvider: FC<{ children: ReactNode }> = ({
     [forumContractAddress, engineKind],
   );
 
+  // Memoize the context value so its identity is stable across provider
+  // re-renders that don't change any of these fields. Without this, every
+  // block-sync tick (and every write that advances the chain head — e.g. an
+  // upvote on a local chain) produced a fresh object, re-running every
+  // `useSearch` effect. For the statement page's "similar statements" panel
+  // that meant re-embedding the query on the semantic engine on every vote,
+  // which was the primary source of statement-page lag.
+  const value = useMemo(
+    () => ({ search, isIndexing, isReady, engineKind, indexProgress }),
+    [search, isIndexing, isReady, engineKind, indexProgress],
+  );
+
   return (
-    <LocalSearchContext.Provider
-      value={{ search, isIndexing, isReady, engineKind, indexProgress }}
-    >
+    <LocalSearchContext.Provider value={value}>
       {children}
     </LocalSearchContext.Provider>
   );

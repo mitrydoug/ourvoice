@@ -5,7 +5,7 @@ import HomeIcon from "@mui/icons-material/Home";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import ArticleIcon from "@mui/icons-material/Article";
 import StarIcon from "@mui/icons-material/Star";
-import { useUserVotes } from "../state/UserVotes";
+import { useUserVerification } from "../state/UserVotes";
 import { useForumNavigate, useForumPath } from "../hooks/useForumNavigate";
 
 const ALL_NAV_ITEMS = [
@@ -33,7 +33,7 @@ const ALL_NAV_ITEMS = [
 const BottomNav: FC = () => {
   const location = useLocation();
   const navigate = useForumNavigate();
-  const { isUserVerified, isVerifiedLoading } = useUserVotes();
+  const { isUserVerified, isVerifiedLoading } = useUserVerification();
   const forumPath = useForumPath();
 
   const navItems = useMemo(

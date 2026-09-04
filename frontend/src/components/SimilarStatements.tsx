@@ -9,7 +9,11 @@ import useLocalStorageSet from "@/hooks/useLocalStorageSet";
 import SortTabs, { SortMode } from "./SortTabs";
 import StatementCard from "./StatementCard";
 import { Statement } from "../types";
-import { useUserVotes } from "../state/UserVotes";
+import {
+  useStatementSupport,
+  useSupportStore,
+  useUserVerification,
+} from "../state/UserVotes";
 
 interface SimilarStatementsProps {
   /** Text to search for similar statements. */
@@ -34,36 +38,44 @@ const SimilarStatements: FC<SimilarStatementsProps> = ({
 }) => {
   const [sortTab, setSortTab] = useState<SortMode>("top");
   const { forumContractAddress } = useForum();
-  const userVotes = useUserVotes();
+  const { isUserVerified } = useUserVerification();
+  const { switchSupport, getEffectiveSupportParts } = useSupportStore();
+  // Subscribe only to the SOURCE statement's support so toggling a target card
+  // in the list below does not re-render this component (and thus does not
+  // recreate every card element).
+  const sourceStatementId =
+    switchSupportFromId !== undefined ? Number(switchSupportFromId) : -1;
+  const { supportParts: sourceSupportParts } =
+    useStatementSupport(sourceStatementId);
   const { has: isBookmarked, toggle: toggleBookmark } =
     useLocalStorageSet("bookmarks");
 
   const switchSourceSupport =
-    userVotes.isUserVerified && switchSupportFromId !== undefined
-      ? userVotes.getEffectiveSupport(Number(switchSupportFromId))
+    isUserVerified && switchSupportFromId !== undefined
+      ? sourceSupportParts
       : 0;
   const handleSwitchSupport = useCallback(
     (targetStatementId: number) => {
-      if (!userVotes.isUserVerified || switchSupportFromId === undefined) {
+      if (!isUserVerified || switchSupportFromId === undefined) {
         return;
       }
-      userVotes.switchSupport(Number(switchSupportFromId), targetStatementId);
+      switchSupport(Number(switchSupportFromId), targetStatementId);
     },
-    [userVotes, switchSupportFromId],
+    [isUserVerified, switchSupportFromId, switchSupport],
   );
   const onSwitchSupport =
     switchSourceSupport !== 0 ? handleSwitchSupport : undefined;
 
   const canSwitchSupportTo = useCallback(
     (targetStatementId: number) => {
-      if (!userVotes.isUserVerified || switchSourceSupport === 0) return false;
-      const targetSupport = userVotes.getEffectiveSupport(targetStatementId);
+      if (!isUserVerified || switchSourceSupport === 0) return false;
+      const targetSupport = getEffectiveSupportParts(targetStatementId);
       return (
         targetSupport === 0 ||
         Math.sign(targetSupport) === Math.sign(switchSourceSupport)
       );
     },
-    [userVotes, switchSourceSupport],
+    [isUserVerified, switchSourceSupport, getEffectiveSupportParts],
   );
 
   const hasSearch = query.trim().length > 0;
