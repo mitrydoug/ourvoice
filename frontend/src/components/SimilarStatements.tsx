@@ -1,10 +1,11 @@
-import { FC, useCallback, useMemo, useState } from "react";
+import { FC, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Box, CircularProgress, Stack, Typography } from "@mui/material";
 import { useReadContract } from "wagmi";
 
 import { useForum, FORUM_ABI } from "../state/Forum";
 import { useSearch } from "@/hooks/useSearch";
 import useBlockSync from "@/hooks/useBlockSync";
+import useIsMobile from "@/hooks/useIsMobile";
 import useLocalStorageSet from "@/hooks/useLocalStorageSet";
 import SortTabs, { SortMode } from "./SortTabs";
 import StatementCard from "./StatementCard";
@@ -169,6 +170,57 @@ const SimilarStatements: FC<SimilarStatementsProps> = ({
   const isSimilarLoading = isSearchLoading || result.isLoading;
   const noSimilarResults = result.isError && !result.isLoading;
 
+  // Paginate the rendered list the same way the home feed does: keep only
+  // PAGE_SIZE cards mounted and reveal more as the sentinel scrolls into view.
+  // Similarity searches can return up to VITE_SEARCH_RESULTS_LIMIT (100) hits,
+  // and mounting them all at once is the main render-time jank.
+  const isMobile = useIsMobile();
+  const PAGE_SIZE = isMobile ? 10 : 20;
+  const [displayCount, setDisplayCount] = useState(PAGE_SIZE);
+
+  // Reset paging whenever the result set changes (new query or sort order).
+  useEffect(() => {
+    setDisplayCount(PAGE_SIZE);
+  }, [query, sortTab, PAGE_SIZE]);
+
+  const displayedStatements = similarStatements.slice(0, displayCount);
+  const hasMore = displayCount < similarStatements.length;
+
+  const handleLoadMore = useCallback(() => {
+    setDisplayCount((prev) => prev + PAGE_SIZE);
+  }, [PAGE_SIZE]);
+
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    // The app scrolls inside a Container (overflow-y: auto), not the viewport,
+    // so observe against the nearest scrollable ancestor.
+    let root: Element | null = null;
+    let el: Element | null = sentinel.parentElement;
+    while (el) {
+      const { overflowY } = getComputedStyle(el);
+      if (overflowY === "auto" || overflowY === "scroll") {
+        root = el;
+        break;
+      }
+      el = el.parentElement;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore) {
+          handleLoadMore();
+        }
+      },
+      { threshold: 0.1, root },
+    );
+    observer.observe(sentinel);
+
+    return () => observer.disconnect();
+  }, [hasMore, handleLoadMore]);
+
   const header = (
     <>
       <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
@@ -217,7 +269,7 @@ const SimilarStatements: FC<SimilarStatementsProps> = ({
           </Stack>
         ) : similarStatements.length > 0 ? (
           <Stack spacing={1}>
-            {similarStatements.map((stmt) => (
+            {displayedStatements.map((stmt) => (
               <StatementCard
                 key={`similar-${Number(stmt.id)}`}
                 statement={stmt}
@@ -230,6 +282,14 @@ const SimilarStatements: FC<SimilarStatementsProps> = ({
                 }
               />
             ))}
+            {hasMore && (
+              <Box
+                ref={sentinelRef}
+                sx={{ display: "flex", justifyContent: "center", py: 2 }}
+              >
+                <CircularProgress size={20} />
+              </Box>
+            )}
           </Stack>
         ) : (
           <Typography

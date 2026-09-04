@@ -140,11 +140,7 @@ const SupportChart: FC<SupportChartProps> = ({ statementId }) => {
             fill="url(#supportGradient)"
             dot={false}
             activeDot={renderActiveDot}
-            // Recharts replays a ~1.5s entry animation every time the `data`
-            // reference changes (each polling-window refetch), repainting the
-            // SVG every frame and janking the page. The support chart doesn't
-            // need it — redraw once, cheaply.
-            isAnimationActive={false}
+            isAnimationActive={true}
           />
         </AreaChart>
       </ResponsiveContainer>
