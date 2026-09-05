@@ -16,7 +16,7 @@ import { useTheme } from "@mui/material/styles";
 import CheckIcon from "@mui/icons-material/Check";
 import EditIcon from "@mui/icons-material/Edit";
 import IndeterminateCheckBoxIcon from "@mui/icons-material/IndeterminateCheckBox";
-import { useUserVotes } from "../state/UserVotes";
+import { useUserVerification } from "../state/UserVotes";
 import { useCreditAllocation } from "@/hooks/useCreditAllocation";
 import { useUserRegistration } from "@/hooks/useUserRegistration";
 import { toAlpha2 } from "../countryCodeMap";
@@ -154,7 +154,7 @@ const UserProfile: FC = () => {
   const { address, isLoading } = useWalletAuth();
   const navigate = useNavigate();
   const theme = useTheme();
-  const { isUserVerified } = useUserVotes();
+  const { isUserVerified } = useUserVerification();
   const { isRegistered, nationality } = useUserRegistration();
   const allocation = useCreditAllocation();
 
@@ -175,22 +175,22 @@ const UserProfile: FC = () => {
   // Use the MUI theme palette so colors stay in sync with SupportAllocationBar
   const segments: DonutSegment[] = allocation
     ? [
-        {
-          value: allocation.allocated,
-          color: theme.palette.primary.main,
-          label: "Allocated",
-        },
-        {
-          value: allocation.staged,
-          color: theme.palette.warning.main,
-          label: "Staged",
-        },
-        {
-          value: allocation.unallocated,
-          color: theme.palette.success.main,
-          label: "Unallocated",
-        },
-      ]
+      {
+        value: allocation.allocated,
+        color: theme.palette.primary.main,
+        label: "Allocated",
+      },
+      {
+        value: allocation.staged,
+        color: theme.palette.warning.main,
+        label: "Staged",
+      },
+      {
+        value: allocation.unallocated,
+        color: theme.palette.success.main,
+        label: "Unallocated",
+      },
+    ]
     : [];
 
   const { isLoading: isLoadingReconnect, showSkeleton } =

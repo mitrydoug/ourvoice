@@ -1,4 +1,4 @@
-import { FC } from "react";
+import { FC, memo, useCallback, useMemo } from "react";
 import {
   Box,
   ButtonBase,
@@ -18,7 +18,11 @@ import { useNavigate } from "react-router-dom";
 import { useForumNavigate } from "../hooks/useForumNavigate";
 import { useWalletAuth } from "@/wallet";
 
-import { SupportAdjustmentType, useUserVotes } from "../state/UserVotes";
+import {
+  SupportAdjustmentType,
+  useStatementSupport,
+  useUserVerification,
+} from "../state/UserVotes";
 import StatementCardShell from "./StatementCardShell";
 import SupportVoteControls from "./SupportVoteControls";
 import { useReadContract } from "wagmi";
@@ -175,7 +179,7 @@ type StatementCardProps = {
   showLabels?: boolean;
 };
 
-export const StatementCard: FC<StatementCardProps> = ({
+const StatementCardComponent: FC<StatementCardProps> = ({
   statement,
   isBookmarked,
   onToggleBookmark,
@@ -184,22 +188,21 @@ export const StatementCard: FC<StatementCardProps> = ({
 }) => {
   const navigate = useForumNavigate();
   const rawNavigate = useNavigate();
-  const handleCardClick = () => {
+  const handleCardClick = useCallback(() => {
     void navigate(`/statement/${statement.id}`);
-  };
+  }, [navigate, statement.id]);
+  const { isUserVerified, isVerifiedLoading } = useUserVerification();
   const {
-    isUserVerified,
-    isVerifiedLoading,
-    dispatch,
-    getEffectiveSupport,
+    supportParts: statementSupportParts,
+    hasAdjustment: statementHasAdjustment,
     getOnChainSupport,
-    hasAdjustment,
-  } = useUserVotes();
+    dispatch,
+  } = useStatementSupport(Number(statement.id));
   const { address, connect, isLoading: isWalletLoading } = useWalletAuth();
   const { forumContractAddress } = useForum();
   const { toCredits, toParts } = useCreditConversion();
 
-  const { blockNumber } = useBlockSync(() => {});
+  const { blockNumber } = useBlockSync(() => { });
 
   const { data: historicalData } = useReadContract({
     address: forumContractAddress,
@@ -238,36 +241,42 @@ export const StatementCard: FC<StatementCardProps> = ({
       ? lastWeekRank - currentRank
       : null;
 
-  const userSupportParts = isUserVerified
-    ? getEffectiveSupport(Number(statement.id))
-    : 0;
+  const userSupportParts = isUserVerified ? statementSupportParts : 0;
   const userSupport = toCredits(userSupportParts);
-  const hasUncommittedSupport = isUserVerified
-    ? hasAdjustment(Number(statement.id))
-    : false;
+  const hasUncommittedSupport = isUserVerified ? statementHasAdjustment : false;
 
-  const handleSupportChange = (newCreditSupport: number) => {
-    if (!isUserVerified) return;
-    const onChainParts = getOnChainSupport(Number(statement.id));
-    const onChainCredits = toCredits(onChainParts);
-    const adjustment =
-      newCreditSupport === 0
-        ? {
+  const handleSupportChange = useCallback(
+    (newCreditSupport: number) => {
+      if (!isUserVerified) return;
+      const onChainParts = getOnChainSupport(Number(statement.id));
+      const onChainCredits = toCredits(onChainParts);
+      const adjustment =
+        newCreditSupport === 0
+          ? {
             value: 0,
             adjustmentType: SupportAdjustmentType.SetTo,
           }
-        : {
+          : {
             value: toParts(newCreditSupport - onChainCredits),
             adjustmentType: SupportAdjustmentType.Delta,
           };
-    dispatch({
-      type: "STAGE_USER_SUPPORT",
-      payload: {
-        statementId: statement.id,
-        adjustment,
-      },
-    });
-  };
+      dispatch({
+        type: "STAGE_USER_SUPPORT",
+        payload: {
+          statementId: statement.id,
+          adjustment,
+        },
+      });
+    },
+    [
+      isUserVerified,
+      getOnChainSupport,
+      toCredits,
+      toParts,
+      dispatch,
+      statement.id,
+    ],
+  );
 
   const peakRank =
     statement.peakRank >= 0n ? Number(statement.peakRank) + 1 : null;
@@ -275,9 +284,9 @@ export const StatementCard: FC<StatementCardProps> = ({
   const rankingProgress =
     rankingThreshold !== undefined
       ? rankingProgressPercent(
-          Number(statement.support),
-          Number(rankingThreshold),
-        )
+        Number(statement.support),
+        Number(rankingThreshold),
+      )
       : null;
 
   const globalSupport = toCredits(Number(statement.support));
@@ -288,248 +297,284 @@ export const StatementCard: FC<StatementCardProps> = ({
     rankChange > 0 &&
     rankChange / lastWeekRank >= 0.25;
 
-  const rankChangeIndicator =
-    rankChange !== null && rankChange !== 0 ? (
-      <Tooltip
-        title={`Recently moved ${rankChange > 0 ? "up" : "down"} ${Math.abs(rankChange)} ${Math.abs(rankChange) === 1 ? "rank" : "ranks"}`}
-        arrow
-      >
-        <Typography
-          variant="body2"
-          sx={{
-            fontWeight: 600,
-            fontSize: "0.95rem",
-            color: isHotRankChange
-              ? "warning.main"
-              : rankChange > 0
-                ? "success.main"
-                : "error.main",
-            lineHeight: 1,
-          }}
+  const card = useMemo(() => {
+    const rankChangeIndicator =
+      rankChange !== null && rankChange !== 0 ? (
+        <Tooltip
+          title={`Recently moved ${rankChange > 0 ? "up" : "down"} ${Math.abs(rankChange)} ${Math.abs(rankChange) === 1 ? "rank" : "ranks"}`}
+          arrow
         >
-          {isHotRankChange ? (
-            <Box
-              component="span"
-              sx={{
-                fontSize: "1.15em",
-                lineHeight: 1,
-                verticalAlign: "-0.04em",
-              }}
-            >
-              🔥
-            </Box>
-          ) : rankChange > 0 ? (
-            "▲"
-          ) : (
-            "▼"
-          )}
-          {Math.abs(rankChange)}
-        </Typography>
-      </Tooltip>
-    ) : null;
-
-  const leftSlot =
-    currentRank !== null ? (
-      <Stack alignItems="center" spacing={0.75}>
-        <Stack alignItems="center" spacing={0.2}>
-          {/* Rank number */}
           <Typography
-            variant="h4"
+            variant="body2"
             sx={{
-              fontWeight: 700,
-              fontSize: rankFontSize(currentRank),
-              lineHeight: 1.1,
-              color: rankColor(currentRank) ?? "text.primary",
+              fontWeight: 600,
+              fontSize: "0.95rem",
+              color: isHotRankChange
+                ? "warning.main"
+                : rankChange > 0
+                  ? "success.main"
+                  : "error.main",
+              lineHeight: 1,
             }}
           >
-            {currentRank}
+            {isHotRankChange ? (
+              <Box
+                component="span"
+                sx={{
+                  fontSize: "1.15em",
+                  lineHeight: 1,
+                  verticalAlign: "-0.04em",
+                }}
+              >
+                🔥
+              </Box>
+            ) : rankChange > 0 ? (
+              "▲"
+            ) : (
+              "▼"
+            )}
+            {Math.abs(rankChange)}
           </Typography>
-          {showLabels && (
-            <Typography component="span" sx={statLabelSx}>
-              Rank
+        </Tooltip>
+      ) : null;
+
+    const leftSlot =
+      currentRank !== null ? (
+        <Stack alignItems="center" spacing={0.75}>
+          <Stack alignItems="center" spacing={0.2}>
+            {/* Rank number */}
+            <Typography
+              variant="h4"
+              sx={{
+                fontWeight: 700,
+                fontSize: rankFontSize(currentRank),
+                lineHeight: 1.1,
+                color: rankColor(currentRank) ?? "text.primary",
+              }}
+            >
+              {currentRank}
+            </Typography>
+            {showLabels && (
+              <Typography component="span" sx={statLabelSx}>
+                Rank
+              </Typography>
+            )}
+          </Stack>
+          {rankChangeIndicator}
+        </Stack>
+      ) : (
+        <Stack alignItems="center" spacing={0.75}>
+          {rankingProgress !== null ? (
+            <RankingProgressRing value={rankingProgress} />
+          ) : (
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 600,
+                fontSize: "0.6rem",
+                lineHeight: 1.2,
+                color: "text.disabled",
+                textAlign: "center",
+                textTransform: "uppercase",
+                letterSpacing: "0.04em",
+              }}
+            >
+              Not
+              <br />
+              Ranked
             </Typography>
           )}
         </Stack>
-        {rankChangeIndicator}
-      </Stack>
-    ) : (
-      <Stack alignItems="center" spacing={0.75}>
-        {rankingProgress !== null ? (
-          <RankingProgressRing value={rankingProgress} />
-        ) : (
-          <Typography
-            variant="caption"
-            sx={{
-              fontWeight: 600,
-              fontSize: "0.6rem",
-              lineHeight: 1.2,
-              color: "text.disabled",
-              textAlign: "center",
-              textTransform: "uppercase",
-              letterSpacing: "0.04em",
-            }}
-          >
-            Not
-            <br />
-            Ranked
-          </Typography>
-        )}
-      </Stack>
-    );
+      );
 
-  const statsSlot = (
-    <Stack direction="row" alignItems="flex-start" spacing={2} sx={{ mt: 0.1 }}>
-      <Stack alignItems="center" spacing={0.25}>
-        <Box sx={{ height: 24, display: "flex", alignItems: "center" }}>
-          <Tooltip title={`${globalSupport} total support`} arrow>
-            <Typography
-              variant="body2"
-              sx={{
-                fontWeight: 600,
-                color: "text.secondary",
-                fontVariantNumeric: "tabular-nums",
-              }}
-            >
-              {formatSupport(globalSupport)}
-            </Typography>
-          </Tooltip>
-        </Box>
-        {showLabels && (
-          <Typography component="span" sx={statLabelSx}>
-            Support
-          </Typography>
-        )}
-      </Stack>
-
-      {peakRank !== null && (
+    const statsSlot = (
+      <Stack
+        direction="row"
+        alignItems="flex-start"
+        spacing={2}
+        sx={{ mt: 0.1 }}
+      >
         <Stack alignItems="center" spacing={0.25}>
           <Box sx={{ height: 24, display: "flex", alignItems: "center" }}>
-            <Tooltip title={`Peak rank: #${peakRank}`} arrow>
-              <Stack direction="row" alignItems="center" spacing={0.25}>
-                <Typography
-                  sx={{ fontSize: peakRankIconSize(peakRank), lineHeight: 1 }}
-                >
-                  {peakRankIcon(peakRank)}
-                </Typography>
-                {peakRank > 3 && (
-                  <Typography variant="body2" color="text.secondary">
-                    {peakRank}
-                  </Typography>
-                )}
-              </Stack>
+            <Tooltip title={`${globalSupport} total support`} arrow>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: 600,
+                  color: "text.secondary",
+                  fontVariantNumeric: "tabular-nums",
+                }}
+              >
+                {formatSupport(globalSupport)}
+              </Typography>
             </Tooltip>
           </Box>
           {showLabels && (
             <Typography component="span" sx={statLabelSx}>
-              Peak
+              Support
             </Typography>
           )}
         </Stack>
-      )}
-    </Stack>
-  );
 
-  const bookmarkSlot = onToggleBookmark ? (
-    <IconButton
-      size="small"
-      onClick={() => onToggleBookmark(Number(statement.id))}
-      aria-label={isBookmarked ? "Unstar" : "Star"}
-      sx={{ p: 0.25 }}
-    >
-      {isBookmarked ? (
-        <StarIcon sx={{ fontSize: 22, color: "#E8C84A" }} />
-      ) : (
-        <StarBorderIcon sx={{ fontSize: 22, color: "text.secondary" }} />
-      )}
-    </IconButton>
-  ) : undefined;
+        {peakRank !== null && (
+          <Stack alignItems="center" spacing={0.25}>
+            <Box sx={{ height: 24, display: "flex", alignItems: "center" }}>
+              <Tooltip title={`Peak rank: #${peakRank}`} arrow>
+                <Stack direction="row" alignItems="center" spacing={0.25}>
+                  <Typography
+                    sx={{ fontSize: peakRankIconSize(peakRank), lineHeight: 1 }}
+                  >
+                    {peakRankIcon(peakRank)}
+                  </Typography>
+                  {peakRank > 3 && (
+                    <Typography variant="body2" color="text.secondary">
+                      {peakRank}
+                    </Typography>
+                  )}
+                </Stack>
+              </Tooltip>
+            </Box>
+            {showLabels && (
+              <Typography component="span" sx={statLabelSx}>
+                Peak
+              </Typography>
+            )}
+          </Stack>
+        )}
+      </Stack>
+    );
 
-  const voteControls = isUserVerified ? (
-    <SupportVoteControls
-      userSupport={userSupport}
-      uncommittedSupport={hasUncommittedSupport}
-      onUserVoteChange={handleSupportChange}
-      onClear={() => handleSupportChange(0)}
-      creditsTooltip={`You have ${supportCreditsToAllocatedCredits(userSupport)} credits providing ${userSupport} support`}
-      showCreditsLabel={showLabels}
-    />
-  ) : isVerifiedLoading || isWalletLoading ? undefined : (
-    // Gentle affordance so a signed-out / unverified visitor can see that
-    // statements are interactive, and how to unlock supporting them.
-    <Tooltip
-      title={
-        address
-          ? "Verify you're human to support this statement"
-          : "Join in to support this statement"
-      }
-      arrow
-    >
-      <Chip
-        icon={<AddRoundedIcon sx={{ fontSize: 16 }} />}
-        label={address ? "Verify to support" : "Join in to support"}
+    const bookmarkSlot = onToggleBookmark ? (
+      <IconButton
         size="small"
-        variant="outlined"
-        clickable
-        onClick={(e) => {
-          e.stopPropagation();
-          if (address) {
-            void rawNavigate("/verify");
-          } else {
-            connect();
-          }
-        }}
+        onClick={() => onToggleBookmark(Number(statement.id))}
+        aria-label={isBookmarked ? "Unstar" : "Star"}
+        sx={{ p: 0.25 }}
+      >
+        {isBookmarked ? (
+          <StarIcon sx={{ fontSize: 22, color: "#E8C84A" }} />
+        ) : (
+          <StarBorderIcon sx={{ fontSize: 22, color: "text.secondary" }} />
+        )}
+      </IconButton>
+    ) : undefined;
+
+    const voteControls = isUserVerified ? (
+      <SupportVoteControls
+        userSupport={userSupport}
+        uncommittedSupport={hasUncommittedSupport}
+        onUserVoteChange={handleSupportChange}
+        onClear={() => handleSupportChange(0)}
+        creditsTooltip={`You have ${supportCreditsToAllocatedCredits(userSupport)} credits providing ${userSupport} support`}
+        showCreditsLabel={showLabels}
+      />
+    ) : isVerifiedLoading || isWalletLoading ? undefined : (
+      // Gentle affordance so a signed-out / unverified visitor can see that
+      // statements are interactive, and how to unlock supporting them.
+      <Tooltip
+        title={
+          address
+            ? "Verify you're human to support this statement"
+            : "Join in to support this statement"
+        }
+        arrow
+      >
+        <Chip
+          icon={<AddRoundedIcon sx={{ fontSize: 16 }} />}
+          label={address ? "Verify to support" : "Join in to support"}
+          size="small"
+          variant="outlined"
+          clickable
+          onClick={(e) => {
+            e.stopPropagation();
+            if (address) {
+              void rawNavigate("/verify");
+            } else {
+              connect();
+            }
+          }}
+          sx={{
+            color: "text.secondary",
+            borderColor: "divider",
+            fontWeight: 600,
+            "& .MuiChip-icon": { color: "text.secondary" },
+            "&:hover": {
+              color: "primary.main",
+              borderColor: "primary.main",
+              bgcolor: "action.hover",
+              "& .MuiChip-icon": { color: "primary.main" },
+            },
+          }}
+        />
+      </Tooltip>
+    );
+    const rightTopSlot = onSwitchSupport ? (
+      <Tooltip title="Switch support to this statement" arrow>
+        <ButtonBase
+          aria-label="Switch support to this statement"
+          onClick={() => onSwitchSupport(Number(statement.id))}
+          sx={{
+            width: 32,
+            height: 24,
+            color: "text.secondary",
+            "&:hover": { color: "text.primary" },
+          }}
+        >
+          <MergeIcon sx={{ fontSize: 22, transform: "rotate(90deg)" }} />
+        </ButtonBase>
+      </Tooltip>
+    ) : undefined;
+
+    return (
+      <StatementCardShell
+        leftSlot={leftSlot}
+        text={statement.text}
+        statsSlot={statsSlot}
+        voteControls={voteControls}
+        topRightSlot={bookmarkSlot}
+        rightTopSlot={rightTopSlot}
+        onClick={handleCardClick}
         sx={{
-          color: "text.secondary",
-          borderColor: "divider",
-          fontWeight: 600,
-          "& .MuiChip-icon": { color: "text.secondary" },
-          "&:hover": {
-            color: "primary.main",
-            borderColor: "primary.main",
-            bgcolor: "action.hover",
-            "& .MuiChip-icon": { color: "primary.main" },
-          },
+          cursor: "pointer",
+          transition: "box-shadow 0.2s ease, border-color 0.2s ease",
+          "&:hover": { boxShadow: 3 },
+          borderLeft: hasUncommittedSupport
+            ? "3.5px solid"
+            : "3.5px solid transparent",
+          borderColor: hasUncommittedSupport ? "#ffb74d" : "transparent",
         }}
       />
-    </Tooltip>
-  );
-  const rightTopSlot = onSwitchSupport ? (
-    <Tooltip title="Switch support to this statement" arrow>
-      <ButtonBase
-        aria-label="Switch support to this statement"
-        onClick={() => onSwitchSupport(Number(statement.id))}
-        sx={{
-          width: 32,
-          height: 24,
-          color: "text.secondary",
-          "&:hover": { color: "text.primary" },
-        }}
-      >
-        <MergeIcon sx={{ fontSize: 22, transform: "rotate(90deg)" }} />
-      </ButtonBase>
-    </Tooltip>
-  ) : undefined;
+    );
+  }, [
+    rankChange,
+    isHotRankChange,
+    currentRank,
+    showLabels,
+    rankingProgress,
+    globalSupport,
+    peakRank,
+    onToggleBookmark,
+    statement,
+    isBookmarked,
+    isUserVerified,
+    userSupport,
+    hasUncommittedSupport,
+    handleSupportChange,
+    isVerifiedLoading,
+    isWalletLoading,
+    address,
+    rawNavigate,
+    connect,
+    onSwitchSupport,
+    handleCardClick,
+  ]);
 
-  return (
-    <StatementCardShell
-      leftSlot={leftSlot}
-      text={statement.text}
-      statsSlot={statsSlot}
-      voteControls={voteControls}
-      topRightSlot={bookmarkSlot}
-      rightTopSlot={rightTopSlot}
-      onClick={handleCardClick}
-      sx={{
-        cursor: "pointer",
-        transition: "box-shadow 0.2s ease, border-color 0.2s ease",
-        "&:hover": { boxShadow: 3 },
-        borderLeft: hasUncommittedSupport
-          ? "3.5px solid"
-          : "3.5px solid transparent",
-        borderColor: hasUncommittedSupport ? "#ffb74d" : "transparent",
-      }}
-    />
-  );
+  return card;
 };
+
+// Memoized so that a parent list re-rendering (e.g. on a staged vote toggle)
+// does not re-render every card. Cards whose props are unchanged bail out; the
+// toggled card still updates via its useStatementSupport subscription.
+export const StatementCard = memo(StatementCardComponent);
 
 export default StatementCard;

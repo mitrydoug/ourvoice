@@ -16,7 +16,7 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import { useForumNavigate } from "@/hooks/useForumNavigate";
-import { useUserVotes } from "../state/UserVotes";
+import { useUserVerification } from "../state/UserVotes";
 import { useUserRegistration } from "@/hooks/useUserRegistration";
 import { toAlpha2 } from "../countryCodeMap";
 import useUserIdentity from "@/hooks/useUserIdentity";
@@ -27,7 +27,7 @@ const UserProfilePanel: React.FC = () => {
   const { disconnect } = useWalletAuth();
   const navigate = useForumNavigate();
   const { displayName, avatar } = useUserIdentity();
-  const { isVerifiedLoading } = useUserVotes();
+  const { isVerifiedLoading } = useUserVerification();
   const {
     nationality,
     isRegistered,

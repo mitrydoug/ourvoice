@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { usePublicClient } from "wagmi";
 import { useForum, FORUM_ABI } from "../state/Forum";
@@ -69,14 +69,14 @@ export function useHistoricalSupport(statementId: bigint): {
   const publicClient = usePublicClient();
   const { forumContractAddress } = useForum();
   const { toCredits } = useCreditConversion();
-  const { blockNumber: currentBlockNumber } = useBlockSync(() => {});
+  const { blockNumber: currentBlockNumber } = useBlockSync(() => { });
 
   // Bucket the block number to the polling window so the cache key is stable
   // for the duration of one interval — navigating away and back hits the cache.
   const cacheBlockNumber =
     currentBlockNumber !== undefined
       ? (currentBlockNumber / BLOCKS_PER_POLLING_INTERVAL) *
-        BLOCKS_PER_POLLING_INTERVAL
+      BLOCKS_PER_POLLING_INTERVAL
       : undefined;
 
   // Build the list of target timestamps for the past PERIODS_BACK periods.
@@ -215,5 +215,18 @@ export function useHistoricalSupport(statementId: bigint): {
     enabled: !!publicClient && !!cacheBlockNumber && !!forumContractAddress,
   });
 
-  return { data: dataPoints, isLoading };
+  // Keep a referentially stable `data` array across polling-window refetches.
+  // React Query hands back a new array whenever the cache key advances (each
+  // polling window), which would make Recharts replay its ~1.5s entry
+  // animation even when nothing changed. Only swap the reference when the
+  // actually-plotted values (labels + support) differ.
+  const signature = dataPoints.map((p) => `${p.label}:${p.support}`).join("|");
+  const stableDataRef = useRef<SupportDataPoint[]>(dataPoints);
+  const signatureRef = useRef<string>(signature);
+  if (signature !== signatureRef.current) {
+    signatureRef.current = signature;
+    stableDataRef.current = dataPoints;
+  }
+
+  return { data: stableDataRef.current, isLoading };
 }

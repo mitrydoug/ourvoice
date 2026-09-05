@@ -140,6 +140,7 @@ const SupportChart: FC<SupportChartProps> = ({ statementId }) => {
             fill="url(#supportGradient)"
             dot={false}
             activeDot={renderActiveDot}
+            isAnimationActive={true}
           />
         </AreaChart>
       </ResponsiveContainer>

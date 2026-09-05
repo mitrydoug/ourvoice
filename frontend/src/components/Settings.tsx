@@ -19,6 +19,8 @@ import SettingsBrightnessIcon from "@mui/icons-material/SettingsBrightness";
 import CloudOutlinedIcon from "@mui/icons-material/CloudOutlined";
 import StorageOutlinedIcon from "@mui/icons-material/StorageOutlined";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import TextFieldsOutlinedIcon from "@mui/icons-material/TextFieldsOutlined";
+import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import { useColorScheme } from "@mui/material/styles";
 import { useWalletAuth } from "@/wallet";
 
@@ -28,6 +30,10 @@ import {
   useSearchEngineMode,
   type SearchEngineMode,
 } from "@/hooks/useSearchEngineMode";
+import {
+  useLocalSearchEngine,
+  type LocalSearchEngineKind,
+} from "@/hooks/useLocalSearchEngine";
 import { shortenAddress } from "../util";
 import { targetChain } from "../wagmiConfig";
 import {
@@ -63,6 +69,7 @@ const Settings: FC = () => {
   });
   const { mode, setMode, systemMode } = useColorScheme();
   const [searchEngine, setSearchEngine] = useSearchEngineMode();
+  const [localEngine, setLocalEngine] = useLocalSearchEngine();
 
   useEffect(() => {
     setNicknameInput(nickname);
@@ -109,6 +116,9 @@ const Settings: FC = () => {
   const selectedThemeMode: ThemeMode = mode ?? "system";
   const hasStoredRpcUrl = storedRpcUrl.length > 0;
   const canSaveRpcUrl = rpcValidation.kind === "valid";
+  // The local-engine choice only matters when browser-local search is in use:
+  // either it's the only option, or the user has selected it explicitly.
+  const localSearchActive = !hasBackendSearch || searchEngine === "local";
 
   const handleSaveNickname = () => {
     setNickname(trimmedNickname);
@@ -127,6 +137,13 @@ const Settings: FC = () => {
     value: SearchEngineMode | null,
   ) => {
     if (value) setSearchEngine(value);
+  };
+
+  const handleLocalEngineChange = (
+    _event: unknown,
+    value: LocalSearchEngineKind | null,
+  ) => {
+    if (value) setLocalEngine(value);
   };
 
   // A validated custom RPC is persisted and applied via a reload, because the
@@ -309,6 +326,64 @@ const Settings: FC = () => {
                 {searchEngine === "local"
                   ? "Search runs in your browser. Covers ranked and recently-active statements only."
                   : "Search runs against the hosted search service. Covers all statements."}
+              </Typography>
+            </Box>
+          ) : null}
+
+          {localSearchActive ? (
+            <Box>
+              <Stack
+                direction="row"
+                spacing={0.5}
+                alignItems="center"
+                sx={{ mb: 1 }}
+              >
+                <Typography variant="subtitle1" fontWeight={700}>
+                  Browser-local engine
+                </Typography>
+                <Tooltip
+                  title={
+                    "Lexical search matches words and prefixes — fast, tiny, and always on. " +
+                    "Semantic search also understands meaning, so it finds related statements that don't share the same words. " +
+                    "It downloads a ~30 MB language model the first time you use it (cached afterwards) and indexing takes a few seconds longer."
+                  }
+                  enterTouchDelay={0}
+                  leaveTouchDelay={6000}
+                >
+                  <InfoOutlinedIcon
+                    sx={{
+                      fontSize: 16,
+                      color: "text.secondary",
+                      cursor: "help",
+                    }}
+                  />
+                </Tooltip>
+              </Stack>
+              <ToggleButtonGroup
+                value={localEngine}
+                exclusive
+                onChange={handleLocalEngineChange}
+                aria-label="Browser-local search engine"
+                size="small"
+                fullWidth
+              >
+                <ToggleButton value="lexical" aria-label="Lexical search">
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <TextFieldsOutlinedIcon fontSize="small" />
+                    <span>Lexical</span>
+                  </Stack>
+                </ToggleButton>
+                <ToggleButton value="hybrid" aria-label="Semantic search">
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <AutoAwesomeOutlinedIcon fontSize="small" />
+                    <span>Semantic</span>
+                  </Stack>
+                </ToggleButton>
+              </ToggleButtonGroup>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                {localEngine === "hybrid"
+                  ? "Semantic search understands meaning. Downloads a ~30 MB model on first use; embeddings are cached in your browser for reuse."
+                  : "Lexical search matches words and prefixes. No download required."}
               </Typography>
             </Box>
           ) : null}

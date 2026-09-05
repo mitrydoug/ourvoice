@@ -14,7 +14,7 @@ import FavoriteIcon from "@mui/icons-material/Favorite";
 import ArticleIcon from "@mui/icons-material/Article";
 import StarIcon from "@mui/icons-material/Star";
 import HelpIcon from "@mui/icons-material/Help";
-import { useUserVotes } from "../state/UserVotes";
+import { useUserVerification } from "../state/UserVotes";
 import ChooseForumModal, { FORUMS } from "./ChooseForumModal";
 import ForumIcon from "./ForumIcon";
 import AppVersionLabel from "./AppVersionLabel";
@@ -54,7 +54,7 @@ const SideNav: FC = () => {
   const location = useLocation();
   const navigate = useForumNavigate();
   const rawNavigate = useNavigate();
-  const { isUserVerified, isVerifiedLoading } = useUserVotes();
+  const { isUserVerified, isVerifiedLoading } = useUserVerification();
   const { name: forumName, setForum } = useForum();
   const forumPath = useForumPath();
   const logoSrc = useLogoSrc();

@@ -8,6 +8,7 @@ import {
   useLayoutEffect,
 } from "react";
 import { useReadContract, useReadContracts } from "wagmi";
+import { Box, LinearProgress, Stack, Typography } from "@mui/material";
 import { useForum, FORUM_ABI } from "../state/Forum";
 import { Statement } from "../types";
 import StatementList from "./StatementList";
@@ -17,6 +18,7 @@ import useIsMobile from "@/hooks/useIsMobile";
 import useBlockSync from "@/hooks/useBlockSync";
 import useLocalStorageSet from "@/hooks/useLocalStorageSet";
 import { useSearchQuery } from "@/state/Search";
+import { useLocalSearch } from "@/state/LocalSearch";
 
 /** Minimum time (ms) the loading spinner is shown when paginating. */
 const PAGINATION_MIN_LOADING_MS = 2000;
@@ -72,6 +74,31 @@ const Home: FC = () => {
 // Sub-view: search results (active query)
 // ---------------------------------------------------------------------------
 
+// Shown while the semantic index builds on first use. A single neutral label
+// covers the whole process; the bar is indeterminate during the (fast) model
+// download and the brief chain-read step, then switches to determinate while
+// statements are embedded so users see real forward motion.
+const SemanticIndexingPanel: FC = () => {
+  const { indexProgress } = useLocalSearch();
+  const indexing = indexProgress?.phase === "index";
+  const value = indexing ? Math.round(indexProgress.fraction * 100) : undefined;
+
+  return (
+    <Box sx={{ py: 4, px: 2, maxWidth: 420, mx: "auto", textAlign: "center" }}>
+      <Stack spacing={1.5}>
+        <Typography variant="body2" color="text.secondary">
+          Preparing your search…
+        </Typography>
+        <LinearProgress
+          variant={indexing ? "determinate" : "indeterminate"}
+          value={value}
+          sx={{ borderRadius: 1, height: 6 }}
+        />
+      </Stack>
+    </Box>
+  );
+};
+
 interface SearchResultsProps {
   searchQuery: string;
   sortTab: SortMode;
@@ -92,6 +119,11 @@ const SearchResults: FC<SearchResultsProps> = ({
     forumContractAddress,
     { updateUrl: true },
   );
+
+  // While the semantic index is still building on first use, show progress
+  // instead of an empty "Searching…" state — the query will run once it's ready.
+  const { engineKind, isIndexing, isReady } = useLocalSearch();
+  const semanticBuilding = engineKind === "hybrid" && isIndexing && !isReady;
 
   // Fetch the current statement count so we can discard stale/invalid IDs
   // that would cause getStatementsById to revert.
@@ -175,12 +207,16 @@ const SearchResults: FC<SearchResultsProps> = ({
   // Treat contract errors (e.g. all IDs invalid) as "no results".
   const noResults = result.isError && !result.isLoading;
 
+  if (semanticBuilding) {
+    return <SemanticIndexingPanel />;
+  }
+
   return (
     <StatementList
       statements={noResults ? [] : statements}
       hasMore={false}
       isLoading={noResults ? false : isLoading}
-      onLoadMore={() => {}}
+      onLoadMore={() => { }}
       loadingLabel="Searching…"
       isBookmarked={isBookmarked}
       onToggleBookmark={onToggleBookmark}
