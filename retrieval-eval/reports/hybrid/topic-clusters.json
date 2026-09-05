@@ -1,0 +1,28 @@
+{
+  "generatedAt": "2026-08-09T21:31:11.997Z",
+  "dataset": "/Users/mitchell/software/Symvolia/frontend/scripts/eval/datasets/topic-clusters",
+  "model": "Xenova/all-MiniLM-L6-v2",
+  "mode": "hybrid",
+  "hybridWeights": {
+    "text": 0.5,
+    "vector": 0.5
+  },
+  "similarity": 0.3,
+  "retrievalLimit": 100,
+  "baseline": {
+    "precisionAt5": 0.5230000000000004,
+    "ndcgAt10": 0.4913420368139324,
+    "recallAt10": 0.28118565644881477,
+    "mrr": 0.7662640681003584,
+    "map": 0.36224866800984146,
+    "queries": 200
+  },
+  "orama": {
+    "precisionAt5": 0.841,
+    "ndcgAt10": 0.809632588859443,
+    "recallAt10": 0.4924580682475417,
+    "mrr": 0.9486309523809524,
+    "map": 0.7294727758092614,
+    "queries": 200
+  }
+}

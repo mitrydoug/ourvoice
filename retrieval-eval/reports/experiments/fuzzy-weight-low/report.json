@@ -1,0 +1,229 @@
+{
+  "generatedAt": "2026-08-09T20:27:09.220Z",
+  "dataset": "/Users/mitchell/software/Symvolia/frontend/scripts/eval/datasets/topic-clusters",
+  "experiment": {
+    "id": "fuzzy-weight-low",
+    "label": "Fuzzy down-weighted",
+    "hypothesis": "Keep typo tolerance but let fuzzy matches contribute less than exact ones."
+  },
+  "params": {
+    "similarityOptions": {
+      "combineWith": "OR",
+      "fuzzy": 0.1,
+      "weights": {
+        "fuzzy": 0.2,
+        "prefix": 0.375
+      }
+    },
+    "extraStopWords": [],
+    "minTermLength": 2
+  },
+  "overall": {
+    "precisionAt5": 0.5210000000000004,
+    "ndcgAt10": 0.4888837419393263,
+    "recallAt10": 0.2800115673799888,
+    "mrr": 0.7610490513919207,
+    "map": 0.36117865705234126,
+    "queries": 200
+  },
+  "perTopic": {
+    "healthcare": {
+      "precisionAt5": 0.6200000000000001,
+      "ndcgAt10": 0.5910148804784874,
+      "recallAt10": 0.3052631578947369,
+      "mrr": 0.7368055555555555,
+      "map": 0.4794552890699582,
+      "queries": 20
+    },
+    "guns": {
+      "precisionAt5": 0.53,
+      "ndcgAt10": 0.4785832286938347,
+      "recallAt10": 0.22368421052631585,
+      "mrr": 0.7816666666666665,
+      "map": 0.28315836280854334,
+      "queries": 20
+    },
+    "iran": {
+      "precisionAt5": 0.6100000000000001,
+      "ndcgAt10": 0.5680465984888586,
+      "recallAt10": 0.2631578947368421,
+      "mrr": 0.925,
+      "map": 0.5219701000362562,
+      "queries": 20
+    },
+    "space": {
+      "precisionAt5": 0.58,
+      "ndcgAt10": 0.5135033259685012,
+      "recallAt10": 0.2473684210526316,
+      "mrr": 0.769298245614035,
+      "map": 0.3460361084728395,
+      "queries": 20
+    },
+    "budget": {
+      "precisionAt5": 0.5000000000000001,
+      "ndcgAt10": 0.5202654341561941,
+      "recallAt10": 0.2578947368421053,
+      "mrr": 0.8041666666666666,
+      "map": 0.3082292283808174,
+      "queries": 20
+    },
+    "processed-foods": {
+      "precisionAt5": 0.5857142857142857,
+      "ndcgAt10": 0.563197191039928,
+      "recallAt10": 0.3901098901098901,
+      "mrr": 0.8928571428571429,
+      "map": 0.44353760341699694,
+      "queries": 14
+    },
+    "climate": {
+      "precisionAt5": 0.3142857142857144,
+      "ndcgAt10": 0.2503392228341473,
+      "recallAt10": 0.1703296703296704,
+      "mrr": 0.4934523809523809,
+      "map": 0.2091064526449578,
+      "queries": 14
+    },
+    "ukraine": {
+      "precisionAt5": 0.3857142857142857,
+      "ndcgAt10": 0.3581526405083763,
+      "recallAt10": 0.25824175824175827,
+      "mrr": 0.6188775510204082,
+      "map": 0.2739404486138561,
+      "queries": 14
+    },
+    "church-state": {
+      "precisionAt5": 0.3285714285714286,
+      "ndcgAt10": 0.36267083056824917,
+      "recallAt10": 0.2692307692307693,
+      "mrr": 0.5922619047619049,
+      "map": 0.23712687785195982,
+      "queries": 14
+    },
+    "political-reform": {
+      "precisionAt5": 0.32000000000000006,
+      "ndcgAt10": 0.27339864265645314,
+      "recallAt10": 0.1476190476190476,
+      "mrr": 0.6327060931899642,
+      "map": 0.14813748856563383,
+      "queries": 15
+    },
+    "us-canada": {
+      "precisionAt5": 0.49999999999999994,
+      "ndcgAt10": 0.4118605830010297,
+      "recallAt10": 0.25274725274725274,
+      "mrr": 0.7868707482993197,
+      "map": 0.2764220486535912,
+      "queries": 14
+    },
+    "world-cup": {
+      "precisionAt5": 0.8666666666666666,
+      "ndcgAt10": 0.8666941893984474,
+      "recallAt10": 0.6047619047619047,
+      "mrr": 1,
+      "map": 0.7383212846717547,
+      "queries": 15
+    }
+  },
+  "worst": [
+    {
+      "queryId": 28,
+      "topic": "guns",
+      "text": "Concealed carry rules should balance personal defense with public safety in crowded spaces.",
+      "precision": 0,
+      "ndcg": 0,
+      "recall": 0,
+      "rr": 0.06666666666666667,
+      "ap": 0.04527546937519236
+    },
+    {
+      "queryId": 77,
+      "topic": "space",
+      "text": "The United States should invest in reusable rockets, deep-space communication, and resilient satellite systems.",
+      "precision": 0,
+      "ndcg": 0,
+      "recall": 0,
+      "rr": 0.05263157894736842,
+      "ap": 0.17707790855330288
+    },
+    {
+      "queryId": 96,
+      "topic": "budget",
+      "text": "Entitlement reform should protect current retirees and avoid pushing seniors into poverty.",
+      "precision": 0,
+      "ndcg": 0,
+      "recall": 0,
+      "rr": 0,
+      "ap": 0
+    },
+    {
+      "queryId": 138,
+      "topic": "ukraine",
+      "text": "Ukraine's civilian infrastructure needs air defense, repair funding, and international protection.",
+      "precision": 0,
+      "ndcg": 0,
+      "recall": 0,
+      "rr": 0.047619047619047616,
+      "ap": 0.10491693246335156
+    },
+    {
+      "queryId": 163,
+      "topic": "political-reform",
+      "text": "Term limits for committee leadership could reduce entrenched power without discarding experienced lawmakers.",
+      "precision": 0,
+      "ndcg": 0,
+      "recall": 0,
+      "rr": 0.08333333333333333,
+      "ap": 0.024603174603174603
+    },
+    {
+      "queryId": 168,
+      "topic": "political-reform",
+      "text": "Public financing of campaigns could help ordinary citizens compete with wealthy donors.",
+      "precision": 0,
+      "ndcg": 0,
+      "recall": 0,
+      "rr": 0.03225806451612903,
+      "ap": 0.002304147465437788
+    },
+    {
+      "queryId": 169,
+      "topic": "political-reform",
+      "text": "The Electoral College should be reformed or replaced so every presidential vote carries equal weight.",
+      "precision": 0,
+      "ndcg": 0,
+      "recall": 0,
+      "rr": 0,
+      "ap": 0
+    },
+    {
+      "queryId": 175,
+      "topic": "us-canada",
+      "text": "The Great Lakes require joint protection because their water, ecosystems, and economies are shared.",
+      "precision": 0,
+      "ndcg": 0,
+      "recall": 0,
+      "rr": 0.04,
+      "ap": 0.003076923076923077
+    },
+    {
+      "queryId": 10,
+      "topic": "healthcare",
+      "text": "Healthcare should be treated as public infrastructure, like roads, schools, and clean water.",
+      "precision": 0,
+      "ndcg": 0.06625422345438903,
+      "recall": 0.05263157894736842,
+      "rr": 0.1111111111111111,
+      "ap": 0.29330313533205116
+    },
+    {
+      "queryId": 161,
+      "topic": "political-reform",
+      "text": "Congress should ban stock trading by members and strengthen conflict-of-interest rules.",
+      "precision": 0,
+      "ndcg": 0.06943122193677727,
+      "recall": 0.07142857142857142,
+      "rr": 0.125,
+      "ap": 0.01913265306122449
+    }
+  ]
+}

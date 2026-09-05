@@ -1,0 +1,225 @@
+{
+  "generatedAt": "2026-08-09T20:27:09.220Z",
+  "dataset": "/Users/mitchell/software/Symvolia/frontend/scripts/eval/datasets/topic-clusters",
+  "experiment": {
+    "id": "and-combine",
+    "label": "combineWith AND (no fuzzy)",
+    "hypothesis": "Require every query term. Expect much higher precision but lower recall — a reference extreme."
+  },
+  "params": {
+    "similarityOptions": {
+      "combineWith": "AND",
+      "fuzzy": 0
+    },
+    "extraStopWords": [],
+    "minTermLength": 2
+  },
+  "overall": {
+    "precisionAt5": 0,
+    "ndcgAt10": 0,
+    "recallAt10": 0,
+    "mrr": 0,
+    "map": 0,
+    "queries": 200
+  },
+  "perTopic": {
+    "healthcare": {
+      "precisionAt5": 0,
+      "ndcgAt10": 0,
+      "recallAt10": 0,
+      "mrr": 0,
+      "map": 0,
+      "queries": 20
+    },
+    "guns": {
+      "precisionAt5": 0,
+      "ndcgAt10": 0,
+      "recallAt10": 0,
+      "mrr": 0,
+      "map": 0,
+      "queries": 20
+    },
+    "iran": {
+      "precisionAt5": 0,
+      "ndcgAt10": 0,
+      "recallAt10": 0,
+      "mrr": 0,
+      "map": 0,
+      "queries": 20
+    },
+    "space": {
+      "precisionAt5": 0,
+      "ndcgAt10": 0,
+      "recallAt10": 0,
+      "mrr": 0,
+      "map": 0,
+      "queries": 20
+    },
+    "budget": {
+      "precisionAt5": 0,
+      "ndcgAt10": 0,
+      "recallAt10": 0,
+      "mrr": 0,
+      "map": 0,
+      "queries": 20
+    },
+    "processed-foods": {
+      "precisionAt5": 0,
+      "ndcgAt10": 0,
+      "recallAt10": 0,
+      "mrr": 0,
+      "map": 0,
+      "queries": 14
+    },
+    "climate": {
+      "precisionAt5": 0,
+      "ndcgAt10": 0,
+      "recallAt10": 0,
+      "mrr": 0,
+      "map": 0,
+      "queries": 14
+    },
+    "ukraine": {
+      "precisionAt5": 0,
+      "ndcgAt10": 0,
+      "recallAt10": 0,
+      "mrr": 0,
+      "map": 0,
+      "queries": 14
+    },
+    "church-state": {
+      "precisionAt5": 0,
+      "ndcgAt10": 0,
+      "recallAt10": 0,
+      "mrr": 0,
+      "map": 0,
+      "queries": 14
+    },
+    "political-reform": {
+      "precisionAt5": 0,
+      "ndcgAt10": 0,
+      "recallAt10": 0,
+      "mrr": 0,
+      "map": 0,
+      "queries": 15
+    },
+    "us-canada": {
+      "precisionAt5": 0,
+      "ndcgAt10": 0,
+      "recallAt10": 0,
+      "mrr": 0,
+      "map": 0,
+      "queries": 14
+    },
+    "world-cup": {
+      "precisionAt5": 0,
+      "ndcgAt10": 0,
+      "recallAt10": 0,
+      "mrr": 0,
+      "map": 0,
+      "queries": 15
+    }
+  },
+  "worst": [
+    {
+      "queryId": 0,
+      "topic": "healthcare",
+      "text": "Everyone should have access to affordable universal healthcare regardless of income or job status.",
+      "precision": 0,
+      "ndcg": 0,
+      "recall": 0,
+      "rr": 0,
+      "ap": 0
+    },
+    {
+      "queryId": 1,
+      "topic": "healthcare",
+      "text": "Universal healthcare would give families more freedom to change jobs without losing medical coverage.",
+      "precision": 0,
+      "ndcg": 0,
+      "recall": 0,
+      "rr": 0,
+      "ap": 0
+    },
+    {
+      "queryId": 2,
+      "topic": "healthcare",
+      "text": "A national healthcare system should guarantee basic care while still allowing private supplemental insurance.",
+      "precision": 0,
+      "ndcg": 0,
+      "recall": 0,
+      "rr": 0,
+      "ap": 0
+    },
+    {
+      "queryId": 3,
+      "topic": "healthcare",
+      "text": "Universal healthcare is a moral obligation in a country with the resources to treat preventable illness.",
+      "precision": 0,
+      "ndcg": 0,
+      "recall": 0,
+      "rr": 0,
+      "ap": 0
+    },
+    {
+      "queryId": 4,
+      "topic": "healthcare",
+      "text": "The United States should expand Medicare eligibility until every resident can access public health coverage.",
+      "precision": 0,
+      "ndcg": 0,
+      "recall": 0,
+      "rr": 0,
+      "ap": 0
+    },
+    {
+      "queryId": 5,
+      "topic": "healthcare",
+      "text": "Healthcare reform should focus on lower drug prices, fewer billing surprises, and universal basic coverage.",
+      "precision": 0,
+      "ndcg": 0,
+      "recall": 0,
+      "rr": 0,
+      "ap": 0
+    },
+    {
+      "queryId": 6,
+      "topic": "healthcare",
+      "text": "No person should delay cancer treatment, insulin, or emergency care because they cannot afford a bill.",
+      "precision": 0,
+      "ndcg": 0,
+      "recall": 0,
+      "rr": 0,
+      "ap": 0
+    },
+    {
+      "queryId": 7,
+      "topic": "healthcare",
+      "text": "Universal healthcare would strengthen small businesses by removing health insurance from payroll negotiations.",
+      "precision": 0,
+      "ndcg": 0,
+      "recall": 0,
+      "rr": 0,
+      "ap": 0
+    },
+    {
+      "queryId": 8,
+      "topic": "healthcare",
+      "text": "A public option is a practical path toward universal healthcare without eliminating every private plan.",
+      "precision": 0,
+      "ndcg": 0,
+      "recall": 0,
+      "rr": 0,
+      "ap": 0
+    },
+    {
+      "queryId": 9,
+      "topic": "healthcare",
+      "text": "Preventive care should be free at the point of service because early treatment saves lives and money.",
+      "precision": 0,
+      "ndcg": 0,
+      "recall": 0,
+      "rr": 0,
+      "ap": 0
+    }
+  ]
+}

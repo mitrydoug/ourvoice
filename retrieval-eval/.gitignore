@@ -1,6 +1,9 @@
 # Downloaded / generated evaluation assets — never committed.
 # All of these are (re)produced by `npm run eval:*` and can be large.
 
+# Local install for this standalone package.
+node_modules/
+
 # Model weights (Transformers.js / Xenova ONNX), computed embeddings, and
 # downloaded dataset archives + their extractions.
 datasets/.cache/
