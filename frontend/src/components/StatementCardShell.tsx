@@ -27,6 +27,12 @@ interface StatementCardShellProps {
   topRightSlot?: ReactNode;
   /** Optional action shown just before the vote controls (e.g. switch support). */
   rightTopSlot?: ReactNode;
+  /**
+   * Optional element rendered absolutely in the card's top-left corner (e.g. a
+   * hover-revealed tab growing out of the left border). Rendered inside the
+   * positioned card so it can anchor to the corner.
+   */
+  cornerTab?: ReactNode;
   /** Optional click handler for the entire card. */
   onClick?: () => void;
   sx?: SxProps<Theme>;
@@ -46,13 +52,15 @@ const StatementCardShell: FC<StatementCardShellProps> = ({
   voteControls,
   topRightSlot,
   rightTopSlot,
+  cornerTab,
   onClick,
   sx,
 }) => {
   const hasVoteGroup = Boolean(voteControls || rightTopSlot);
 
   return (
-    <Card sx={{ p: 1.5, ...sx }} onClick={onClick}>
+    <Card sx={{ p: 1.5, position: "relative", ...sx }} onClick={onClick}>
+      {cornerTab}
       <Stack direction="row" spacing={1.5}>
         {/* Left column: rank or placeholder */}
         <Stack

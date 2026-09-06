@@ -13,6 +13,7 @@ import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import MergeIcon from "@mui/icons-material/Merge";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import { useNavigate } from "react-router-dom";
 
 import { useForumNavigate } from "../hooks/useForumNavigate";
@@ -278,6 +279,23 @@ const StatementCardComponent: FC<StatementCardProps> = ({
     ],
   );
 
+  // Remove any staged adjustment for this statement, reverting it to its
+  // on-chain support. Staging a zero Delta collapses to "no change", which the
+  // reducer treats as clearing the adjustment.
+  const handleClearStaged = useCallback(() => {
+    if (!isUserVerified) return;
+    dispatch({
+      type: "STAGE_USER_SUPPORT",
+      payload: {
+        statementId: statement.id,
+        adjustment: {
+          value: 0,
+          adjustmentType: SupportAdjustmentType.Delta,
+        },
+      },
+    });
+  }, [isUserVerified, dispatch, statement.id]);
+
   const peakRank =
     statement.peakRank >= 0n ? Number(statement.peakRank) + 1 : null;
 
@@ -534,10 +552,44 @@ const StatementCardComponent: FC<StatementCardProps> = ({
         topRightSlot={bookmarkSlot}
         rightTopSlot={rightTopSlot}
         onClick={handleCardClick}
+        cornerTab={
+          hasUncommittedSupport ? (
+            <Tooltip title="Clear staged support" arrow placement="right">
+              <ButtonBase
+                className="staged-clear-tab"
+                aria-label="Clear staged support"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleClearStaged();
+                }}
+                sx={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  height: 20,
+                  width: 0,
+                  overflow: "hidden",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#fff",
+                  bgcolor: "#ffb74d",
+                  borderBottomRightRadius: 6,
+                  opacity: 0,
+                  transition: "width 0.15s ease, opacity 0.15s ease",
+                  zIndex: 2,
+                }}
+              >
+                <CloseRoundedIcon sx={{ fontSize: 12 }} />
+              </ButtonBase>
+            </Tooltip>
+          ) : undefined
+        }
         sx={{
           cursor: "pointer",
           transition: "box-shadow 0.2s ease, border-color 0.2s ease",
           "&:hover": { boxShadow: 3 },
+          "&:hover .staged-clear-tab": { width: 20, opacity: 1 },
           borderLeft: hasUncommittedSupport
             ? "3.5px solid"
             : "3.5px solid transparent",
@@ -560,6 +612,7 @@ const StatementCardComponent: FC<StatementCardProps> = ({
     userSupport,
     hasUncommittedSupport,
     handleSupportChange,
+    handleClearStaged,
     isVerifiedLoading,
     isWalletLoading,
     address,
