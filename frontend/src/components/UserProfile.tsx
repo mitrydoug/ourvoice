@@ -16,7 +16,7 @@ import { useTheme } from "@mui/material/styles";
 import CheckIcon from "@mui/icons-material/Check";
 import EditIcon from "@mui/icons-material/Edit";
 import IndeterminateCheckBoxIcon from "@mui/icons-material/IndeterminateCheckBox";
-import { useUserVotes } from "../state/UserVotes";
+import { useUserVerification } from "../state/UserVotes";
 import { useCreditAllocation } from "@/hooks/useCreditAllocation";
 import { useUserRegistration } from "@/hooks/useUserRegistration";
 import { toAlpha2 } from "../countryCodeMap";
@@ -154,7 +154,7 @@ const UserProfile: FC = () => {
   const { address, isLoading } = useWalletAuth();
   const navigate = useNavigate();
   const theme = useTheme();
-  const { isUserVerified } = useUserVotes();
+  const { isUserVerified } = useUserVerification();
   const { isRegistered, nationality } = useUserRegistration();
   const allocation = useCreditAllocation();
 

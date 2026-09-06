@@ -28,7 +28,23 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
       buffer: "buffer",
+      // Transformers.js `main` points at raw ./src (Node ESM that does
+      // `import fs from 'fs'` then `Object.keys(fs)` — which throws in the
+      // browser, and whose onnxruntime dep needs CJS interop). Point at the
+      // maintainers' prebuilt browser bundle instead: it inlines onnxruntime as
+      // ESM and shims fs/path, fixing both the `registerBackend` and
+      // `Object.keys(undefined)` crashes. Used in dev and prod.
+      "@xenova/transformers": path.resolve(
+        __dirname,
+        "node_modules/@xenova/transformers/dist/transformers.js",
+      ),
     },
+  },
+  optimizeDeps: {
+    // The aliased dist bundle is already a self-contained ESM file, so there's
+    // nothing for esbuild to pre-bundle — exclude it to avoid re-processing the
+    // multi-MB webpack output. It's only loaded inside the hybrid search worker.
+    exclude: ["@xenova/transformers"],
   },
   server: {
     allowedHosts: [".my.preview.run"],

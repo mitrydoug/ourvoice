@@ -16,6 +16,7 @@ import useLogoSrc from "@/hooks/useLogoSrc";
 import { theme } from "../theme";
 import { ProfileDrawer } from "./UserProfileMenu";
 import { useSearchQuery } from "@/state/Search";
+import { useLocalSearch } from "@/state/LocalSearch";
 import SearchField from "./SearchField";
 import { useForumNavigate, useForumPath } from "../hooks/useForumNavigate";
 import { useWalletAuth } from "@/wallet";
@@ -85,6 +86,12 @@ export default function MenuAppBar() {
     setQuery: setSearchQuery,
     clearQuery: clearSearch,
   } = useSearchQuery();
+
+  // Show a spinner in the search field while the semantic index builds on first
+  // use (model download + embedding), so the ~15 s cold start isn't a silent wait.
+  const { engineKind, isIndexing, isReady } = useLocalSearch();
+  const searchBusy = engineKind === "hybrid" && isIndexing && !isReady;
+  const searchBusyTitle = "Preparing semantic search — one-time setup";
 
   const {
     isUserVerified,
@@ -197,6 +204,8 @@ export default function MenuAppBar() {
                 value={localQuery}
                 onChange={setSearchQuery}
                 onClear={clearSearch}
+                busy={searchBusy}
+                busyTitle={searchBusyTitle}
               />
 
               {!address && (
@@ -225,6 +234,8 @@ export default function MenuAppBar() {
                 value={localQuery}
                 onChange={setSearchQuery}
                 onClear={clearSearch}
+                busy={searchBusy}
+                busyTitle={searchBusyTitle}
                 fullWidth
               />
             </Stack>

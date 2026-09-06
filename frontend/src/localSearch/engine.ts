@@ -24,6 +24,29 @@ const SIMILARITY_OPTIONS: SearchOptions = {
   fuzzy: 0.1,
 };
 
+/** A single search hit paired with its relevance score. */
+export interface ScoredResult {
+  id: number;
+  score: number;
+}
+
+/**
+ * Optional tuning knobs. Every field is optional and defaults to the
+ * production values below, so `new MiniSearchEngine()` behaves identically to
+ * before. This exists so the search evaluation harness can trial alternate
+ * parameters through the exact same engine the app uses.
+ */
+export interface EngineConfig {
+  /** Similarity-mode search options, shallow-merged over the defaults. */
+  similarityOptions?: SearchOptions;
+  /** Keyword-mode search options, shallow-merged over the defaults. */
+  keywordOptions?: SearchOptions;
+  /** Full replacement for the indexed/searched stop-word set. */
+  stopWords?: ReadonlySet<string>;
+  /** Minimum term length to keep when tokenizing (default 2). */
+  minTermLength?: number;
+}
+
 export interface LocalSearchEngine {
   /** Replace the entire index with exactly these documents. */
   replaceAll(documents: IndexedStatement[]): void;
@@ -37,26 +60,44 @@ export interface LocalSearchEngine {
   size(): number;
 }
 
-function createMiniSearch(): MiniSearch<IndexedStatement> {
+function createMiniSearch(
+  stopWords: ReadonlySet<string>,
+  minTermLength: number,
+): MiniSearch<IndexedStatement> {
   return new MiniSearch<IndexedStatement>({
     idField: "id",
     fields: ["text"],
     storeFields: [],
     processTerm: (term) => {
       const lower = term.toLowerCase();
-      if (lower.length < 2) return null;
-      if (STOP_WORDS.has(lower)) return null;
+      if (lower.length < minTermLength) return null;
+      if (stopWords.has(lower)) return null;
       return lower;
     },
   });
 }
 
 export class MiniSearchEngine implements LocalSearchEngine {
-  private index = createMiniSearch();
+  private readonly similarityOptions: SearchOptions;
+  private readonly keywordOptions: SearchOptions;
+  private readonly stopWords: ReadonlySet<string>;
+  private readonly minTermLength: number;
+  private index: MiniSearch<IndexedStatement>;
   private ids = new Set<number>();
 
+  constructor(config: EngineConfig = {}) {
+    this.similarityOptions = {
+      ...SIMILARITY_OPTIONS,
+      ...config.similarityOptions,
+    };
+    this.keywordOptions = { ...KEYWORD_OPTIONS, ...config.keywordOptions };
+    this.stopWords = config.stopWords ?? STOP_WORDS;
+    this.minTermLength = config.minTermLength ?? 2;
+    this.index = createMiniSearch(this.stopWords, this.minTermLength);
+  }
+
   replaceAll(documents: IndexedStatement[]): void {
-    this.index = createMiniSearch();
+    this.index = createMiniSearch(this.stopWords, this.minTermLength);
     this.ids = new Set();
     this.upsert(documents);
   }
@@ -82,12 +123,20 @@ export class MiniSearchEngine implements LocalSearchEngine {
   }
 
   search(query: string, mode: SearchMode, limit: number): number[] {
+    return this.searchScored(query, mode, limit).map((result) => result.id);
+  }
+
+  /**
+   * Like `search`, but also returns each hit's raw relevance score. Useful for
+   * diagnostics/evaluation; `search` is the thin id-only wrapper the app uses.
+   */
+  searchScored(query: string, mode: SearchMode, limit: number): ScoredResult[] {
     const options =
-      mode === "similarity" ? SIMILARITY_OPTIONS : KEYWORD_OPTIONS;
+      mode === "similarity" ? this.similarityOptions : this.keywordOptions;
     return this.index
       .search(query, options)
       .slice(0, limit)
-      .map((result) => Number(result.id));
+      .map((result) => ({ id: Number(result.id), score: result.score }));
   }
 
   size(): number {

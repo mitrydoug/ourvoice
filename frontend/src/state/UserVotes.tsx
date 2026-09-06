@@ -4,8 +4,10 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useReducer,
   useRef,
+  useSyncExternalStore,
 } from "react";
 import {
   usePublicClient,
@@ -817,6 +819,39 @@ export const UserVoteContext = createContext<
   UserNotVerifiedContextValue | UserSupportContextValue | undefined
 >(undefined);
 
+// Verification flags are split into their own context so that components which
+// only care about verification status (SideNav, UserProfilePanel, BottomNav,
+// UserProfile) do not re-render on every staged vote toggle. These flags only
+// change when the wallet/membership state resolves, not when staged support
+// changes, so this context value stays referentially stable across toggles.
+type UserVerificationContextValue = {
+  isUserVerified: boolean;
+  isVerifiedLoading: boolean;
+};
+
+export const UserVerificationContext = createContext<
+  UserVerificationContextValue | undefined
+>(undefined);
+
+// Per-statement support is exposed through an external store so that each
+// StatementCard can subscribe (via useSyncExternalStore) to ONLY its own
+// statement's effective support. A staged vote toggle then re-renders just the
+// affected card instead of every card that calls useUserVotes. The store value
+// itself is referentially stable across toggles (its functions read the latest
+// state through a ref), so consuming it never triggers a re-render.
+type SupportStoreValue = {
+  subscribe: (onStoreChange: () => void) => () => void;
+  getEffectiveSupportParts: (statementId: number) => number;
+  getHasAdjustment: (statementId: number) => boolean;
+  getOnChainSupport: (statementId: number) => number;
+  switchSupport: (sourceStatementId: number, targetStatementId: number) => void;
+  dispatch: React.Dispatch<UserSupportAction>;
+};
+
+export const SupportStoreContext = createContext<SupportStoreValue | undefined>(
+  undefined,
+);
+
 export const UserVoteProvider: FC<{
   children: React.ReactNode;
 }> = ({ children }) => {
@@ -848,6 +883,79 @@ export const UserVoteProvider: FC<{
   const dispatch = useCallback(
     (action: UserSupportAction) => rawDispatch({ ...action, creditMultiplier }),
     [creditMultiplier],
+  );
+
+  // ── External store bridge for selective per-statement subscriptions ─────────
+  // Keep the latest reducer state in a ref so the store getters (which are
+  // referentially stable) can always read fresh values, and notify subscribers
+  // after each commit. StatementCards subscribe to only their own statement id.
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  const supportListenersRef = useRef(new Set<() => void>());
+
+  const subscribeSupport = useCallback((onStoreChange: () => void) => {
+    supportListenersRef.current.add(onStoreChange);
+    return () => {
+      supportListenersRef.current.delete(onStoreChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    supportListenersRef.current.forEach((listener) => listener());
+  }, [state]);
+
+  const getEffectiveSupportParts = useCallback(
+    (statementId: number): number => {
+      const current = stateRef.current;
+      const onChainSupport =
+        current.onChain?.statementSupport.get(statementId) || 0;
+      const adjustment = current.staged?.supportAdjustments.get(statementId);
+      return adjustment
+        ? getAdjustedSupport(onChainSupport, adjustment)
+        : onChainSupport;
+    },
+    [],
+  );
+
+  const getHasAdjustmentSnapshot = useCallback(
+    (statementId: number): boolean =>
+      stateRef.current.staged?.supportAdjustments.has(statementId) || false,
+    [],
+  );
+
+  const getOnChainSupportSnapshot = useCallback(
+    (statementId: number): number =>
+      stateRef.current.onChain?.statementSupport.get(statementId) || 0,
+    [],
+  );
+
+  const switchSupport = useCallback(
+    (sourceStatementId: number, targetStatementId: number) => {
+      dispatch({
+        type: "SWITCH_USER_SUPPORT",
+        payload: { sourceStatementId, targetStatementId },
+      });
+    },
+    [dispatch],
+  );
+
+  const supportStoreValue = useMemo<SupportStoreValue>(
+    () => ({
+      subscribe: subscribeSupport,
+      getEffectiveSupportParts,
+      getHasAdjustment: getHasAdjustmentSnapshot,
+      getOnChainSupport: getOnChainSupportSnapshot,
+      switchSupport,
+      dispatch,
+    }),
+    [
+      subscribeSupport,
+      getEffectiveSupportParts,
+      getHasAdjustmentSnapshot,
+      getOnChainSupportSnapshot,
+      switchSupport,
+      dispatch,
+    ],
   );
 
   // Track authored statements in localStorage for "My Statements"
@@ -1263,16 +1371,6 @@ export const UserVoteProvider: FC<{
     [state.staged],
   );
 
-  const switchSupport = useCallback(
-    (sourceStatementId: number, targetStatementId: number) => {
-      dispatch({
-        type: "SWITCH_USER_SUPPORT",
-        payload: { sourceStatementId, targetStatementId },
-      });
-    },
-    [dispatch],
-  );
-
   // Stage a new statement for batched submission
   const stageStatement = useCallback(
     (text: string, initialSupport = 0) => {
@@ -1331,61 +1429,95 @@ export const UserVoteProvider: FC<{
   const isVerifiedStillLoading =
     isWalletLoading || (!!participantAddress && isVerifiedLoading);
 
-  if (isUserVerified) {
-    return (
-      <UserVoteContext.Provider
-        value={{
-          isUserVerified: isUserVerified,
-          isVerifiedLoading: !state.onChain,
-          state,
-          dispatch,
-          commitChanges,
-          previewCommitChanges,
-          resetChanges,
-          resetCommitStatus,
-          getEffectiveSupport,
-          getOnChainSupport,
-          hasAdjustment,
-          switchSupport,
-          stageStatement,
-          unstageStatement,
-          updateStagedInitialSupport,
-          keepOutdatedChanges,
-          abandonOutdatedChanges,
-          setPendingDraftCost,
-        }}
-      >
-        {children}
-      </UserVoteContext.Provider>
-    );
-  } else {
-    return (
-      <UserVoteContext.Provider
-        value={{
-          isUserVerified: !!isUserVerified,
-          isVerifiedLoading: isVerifiedStillLoading,
-          state: undefined,
-          dispatch: undefined,
-          commitChanges: undefined,
-          previewCommitChanges: undefined,
-          resetChanges: undefined,
-          resetCommitStatus: undefined,
-          getEffectiveSupport: undefined,
-          getOnChainSupport: undefined,
-          hasAdjustment: undefined,
-          switchSupport: undefined,
-          stageStatement: undefined,
-          unstageStatement: undefined,
-          updateStagedInitialSupport: undefined,
-          keepOutdatedChanges: undefined,
-          abandonOutdatedChanges: undefined,
-          setPendingDraftCost,
-        }}
-      >
-        {children}
-      </UserVoteContext.Provider>
-    );
-  }
+  // Stable verification value: only changes when membership/wallet state
+  // resolves, NOT on staged vote toggles (state.onChain is untouched by
+  // staging), so flag-only consumers avoid re-rendering on every toggle.
+  const verificationValue = useMemo<UserVerificationContextValue>(
+    () => ({
+      isUserVerified: !!isUserVerified,
+      isVerifiedLoading: isUserVerified
+        ? !state.onChain
+        : isVerifiedStillLoading,
+    }),
+    [isUserVerified, state.onChain, isVerifiedStillLoading],
+  );
+
+  const verifiedValue = useMemo<UserSupportContextValue>(
+    () => ({
+      isUserVerified: true,
+      isVerifiedLoading: !state.onChain,
+      state,
+      dispatch,
+      commitChanges,
+      previewCommitChanges,
+      resetChanges,
+      resetCommitStatus,
+      getEffectiveSupport,
+      getOnChainSupport,
+      hasAdjustment,
+      switchSupport,
+      stageStatement,
+      unstageStatement,
+      updateStagedInitialSupport,
+      keepOutdatedChanges,
+      abandonOutdatedChanges,
+      setPendingDraftCost,
+    }),
+    [
+      state,
+      dispatch,
+      commitChanges,
+      previewCommitChanges,
+      resetChanges,
+      resetCommitStatus,
+      getEffectiveSupport,
+      getOnChainSupport,
+      hasAdjustment,
+      switchSupport,
+      stageStatement,
+      unstageStatement,
+      updateStagedInitialSupport,
+      keepOutdatedChanges,
+      abandonOutdatedChanges,
+      setPendingDraftCost,
+    ],
+  );
+
+  const unverifiedValue = useMemo<UserNotVerifiedContextValue>(
+    () => ({
+      isUserVerified: false,
+      isVerifiedLoading: isVerifiedStillLoading,
+      state: undefined,
+      dispatch: undefined,
+      commitChanges: undefined,
+      previewCommitChanges: undefined,
+      resetChanges: undefined,
+      resetCommitStatus: undefined,
+      getEffectiveSupport: undefined,
+      getOnChainSupport: undefined,
+      hasAdjustment: undefined,
+      switchSupport: undefined,
+      stageStatement: undefined,
+      unstageStatement: undefined,
+      updateStagedInitialSupport: undefined,
+      keepOutdatedChanges: undefined,
+      abandonOutdatedChanges: undefined,
+      setPendingDraftCost,
+    }),
+    [isVerifiedStillLoading, setPendingDraftCost],
+  );
+
+  const voteValue = isUserVerified ? verifiedValue : unverifiedValue;
+
+  return (
+    <UserVerificationContext.Provider value={verificationValue}>
+      <SupportStoreContext.Provider value={supportStoreValue}>
+        <UserVoteContext.Provider value={voteValue}>
+          {children}
+        </UserVoteContext.Provider>
+      </SupportStoreContext.Provider>
+    </UserVerificationContext.Provider>
+  );
 };
 
 export const useUserVotes = () => {
@@ -1396,4 +1528,53 @@ export const useUserVotes = () => {
     );
   }
   return state;
+};
+
+// Lightweight hook for components that only need verification status. Backed by
+// a dedicated context whose value is stable across staged vote toggles, so
+// these consumers don't re-render on every toggle.
+export const useUserVerification = () => {
+  const value = useContext(UserVerificationContext);
+  if (!value) {
+    throw new Error(
+      "useUserVerification must be used within a UserVoteProvider",
+    );
+  }
+  return value;
+};
+
+// Selective per-statement subscription. A card re-renders only when ITS own
+// effective support or adjustment flag changes, not on every staged toggle.
+// Also returns the stable dispatch / getOnChainSupport so consuming cards can
+// avoid subscribing to the volatile UserVoteContext entirely.
+export const useStatementSupport = (statementId: number) => {
+  const store = useContext(SupportStoreContext);
+  if (!store) {
+    throw new Error(
+      "useStatementSupport must be used within a UserVoteProvider",
+    );
+  }
+  const supportParts = useSyncExternalStore(store.subscribe, () =>
+    store.getEffectiveSupportParts(statementId),
+  );
+  const hasAdjustment = useSyncExternalStore(store.subscribe, () =>
+    store.getHasAdjustment(statementId),
+  );
+  return {
+    supportParts,
+    hasAdjustment,
+    getOnChainSupport: store.getOnChainSupport,
+    dispatch: store.dispatch,
+  };
+};
+
+// Access the stable support-store actions/getters without subscribing to any
+// per-statement value. The returned value is referentially stable across staged
+// vote toggles, so consumers don't re-render on toggles.
+export const useSupportStore = () => {
+  const store = useContext(SupportStoreContext);
+  if (!store) {
+    throw new Error("useSupportStore must be used within a UserVoteProvider");
+  }
+  return store;
 };
