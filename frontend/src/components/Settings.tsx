@@ -6,25 +6,29 @@ import {
   Button,
   Divider,
   FormHelperText,
+  IconButton,
   Stack,
+  Switch,
   TextField,
   ToggleButton,
   ToggleButtonGroup,
   Tooltip,
   Typography,
 } from "@mui/material";
-import DarkModeIcon from "@mui/icons-material/DarkMode";
-import LightModeIcon from "@mui/icons-material/LightMode";
-import SettingsBrightnessIcon from "@mui/icons-material/SettingsBrightness";
+import CheckIcon from "@mui/icons-material/Check";
+import EditIcon from "@mui/icons-material/Edit";
+import CloseIcon from "@mui/icons-material/Close";
+import IndeterminateCheckBoxIcon from "@mui/icons-material/IndeterminateCheckBox";
 import CloudOutlinedIcon from "@mui/icons-material/CloudOutlined";
 import StorageOutlinedIcon from "@mui/icons-material/StorageOutlined";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import TextFieldsOutlinedIcon from "@mui/icons-material/TextFieldsOutlined";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
-import { useColorScheme } from "@mui/material/styles";
+import { styled, useColorScheme } from "@mui/material/styles";
 import { useWalletAuth } from "@/wallet";
 
 import useUserIdentity from "@/hooks/useUserIdentity";
+import { useUserRegistration } from "@/hooks/useUserRegistration";
 import {
   hasBackendSearch,
   useSearchEngineMode,
@@ -34,7 +38,7 @@ import {
   useLocalSearchEngine,
   type LocalSearchEngineKind,
 } from "@/hooks/useLocalSearchEngine";
-import { shortenAddress } from "../util";
+import { toAlpha2 } from "../countryCodeMap";
 import { targetChain } from "../wagmiConfig";
 import {
   RPC_URL_STORAGE_KEY,
@@ -52,10 +56,65 @@ type RpcValidation =
   | { kind: "valid" }
   | { kind: "invalid"; message: string };
 
+// A classic light/dark switch with a sun (light) and moon (dark) glyph riding
+// on the thumb, painted as inline SVGs so the icon stays centered in the knob.
+const SUN_ICON =
+  'url(\'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" height="18" width="18" viewBox="0 0 24 24"><path fill="%23f5b300" d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58c-.39-.39-1.03-.39-1.41 0-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37c-.39-.39-1.03-.39-1.41 0-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0 .39-.39.39-1.03 0-1.41l-1.06-1.06zm1.06-10.96c.39-.39.39-1.03 0-1.41-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.36c.39-.39.39-1.03 0-1.41-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06z"/></svg>\')';
+const MOON_ICON =
+  'url(\'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" height="18" width="18" viewBox="0 0 24 24"><path fill="%23fff" d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/></svg>\')';
+
+const ThemeSwitch = styled(Switch)(() => ({
+  width: 58,
+  height: 34,
+  padding: 7,
+  "& .MuiSwitch-switchBase": {
+    margin: 1,
+    padding: 0,
+    transform: "translateX(6px)",
+    "&.Mui-checked": {
+      color: "#fff",
+      transform: "translateX(22px)",
+      "& .MuiSwitch-thumb": {
+        backgroundColor: "#2c2c2c",
+      },
+      "& .MuiSwitch-thumb:before": {
+        backgroundImage: MOON_ICON,
+      },
+      "& + .MuiSwitch-track": {
+        opacity: 1,
+        backgroundColor: "#8796a5",
+      },
+    },
+  },
+  "& .MuiSwitch-thumb": {
+    backgroundColor: "#f4f4f4",
+    width: 32,
+    height: 32,
+    "&::before": {
+      content: "''",
+      position: "absolute",
+      width: "100%",
+      height: "100%",
+      left: 0,
+      top: 0,
+      backgroundRepeat: "no-repeat",
+      backgroundPosition: "center",
+      backgroundImage: SUN_ICON,
+    },
+  },
+  "& .MuiSwitch-track": {
+    opacity: 1,
+    backgroundColor: "#aab4be",
+    borderRadius: 10,
+  },
+}));
+
 const Settings: FC = () => {
   const { address } = useWalletAuth();
   const { nickname, setNickname, avatar, isVerified } = useUserIdentity();
+  const { nationality, isRegistered } = useUserRegistration();
   const [nicknameInput, setNicknameInput] = useState(nickname);
+  const [editingNickname, setEditingNickname] = useState(false);
   const [storedRpcUrl] = useState(() => {
     try {
       return localStorage.getItem(RPC_URL_STORAGE_KEY) ?? "";
@@ -113,23 +172,34 @@ const Settings: FC = () => {
 
   const trimmedNickname = nicknameInput.trim();
   const hasNicknameChange = trimmedNickname !== nickname;
+  const alpha2 = nationality ? toAlpha2(nationality) : null;
   const selectedThemeMode: ThemeMode = mode ?? "system";
+  const resolvedThemeMode =
+    selectedThemeMode === "system" ? systemMode : selectedThemeMode;
+  const isDarkTheme = resolvedThemeMode === "dark";
   const hasStoredRpcUrl = storedRpcUrl.length > 0;
   const canSaveRpcUrl = rpcValidation.kind === "valid";
   // The local-engine choice only matters when browser-local search is in use:
   // either it's the only option, or the user has selected it explicitly.
   const localSearchActive = !hasBackendSearch || searchEngine === "local";
 
+  const handleStartEdit = () => {
+    setNicknameInput(nickname);
+    setEditingNickname(true);
+  };
+
+  const handleCancelEdit = () => {
+    setNicknameInput(nickname);
+    setEditingNickname(false);
+  };
+
   const handleSaveNickname = () => {
     setNickname(trimmedNickname);
+    setEditingNickname(false);
   };
 
-  const handleClearNickname = () => {
-    setNickname("");
-  };
-
-  const handleThemeModeChange = (_event: unknown, value: ThemeMode | null) => {
-    if (value) setMode(value);
+  const handleToggleTheme = () => {
+    setMode(isDarkTheme ? "light" : "dark");
   };
 
   const handleSearchEngineChange = (
@@ -165,111 +235,142 @@ const Settings: FC = () => {
       <Box sx={{ width: "100%", maxWidth: 560, py: { xs: 2, sm: 4 } }}>
         <Stack spacing={3}>
           <Box>
-            <Typography variant="h5" fontWeight={700}>
-              Settings
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-              Preferences for this browser and wallet.
-            </Typography>
+            <Stack
+              direction="row"
+              justifyContent="space-between"
+              alignItems="flex-start"
+            >
+              <Box>
+                <Typography variant="h5" fontWeight={700}>
+                  Settings
+                </Typography>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ mt: 0.5 }}
+                >
+                  Your preferences, saved on this browser.
+                </Typography>
+              </Box>
+              <Tooltip
+                title={
+                  isDarkTheme ? "Switch to light theme" : "Switch to dark theme"
+                }
+              >
+                <ThemeSwitch
+                  checked={isDarkTheme}
+                  onChange={handleToggleTheme}
+                  slotProps={{ input: { "aria-label": "Toggle theme" } }}
+                />
+              </Tooltip>
+            </Stack>
           </Box>
 
           <Box>
             <Stack direction="row" spacing={1.5} alignItems="center">
               <Avatar
                 src={avatar ?? undefined}
-                sx={{ width: 48, height: 48 }}
+                sx={{ width: 50, height: 50 }}
               />
-              <Box sx={{ minWidth: 0 }}>
-                <Typography fontWeight={700}>
-                  {nickname || "Anonymous"}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" noWrap>
-                  {shortenAddress(address)}
-                </Typography>
+              <Box sx={{ minWidth: 0, flexGrow: 1 }}>
+                {isVerified && editingNickname ? (
+                  <Stack direction="row" spacing={0.5} alignItems="center">
+                    <TextField
+                      value={nicknameInput}
+                      onChange={(event) => setNicknameInput(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") handleSaveNickname();
+                        if (event.key === "Escape") handleCancelEdit();
+                      }}
+                      variant="standard"
+                      placeholder="Display name"
+                      autoFocus
+                      slotProps={{ htmlInput: { maxLength: 32 } }}
+                    />
+                    <Tooltip title="Save">
+                      <span>
+                        <IconButton
+                          size="small"
+                          onClick={handleSaveNickname}
+                          disabled={!hasNicknameChange}
+                        >
+                          <CheckIcon fontSize="small" />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+                    <Tooltip title="Cancel">
+                      <IconButton size="small" onClick={handleCancelEdit}>
+                        <CloseIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </Stack>
+                ) : (
+                  <Stack direction="row" spacing={0.5} alignItems="center">
+                    <Typography variant="h6" fontWeight={700} noWrap>
+                      {nickname || "Human"}
+                    </Typography>
+                    {isVerified && (
+                      <Tooltip title="Edit display name">
+                        <IconButton size="small" onClick={handleStartEdit}>
+                          <EditIcon sx={{ fontSize: 20 }} />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                  </Stack>
+                )}
+                {!isRegistered ? (
+                  <Box
+                    sx={{ display: "flex", alignItems: "center", gap: 0.75 }}
+                  >
+                    <IndeterminateCheckBoxIcon
+                      sx={{ fontSize: 20, color: "text.disabled" }}
+                    />
+                    <Typography variant="body1" color="text.secondary">
+                      Not verified
+                    </Typography>
+                  </Box>
+                ) : (
+                  <Box
+                    sx={{ display: "flex", alignItems: "center", gap: 0.75 }}
+                  >
+                    {alpha2 ? (
+                      <img
+                        src={`./flags/${alpha2}.svg`}
+                        alt={`${nationality} flag`}
+                        style={{
+                          height: "1rem",
+                          width: "auto",
+                          borderRadius: "2px",
+                        }}
+                      />
+                    ) : (
+                      <img
+                        src="./earth.png"
+                        alt="Earth"
+                        style={{
+                          height: "1.25rem",
+                          width: "auto",
+                          borderRadius: "2px",
+                        }}
+                      />
+                    )}
+                    <Typography variant="body1" color="text.secondary">
+                      Verified
+                    </Typography>
+                  </Box>
+                )}
               </Box>
             </Stack>
 
-            <Divider sx={{ my: 2 }} />
-
-            {isVerified ? (
-              <Stack spacing={1.5}>
-                <TextField
-                  label="Display name"
-                  value={nicknameInput}
-                  onChange={(event) => setNicknameInput(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") handleSaveNickname();
-                  }}
-                  size="small"
-                  fullWidth
-                  slotProps={{ htmlInput: { maxLength: 32 } }}
-                />
+            {!isVerified && (
+              <>
+                <Divider sx={{ my: 2 }} />
                 <Typography variant="body2" color="text.secondary">
-                  Your display name is stored locally in this browser and is not
-                  shared publicly.
+                  Verify your identity to choose a display name. Until then you
+                  appear as “Human”.
                 </Typography>
-                <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
-                  <Button
-                    onClick={handleSaveNickname}
-                    disabled={!hasNicknameChange}
-                    sx={{ alignSelf: { sm: "flex-start" } }}
-                  >
-                    Save display name
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    onClick={handleClearNickname}
-                    disabled={!nickname}
-                    sx={{ alignSelf: { sm: "flex-start" } }}
-                  >
-                    Clear
-                  </Button>
-                </Stack>
-              </Stack>
-            ) : (
-              <Typography variant="body2" color="text.secondary">
-                Verify your identity to choose a display name. Until then you
-                appear as “Anonymous”.
-              </Typography>
+              </>
             )}
-          </Box>
-
-          <Box>
-            <Typography variant="subtitle1" fontWeight={700} gutterBottom>
-              Theme
-            </Typography>
-            <ToggleButtonGroup
-              value={selectedThemeMode}
-              exclusive
-              onChange={handleThemeModeChange}
-              aria-label="Theme"
-              size="small"
-              fullWidth
-            >
-              <ToggleButton value="light" aria-label="Light theme">
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <LightModeIcon fontSize="small" />
-                  <span>Light</span>
-                </Stack>
-              </ToggleButton>
-              <ToggleButton value="dark" aria-label="Dark theme">
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <DarkModeIcon fontSize="small" />
-                  <span>Dark</span>
-                </Stack>
-              </ToggleButton>
-              <ToggleButton value="system" aria-label="System theme">
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <SettingsBrightnessIcon fontSize="small" />
-                  <span>System</span>
-                </Stack>
-              </ToggleButton>
-            </ToggleButtonGroup>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              {selectedThemeMode === "system" && systemMode
-                ? `Using your system ${systemMode} theme.`
-                : "Saved on this device."}
-            </Typography>
           </Box>
 
           {hasBackendSearch ? (

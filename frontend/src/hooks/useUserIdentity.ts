@@ -4,7 +4,7 @@ import { useUserRegistration } from "./useUserRegistration";
 import { boringAvatarDataUri } from "../util";
 
 /** Name shown for users who have not verified their identity. */
-export const ANONYMOUS_NAME = "Anonymous";
+export const ANONYMOUS_NAME = "Human";
 
 export interface UserIdentity {
   /**
@@ -41,7 +41,7 @@ export interface UserIdentity {
  * Ties a user's display name and avatar to their verified registry identity
  * (`userId`) rather than their wallet address. Two different wallets belonging
  * to the same verified identity therefore share one display name and avatar.
- * Unverified users have no display name ("Anonymous") and the default avatar.
+ * Unverified users have no display name ("Human") and the default avatar.
  */
 export function useUserIdentity(): UserIdentity {
   const { userId, isRegistered, isLoading } = useUserRegistration();

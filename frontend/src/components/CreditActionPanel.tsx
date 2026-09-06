@@ -27,6 +27,7 @@ import { useCreditConversion } from "../hooks/useCreditConversion";
 import AnimatedCounter from "./AnimatedCounter";
 import { useWalletAuth } from "@/wallet";
 import CommitConfirmationDialog from "./CommitConfirmationDialog";
+import { SupportAllocationBar } from "./SupportAllocationBar";
 import type { CommitPreview } from "../state/UserVotes";
 
 const shimmer = keyframes`
@@ -334,6 +335,10 @@ const CreditActionPanel: React.FC = () => {
                   </Typography>
                 </Box>
               )}
+            </Box>
+            {/* Credit allocation breakdown (allocated / staged / unallocated) */}
+            <Box sx={{ mt: 1 }}>
+              <SupportAllocationBar />
             </Box>
           </>
         )}

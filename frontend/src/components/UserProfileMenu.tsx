@@ -138,9 +138,9 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
           {isUserVerified ? (
             <>
               <ListItem disablePadding>
-                <ListItemButton onClick={() => handleNavigate("/profile")}>
+                <ListItemButton onClick={() => handleNavigate("/settings")}>
                   <ListItemText
-                    primary="Profile"
+                    primary="Settings"
                     slotProps={{
                       primary: { variant: "body1", fontWeight: 500 },
                     }}

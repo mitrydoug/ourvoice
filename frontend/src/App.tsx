@@ -32,7 +32,6 @@ import {
 } from "./state/Forum.tsx";
 import { hasSeenWelcome } from "./state/welcome.ts";
 import { LocalSearchProvider } from "./state/LocalSearch.tsx";
-import Profile from "./components/UserProfile.tsx";
 
 /**
  * Redirects bare `/` to the last-visited forum slug (from localStorage),
@@ -80,10 +79,6 @@ const forumChildren = [
   {
     path: "starred",
     Component: Starred,
-  },
-  {
-    path: "profile",
-    Component: Profile,
   },
   {
     path: "settings",
