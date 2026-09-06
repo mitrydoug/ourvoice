@@ -253,13 +253,13 @@ const StatementCardComponent: FC<StatementCardProps> = ({
       const adjustment =
         newCreditSupport === 0
           ? {
-            value: 0,
-            adjustmentType: SupportAdjustmentType.SetTo,
-          }
+              value: 0,
+              adjustmentType: SupportAdjustmentType.SetTo,
+            }
           : {
-            value: toParts(newCreditSupport - onChainCredits),
-            adjustmentType: SupportAdjustmentType.Delta,
-          };
+              value: toParts(newCreditSupport - onChainCredits),
+              adjustmentType: SupportAdjustmentType.Delta,
+            };
       dispatch({
         type: "STAGE_USER_SUPPORT",
         payload: {

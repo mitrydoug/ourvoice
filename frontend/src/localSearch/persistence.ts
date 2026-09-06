@@ -72,9 +72,7 @@ export async function loadForumEmbeddings(
   model: string,
 ): Promise<EmbeddingEntry[]> {
   try {
-    const stored = await get<PersistedForumEmbeddings>(
-      embeddingsKey(forumKey),
-    );
+    const stored = await get<PersistedForumEmbeddings>(embeddingsKey(forumKey));
     if (!stored || stored.model !== model || stored.dim <= 0) return [];
     const floats = new Float32Array(stored.data);
     const { ids, dim } = stored;

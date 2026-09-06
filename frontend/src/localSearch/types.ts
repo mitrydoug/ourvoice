@@ -58,23 +58,23 @@ export interface EmbeddingEntry {
 // re-embedded, and freshly-computed vectors are returned for persistence.
 export type HybridRequestBody =
   | {
-    type: "index";
-    forumKey: string;
-    documents: IndexedStatement[];
-    replace: boolean;
-    cachedEmbeddings: EmbeddingEntry[];
-  }
+      type: "index";
+      forumKey: string;
+      documents: IndexedStatement[];
+      replace: boolean;
+      cachedEmbeddings: EmbeddingEntry[];
+    }
   | {
-    type: "search";
-    forumKey: string;
-    query: string;
-    mode: SearchMode;
-    limit: number;
-  }
+      type: "search";
+      forumKey: string;
+      query: string;
+      mode: SearchMode;
+      limit: number;
+    }
   | {
-    type: "clear";
-    forumKey: string;
-  };
+      type: "clear";
+      forumKey: string;
+    };
 
 export type HybridRequest = HybridRequestBody & { requestId: number };
 

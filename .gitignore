@@ -2,6 +2,9 @@
 __pycache__
 **/.env*.local
 
+# Railway deployment env — contains live secrets (API keys), never commit.
+railway-variables.env
+
 # Local development
 .overmind.sock
 .dev/

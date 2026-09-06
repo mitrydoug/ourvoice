@@ -156,16 +156,16 @@ export class HybridSearchEngine {
       mode === "keyword"
         ? { mode: "fulltext" as const, term: query, limit }
         : {
-          mode: "hybrid" as const,
-          term: query,
-          vector: {
-            value: Array.from(await this.embedder.embedOne(query)),
-            property: "embedding",
-          },
-          similarity: VECTOR_SIMILARITY,
-          hybridWeights: HYBRID_WEIGHTS,
-          limit,
-        };
+            mode: "hybrid" as const,
+            term: query,
+            vector: {
+              value: Array.from(await this.embedder.embedOne(query)),
+              property: "embedding",
+            },
+            similarity: VECTOR_SIMILARITY,
+            hybridWeights: HYBRID_WEIGHTS,
+            limit,
+          };
 
     const result = await search(this.db, params as never);
     return result.hits.map(
