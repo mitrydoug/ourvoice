@@ -16,23 +16,23 @@ export interface IndexedStatement {
 
 export type WorkerRequestBody =
   | {
-    type: "index";
-    forumKey: string;
-    documents: IndexedStatement[];
-    /** When true, replace the forum index with exactly these documents. */
-    replace: boolean;
-  }
+      type: "index";
+      forumKey: string;
+      documents: IndexedStatement[];
+      /** When true, replace the forum index with exactly these documents. */
+      replace: boolean;
+    }
   | {
-    type: "search";
-    forumKey: string;
-    query: string;
-    mode: SearchMode;
-    limit: number;
-  }
+      type: "search";
+      forumKey: string;
+      query: string;
+      mode: SearchMode;
+      limit: number;
+    }
   | {
-    type: "clear";
-    forumKey: string;
-  };
+      type: "clear";
+      forumKey: string;
+    };
 
 export type WorkerRequest = WorkerRequestBody & { requestId: number };
 

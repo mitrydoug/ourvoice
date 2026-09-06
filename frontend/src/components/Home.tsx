@@ -216,7 +216,7 @@ const SearchResults: FC<SearchResultsProps> = ({
       statements={noResults ? [] : statements}
       hasMore={false}
       isLoading={noResults ? false : isLoading}
-      onLoadMore={() => { }}
+      onLoadMore={() => {}}
       loadingLabel="Searching…"
       isBookmarked={isBookmarked}
       onToggleBookmark={onToggleBookmark}
