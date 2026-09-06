@@ -12,3 +12,12 @@ datasets/.cache/
 datasets/quora/
 datasets/arguana/
 datasets/cqadupstack-*/
+
+# Generated topic-clusters dataset — deterministically rebuilt from the
+# committed fixture (blockchain/fixtures/stress-statements.txt) via
+# `npm run eval:search:build`. Not committed to keep the package lean.
+datasets/topic-clusters/
+
+# Evaluation run outputs — regenerated on every `npm run eval:*` run
+# (report.json alone is ~12k lines). Reproducible, so never committed.
+reports/
