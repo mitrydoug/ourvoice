@@ -15,6 +15,9 @@ Required env vars:
                            requests; relay returns errors when not set.
 
 Optional env vars:
+    INDEXER_ENABLED — When "false", the Meilisearch indexer does not start
+                      (the search index stays empty). The search API and RPC
+                      relay remain available. Default: true.
     EVICTION_MAX_AGE_SECONDS — Maximum age (in seconds) for indexed
                                documents without recent engagement.
                                Documents older than this are periodically
@@ -83,11 +86,20 @@ def require_env(name: str) -> str:
     return value
 
 
+def env_flag(name: str, default: bool) -> bool:
+    """Return a boolean env var, treating unset/empty as the given default."""
+    value = os.environ.get(name)
+    if value is None or not value.strip():
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
 MEILI_URL = require_env("MEILI_URL")
 MEILI_API_KEY = require_env("MEILI_API_KEY")
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "")
 FORUM_CONTRACT_ADDRESSES = os.environ.get("FORUM_CONTRACT_ADDRESSES", "")
 INDEXER_RPC_URL = os.environ.get("INDEXER_RPC_URL", "")
+INDEXER_ENABLED = env_flag("INDEXER_ENABLED", default=True)
 EVICTION_MAX_AGE_SECONDS = int(
     os.environ.get("EVICTION_MAX_AGE_SECONDS", str(DEFAULT_EVICTION_MAX_AGE_SECONDS))
 )
@@ -96,6 +108,14 @@ EVICTION_MAX_AGE_SECONDS = int(
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Start the indexer as a background task while the API is running."""
+    if not INDEXER_ENABLED:
+        logger.warning(
+            "INDEXER_ENABLED is false — indexer will NOT start.  Search API and "
+            "RPC relay are still available, but the search index stays empty."
+        )
+        yield
+        return
+
     forum_contract_addresses = parse_forum_contract_addresses(FORUM_CONTRACT_ADDRESSES)
     if not forum_contract_addresses or not INDEXER_RPC_URL:
         logger.warning(
