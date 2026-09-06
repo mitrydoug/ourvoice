@@ -13,11 +13,7 @@
 import { MAX_FORUM_INDEXES } from "./config";
 import { Embedder } from "./embedder";
 import { HybridSearchEngine } from "./hybridEngine";
-import type {
-  HybridIndexResult,
-  HybridOutbound,
-  HybridRequest,
-} from "./types";
+import type { HybridIndexResult, HybridOutbound, HybridRequest } from "./types";
 
 console.log("[hybrid] worker: module loaded");
 
@@ -57,7 +53,10 @@ function evictIfNeeded(): void {
   }
 }
 
-function getEngine(forumKey: string, create: boolean): HybridSearchEngine | undefined {
+function getEngine(
+  forumKey: string,
+  create: boolean,
+): HybridSearchEngine | undefined {
   let engine = engines.get(forumKey);
   if (!engine && create) {
     engine = new HybridSearchEngine(embedder);
@@ -121,10 +120,7 @@ self.onmessage = async (event: MessageEvent<HybridRequest>): Promise<void> => {
       }
     }
   } catch (error) {
-    console.error(
-      `[hybrid] worker: req#${message.requestId} threw`,
-      error,
-    );
+    console.error(`[hybrid] worker: req#${message.requestId} threw`, error);
     respond({
       requestId: message.requestId,
       ok: false,

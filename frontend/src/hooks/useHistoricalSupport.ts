@@ -69,14 +69,14 @@ export function useHistoricalSupport(statementId: bigint): {
   const publicClient = usePublicClient();
   const { forumContractAddress } = useForum();
   const { toCredits } = useCreditConversion();
-  const { blockNumber: currentBlockNumber } = useBlockSync(() => { });
+  const { blockNumber: currentBlockNumber } = useBlockSync(() => {});
 
   // Bucket the block number to the polling window so the cache key is stable
   // for the duration of one interval — navigating away and back hits the cache.
   const cacheBlockNumber =
     currentBlockNumber !== undefined
       ? (currentBlockNumber / BLOCKS_PER_POLLING_INTERVAL) *
-      BLOCKS_PER_POLLING_INTERVAL
+        BLOCKS_PER_POLLING_INTERVAL
       : undefined;
 
   // Build the list of target timestamps for the past PERIODS_BACK periods.
