@@ -10,7 +10,6 @@ import {
   Skeleton,
   Typography,
 } from "@mui/material";
-import PersonIcon from "@mui/icons-material/Person";
 import SettingsIcon from "@mui/icons-material/Settings";
 import LogoutIcon from "@mui/icons-material/Logout";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
@@ -181,23 +180,6 @@ const UserProfilePanel: React.FC = () => {
       {/* menu folds out underneath, sharing the chip surface */}
       <Collapse in={menuOpen}>
         <List disablePadding sx={{ px: 0.5, pb: 0.5, pt: 0.5 }}>
-          <ListItemButton
-            dense
-            onClick={() => void navigate("/profile")}
-            sx={{
-              borderRadius: 2,
-              py: 0.5,
-              "&:hover": { bgcolor: "action.selected" },
-            }}
-          >
-            <ListItemIcon sx={{ minWidth: 32 }}>
-              <PersonIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Profile"
-              slotProps={{ primary: { variant: "body2" } }}
-            />
-          </ListItemButton>
           <ListItemButton
             dense
             onClick={() => void navigate("/settings")}
