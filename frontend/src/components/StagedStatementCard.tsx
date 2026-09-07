@@ -1,5 +1,5 @@
 import { FC } from "react";
-import { IconButton, Stack, Typography } from "@mui/material";
+import { IconButton, Stack, Typography, useTheme } from "@mui/material";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
 import { StagedStatement } from "../state/UserVotes";
@@ -22,6 +22,7 @@ const StagedStatementCard: FC<StagedStatementCardProps> = ({
   onUnstage,
   onUpdateSupport,
 }) => {
+  const theme = useTheme();
   const { toCredits, toParts } = useCreditConversion();
   const initialSupportCredits = toCredits(staged.initialSupport);
   const leftSlot = (
@@ -77,7 +78,10 @@ const StagedStatementCard: FC<StagedStatementCardProps> = ({
       sx={{
         opacity: 0.85,
         borderLeft: "3.5px solid",
-        borderColor: "#ffb74d",
+        borderColor:
+          theme.custom.colors.stagedSupport[
+            theme.palette.mode === "dark" ? "dark" : "light"
+          ],
       }}
     />
   );

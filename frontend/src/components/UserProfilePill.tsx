@@ -11,6 +11,7 @@ import {
   Divider,
   Typography,
   keyframes,
+  useTheme,
 } from "@mui/material";
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
 import { useNavigate } from "react-router-dom";
@@ -35,29 +36,32 @@ const shimmer = keyframes`
 `;
 
 // ── Coin icon SVG ────────────────────────────────────────────────────────────
-const CoinIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <circle cx="12" cy="12" r="10" fill="#FBBF24" />
-    <circle cx="12" cy="12" r="8" fill="#F59E0B" />
-    <text
-      x="12"
-      y="16.5"
-      textAnchor="middle"
-      fontSize="12"
-      fontWeight="bold"
-      fill="#FFFBEB"
-      fontFamily="Inter, sans-serif"
+const CoinIcon: React.FC<{ size?: number }> = ({ size = 16 }) => {
+  const { light, main } = useTheme().custom.colors.credit;
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
     >
-      C
-    </text>
-  </svg>
-);
+      <circle cx="12" cy="12" r="10" fill={light} />
+      <circle cx="12" cy="12" r="8" fill={main} />
+      <text
+        x="12"
+        y="16.5"
+        textAnchor="middle"
+        fontSize="12"
+        fontWeight="bold"
+        fill="#FFFBEB"
+        fontFamily="Inter, sans-serif"
+      >
+        C
+      </text>
+    </svg>
+  );
+};
 
 const UserProfilePanel: React.FC = () => {
   const { disconnect } = useWalletAuth();

@@ -8,6 +8,7 @@ import {
   Stack,
   Tooltip,
   Typography,
+  useTheme,
 } from "@mui/material";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
@@ -189,6 +190,11 @@ const StatementCardComponent: FC<StatementCardProps> = ({
 }) => {
   const navigate = useForumNavigate();
   const rawNavigate = useNavigate();
+  const theme = useTheme();
+  const stagedSupportColor =
+    theme.custom.colors.stagedSupport[
+      theme.palette.mode === "dark" ? "dark" : "light"
+    ];
   const handleCardClick = useCallback(() => {
     void navigate(`/statement/${statement.id}`);
   }, [navigate, statement.id]);
@@ -570,10 +576,11 @@ const StatementCardComponent: FC<StatementCardProps> = ({
                   width: 0,
                   overflow: "hidden",
                   display: "flex",
-                  alignItems: "center",
+                  alignItems: "flex-start",
                   justifyContent: "center",
+                  pt: 0.5,
                   color: "#fff",
-                  bgcolor: "#ffb74d",
+                  bgcolor: stagedSupportColor,
                   borderBottomRightRadius: 6,
                   opacity: 0,
                   transition: "width 0.15s ease, opacity 0.15s ease",
@@ -589,11 +596,13 @@ const StatementCardComponent: FC<StatementCardProps> = ({
           cursor: "pointer",
           transition: "box-shadow 0.2s ease, border-color 0.2s ease",
           "&:hover": { boxShadow: 3 },
-          "&:hover .staged-clear-tab": { width: 20, opacity: 1 },
+          "&:hover .staged-clear-tab": { width: 16, opacity: 1 },
           borderLeft: hasUncommittedSupport
             ? "3.5px solid"
             : "3.5px solid transparent",
-          borderColor: hasUncommittedSupport ? "#ffb74d" : "transparent",
+          borderColor: hasUncommittedSupport
+            ? stagedSupportColor
+            : "transparent",
         }}
       />
     );
@@ -620,6 +629,7 @@ const StatementCardComponent: FC<StatementCardProps> = ({
     connect,
     onSwitchSupport,
     handleCardClick,
+    stagedSupportColor,
   ]);
 
   return card;

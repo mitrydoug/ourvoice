@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Stack, Tooltip, Typography } from "@mui/material";
+import { Box, Stack, Tooltip, Typography, useTheme } from "@mui/material";
 import { useCreditAllocation } from "@/hooks/useCreditAllocation";
 
 interface BreakdownRow {
@@ -40,18 +40,15 @@ const AllocationTooltip: React.FC<{ rows: BreakdownRow[] }> = ({ rows }) => (
   </Stack>
 );
 
-// Pastel segment colors. Blue and green are kept in clearly different hue
-// families so the boundary stays legible even without a staged segment between.
-const ALLOCATED_COLOR = "#5181d9"; // pastel blue
-const UNALLOCATED_COLOR = "#49ad6a"; // pastel green
-// Staged is a muted/greyed tint of the direction it moves toward: greyed blue
-// when allocation will grow, greyed green when allocation will shrink.
-const STAGED_INCREASE_COLOR = "#a7bbe0"; // greyed blue
-const STAGED_DECREASE_COLOR = "#a5cdb2"; // greyed green
-
 // Component to display the support allocation progress bar
 export const SupportAllocationBar: React.FC = () => {
   const allocation = useCreditAllocation();
+  const {
+    allocated: ALLOCATED_COLOR,
+    unallocated: UNALLOCATED_COLOR,
+    stagedIncrease: STAGED_INCREASE_COLOR,
+    stagedDecrease: STAGED_DECREASE_COLOR,
+  } = useTheme().custom.colors.allocation;
 
   if (!allocation || allocation.total === 0) {
     return null;
