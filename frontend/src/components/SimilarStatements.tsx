@@ -7,9 +7,9 @@ import { useSearch } from "@/hooks/useSearch";
 import useBlockSync from "@/hooks/useBlockSync";
 import useIsMobile from "@/hooks/useIsMobile";
 import useLocalStorageSet from "@/hooks/useLocalStorageSet";
-import SortTabs, { SortMode } from "./SortTabs";
 import StatementCard from "./StatementCard";
 import { Statement } from "../types";
+import { fuseSimilarStatements } from "../localSearch/rankFusion";
 import {
   useStatementSupport,
   useSupportStore,
@@ -37,7 +37,6 @@ const SimilarStatements: FC<SimilarStatementsProps> = ({
   switchSupportFromId,
   stickyHeader = false,
 }) => {
-  const [sortTab, setSortTab] = useState<SortMode>("top");
   const { forumContractAddress } = useForum();
   const { isUserVerified } = useUserVerification();
   const { switchSupport, getEffectiveSupportParts } = useSupportStore();
@@ -130,42 +129,13 @@ const SimilarStatements: FC<SimilarStatementsProps> = ({
     return map;
   }, [hits]);
 
+  // Single ordered list: a Reciprocal Rank Fusion of the similarity order and
+  // the same results re-ranked by total vote count. See rankFusion.ts for the
+  // SIMILARITY_WEIGHT / SUPPORT_WEIGHT / RRF_K tuning knobs.
   const similarStatements: Statement[] = useMemo(() => {
     if (!rawStatements) return [];
-
-    if (sortTab === "latest") {
-      return [...rawStatements].sort((a, b) => Number(b.id) - Number(a.id));
-    }
-
-    if (sortTab === "relevant") {
-      return [...rawStatements].sort((a, b) => {
-        const ai = relevanceOrder.get(Number(a.id)) ?? Number.MAX_SAFE_INTEGER;
-        const bi = relevanceOrder.get(Number(b.id)) ?? Number.MAX_SAFE_INTEGER;
-        return ai - bi;
-      });
-    }
-
-    // "top" → ranked first (ascending rank), then unranked in relevance order.
-    const ranked: Statement[] = [];
-    const unranked: Statement[] = [];
-
-    for (const s of rawStatements) {
-      if (Number(s.rank) >= 0) {
-        ranked.push(s);
-      } else {
-        unranked.push(s);
-      }
-    }
-
-    ranked.sort((a, b) => Number(a.rank) - Number(b.rank));
-    unranked.sort((a, b) => {
-      const ai = relevanceOrder.get(Number(a.id)) ?? Number.MAX_SAFE_INTEGER;
-      const bi = relevanceOrder.get(Number(b.id)) ?? Number.MAX_SAFE_INTEGER;
-      return ai - bi;
-    });
-
-    return [...ranked, ...unranked];
-  }, [rawStatements, sortTab, relevanceOrder]);
+    return fuseSimilarStatements(rawStatements, relevanceOrder);
+  }, [rawStatements, relevanceOrder]);
 
   const isSimilarLoading = isSearchLoading || result.isLoading;
   const noSimilarResults = result.isError && !result.isLoading;
@@ -178,10 +148,10 @@ const SimilarStatements: FC<SimilarStatementsProps> = ({
   const PAGE_SIZE = isMobile ? 10 : 20;
   const [displayCount, setDisplayCount] = useState(PAGE_SIZE);
 
-  // Reset paging whenever the result set changes (new query or sort order).
+  // Reset paging whenever the result set changes (new query).
   useEffect(() => {
     setDisplayCount(PAGE_SIZE);
-  }, [query, sortTab, PAGE_SIZE]);
+  }, [query, PAGE_SIZE]);
 
   const displayedStatements = similarStatements.slice(0, displayCount);
   const hasMore = displayCount < similarStatements.length;
@@ -222,19 +192,9 @@ const SimilarStatements: FC<SimilarStatementsProps> = ({
   }, [hasMore, handleLoadMore]);
 
   const header = (
-    <>
-      <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
-        Similar Statements
-      </Typography>
-
-      <SortTabs
-        value={sortTab}
-        onChange={setSortTab}
-        hasSearch={hasSearch}
-        sticky={!stickyHeader}
-        fullBleed={!stickyHeader}
-      />
-    </>
+    <Typography variant="subtitle2" sx={{ mb: 1 }}>
+      Similar Statements
+    </Typography>
   );
 
   return (
