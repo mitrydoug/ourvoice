@@ -18,9 +18,9 @@ import { useSearch } from "@/hooks/useSearch";
 import useBlockSync from "@/hooks/useBlockSync";
 import useLocalStorageSet from "@/hooks/useLocalStorageSet";
 import VoteToggle from "./VoteToggle";
-import SortTabs, { SortMode } from "./SortTabs";
 import StatementCard from "./StatementCard";
 import { Statement } from "../types";
+import { fuseSimilarStatements } from "../localSearch/rankFusion";
 
 const MAX_STATEMENT_LENGTH = 280;
 
@@ -36,7 +36,6 @@ const CreateStatementModal: FC<CreateStatementModalProps> = ({
   const navigate = useForumNavigate();
   const [text, setText] = useState("");
   const [initialSupport, setInitialSupport] = useState(0);
-  const [sortTab, setSortTab] = useState<SortMode>("top");
 
   const { isUserVerified, stageStatement, setPendingDraftCost } =
     useUserVotes();
@@ -88,43 +87,13 @@ const CreateStatementModal: FC<CreateStatementModalProps> = ({
     return map;
   }, [hits]);
 
+  // Single ordered list: a Reciprocal Rank Fusion of the similarity order and
+  // the same results re-ranked by total vote count. See rankFusion.ts for the
+  // SIMILARITY_WEIGHT / SUPPORT_WEIGHT / RRF_K tuning knobs.
   const similarStatements: Statement[] = useMemo(() => {
     if (!rawStatements) return [];
-
-    if (sortTab === "latest") {
-      return [...rawStatements].sort((a, b) => Number(b.id) - Number(a.id));
-    }
-
-    if (sortTab === "relevant") {
-      // Pure Meilisearch relevance order.
-      return [...rawStatements].sort((a, b) => {
-        const ai = relevanceOrder.get(Number(a.id)) ?? Number.MAX_SAFE_INTEGER;
-        const bi = relevanceOrder.get(Number(b.id)) ?? Number.MAX_SAFE_INTEGER;
-        return ai - bi;
-      });
-    }
-
-    // "top" → ranked first (ascending rank), then unranked in relevance order.
-    const ranked: Statement[] = [];
-    const unranked: Statement[] = [];
-
-    for (const s of rawStatements) {
-      if (Number(s.rank) >= 0) {
-        ranked.push(s);
-      } else {
-        unranked.push(s);
-      }
-    }
-
-    ranked.sort((a, b) => Number(a.rank) - Number(b.rank));
-    unranked.sort((a, b) => {
-      const ai = relevanceOrder.get(Number(a.id)) ?? Number.MAX_SAFE_INTEGER;
-      const bi = relevanceOrder.get(Number(b.id)) ?? Number.MAX_SAFE_INTEGER;
-      return ai - bi;
-    });
-
-    return [...ranked, ...unranked];
-  }, [rawStatements, sortTab, relevanceOrder]);
+    return fuseSimilarStatements(rawStatements, relevanceOrder);
+  }, [rawStatements, relevanceOrder]);
 
   const isSimilarLoading = isSearchLoading || result.isLoading;
   // Treat contract errors (e.g. all IDs invalid) as "no results".
@@ -155,7 +124,6 @@ const CreateStatementModal: FC<CreateStatementModalProps> = ({
       stageStatement(text, initialSupport);
       setText("");
       setInitialSupport(0);
-      setSortTab("top");
       onClose();
       void navigate("/my-statements");
     }
@@ -173,7 +141,6 @@ const CreateStatementModal: FC<CreateStatementModalProps> = ({
     setPendingDraftCost(0);
     setText("");
     setInitialSupport(0);
-    setSortTab("top");
     onClose();
   }, [setPendingDraftCost, onClose]);
 
@@ -279,15 +246,9 @@ const CreateStatementModal: FC<CreateStatementModalProps> = ({
 
           {/* ── Similar Statements ────────────────────────────────────── */}
           <Box sx={{ mt: 3 }}>
-            <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+            <Typography variant="subtitle2" sx={{ mb: 1 }}>
               Similar Statements
             </Typography>
-
-            <SortTabs
-              value={sortTab}
-              onChange={setSortTab}
-              hasSearch={hasSearch}
-            />
 
             <Box
               sx={{
