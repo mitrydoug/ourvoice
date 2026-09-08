@@ -67,6 +67,14 @@ interface ImportMetaEnv {
    * when testing with 60-second step durations (6 steps per period).
    */
   readonly VITE_CHART_PERIOD_SECONDS?: string;
+
+  /**
+   * When `"true"`, mobile detection also treats a small viewport as mobile (in
+   * addition to the default user-agent check), so the mobile "coming soon"
+   * placeholder can be previewed with Chrome DevTools' device toolbar. Intended
+   * for dev/test sites only — leave unset in production.
+   */
+  readonly VITE_ENABLE_VIEWPORT_MOBILE_DETECTION?: string;
 }
 
 interface ImportMeta {

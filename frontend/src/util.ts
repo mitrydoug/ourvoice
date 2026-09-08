@@ -65,3 +65,27 @@ export const boringAvatarDataUri = (seed: string): string => {
   );
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 };
+
+/**
+ * Detects whether the current browser is running on a mobile device, based on
+ * the user-agent string. Unlike a viewport-width media query, this reliably
+ * targets mobile browsers regardless of orientation or window size, which is
+ * what we want while the mobile experience is unfinished.
+ */
+export const isMobileBrowser = (): boolean => {
+  if (typeof navigator === "undefined") return false;
+
+  const ua = navigator.userAgent || "";
+
+  // Standard mobile/handheld user-agent signatures.
+  if (/Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua)) {
+    return true;
+  }
+
+  // iPadOS 13+ reports a desktop Safari UA; detect it via touch support.
+  return (
+    /Macintosh/i.test(ua) &&
+    typeof navigator.maxTouchPoints === "number" &&
+    navigator.maxTouchPoints > 1
+  );
+};
