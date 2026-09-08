@@ -7,8 +7,8 @@ import IconButton from "@mui/material/IconButton";
 import { Avatar, Button, Stack } from "@mui/material";
 import { Link, useNavigate } from "react-router-dom";
 import { useUserVotes } from "../state/UserVotes";
-import ChooseForumModal, { FORUMS } from "./ChooseForumModal";
-import ForumIcon from "./ForumIcon";
+import ChooseForumModal from "./ChooseForumModal";
+import ForumSelectorChip from "./ForumSelectorChip";
 import { useForum, forumToSlug } from "../state/Forum";
 import useIsMobile from "@/hooks/useIsMobile";
 import useUserIdentity from "@/hooks/useUserIdentity";
@@ -22,25 +22,6 @@ import { useForumNavigate, useForumPath } from "../hooks/useForumNavigate";
 import { useWalletAuth } from "@/wallet";
 
 // Sub-components
-interface ForumSelectorProps {
-  forumName: string;
-  onClick: () => void;
-}
-
-const ForumSelector: React.FC<ForumSelectorProps> = ({
-  forumName,
-  onClick,
-}) => (
-  <Box
-    onClick={onClick}
-    sx={{ cursor: "pointer", display: "flex", alignItems: "center" }}
-    aria-controls="menu-appbar"
-    aria-haspopup="true"
-  >
-    <ForumIcon forum={FORUMS[forumName]} size="1.2rem" />
-  </Box>
-);
-
 interface LogoProps {
   isMobile: boolean;
   homePath: string;
@@ -127,11 +108,11 @@ export default function MenuAppBar() {
           {/* First row: Three-section layout */}
           {isMobile ? (
             <Stack direction="row" alignItems="center" sx={{ width: "100%" }}>
-              {/* Left section: Forum icon */}
+              {/* Left section: Forum selector */}
               <Box
                 sx={{ flex: 1, display: "flex", justifyContent: "flex-start" }}
               >
-                <ForumSelector
+                <ForumSelectorChip
                   forumName={forumName}
                   onClick={() => setChooseForumModalOpen(true)}
                 />
@@ -195,7 +176,7 @@ export default function MenuAppBar() {
               {/* Desktop layout */}
               <Logo isMobile={isMobile} homePath={forumPath("/")} />
 
-              <ForumSelector
+              <ForumSelectorChip
                 forumName={forumName}
                 onClick={() => setChooseForumModalOpen(true)}
               />

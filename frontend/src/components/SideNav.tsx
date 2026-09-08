@@ -15,8 +15,8 @@ import ArticleIcon from "@mui/icons-material/Article";
 import StarIcon from "@mui/icons-material/Star";
 import HelpIcon from "@mui/icons-material/Help";
 import { useUserVerification } from "../state/UserVotes";
-import ChooseForumModal, { FORUMS } from "./ChooseForumModal";
-import ForumIcon from "./ForumIcon";
+import ChooseForumModal from "./ChooseForumModal";
+import ForumSelectorChip from "./ForumSelectorChip";
 import AppVersionLabel from "./AppVersionLabel";
 import { useForum, forumToSlug } from "../state/Forum";
 import { useForumNavigate, useForumPath } from "../hooks/useForumNavigate";
@@ -87,20 +87,17 @@ const SideNav: FC = () => {
         {/* Forum selector — centered between logo and nav list */}
         <Box
           sx={{
-            mt: 0.5,
-            mb: 2.5,
+            mt: -1,
+            mb: 1.5,
             display: "flex",
             justifyContent: "center",
           }}
         >
-          <Box
+          <ForumSelectorChip
+            forumName={forumName}
             onClick={() => setChooseForumModalOpen(true)}
-            sx={{ cursor: "pointer", display: "flex", alignItems: "center" }}
-          >
-            {FORUMS[forumName] && (
-              <ForumIcon forum={FORUMS[forumName]} size="1.8rem" />
-            )}
-          </Box>
+            iconSize="1.8rem"
+          />
         </Box>
 
         <List disablePadding>
