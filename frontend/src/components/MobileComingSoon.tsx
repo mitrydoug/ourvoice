@@ -16,10 +16,11 @@ const MobileComingSoon: FC = () => {
         minHeight: "100vh",
         width: "100%",
         display: "flex",
-        alignItems: "center",
+        alignItems: "flex-start",
         justifyContent: "center",
         bgcolor: "background.default",
         p: 4,
+        pt: "33vh",
       }}
     >
       <Stack spacing={4} alignItems="center" textAlign="center">
