@@ -1,4 +1,4 @@
-import { FC, memo, useCallback, useMemo } from "react";
+import { FC, memo, ReactNode, useCallback, useMemo } from "react";
 import {
   Box,
   ButtonBase,
@@ -8,6 +8,7 @@ import {
   Stack,
   Tooltip,
   Typography,
+  useTheme,
 } from "@mui/material";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
@@ -99,16 +100,6 @@ const peakRankIconSize = (rank: number): number => {
   return 14;
 };
 
-/** Shared style for the small uppercase stat labels (detail page only). */
-const statLabelSx = {
-  fontSize: "0.55rem",
-  fontWeight: 700,
-  letterSpacing: "0.06em",
-  textTransform: "uppercase" as const,
-  color: "text.disabled",
-  lineHeight: 1,
-};
-
 const clampPercent = (value: number): number =>
   Math.max(0, Math.min(100, value));
 
@@ -171,13 +162,139 @@ const RankingProgressRing: FC<{ value: number }> = ({ value }) => {
   );
 };
 
+/**
+ * Metallic medal fills for the top three ranks. Each gradient alternates
+ * light/dark bands so the digit reads as a reflective metal surface, paired
+ * with a darker outline of the same hue family.
+ */
+const MEDAL_STYLES: Record<
+  number,
+  {
+    gradient: string;
+    stroke: string;
+    strokeWidth?: string;
+    fontWeight?: number;
+    blur?: string;
+  }
+> = {
+  // Gold
+  1: {
+    gradient:
+      "linear-gradient(180deg, #FCEFB4 0%, #E6B325 22%, #FFE07A 42%, #C9962B 60%, #F7DE8B 78%, #A9781F 100%)",
+    stroke: "rgba(111, 76, 14, 0.9)",
+    strokeWidth: "1.5px",
+    fontWeight: 550,
+    blur: "0.5px",
+  },
+  // Silver
+  2: {
+    gradient:
+      "linear-gradient(180deg, #FDFDFE 0%, #C3C8CF 22%, #FFFFFF 42%, #9AA1A9 60%, #E6E9ED 78%, #7E858E 100%)",
+    stroke: "rgba(88, 94, 102, 0.9)",
+    strokeWidth: "1.5px",
+    fontWeight: 550,
+    blur: "0.5px",
+  },
+  // Bronze — a lighter weight keeps the darker outline from crowding the
+  // glyph's counters and losing definition.
+  3: {
+    gradient:
+      "linear-gradient(180deg, #F4D3AF 0%, #C67C46 22%, #EFB184 42%, #9A5528 60%, #DFA06E 78%, #78411E 100%)",
+    stroke: "rgba(88, 50, 25, 0.9)",
+    strokeWidth: "1px",
+    fontWeight: 550,
+    blur: "0.5px",
+  },
+};
+
+/**
+ * Rank number. The top three ranks get a metallic "medal" fill (gold / silver /
+ * bronze) with a soft same-hue outline; every other rank renders as a plain
+ * coloured number.
+ */
+const RankNumber: FC<{
+  rank: number;
+  color: string;
+  fontSize: string;
+  changeIndicator?: ReactNode;
+}> = ({ rank, color, fontSize, changeIndicator }) => {
+  const medal = MEDAL_STYLES[rank];
+  const medalFontWeight = medal?.fontWeight ?? 700;
+  const medalBlur = medal?.blur ?? ".5px";
+  const medalStrokeWidth = medal?.strokeWidth ?? "2.5px";
+
+  return (
+    <Stack alignItems="center" spacing={0.75}>
+      {medal ? (
+        <Box sx={{ position: "relative", display: "inline-flex" }}>
+          {/*
+            Border layer: a copy of the digit drawn as an outline only
+            (transparent fill + stroke), sitting *behind* the gradient copy.
+            Because it is a separate element underneath, its stroke can never
+            bleed into or muddy the metal fill on top — the front copy covers the
+            entire interior, leaving just the softened outer edge showing.
+          */}
+          <Typography
+            aria-hidden
+            variant="h4"
+            sx={{
+              position: "absolute",
+              inset: 0,
+              fontWeight: medalFontWeight,
+              fontSize,
+              lineHeight: 1.1,
+              color: "transparent",
+              WebkitTextFillColor: "transparent",
+              WebkitTextStroke: `${medalStrokeWidth} ${medal.stroke}`,
+              // Soften the outline a smidge. The blur only touches this back
+              // layer, so the gradient fill on top stays crisp.
+              filter: `blur(${medalBlur})`,
+              pointerEvents: "none",
+            }}
+          >
+            {rank}
+          </Typography>
+          {/* Gradient layer: the visible metallic number on top. */}
+          <Typography
+            variant="h4"
+            sx={{
+              position: "relative",
+              fontWeight: medalFontWeight,
+              fontSize,
+              lineHeight: 1.1,
+              color: "transparent",
+              background: medal.gradient,
+              backgroundClip: "text",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+            }}
+          >
+            {rank}
+          </Typography>
+        </Box>
+      ) : (
+        <Typography
+          variant="h4"
+          sx={{
+            fontWeight: 700,
+            fontSize,
+            lineHeight: 1.1,
+            color,
+          }}
+        >
+          {rank}
+        </Typography>
+      )}
+      {changeIndicator}
+    </Stack>
+  );
+};
+
 type StatementCardProps = {
   statement: Statement;
   isBookmarked?: boolean;
   onToggleBookmark?: (statementId: number) => void;
   onSwitchSupport?: (statementId: number) => void;
-  /** Show small inline stat labels (Rank / Support / Peak / Credits). */
-  showLabels?: boolean;
 };
 
 const StatementCardComponent: FC<StatementCardProps> = ({
@@ -185,10 +302,14 @@ const StatementCardComponent: FC<StatementCardProps> = ({
   isBookmarked,
   onToggleBookmark,
   onSwitchSupport,
-  showLabels = false,
 }) => {
   const navigate = useForumNavigate();
   const rawNavigate = useNavigate();
+  const theme = useTheme();
+  const stagedSupportColor =
+    theme.custom.colors.stagedSupport[
+      theme.palette.mode === "dark" ? "dark" : "light"
+    ];
   const handleCardClick = useCallback(() => {
     void navigate(`/statement/${statement.id}`);
   }, [navigate, statement.id]);
@@ -358,28 +479,12 @@ const StatementCardComponent: FC<StatementCardProps> = ({
 
     const leftSlot =
       currentRank !== null ? (
-        <Stack alignItems="center" spacing={0.75}>
-          <Stack alignItems="center" spacing={0.2}>
-            {/* Rank number */}
-            <Typography
-              variant="h4"
-              sx={{
-                fontWeight: 700,
-                fontSize: rankFontSize(currentRank),
-                lineHeight: 1.1,
-                color: rankColor(currentRank) ?? "text.primary",
-              }}
-            >
-              {currentRank}
-            </Typography>
-            {showLabels && (
-              <Typography component="span" sx={statLabelSx}>
-                Rank
-              </Typography>
-            )}
-          </Stack>
-          {rankChangeIndicator}
-        </Stack>
+        <RankNumber
+          rank={currentRank}
+          color={rankColor(currentRank) ?? "text.primary"}
+          fontSize={rankFontSize(currentRank)}
+          changeIndicator={rankChangeIndicator}
+        />
       ) : (
         <Stack alignItems="center" spacing={0.75}>
           {rankingProgress !== null ? (
@@ -427,11 +532,6 @@ const StatementCardComponent: FC<StatementCardProps> = ({
               </Typography>
             </Tooltip>
           </Box>
-          {showLabels && (
-            <Typography component="span" sx={statLabelSx}>
-              Support
-            </Typography>
-          )}
         </Stack>
 
         {peakRank !== null && (
@@ -452,11 +552,6 @@ const StatementCardComponent: FC<StatementCardProps> = ({
                 </Stack>
               </Tooltip>
             </Box>
-            {showLabels && (
-              <Typography component="span" sx={statLabelSx}>
-                Peak
-              </Typography>
-            )}
           </Stack>
         )}
       </Stack>
@@ -484,7 +579,6 @@ const StatementCardComponent: FC<StatementCardProps> = ({
         onUserVoteChange={handleSupportChange}
         onClear={() => handleSupportChange(0)}
         creditsTooltip={`You have ${supportCreditsToAllocatedCredits(userSupport)} credits providing ${userSupport} support`}
-        showCreditsLabel={showLabels}
       />
     ) : isVerifiedLoading || isWalletLoading ? undefined : (
       // Gentle affordance so a signed-out / unverified visitor can see that
@@ -570,10 +664,11 @@ const StatementCardComponent: FC<StatementCardProps> = ({
                   width: 0,
                   overflow: "hidden",
                   display: "flex",
-                  alignItems: "center",
+                  alignItems: "flex-start",
                   justifyContent: "center",
+                  pt: 0.5,
                   color: "#fff",
-                  bgcolor: "#ffb74d",
+                  bgcolor: stagedSupportColor,
                   borderBottomRightRadius: 6,
                   opacity: 0,
                   transition: "width 0.15s ease, opacity 0.15s ease",
@@ -589,11 +684,13 @@ const StatementCardComponent: FC<StatementCardProps> = ({
           cursor: "pointer",
           transition: "box-shadow 0.2s ease, border-color 0.2s ease",
           "&:hover": { boxShadow: 3 },
-          "&:hover .staged-clear-tab": { width: 20, opacity: 1 },
+          "&:hover .staged-clear-tab": { width: 16, opacity: 1 },
           borderLeft: hasUncommittedSupport
             ? "3.5px solid"
             : "3.5px solid transparent",
-          borderColor: hasUncommittedSupport ? "#ffb74d" : "transparent",
+          borderColor: hasUncommittedSupport
+            ? stagedSupportColor
+            : "transparent",
         }}
       />
     );
@@ -601,7 +698,6 @@ const StatementCardComponent: FC<StatementCardProps> = ({
     rankChange,
     isHotRankChange,
     currentRank,
-    showLabels,
     rankingProgress,
     globalSupport,
     peakRank,
@@ -620,6 +716,7 @@ const StatementCardComponent: FC<StatementCardProps> = ({
     connect,
     onSwitchSupport,
     handleCardClick,
+    stagedSupportColor,
   ]);
 
   return card;

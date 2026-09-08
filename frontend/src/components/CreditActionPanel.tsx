@@ -225,6 +225,7 @@ const CreditActionPanel: React.FC = () => {
                 alignItems: "center",
                 justifyContent: "space-between",
                 gap: 1,
+                minHeight: 30,
               }}
             >
               <Box

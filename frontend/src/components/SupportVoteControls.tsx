@@ -1,18 +1,9 @@
 import { FC } from "react";
-import { Box, Stack, Tooltip, Typography } from "@mui/material";
+import { Box, Stack, Tooltip } from "@mui/material";
 
 import { supportCreditsToAllocatedCredits } from "../util";
 import AnimatedCounter from "./AnimatedCounter";
 import VoteToggle from "./VoteToggle";
-
-const labelSx = {
-  fontSize: "0.55rem",
-  fontWeight: 700,
-  letterSpacing: "0.06em",
-  textTransform: "uppercase" as const,
-  color: "text.disabled",
-  lineHeight: 1,
-};
 
 const CoinIcon = ({ size = 14 }: { size?: number }) => (
   <svg
@@ -44,8 +35,6 @@ type SupportVoteControlsProps = {
   onUserVoteChange: (newVoteCount: number) => void;
   onClear?: () => void;
   creditsTooltip?: string;
-  /** Show a small "credits" label next to the coin (detail page only). */
-  showCreditsLabel?: boolean;
 };
 
 const SupportVoteControls: FC<SupportVoteControlsProps> = ({
@@ -54,7 +43,6 @@ const SupportVoteControls: FC<SupportVoteControlsProps> = ({
   onUserVoteChange,
   onClear,
   creditsTooltip,
-  showCreditsLabel = false,
 }) => {
   const creditsAllocated = supportCreditsToAllocatedCredits(userSupport);
 
@@ -86,11 +74,6 @@ const SupportVoteControls: FC<SupportVoteControlsProps> = ({
               </Stack>
             </Box>
           </Tooltip>
-          {showCreditsLabel && (
-            <Typography component="span" sx={labelSx}>
-              Credits
-            </Typography>
-          )}
         </Stack>
       )}
 
@@ -104,11 +87,6 @@ const SupportVoteControls: FC<SupportVoteControlsProps> = ({
             onClear={onClear}
           />
         </Box>
-        {showCreditsLabel && (
-          <Typography component="span" sx={labelSx}>
-            Your Support
-          </Typography>
-        )}
       </Stack>
     </Stack>
   );

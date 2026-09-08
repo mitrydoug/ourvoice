@@ -68,7 +68,7 @@ const StatementPage: FC = () => {
         Back
       </Button>
 
-      <StatementCard statement={statement} showLabels />
+      <StatementCard statement={statement} />
 
       <Box sx={{ mt: 2 }}>
         <SupportChart statementId={statement.id} />
