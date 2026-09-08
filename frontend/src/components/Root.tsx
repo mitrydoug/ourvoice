@@ -3,7 +3,6 @@ import Box from "@mui/material/Box";
 import { Button, CircularProgress, Fab, Tooltip } from "@mui/material";
 import { Outlet, useLocation, useParams } from "react-router-dom";
 import CreateIcon from "@mui/icons-material/Create";
-import LoginRoundedIcon from "@mui/icons-material/LoginRounded";
 
 import MenuAppBar from "./AppBar";
 import SideNav from "./SideNav";
@@ -45,23 +44,21 @@ const RightColumn: FC = () => {
     return (
       <Box sx={{ display: "flex", justifyContent: "flex-start" }}>
         <Button
+          variant="contained"
           onClick={connect}
           disabled={isLoading}
           size="medium"
           startIcon={
             isLoading ? (
               <CircularProgress size={16} color="inherit" />
-            ) : (
-              <LoginRoundedIcon />
-            )
+            ) : undefined
           }
           sx={{
-            borderRadius: 999,
-            px: 3,
-            py: 1,
+            borderRadius: 2,
+            px: 2.5,
+            py: 0.75,
             fontWeight: 700,
-            fontSize: "0.95rem",
-            boxShadow: 2,
+            textTransform: "none",
           }}
         >
           {isLoading ? "Connecting…" : "Join In"}
