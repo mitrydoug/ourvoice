@@ -32,6 +32,8 @@ import {
 } from "./state/Forum.tsx";
 import { hasSeenWelcome } from "./state/welcome.ts";
 import { LocalSearchProvider } from "./state/LocalSearch.tsx";
+import MobileComingSoon from "./components/MobileComingSoon.tsx";
+import useIsMobileVisitor from "./hooks/useIsMobileVisitor.ts";
 
 /**
  * Redirects bare `/` to the last-visited forum slug (from localStorage),
@@ -132,16 +134,33 @@ export const App: FC = () => {
       disableTransitionOnChange
     >
       <CssBaseline />
-      <GlobalErrorBoundary>
-        <ForumProvider>
-          <LocalSearchProvider>
-            <UserVoteProvider>
-              <RouterProvider router={router} />
-            </UserVoteProvider>
-          </LocalSearchProvider>
-        </ForumProvider>
-      </GlobalErrorBoundary>
+      <AppContent />
     </ThemeProvider>
+  );
+};
+
+/**
+ * Renders the app, or the mobile "coming soon" placeholder for mobile visitors.
+ * Split out from `App` so the mobile-detection hook runs inside `ThemeProvider`
+ * (it depends on the theme's breakpoints).
+ */
+const AppContent: FC = () => {
+  const isMobileVisitor = useIsMobileVisitor();
+
+  if (isMobileVisitor) {
+    return <MobileComingSoon />;
+  }
+
+  return (
+    <GlobalErrorBoundary>
+      <ForumProvider>
+        <LocalSearchProvider>
+          <UserVoteProvider>
+            <RouterProvider router={router} />
+          </UserVoteProvider>
+        </LocalSearchProvider>
+      </ForumProvider>
+    </GlobalErrorBoundary>
   );
 };
 
