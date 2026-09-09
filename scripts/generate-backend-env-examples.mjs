@@ -10,7 +10,47 @@ const repoRoot = process.env.REPO_ROOT
   ? path.resolve(process.env.REPO_ROOT)
   : path.resolve(scriptDir, "..");
 const deploymentsDir = path.join(repoRoot, "deployments");
+const profilesDir = path.join(repoRoot, "env/profiles");
 const outputDir = path.join(repoRoot, "deploy/env");
+
+const ENV_FLAG_TRUTHY = new Set(["1", "true", "yes", "on"]);
+
+// Resolve INDEXER_ENABLED from the deployment's profile env file
+// (env/profiles/<deploymentProfile>.env), which is the source of truth for
+// operational toggles. Mirrors the backend's env_flag semantics: unset or
+// empty means enabled (the default); any other value is truthy only when it is
+// one of 1/true/yes/on.
+const profileIndexerEnabled = (deploymentProfile) => {
+  const profilePath = path.join(profilesDir, `${deploymentProfile}.env`);
+  let contents;
+  try {
+    contents = readFileSync(profilePath, "utf8");
+  } catch {
+    return true;
+  }
+
+  let rawValue;
+  for (const line of contents.split(/\r?\n/)) {
+    const match = /^\s*INDEXER_ENABLED\s*=\s*(.*)$/.exec(line);
+    if (match) {
+      rawValue = match[1];
+    }
+  }
+
+  if (rawValue === undefined) {
+    return true;
+  }
+
+  const normalized = rawValue
+    .trim()
+    .replace(/^["']|["']$/g, "")
+    .trim()
+    .toLowerCase();
+  if (normalized === "") {
+    return true;
+  }
+  return ENV_FLAG_TRUTHY.has(normalized);
+};
 
 const fail = (deploymentPath, message) => {
   console.error(`${deploymentPath}: ${message}`);
@@ -80,9 +120,20 @@ const registrySponsorshipSignatures = (registryMode) =>
 
 const backendEnvText = (networkName, deployment, forumOrder) => {
   const registryMode = deployment.registryMode ?? "production";
+  const indexerEnabled = profileIndexerEnabled(deployment.deploymentProfile);
   const orderedForumAddresses = forumOrder.map((forumName) => deployment.forums[forumName]);
   const relayAllowedContracts = [...orderedForumAddresses, deployment.registryAddress];
   const signatures = registrySponsorshipSignatures(registryMode);
+
+  // INDEXER_ENABLED defaults to true in the backend, so only emit it when the
+  // profile opts out (the non-default case worth calling out explicitly).
+  const indexerToggleLines = indexerEnabled
+    ? ""
+    : `# Indexing is disabled for this profile: the search API and RPC relay remain
+# available while the Meilisearch index stays empty (no chain polling).
+INDEXER_ENABLED=false
+`;
+
 
   const verifierLines =
     registryMode === "production"
@@ -112,7 +163,7 @@ INDEXER_RPC_URL=https://replace-with-your-http-rpc
 RELAY_RPC_URL=https://replace-with-your-frontend-http-rpc
 
 # Indexer polling and catch-up behavior
-INDEXER_POLL_INTERVAL_SECONDS=60
+${indexerToggleLines}INDEXER_POLL_INTERVAL_SECONDS=60
 INDEXER_MAX_BLOCKS_PER_REQUEST=600
 INDEXER_MAX_STARTUP_LOOKBACK_SECONDS=14400
 
