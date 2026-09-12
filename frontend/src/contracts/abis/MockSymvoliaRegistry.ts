@@ -35,6 +35,22 @@ export default [
     "type": "error"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "boundChainId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "currentChainId",
+        "type": "uint256"
+      }
+    ],
+    "name": "ChainIdMismatch",
+    "type": "error"
+  },
+  {
     "inputs": [],
     "name": "DevProofsNotAllowed",
     "type": "error"
@@ -64,6 +80,22 @@ export default [
       }
     ],
     "name": "NationalityMismatch",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "boundSender",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "caller",
+        "type": "address"
+      }
+    ],
+    "name": "SenderAddressMismatch",
     "type": "error"
   },
   {

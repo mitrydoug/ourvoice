@@ -32,6 +32,8 @@ contract MockSymvoliaRegistry is ASymvoliaRegistry {
     error DevProofsNotAllowed();
     error AddressAlreadyRegistered(address user, bytes32 existingId);
     error InvalidScope(string expectedScope);
+    error SenderAddressMismatch(address boundSender, address caller);
+    error ChainIdMismatch(uint256 boundChainId, uint256 currentChainId);
 
     string public scope;
     bool public devMode;
@@ -72,6 +74,22 @@ contract MockSymvoliaRegistry is ASymvoliaRegistry {
                 scope
             )
         ) revert InvalidScope(scope);
+
+        // Bind the proof to its submitter and chain, mirroring
+        // {SymvoliaRegistry}. Without this the scoped nullifier is identical
+        // regardless of who submits it, so anyone could replay a captured
+        // registration proof (the calldata is public) from a fresh address to
+        // hijack the original holder's identity, or bridge it to another chain.
+        // The SDK commits `user_address` and `chain` into the proof; require
+        // they match this call. Enforcing it here keeps the mock (testnet)
+        // behaviour as close to mainnet as possible.
+        BoundData memory boundData = MockZKPassportParser.getBoundData(
+            _params.committedInputs
+        );
+        if (boundData.senderAddress != msg.sender)
+            revert SenderAddressMismatch(boundData.senderAddress, msg.sender);
+        if (boundData.chainId != block.chainid)
+            revert ChainIdMismatch(boundData.chainId, block.chainid);
 
         // Recover the disclosed nationality, if any.
         string memory nationality = MockZKPassportParser

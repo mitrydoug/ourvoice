@@ -68,7 +68,56 @@ contract MockSymvoliaRegistryTest is Test {
         return abi.encodePacked(uint8(1), uint16(11), payload);
     }
 
-    function _buildParams(
+    /// @dev Encodes a value as its minimal big-endian byte string (no leading
+    ///      zero bytes), matching how the ZKPassport SDK commits the chain id.
+    function _minimalBE(uint256 x) internal pure returns (bytes memory) {
+        if (x == 0) return abi.encodePacked(uint8(0));
+        uint256 nbytes = 0;
+        uint256 tmp = x;
+        while (tmp > 0) {
+            nbytes++;
+            tmp >>= 8;
+        }
+        bytes memory out = new bytes(nbytes);
+        for (uint256 i = 0; i < nbytes; i++) {
+            out[nbytes - 1 - i] = bytes1(uint8(x >> (8 * i)));
+        }
+        return out;
+    }
+
+    /// @dev Builds a BIND committed-inputs entry (proofType 8, 509-byte
+    ///      payload) binding the proof to `sender` on chain `chainId`, matching
+    ///      the EVM bound-data tag-length-value layout the verifier parses:
+    ///      USER_ADDRESS (tag 1, len 20) then CHAIN_ID (tag 2, minimal BE),
+    ///      with the remainder of the 509 bytes left as zero padding.
+    function _buildBind(
+        address sender,
+        uint256 chainId
+    ) internal pure returns (bytes memory) {
+        bytes memory data = new bytes(509);
+        // USER_ADDRESS: [0x01][0x00][0x14][20 address bytes].
+        data[0] = bytes1(uint8(1));
+        data[1] = 0x00;
+        data[2] = bytes1(uint8(20));
+        bytes20 a = bytes20(sender);
+        for (uint256 i = 0; i < 20; i++) {
+            data[3 + i] = a[i];
+        }
+        // CHAIN_ID: [0x02][0x00][len][chainId minimal big-endian bytes].
+        bytes memory cid = _minimalBE(chainId);
+        uint256 p = 23;
+        data[p] = bytes1(uint8(2));
+        data[p + 1] = 0x00;
+        data[p + 2] = bytes1(uint8(cid.length));
+        for (uint256 i = 0; i < cid.length; i++) {
+            data[p + 3 + i] = cid[i];
+        }
+        return abi.encodePacked(uint8(8), uint16(509), data);
+    }
+
+    /// @dev Builds params WITHOUT a BIND entry. Used to exercise the mock
+    ///      registry's mandatory bound-data enforcement.
+    function _buildParamsUnbound(
         string memory domain,
         string memory scope,
         bytes32 nullifier,
@@ -93,6 +142,52 @@ contract MockSymvoliaRegistryTest is Test {
             });
     }
 
+    /// @dev Builds params bound to `boundAddress` on an explicit chain id by
+    ///      appending a BIND entry to the committed inputs.
+    function _buildParamsBoundTo(
+        string memory domain,
+        string memory scope,
+        bytes32 nullifier,
+        bytes memory committedInputs,
+        bool devMode,
+        address boundAddress,
+        uint256 boundChainId
+    ) internal pure returns (ProofVerificationParams memory) {
+        return
+            _buildParamsUnbound(
+                domain,
+                scope,
+                nullifier,
+                abi.encodePacked(
+                    committedInputs,
+                    _buildBind(boundAddress, boundChainId)
+                ),
+                devMode
+            );
+    }
+
+    /// @dev Builds params bound to `boundAddress` on the current chain, which
+    ///      is the common case for the happy-path tests.
+    function _buildParams(
+        string memory domain,
+        string memory scope,
+        bytes32 nullifier,
+        bytes memory committedInputs,
+        bool devMode,
+        address boundAddress
+    ) internal view returns (ProofVerificationParams memory) {
+        return
+            _buildParamsBoundTo(
+                domain,
+                scope,
+                nullifier,
+                committedInputs,
+                devMode,
+                boundAddress,
+                block.chainid
+            );
+    }
+
     // ------------------------------------------------------------------
     // Tests
     // ------------------------------------------------------------------
@@ -104,7 +199,8 @@ contract MockSymvoliaRegistryTest is Test {
             SCOPE,
             nullifier,
             _buildDiscloseCommittedInputs("USA"),
-            false
+            false,
+            alice
         );
 
         vm.prank(alice);
@@ -131,7 +227,8 @@ contract MockSymvoliaRegistryTest is Test {
             SCOPE,
             nullifier,
             _buildAgeOnlyCommittedInputs(),
-            false
+            false,
+            alice
         );
 
         vm.prank(alice);
@@ -141,16 +238,17 @@ contract MockSymvoliaRegistryTest is Test {
         assertEq(bytes(reg.nationality).length, 0, "nationality is empty");
     }
 
-    function test_register_emptyCommittedInputs_leavesNationalityEmpty()
-        external
-    {
+    function test_register_bindOnly_leavesNationalityEmpty() external {
+        // Committed inputs contain only the mandatory BIND entry (no DISCLOSE),
+        // so registration succeeds with an empty nationality.
         bytes32 nullifier = keccak256("empty-ci");
         ProofVerificationParams memory params = _buildParams(
             DOMAIN,
             SCOPE,
             nullifier,
             "",
-            false
+            false,
+            alice
         );
 
         vm.prank(alice);
@@ -158,6 +256,72 @@ contract MockSymvoliaRegistryTest is Test {
 
         Registration memory reg = registry.getUserRegistration(alice);
         assertEq(bytes(reg.nationality).length, 0, "nationality is empty");
+    }
+
+    function test_register_missingBoundData_reverts() external {
+        // A proof generated without a `.bind(...)` call has no BIND entry and
+        // must be rejected, mirroring on-chain binding enforcement.
+        bytes32 nullifier = keccak256("no-bind");
+        ProofVerificationParams memory params = _buildParamsUnbound(
+            DOMAIN,
+            SCOPE,
+            nullifier,
+            _buildDiscloseCommittedInputs("USA"),
+            false
+        );
+
+        vm.prank(alice);
+        vm.expectRevert(bytes("MockParser: bind data not found"));
+        registry.register(params);
+    }
+
+    function test_register_boundToDifferentAddress_reverts() external {
+        // Proof bound to bob but submitted by alice: replay/hijack is rejected.
+        bytes32 nullifier = keccak256("wrong-addr");
+        ProofVerificationParams memory params = _buildParams(
+            DOMAIN,
+            SCOPE,
+            nullifier,
+            _buildDiscloseCommittedInputs("USA"),
+            false,
+            bob
+        );
+
+        vm.prank(alice);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                MockSymvoliaRegistry.SenderAddressMismatch.selector,
+                bob,
+                alice
+            )
+        );
+        registry.register(params);
+    }
+
+    function test_register_boundToDifferentChain_reverts() external {
+        // Proof bound to a different chain id is rejected (no cross-chain
+        // replay).
+        bytes32 nullifier = keccak256("wrong-chain");
+        uint256 wrongChainId = block.chainid + 1;
+        ProofVerificationParams memory params = _buildParamsBoundTo(
+            DOMAIN,
+            SCOPE,
+            nullifier,
+            _buildDiscloseCommittedInputs("USA"),
+            false,
+            alice,
+            wrongChainId
+        );
+
+        vm.prank(alice);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                MockSymvoliaRegistry.ChainIdMismatch.selector,
+                wrongChainId,
+                block.chainid
+            )
+        );
+        registry.register(params);
     }
 
     function test_register_invalidScope_reverts() external {
@@ -167,7 +331,8 @@ contract MockSymvoliaRegistryTest is Test {
             "wrong-scope",
             nullifier,
             _buildDiscloseCommittedInputs("USA"),
-            false
+            false,
+            alice
         );
 
         vm.prank(alice);
@@ -190,7 +355,8 @@ contract MockSymvoliaRegistryTest is Test {
             SCOPE,
             nullifier,
             _buildDiscloseCommittedInputs("USA"),
-            false
+            false,
+            alice
         );
 
         vm.prank(alice);
@@ -208,7 +374,8 @@ contract MockSymvoliaRegistryTest is Test {
             SCOPE,
             nullifier,
             _buildDiscloseCommittedInputs("USA"),
-            true // serviceConfig.devMode
+            true, // serviceConfig.devMode
+            alice
         );
 
         vm.prank(alice);
@@ -225,14 +392,16 @@ contract MockSymvoliaRegistryTest is Test {
             SCOPE,
             firstId,
             _buildDiscloseCommittedInputs("USA"),
-            false
+            false,
+            alice
         );
         ProofVerificationParams memory secondParams = _buildParams(
             DOMAIN,
             SCOPE,
             secondId,
             _buildDiscloseCommittedInputs("USA"),
-            false
+            false,
+            alice
         );
 
         vm.prank(alice);
@@ -257,14 +426,16 @@ contract MockSymvoliaRegistryTest is Test {
             SCOPE,
             nullifier,
             _buildDiscloseCommittedInputs("USA"),
-            false
+            false,
+            alice
         );
         ProofVerificationParams memory bobParams = _buildParams(
             DOMAIN,
             SCOPE,
             nullifier,
             _buildDiscloseCommittedInputs("USA"),
-            false
+            false,
+            bob
         );
 
         vm.prank(alice);
@@ -290,14 +461,16 @@ contract MockSymvoliaRegistryTest is Test {
             SCOPE,
             nullifier,
             _buildDiscloseCommittedInputs("USA"),
-            false
+            false,
+            alice
         );
         ProofVerificationParams memory canParams = _buildParams(
             DOMAIN,
             SCOPE,
             nullifier,
             _buildDiscloseCommittedInputs("CAN"),
-            false
+            false,
+            bob
         );
 
         vm.prank(alice);

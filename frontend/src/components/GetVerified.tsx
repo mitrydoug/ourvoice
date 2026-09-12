@@ -30,7 +30,8 @@ import {
   useTheme,
 } from "@mui/material";
 import { useWaitForTransactionReceipt } from "wagmi";
-import { useContractWrite } from "@/wallet";
+import { useContractWrite, useWalletAuth } from "@/wallet";
+import { zkPassportBindChain } from "@/wagmiConfig";
 import {
   registryContractConfig,
   devRegistryContractConfig,
@@ -681,6 +682,11 @@ const StepScanVerify: FC<{
     return zk;
   }, []);
   const { writeContract } = useContractWrite();
+  // The participant identity that will be `msg.sender` for `register()`: the
+  // smart-wallet address for sponsored embedded wallets, otherwise the EOA.
+  // The proof is bound to this address so it cannot be replayed from another
+  // account to hijack a victim's on-chain identity (see SymvoliaRegistry).
+  const { address: participantAddress } = useWalletAuth();
 
   // Wait for on-chain confirmation once we have a tx hash
   const { data: txReceipt, error: txReceiptError } =
@@ -733,6 +739,11 @@ const StepScanVerify: FC<{
   }, [submitTx]);
 
   useEffect(() => {
+    // The proof must be bound to the address that submits `register()`. Until
+    // the participant address resolves we can't build the request; the effect
+    // re-runs once it's available.
+    if (!participantAddress) return;
+
     const constructRequest = async () => {
       const queryBuilder = await zkPassport.request({
         name: "Symvolia",
@@ -748,11 +759,13 @@ const StepScanVerify: FC<{
           ? queryBuilder
               .gte("age", 18)
               .disclose("nationality")
-              .bind("chain", "ethereum_sepolia")
+              .bind("chain", zkPassportBindChain)
+              .bind("user_address", participantAddress)
               .done()
           : queryBuilder
               .gte("age", 18)
-              .bind("chain", "ethereum_sepolia")
+              .bind("chain", zkPassportBindChain)
+              .bind("user_address", participantAddress)
               .done();
 
       onProofGenerated((proofResult) => {
@@ -788,7 +801,7 @@ const StepScanVerify: FC<{
     };
 
     void constructRequest();
-  }, [zkPassport, revealNationality]);
+  }, [zkPassport, revealNationality, participantAddress]);
 
   const handleRegisterClick = useCallback(() => {
     if (verifierParams) {
