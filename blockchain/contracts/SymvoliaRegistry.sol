@@ -11,6 +11,8 @@ contract SymvoliaRegistry is ASymvoliaRegistry {
     error ProofInvalid();
     error AddressAlreadyRegistered(address user, bytes32 existingId);
     error InvalidScope(string expectedDomain, string expectedScope);
+    error SenderAddressMismatch(address boundSender, address caller);
+    error ChainIdMismatch(uint256 boundChainId, uint256 currentChainId);
 
     IZKPassportVerifier public zkPassportVerifier;
     string public scope;
@@ -60,6 +62,20 @@ contract SymvoliaRegistry is ASymvoliaRegistry {
                 scope
             )
         ) revert InvalidScope(domain, scope);
+
+        // Bind the proof to its submitter and chain. Without this, the proof's
+        // scoped nullifier is identical regardless of who submits it, so anyone
+        // could replay a captured registration proof (the calldata is public)
+        // from a fresh address to attach it to the original holder's identity,
+        // or bridge it to another chain. The SDK commits `user_address` and
+        // `chain` into the proof; require they match this call.
+        BoundData memory boundData = helper.getBoundData(
+            _params.committedInputs
+        );
+        if (boundData.senderAddress != msg.sender)
+            revert SenderAddressMismatch(boundData.senderAddress, msg.sender);
+        if (boundData.chainId != block.chainid)
+            revert ChainIdMismatch(boundData.chainId, block.chainid);
 
         // Get the disclosed data to retrieve the nationality
         DisclosedData memory disclosedData = helper.getDisclosedData(

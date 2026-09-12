@@ -1,5 +1,6 @@
 import { createConfig } from "@privy-io/wagmi";
 import type { PrivyClientConfig } from "@privy-io/react-auth";
+import type { SupportedChain } from "@zkpassport/sdk";
 import { base, baseSepolia, hardhat, type Chain } from "wagmi/chains";
 import { http } from "wagmi";
 import { optionalEnvValue, requiredEnvValue } from "./envVars";
@@ -38,6 +39,18 @@ if (!isNetworkName(networkNameValue)) {
 const networkName = networkNameValue;
 
 export const targetChain: Chain = networkToChain[networkName];
+
+// ZKPassport `bind("chain", …)` value for this deployment. The bound chain is
+// committed into the proof and enforced on-chain by SymvoliaRegistry
+// (`boundData.chainId == block.chainid`), so it MUST map to `targetChain`.
+const networkToZkPassportChain = {
+  localhost: "local",
+  base: "base",
+  base_sepolia: "base_sepolia",
+} satisfies Record<NetworkName, SupportedChain>;
+
+export const zkPassportBindChain: SupportedChain =
+  networkToZkPassportChain[networkName];
 
 const networkToAverageBlockTimeSeconds: Record<string, number> = {
   localhost: 1,

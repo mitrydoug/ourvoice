@@ -46,6 +46,18 @@ library MockZKPassportParser {
     uint256 internal constant SCOPE_INDEX = 3;
     /// @dev Public-input index of the committed service subscope.
     uint256 internal constant SUBSCOPE_INDEX = 4;
+    /// @dev ProofType.BIND from the ZKPassport committed-inputs framing.
+    uint8 internal constant PROOF_TYPE_BIND = 8;
+    /// @dev Total BIND (EVM) payload length: the bound-data byte array.
+    uint256 internal constant BOUND_DATA_LEN = 509;
+    /// @dev BoundDataIdentifier tag for the committed user address.
+    uint8 internal constant BOUND_ID_USER_ADDRESS = 1;
+    /// @dev BoundDataIdentifier tag for the committed chain id.
+    uint8 internal constant BOUND_ID_CHAIN_ID = 2;
+    /// @dev BoundDataIdentifier tag for committed custom data.
+    uint8 internal constant BOUND_ID_CUSTOM_DATA = 3;
+    /// @dev Length of a committed user address (bytes).
+    uint256 internal constant BOUND_ADDRESS_LEN = 20;
 
     /**
      * @notice Extracts the scoped nullifier (unique identifier) from the
@@ -160,5 +172,97 @@ library MockZKPassportParser {
         }
 
         return "";
+    }
+
+    /**
+     * @notice Extracts the data bound to the proof (submitter address, chain
+     *         id and custom data) from the committed inputs, mirroring the
+     *         official verifier helper's `getBoundData`.
+     * @dev Locates the single BIND entry (proofType 8, 509-byte payload) in the
+     *      committed-inputs framing and parses its tag-length-value payload.
+     *      Reverts if no BIND entry is present, so a proof generated without a
+     *      `.bind(...)` call cannot register — matching the on-chain binding
+     *      enforcement performed by {SymvoliaRegistry} in production.
+     * @param committedInputs The proof committed inputs.
+     * @return boundData The decoded bound data (sender, chain id, custom data).
+     */
+    function getBoundData(
+        bytes calldata committedInputs
+    ) internal pure returns (BoundData memory boundData) {
+        uint256 offset = 0;
+        uint256 total = committedInputs.length;
+
+        while (offset + 3 <= total) {
+            uint8 proofType = uint8(committedInputs[offset]);
+            uint256 payloadLen = (uint256(uint8(committedInputs[offset + 1])) <<
+                8) | uint256(uint8(committedInputs[offset + 2]));
+            uint256 payloadStart = offset + 3;
+            require(
+                payloadStart + payloadLen <= total,
+                "MockParser: truncated committedInputs"
+            );
+
+            if (proofType == PROOF_TYPE_BIND && payloadLen == BOUND_DATA_LEN) {
+                return
+                    _parseBoundData(
+                        committedInputs[payloadStart:payloadStart +
+                            BOUND_DATA_LEN]
+                    );
+            }
+
+            offset = payloadStart + payloadLen;
+        }
+
+        revert("MockParser: bind data not found");
+    }
+
+    /**
+     * @notice Parses a 509-byte bound-data payload into its fields.
+     * @dev Walks the tag-length-value entries (USER_ADDRESS, CHAIN_ID,
+     *      CUSTOM_DATA). An unknown tag marks the start of zero padding, which
+     *      must be all zeros. The chain id is stored as a minimal big-endian
+     *      byte string and left-aligned back into a uint256.
+     * @param data The 509-byte bound-data payload.
+     * @return boundData The decoded bound data.
+     */
+    function _parseBoundData(
+        bytes calldata data
+    ) private pure returns (BoundData memory boundData) {
+        uint256 p = 0;
+        while (p < BOUND_DATA_LEN) {
+            uint8 tag = uint8(data[p]);
+            if (tag == BOUND_ID_USER_ADDRESS) {
+                uint256 len = (uint256(uint8(data[p + 1])) << 8) |
+                    uint256(uint8(data[p + 2]));
+                require(
+                    len == BOUND_ADDRESS_LEN,
+                    "MockParser: bad bound address length"
+                );
+                boundData.senderAddress = address(
+                    bytes20(data[p + 3:p + 3 + len])
+                );
+                p += 3 + len;
+            } else if (tag == BOUND_ID_CHAIN_ID) {
+                uint256 len = (uint256(uint8(data[p + 1])) << 8) |
+                    uint256(uint8(data[p + 2]));
+                require(len <= 32, "MockParser: bound chain id too long");
+                boundData.chainId =
+                    uint256(bytes32(data[p + 3:p + 3 + len])) >>
+                    (256 - (len * 8));
+                p += 3 + len;
+            } else if (tag == BOUND_ID_CUSTOM_DATA) {
+                uint256 len = (uint256(uint8(data[p + 1])) << 8) |
+                    uint256(uint8(data[p + 2]));
+                boundData.customData = string(data[p + 3:p + 3 + len]);
+                p += 3 + len;
+            } else {
+                // An unknown tag marks the start of the zero padding that fills
+                // the remainder of the fixed-length bound-data array.
+                for (uint256 i = p; i < BOUND_DATA_LEN; i++) {
+                    require(data[i] == 0, "MockParser: invalid bind padding");
+                }
+                break;
+            }
+        }
     }
 }
